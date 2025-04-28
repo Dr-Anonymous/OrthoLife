@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Stethoscope, Medkit, Hospital, Ambulance, Wheelchair, Heart } from "lucide-react";
+import { Stethoscope, Syringe, Hospital, Ambulance, BriefcaseMedical, Heart } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ServiceCardProps {
@@ -38,7 +38,7 @@ const Services = () => {
       description: "Specialized surgical procedures for bone, joint, and muscle conditions."
     },
     {
-      icon: <Wheelchair size={24} />,
+      icon: <BriefcaseMedical size={24} />,
       title: "Physiotherapy",
       description: "Rehabilitation services to restore movement and function affected by injury or disability."
     },
@@ -48,7 +48,7 @@ const Services = () => {
       description: "Immediate medical attention for acute injuries and urgent orthopaedic conditions."
     },
     {
-      icon: <Medkit size={24} />,
+      icon: <Syringe size={24} />,
       title: "Sports Medicine",
       description: "Specialized care for athletes and sports-related injuries to enhance performance."
     },
