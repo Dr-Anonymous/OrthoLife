@@ -83,7 +83,7 @@ const Footer = () => {
               </li>
               <li className="flex items-start gap-3">
                 <MapPin size={18} className="text-secondary mt-1" />
-                <span>123 Medical Plaza, Healthcare District, City</span>
+                <span>70-17-18/2b, Road 3, R R Nagar, Kakinada- 03</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail size={18} className="text-secondary" />
