@@ -1,0 +1,54 @@
+
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Phone } from "lucide-react";
+
+const Header = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'}`}>
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-primary font-heading font-bold text-2xl">
+              OrthoLife
+            </h1>
+          </div>
+          
+          <nav className="hidden md:flex items-center space-x-8">
+            <a href="#home" className="font-medium hover:text-primary transition-colors">Home</a>
+            <a href="#services" className="font-medium hover:text-primary transition-colors">Services</a>
+            <a href="#about" className="font-medium hover:text-primary transition-colors">About</a>
+            <a href="#contact" className="font-medium hover:text-primary transition-colors">Contact</a>
+          </nav>
+          
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" className="hidden md:flex items-center gap-2">
+              <Phone size={16} />
+              <span>9866812555</span>
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90 transition-colors">
+              Book Appointment
+            </Button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Header;

@@ -1,0 +1,74 @@
+
+import { Button } from "@/components/ui/button";
+
+const About = () => {
+  return (
+    <section id="about" className="py-16 md:py-24">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="w-full md:w-1/2">
+            <div className="relative">
+              <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/10 rounded-full"></div>
+              <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-secondary/20 rounded-full"></div>
+              <div className="relative rounded-lg overflow-hidden shadow-xl">
+                <img 
+                  src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1964&q=80" 
+                  alt="Medical team at OrthoLife clinic" 
+                  className="w-full h-auto object-cover aspect-[4/3]"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="w-full md:w-1/2 space-y-6">
+            <h2 className="text-3xl md:text-4xl font-heading font-bold">About OrthoLife</h2>
+            <p className="text-gray-700">
+              OrthoLife is a state-of-the-art orthopaedic and general medical clinic dedicated to providing exceptional healthcare services. With a team of experienced specialists and modern facilities, we are committed to improving the quality of life for our patients through personalized treatment plans.
+            </p>
+            <p className="text-gray-700">
+              Our mission is to deliver compassionate care while utilizing the latest technologies and evidence-based practices in orthopaedics and general medicine.
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+              <div className="flex items-start gap-2">
+                <div className="rounded-full bg-primary/10 p-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">Expert Specialists</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="rounded-full bg-primary/10 p-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">Modern Equipment</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="rounded-full bg-primary/10 p-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">Personalized Care</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="rounded-full bg-primary/10 p-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">Evidence-Based Treatment</span>
+              </div>
+            </div>
+            
+            <Button className="bg-primary hover:bg-primary/90 mt-4">Learn More About Us</Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default About;
