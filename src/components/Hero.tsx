@@ -25,11 +25,11 @@ const Hero = () => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-6">
                 <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-primary">15+</span>
+                  <span className="text-3xl font-bold text-primary">5+</span>
                   <span className="text-gray-600">Years Experience</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-primary">10k+</span>
+                  <span className="text-3xl font-bold text-primary">5k+</span>
                   <span className="text-gray-600">Happy Patients</span>
                 </div>
                 <div className="flex flex-col">
