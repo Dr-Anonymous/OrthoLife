@@ -8,7 +8,7 @@ const Contact = () => {
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4">Get in Touch</h2>
           <p className="text-gray-600">
-            Have questions or want to schedule an appointment? Reach out to our team.
+            Have questions or want to schedule an appointment? Feel free to reach out to us any time.
           </p>
         </div>
 
@@ -19,7 +19,7 @@ const Contact = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-1">Phone Number</h3>
-              <p className="text-gray-700">9866812555</p>
+              <p href= "tel:+919866812555" className="text-gray-700">9866812555</p>
             </div>
           </div>
 
