@@ -16,10 +16,10 @@ const Hero = () => {
                 OrthoLife provides expert orthopaedic and general medical services with compassionate care for all patients.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white" onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}}>
                   Book an Appointment
                 </Button>
-                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10" onClick={(e) => {e.preventDefault();window.location.href='#services';}}>
                   Our Services
                 </Button>
               </div>
