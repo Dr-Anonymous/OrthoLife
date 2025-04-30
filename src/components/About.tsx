@@ -12,7 +12,7 @@ const About = () => {
               <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-secondary/20 rounded-full"></div>
               <div className="relative rounded-lg overflow-hidden shadow-xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1964&q=80" 
+                  src="https://images.unsplash.com/photo-1579154491781-5e199df316aa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1964&q=80" 
                   alt="Medical team at OrthoLife clinic" 
                   className="w-full h-auto object-cover aspect-[4/3]"
                 />
