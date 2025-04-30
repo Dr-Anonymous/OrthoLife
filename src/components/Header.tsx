@@ -37,11 +37,11 @@ const Header = () => {
           </nav>
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" className="hidden md:flex items-center gap-2" onclick="location.href='tel:+919866812555'">
+            <Button onclick="location.href='tel:+919866812555'" variant="outline" className="hidden md:flex items-center gap-2">
               <Phone size={16} />
               <span>9866812555</span>
             </Button>
-            <Button className="bg-primary hover:bg-primary/90 transition-colors" onclick="location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today'">
+            <Button onclick="location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today'" className="bg-primary hover:bg-primary/90 transition-colors">
               Book Appointment
             </Button>
           </div>
