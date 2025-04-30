@@ -63,7 +63,7 @@ const About = () => {
               </div>
             </div>
             
-            <Button className="bg-primary hover:bg-primary/90 mt-4">Learn More About Us</Button>
+            <Button onClick={(e) => {e.preventDefault();window.location.href='https://orthosam.com';}} className="bg-primary hover:bg-primary/90 mt-4">Our Team</Button>
           </div>
         </div>
       </div>
