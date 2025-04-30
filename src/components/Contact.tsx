@@ -23,7 +23,7 @@ const Contact = () => {
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
+          <div onClick={(e) => {e.preventDefault();window.location.href='https://g.page/orthosam/';}} className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <MapPin size={24} />
             </div>
@@ -33,7 +33,7 @@ const Contact = () => {
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
+          <div onClick={(e) => {e.preventDefault();window.location.href='mailto:info@ortho.life';}} className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <Mail size={24} />
             </div>
