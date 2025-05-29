@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error('Google Places API key not configured')
     }
 
-    const placeId = 'ChIJJT3ZgSUpODoRsyD-GOZ2YYg'
+    const placeId = 'ChIJT6k-_1soODoRmW1kWN7Fa2E'
     
     // Fetch place details including reviews
     const response = await fetch(
