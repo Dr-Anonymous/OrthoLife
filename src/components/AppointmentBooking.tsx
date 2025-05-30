@@ -44,6 +44,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   const selectedServiceData = services.find(s => s.name === selectedService);
 
@@ -57,15 +58,30 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
     if (!selectedDate) return;
     
     setLoading(true);
+    setError('');
     try {
+      console.log('Fetching slots for date:', selectedDate.toISOString());
+      
       const { data, error } = await supabase.functions.invoke('get-available-slots', {
         body: { date: selectedDate.toISOString() }
       });
 
-      if (error) throw error;
-      setAvailableSlots(data.slots || []);
+      if (error) {
+        console.error('Supabase function error:', error);
+        setError('Unable to fetch available slots. Please try again.');
+        setAvailableSlots([]);
+        return;
+      }
+
+      console.log('Received slots data:', data);
+      setAvailableSlots(data?.slots || []);
+      
+      if (!data?.slots || data.slots.length === 0) {
+        setError('No available slots for this date. Please select another date.');
+      }
     } catch (error) {
       console.error('Error fetching slots:', error);
+      setError('Unable to fetch available slots. Please try again.');
       setAvailableSlots([]);
     } finally {
       setLoading(false);
@@ -157,6 +173,13 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
               <label className="block text-sm font-medium mb-2">
                 Available Time Slots for {selectedDate.toLocaleDateString()}
               </label>
+              
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+              
               {loading ? (
                 <div className="text-center py-4">Loading available slots...</div>
               ) : availableSlots.length > 0 ? (
@@ -173,11 +196,11 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
                     </Button>
                   ))}
                 </div>
-              ) : (
+              ) : !error ? (
                 <p className="text-center py-4 text-gray-500">
                   No available slots for this date
                 </p>
-              )}
+              ) : null}
             </div>
           )}
 
