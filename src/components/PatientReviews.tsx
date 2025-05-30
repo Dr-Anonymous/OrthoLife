@@ -127,7 +127,7 @@ const PatientReviews = () => {
 
         {reviewsData && reviewsData.reviews.length > 0 && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reviewsData.reviews.slice(0, 6).map((review) => (
+            {reviewsData.reviews.slice(0, 7).map((review) => (
               <Card key={review.id} className="p-6 hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
                   <div className="flex items-start gap-4 mb-4">
