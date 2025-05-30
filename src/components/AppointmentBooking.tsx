@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, Calendar as CalendarIcon, DollarSign } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, DollarSign, CreditCard, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TimeSlot {
@@ -29,6 +28,8 @@ interface AppointmentData {
 interface AppointmentBookingProps {
   onComplete: (data: AppointmentData) => void;
   onBack: () => void;
+  paymentOption: 'online' | 'offline';
+  onPaymentOptionChange: (option: 'online' | 'offline') => void;
 }
 
 const services: ServiceType[] = [
@@ -38,7 +39,12 @@ const services: ServiceType[] = [
   { name: 'Follow-up Visit', duration: 20, price: 300 },
 ];
 
-const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onBack }) => {
+const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ 
+  onComplete, 
+  onBack, 
+  paymentOption, 
+  onPaymentOptionChange 
+}) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedService, setSelectedService] = useState<string>('');
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
@@ -103,7 +109,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
 
   const isWeekend = (date: Date) => {
     const day = date.getDay();
-    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+    return day === 0 || day === 6;
   };
 
   const isPastDate = (date: Date) => {
@@ -204,6 +210,39 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
             </div>
           )}
 
+          {/* Payment Option Selection */}
+          {selectedSlot && selectedServiceData && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Payment Option</label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={paymentOption === 'offline' ? 'default' : 'outline'}
+                  onClick={() => onPaymentOptionChange('offline')}
+                  className="flex items-center gap-2 h-auto p-4"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="font-medium">Pay at Clinic</div>
+                    <div className="text-xs opacity-70">Pay when you visit</div>
+                  </div>
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentOption === 'online' ? 'default' : 'outline'}
+                  onClick={() => onPaymentOptionChange('online')}
+                  className="flex items-center gap-2 h-auto p-4"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="font-medium">Pay Online</div>
+                    <div className="text-xs opacity-70">Secure payment</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Summary */}
           {selectedSlot && selectedServiceData && (
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
@@ -214,6 +253,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
                 <p><strong>Time:</strong> {selectedSlot.display}</p>
                 <p><strong>Duration:</strong> {selectedServiceData.duration} minutes</p>
                 <p><strong>Fee:</strong> ₹{selectedServiceData.price}</p>
+                <p><strong>Payment:</strong> {paymentOption === 'online' ? 'Online Payment' : 'Pay at Clinic'}</p>
               </div>
             </div>
           )}
@@ -227,7 +267,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onComplete, onB
               disabled={!selectedSlot || !selectedService}
               className="flex-1"
             >
-              Proceed to Payment
+              {paymentOption === 'online' ? 'Proceed to Payment' : 'Book Appointment'}
             </Button>
           </div>
         </CardContent>

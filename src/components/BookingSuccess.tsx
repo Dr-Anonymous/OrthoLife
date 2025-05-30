@@ -2,9 +2,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Calendar, Clock, Mail } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Mail, MapPin, CreditCard } from 'lucide-react';
 
-const BookingSuccess: React.FC = () => {
+interface BookingSuccessProps {
+  paymentOption: 'online' | 'offline';
+}
+
+const BookingSuccess: React.FC<BookingSuccessProps> = ({ paymentOption }) => {
   return (
     <Card className="text-center">
       <CardHeader>
@@ -17,6 +21,30 @@ const BookingSuccess: React.FC = () => {
         <p className="text-gray-600">
           Your appointment has been confirmed and you will receive a confirmation email shortly.
         </p>
+
+        {paymentOption === 'offline' && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
+              <div className="text-sm text-blue-700">
+                <p className="font-medium">Payment at Clinic</p>
+                <p>Please bring the exact amount (cash or card) when you visit the clinic.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {paymentOption === 'online' && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <CreditCard className="w-4 h-4 text-green-600 mt-0.5" />
+              <div className="text-sm text-green-700">
+                <p className="font-medium">Payment Confirmed</p>
+                <p>Your online payment has been processed successfully.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-center gap-2 text-blue-600">

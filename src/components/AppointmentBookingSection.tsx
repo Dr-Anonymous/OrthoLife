@@ -1,11 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 import PatientRegistration from './PatientRegistration';
 import AppointmentBooking from './AppointmentBooking';
 import PaymentForm from './PaymentForm';
 import BookingSuccess from './BookingSuccess';
+import AuthForm from './AuthForm';
 
-type BookingStep = 'registration' | 'appointment' | 'payment' | 'success';
+type BookingStep = 'auth' | 'registration' | 'appointment' | 'payment' | 'success';
 
 interface PatientData {
   name: string;
@@ -22,9 +25,37 @@ interface AppointmentData {
 }
 
 const AppointmentBookingSection: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState<BookingStep>('registration');
+  const [currentStep, setCurrentStep] = useState<BookingStep>('auth');
+  const [user, setUser] = useState<User | null>(null);
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [appointmentData, setAppointmentData] = useState<AppointmentData | null>(null);
+  const [paymentOption, setPaymentOption] = useState<'online' | 'offline'>('offline');
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        setCurrentStep('registration');
+      }
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        setCurrentStep('registration');
+      } else {
+        setUser(null);
+        setCurrentStep('auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handlePatientRegistration = (data: PatientData) => {
     setPatientData(data);
@@ -33,7 +64,36 @@ const AppointmentBookingSection: React.FC = () => {
 
   const handleAppointmentBooking = (data: AppointmentData) => {
     setAppointmentData(data);
-    setCurrentStep('payment');
+    if (paymentOption === 'online') {
+      setCurrentStep('payment');
+    } else {
+      handleOfflineBooking(data);
+    }
+  };
+
+  const handleOfflineBooking = async (data: AppointmentData) => {
+    if (!patientData || !user) return;
+
+    try {
+      const { data: bookingData, error } = await supabase.functions.invoke(
+        'book-appointment',
+        {
+          body: {
+            patientData,
+            appointmentData: data,
+            paymentData: {
+              paymentMethod: 'offline',
+              paymentStatus: 'pending'
+            }
+          }
+        }
+      );
+
+      if (error) throw error;
+      setCurrentStep('success');
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+    }
   };
 
   const handlePaymentSuccess = () => {
@@ -48,6 +108,10 @@ const AppointmentBookingSection: React.FC = () => {
     setCurrentStep('appointment');
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <section id="book-appointment" className="py-16 bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto px-4">
@@ -57,8 +121,21 @@ const AppointmentBookingSection: React.FC = () => {
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Schedule your visit with our experienced orthopedic specialists. 
-            Easy online booking with secure payment.
+            Easy online booking with flexible payment options.
           </p>
+          {user && (
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <span className="text-sm text-gray-600">
+                Logged in as: {user.email}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="max-w-2xl mx-auto">
@@ -66,17 +143,18 @@ const AppointmentBookingSection: React.FC = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               {[
-                { step: 'registration', label: 'Registration', number: 1 },
-                { step: 'appointment', label: 'Appointment', number: 2 },
-                { step: 'payment', label: 'Payment', number: 3 },
-                { step: 'success', label: 'Confirmation', number: 4 },
+                { step: 'auth', label: 'Login', number: 1 },
+                { step: 'registration', label: 'Registration', number: 2 },
+                { step: 'appointment', label: 'Appointment', number: 3 },
+                { step: 'payment', label: 'Payment', number: 4 },
+                { step: 'success', label: 'Confirmation', number: 5 },
               ].map((item, index) => (
                 <div key={item.step} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                       currentStep === item.step
                         ? 'bg-blue-600 text-white'
-                        : index < ['registration', 'appointment', 'payment', 'success'].indexOf(currentStep)
+                        : index < ['auth', 'registration', 'appointment', 'payment', 'success'].indexOf(currentStep)
                         ? 'bg-green-600 text-white'
                         : 'bg-gray-200 text-gray-600'
                     }`}
@@ -86,10 +164,10 @@ const AppointmentBookingSection: React.FC = () => {
                   <span className="ml-2 text-sm font-medium text-gray-700">
                     {item.label}
                   </span>
-                  {index < 3 && (
+                  {index < 4 && (
                     <div
                       className={`flex-1 h-1 mx-4 ${
-                        index < ['registration', 'appointment', 'payment', 'success'].indexOf(currentStep)
+                        index < ['auth', 'registration', 'appointment', 'payment', 'success'].indexOf(currentStep)
                           ? 'bg-green-600'
                           : 'bg-gray-200'
                       }`}
@@ -102,6 +180,10 @@ const AppointmentBookingSection: React.FC = () => {
 
           {/* Step Content */}
           <div className="flex justify-center">
+            {currentStep === 'auth' && (
+              <AuthForm />
+            )}
+            
             {currentStep === 'registration' && (
               <PatientRegistration onComplete={handlePatientRegistration} />
             )}
@@ -110,6 +192,8 @@ const AppointmentBookingSection: React.FC = () => {
               <AppointmentBooking 
                 onComplete={handleAppointmentBooking}
                 onBack={goBackToRegistration}
+                paymentOption={paymentOption}
+                onPaymentOptionChange={setPaymentOption}
               />
             )}
             
@@ -122,7 +206,7 @@ const AppointmentBookingSection: React.FC = () => {
               />
             )}
             
-            {currentStep === 'success' && <BookingSuccess />}
+            {currentStep === 'success' && <BookingSuccess paymentOption={paymentOption} />}
           </div>
         </div>
       </div>

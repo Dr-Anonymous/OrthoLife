@@ -21,6 +21,10 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Determine payment status and method
+    const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
+    const paymentId = paymentData.paymentId || null;
+
     // Store patient registration and appointment details
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
@@ -32,8 +36,9 @@ serve(async (req) => {
         appointment_date: appointmentData.start,
         appointment_end: appointmentData.end,
         service_type: appointmentData.serviceType,
-        payment_id: paymentData.paymentId,
-        payment_status: 'paid',
+        payment_id: paymentId,
+        payment_status: paymentStatus,
+        payment_method: paymentData.paymentMethod || 'online',
         amount: appointmentData.amount,
         status: 'confirmed'
       })
@@ -51,7 +56,7 @@ serve(async (req) => {
     if (accessToken) {
       const calendarEvent = {
         summary: `Appointment - ${patientData.name}`,
-        description: `Patient: ${patientData.name}\nPhone: ${patientData.phone}\nService: ${appointmentData.serviceType}`,
+        description: `Patient: ${patientData.name}\nPhone: ${patientData.phone}\nService: ${appointmentData.serviceType}\nPayment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}`,
         start: {
           dateTime: appointmentData.start,
           timeZone: 'Asia/Kolkata',
@@ -85,6 +90,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       appointmentId: appointment.id,
+      paymentStatus: paymentStatus,
       message: 'Appointment booked successfully!'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
