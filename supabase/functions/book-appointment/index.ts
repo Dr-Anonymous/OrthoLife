@@ -14,6 +14,7 @@ serve(async (req) => {
 
   try {
     const { patientData, appointmentData, paymentData } = await req.json();
+    console.log('Booking appointment for:', patientData.name, 'at', appointmentData.start);
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -49,14 +50,25 @@ serve(async (req) => {
       throw new Error(`Failed to store appointment: ${appointmentError.message}`);
     }
 
+    console.log('Appointment stored in database with ID:', appointment.id);
+
     // Create Google Calendar event
-    const calendarId = 'primary';
     const accessToken = Deno.env.get('GOOGLE_CALENDAR_ACCESS_TOKEN');
     
     if (accessToken) {
+      console.log('Creating Google Calendar event...');
+      
+      const calendarId = 'primary';
       const calendarEvent = {
-        summary: `Appointment - ${patientData.name}`,
-        description: `Patient: ${patientData.name}\nPhone: ${patientData.phone}\nService: ${appointmentData.serviceType}\nPayment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}`,
+        summary: `Orthopedic Appointment - ${patientData.name}`,
+        description: `Patient: ${patientData.name}
+Email: ${patientData.email}
+Phone: ${patientData.phone}
+Address: ${patientData.address}
+Service: ${appointmentData.serviceType}
+Amount: ₹${appointmentData.amount}
+Payment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}
+Appointment ID: ${appointment.id}`,
         start: {
           dateTime: appointmentData.start,
           timeZone: 'Asia/Kolkata',
@@ -66,8 +78,18 @@ serve(async (req) => {
           timeZone: 'Asia/Kolkata',
         },
         attendees: [
-          { email: patientData.email }
-        ]
+          { 
+            email: patientData.email,
+            displayName: patientData.name
+          }
+        ],
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'email', minutes: 1440 }, // 24 hours before
+            { method: 'popup', minutes: 60 },   // 1 hour before
+          ],
+        },
       };
 
       const calendarResponse = await fetch(
@@ -82,9 +104,23 @@ serve(async (req) => {
         }
       );
 
-      if (!calendarResponse.ok) {
-        console.error('Failed to create calendar event');
+      if (calendarResponse.ok) {
+        const calendarEventData = await calendarResponse.json();
+        console.log('Google Calendar event created:', calendarEventData.id);
+        
+        // Update appointment record with calendar event ID
+        await supabase
+          .from('appointments')
+          .update({ calendar_event_id: calendarEventData.id })
+          .eq('id', appointment.id);
+          
+      } else {
+        const errorText = await calendarResponse.text();
+        console.error('Failed to create calendar event:', errorText);
+        // Don't fail the appointment booking if calendar creation fails
       }
+    } else {
+      console.log('No Google Calendar access token found, skipping calendar event creation');
     }
 
     return new Response(JSON.stringify({ 

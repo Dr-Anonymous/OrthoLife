@@ -13,6 +13,7 @@ serve(async (req) => {
 
   try {
     const { date } = await req.json();
+    console.log('Fetching slots for date:', date);
     
     // Define working hours (9 AM to 5 PM)
     const startTime = new Date(date);
@@ -21,12 +22,10 @@ serve(async (req) => {
     const endTime = new Date(date);
     endTime.setHours(17, 0, 0, 0);
 
-    // Generate available 30-minute slots
-    const availableSlots = [];
+    // Generate potential 30-minute slots
+    const potentialSlots = [];
     const slotDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
 
-    // For now, we'll generate slots without checking Google Calendar
-    // This provides a working solution while you set up proper Google Calendar OAuth
     for (let time = startTime.getTime(); time < endTime.getTime(); time += slotDuration) {
       const slotStart = new Date(time);
       const slotEnd = new Date(time + slotDuration);
@@ -39,7 +38,7 @@ serve(async (req) => {
         continue;
       }
 
-      availableSlots.push({
+      potentialSlots.push({
         start: slotStart.toISOString(),
         end: slotEnd.toISOString(),
         display: slotStart.toLocaleTimeString('en-US', { 
@@ -50,7 +49,66 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Generated ${availableSlots.length} slots for ${date}`);
+    // Get Google Calendar access token
+    const accessToken = Deno.env.get('GOOGLE_CALENDAR_ACCESS_TOKEN');
+    
+    if (!accessToken) {
+      console.log('No Google Calendar access token found, returning all potential slots');
+      return new Response(JSON.stringify({ slots: potentialSlots }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Fetch events from Google Calendar for the specified date
+    const calendarId = 'primary';
+    const timeMin = startTime.toISOString();
+    const timeMax = endTime.toISOString();
+
+    console.log('Checking Google Calendar from', timeMin, 'to', timeMax);
+
+    const calendarResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!calendarResponse.ok) {
+      console.error('Failed to fetch calendar events:', await calendarResponse.text());
+      // Fallback to returning all potential slots if calendar check fails
+      return new Response(JSON.stringify({ slots: potentialSlots }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const calendarData = await calendarResponse.json();
+    const existingEvents = calendarData.items || [];
+    
+    console.log(`Found ${existingEvents.length} existing events`);
+
+    // Filter out slots that conflict with existing calendar events
+    const availableSlots = potentialSlots.filter(slot => {
+      const slotStart = new Date(slot.start);
+      const slotEnd = new Date(slot.end);
+
+      // Check if this slot conflicts with any existing event
+      const hasConflict = existingEvents.some(event => {
+        if (!event.start || !event.end) return false;
+        
+        const eventStart = new Date(event.start.dateTime || event.start.date);
+        const eventEnd = new Date(event.end.dateTime || event.end.date);
+        
+        // Check for overlap: slot starts before event ends AND slot ends after event starts
+        return slotStart < eventEnd && slotEnd > eventStart;
+      });
+
+      return !hasConflict;
+    });
+
+    console.log(`Generated ${availableSlots.length} available slots out of ${potentialSlots.length} potential slots`);
 
     return new Response(JSON.stringify({ slots: availableSlots }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
