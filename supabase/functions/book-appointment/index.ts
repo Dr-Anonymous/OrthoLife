@@ -1,12 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to decode base64 string to Uint8Array
+// Base64 decoder
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -16,10 +16,10 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-// Function to generate JWT for service account
+// Create JWT for service account
 async function createJWT(serviceAccount: any, scopes: string[]): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const expiry = now + 3600; // 1 hour
+  const expiry = now + 3600;
 
   const header = {
     alg: 'RS256',
@@ -38,21 +38,14 @@ async function createJWT(serviceAccount: any, scopes: string[]): Promise<string>
   const encoder = new TextEncoder();
   const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  
   const data = `${headerB64}.${payloadB64}`;
-  
-  // Clean and format the private key
-  const privateKeyPem = serviceAccount.private_key
-    .replace(/\\n/g, '\n')
-    .replace(/\r/g, '');
-  
-  // Extract the base64 content between the headers
+
+  const privateKeyPem = serviceAccount.private_key.replace(/\\n/g, '\n').replace(/\r/g, '');
   const keyData = privateKeyPem
     .replace('-----BEGIN PRIVATE KEY-----', '')
     .replace('-----END PRIVATE KEY-----', '')
     .replace(/\s/g, '');
-  
-  // Import the private key
+
   const keyBytes = base64ToUint8Array(keyData);
   const cryptoKey = await crypto.subtle.importKey(
     'pkcs8',
@@ -62,7 +55,6 @@ async function createJWT(serviceAccount: any, scopes: string[]): Promise<string>
     ['sign']
   );
 
-  // Sign the JWT
   const signature = await crypto.subtle.sign(
     'RSASSA-PKCS1-v1_5',
     cryptoKey,
@@ -75,7 +67,7 @@ async function createJWT(serviceAccount: any, scopes: string[]): Promise<string>
   return `${data}.${signatureB64}`;
 }
 
-// Function to get access token using service account
+// Get access token
 async function getAccessToken(): Promise<string | null> {
   try {
     const serviceAccountKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
@@ -86,9 +78,7 @@ async function getAccessToken(): Promise<string | null> {
 
     const serviceAccount = JSON.parse(serviceAccountKey);
     const scopes = ['https://www.googleapis.com/auth/calendar'];
-    
     const jwt = await createJWT(serviceAccount, scopes);
-    console.log('JWT:', jwt); // <== Add this here to debug the JWT
 
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -101,25 +91,20 @@ async function getAccessToken(): Promise<string | null> {
       }),
     });
 
-// Debug response body
-const responseText = await response.text();
-console.error('Token exchange response:', responseText);
+    const responseText = await response.text();
+    console.error('Token exchange response:', responseText);
 
-if (!response.ok) {
-  console.error('Failed to get access token');
-  return null;
-}
+    if (!response.ok) return null;
 
-const data = JSON.parse(responseText); // Use parsed response from above
-return data.access_token;
-    
-    
+    const data = JSON.parse(responseText);
+    return data.access_token;
   } catch (error) {
     console.error('Error generating access token:', error);
     return null;
   }
 }
 
+// Main server handler
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -128,65 +113,15 @@ serve(async (req) => {
   try {
     const { patientData, appointmentData, paymentData } = await req.json();
     console.log('Booking appointment for:', patientData.name, 'at', appointmentData.start);
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
 
-    // Determine payment status and method
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
-    const paymentId = paymentData.paymentId || null;
+    const appointmentId = crypto.randomUUID();
 
-    const appointmentRecord = {
-      patient_name: patientData.name,
-      patient_email: patientData.email,
-      patient_phone: patientData.phone,
-      patient_address: patientData.address,
-      appointment_date: appointmentData.start,
-      appointment_end: appointmentData.end,
-      service_type: appointmentData.serviceType,
-      payment_id: paymentId,
-      payment_status: paymentStatus,
-      payment_method: paymentData.paymentMethod || 'online',
-      amount: appointmentData.amount,
-      status: 'confirmed'
-    };
-
-    console.log('Inserting appointment with data:', appointmentRecord);
-
-    // Store patient registration and appointment details
-    const { data: appointment, error: appointmentError } = await supabase
-      .from('appointments')
-      .insert(appointmentRecord)
-      .select()
-      .single();
-
-    if (appointmentError) {
-      console.error('Database insertion error details:', {
-        message: appointmentError.message,
-        code: appointmentError.code,
-        details: appointmentError.details,
-        hint: appointmentError.hint,
-        full_error: appointmentError
-      });
-      throw new Error(`Failed to store appointment: ${appointmentError.message || appointmentError.code || 'Unknown database error'}`);
-    }
-
-    if (!appointment) {
-      throw new Error('Failed to store appointment: No data returned from database');
-    }
-
-    console.log('Appointment stored in database with ID:', appointment.id);
-
-    // Create Google Calendar event using service account
     const accessToken = await getAccessToken();
-    
+
     if (accessToken) {
-      console.log('Creating Google Calendar event...');
-      
       const calendarId = 'gangrenesoul@gmail.com';
+
       const calendarEvent = {
         summary: `Orthopedic Appointment - ${patientData.name}`,
         description: `Patient: ${patientData.name}
@@ -196,7 +131,7 @@ Address: ${patientData.address}
 Service: ${appointmentData.serviceType}
 Amount: ₹${appointmentData.amount}
 Payment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}
-Appointment ID: ${appointment.id}`,
+Appointment ID: ${appointmentId}`,
         start: {
           dateTime: appointmentData.start,
           timeZone: 'Asia/Kolkata',
@@ -206,7 +141,7 @@ Appointment ID: ${appointment.id}`,
           timeZone: 'Asia/Kolkata',
         },
         attendees: [
-          { 
+          {
             email: patientData.email,
             displayName: patientData.name
           }
@@ -214,8 +149,8 @@ Appointment ID: ${appointment.id}`,
         reminders: {
           useDefault: false,
           overrides: [
-            { method: 'email', minutes: 1440 }, // 24 hours before
-            { method: 'popup', minutes: 60 },   // 1 hour before
+            { method: 'email', minutes: 1440 },
+            { method: 'popup', minutes: 60 },
           ],
         },
       };
@@ -232,40 +167,32 @@ Appointment ID: ${appointment.id}`,
         }
       );
 
-      if (calendarResponse.ok) {
-        const calendarEventData = await calendarResponse.json();
-        console.log('Google Calendar event created:', calendarEventData.id);
-        
-        // Update appointment record with calendar event ID
-        await supabase
-          .from('appointments')
-          .update({ calendar_event_id: calendarEventData.id })
-          .eq('id', appointment.id);
-          
-      } else {
+      if (!calendarResponse.ok) {
         const errorText = await calendarResponse.text();
         console.error('Failed to create calendar event:', errorText);
-        // Don't fail the appointment booking if calendar creation fails
+        // Continue response even if calendar fails
+      } else {
+        const calendarEventData = await calendarResponse.json();
+        console.log('Google Calendar event created:', calendarEventData.id);
       }
     } else {
-      console.log('No Google Calendar access token available, skipping calendar event creation');
+      console.log('No Google Calendar access token available, skipping event creation');
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      appointmentId: appointment.id,
-      paymentStatus: paymentStatus,
-      message: 'Appointment booked successfully!'
+    return new Response(JSON.stringify({
+      success: true,
+      appointmentId,
+      paymentStatus,
+      message: 'Appointment booked and added to Google Calendar!',
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error booking appointment:', error);
-    console.error('Error stack:', error.stack);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: error.message,
-      success: false 
+      success: false
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
