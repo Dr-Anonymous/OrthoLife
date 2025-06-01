@@ -52,7 +52,7 @@ async function createJWT(serviceAccount: any, scopes: string[]): Promise<string>
     .replace(/\s/g, '');
   
   // Import the private key
-  const keyBytes = keyData; //base64ToUint8Array(keyData);
+  const keyBytes = base64ToUint8Array(keyData);
   const cryptoKey = await crypto.subtle.importKey(
     'pkcs8',
     keyBytes,
