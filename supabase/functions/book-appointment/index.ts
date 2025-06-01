@@ -132,6 +132,21 @@ serve(async (req) => {
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
     const paymentId = paymentData.paymentId || null;
 
+    console.log('Inserting appointment with data:', {
+      patient_name: patientData.name,
+      patient_email: patientData.email,
+      patient_phone: patientData.phone,
+      patient_address: patientData.address,
+      appointment_date: appointmentData.start,
+      appointment_end: appointmentData.end,
+      service_type: appointmentData.serviceType,
+      payment_id: paymentId,
+      payment_status: paymentStatus,
+      payment_method: paymentData.paymentMethod || 'online',
+      amount: appointmentData.amount,
+      status: 'confirmed'
+    });
+
     // Store patient registration and appointment details
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
@@ -153,7 +168,12 @@ serve(async (req) => {
       .single();
 
     if (appointmentError) {
-      throw new Error(`Failed to store appointment: ${appointmentError.message}`);
+      console.error('Database insertion error:', appointmentError);
+      throw new Error(`Failed to store appointment: ${appointmentError.message || appointmentError.code || JSON.stringify(appointmentError)}`);
+    }
+
+    if (!appointment) {
+      throw new Error('Failed to store appointment: No data returned from database');
     }
 
     console.log('Appointment stored in database with ID:', appointment.id);
@@ -240,7 +260,10 @@ Appointment ID: ${appointment.id}`,
 
   } catch (error) {
     console.error('Error booking appointment:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      success: false 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
