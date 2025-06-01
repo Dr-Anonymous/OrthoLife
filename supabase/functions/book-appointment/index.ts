@@ -53,7 +53,7 @@ async function createJWT(serviceAccount: any, scopes: string[]): Promise<string>
     .replace(/\s/g, '');
   
   // Import the private key
-  const keyBytes = keyData; //base64ToUint8Array(keyData);
+  const keyBytes = base64ToUint8Array(keyData);
   const cryptoKey = await crypto.subtle.importKey(
     'pkcs8',
     keyBytes,
@@ -179,7 +179,7 @@ serve(async (req) => {
     if (accessToken) {
       console.log('Creating Google Calendar event...');
       
-      const calendarId = 'primary';
+      const calendarId = 'gangrenesoul@gmail.com';
       const calendarEvent = {
         summary: `Orthopedic Appointment - ${patientData.name}`,
         description: `Patient: ${patientData.name}
