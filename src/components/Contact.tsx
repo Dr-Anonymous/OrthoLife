@@ -8,7 +8,7 @@ const Contact = () => {
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4">Get in Touch</h2>
           <p className="text-gray-600">
-            Have questions or want to schedule an appointment? Feel free to reach out to us any time.
+            Feel free to reach out to us any time.
           </p>
         </div>
 
