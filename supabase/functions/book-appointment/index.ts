@@ -132,7 +132,7 @@ serve(async (req) => {
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
     const paymentId = paymentData.paymentId || null;
 
-    console.log('Inserting appointment with data:', {
+    const appointmentRecord = {
       patient_name: patientData.name,
       patient_email: patientData.email,
       patient_phone: patientData.phone,
@@ -145,31 +145,26 @@ serve(async (req) => {
       payment_method: paymentData.paymentMethod || 'online',
       amount: appointmentData.amount,
       status: 'confirmed'
-    });
+    };
+
+    console.log('Inserting appointment with data:', appointmentRecord);
 
     // Store patient registration and appointment details
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
-      .insert({
-        patient_name: patientData.name,
-        patient_email: patientData.email,
-        patient_phone: patientData.phone,
-        patient_address: patientData.address,
-        appointment_date: appointmentData.start,
-        appointment_end: appointmentData.end,
-        service_type: appointmentData.serviceType,
-        payment_id: paymentId,
-        payment_status: paymentStatus,
-        payment_method: paymentData.paymentMethod || 'online',
-        amount: appointmentData.amount,
-        status: 'confirmed'
-      })
+      .insert(appointmentRecord)
       .select()
       .single();
 
     if (appointmentError) {
-      console.error('Database insertion error:', appointmentError);
-      throw new Error(`Failed to store appointment: ${appointmentError.message || appointmentError.code || JSON.stringify(appointmentError)}`);
+      console.error('Database insertion error details:', {
+        message: appointmentError.message,
+        code: appointmentError.code,
+        details: appointmentError.details,
+        hint: appointmentError.hint,
+        full_error: appointmentError
+      });
+      throw new Error(`Failed to store appointment: ${appointmentError.message || appointmentError.code || 'Unknown database error'}`);
     }
 
     if (!appointment) {
@@ -260,6 +255,7 @@ Appointment ID: ${appointment.id}`,
 
   } catch (error) {
     console.error('Error booking appointment:', error);
+    console.error('Error stack:', error.stack);
     return new Response(JSON.stringify({ 
       error: error.message,
       success: false 
