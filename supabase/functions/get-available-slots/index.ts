@@ -87,6 +87,8 @@ async function getAccessToken(): Promise<string | null> {
     const scopes = ['https://www.googleapis.com/auth/calendar'];
     
     const jwt = await createJWT(serviceAccount, scopes);
+    console.log('JWT:', jwt); // Debug print to verify the JWT contents
+
     
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -98,7 +100,10 @@ async function getAccessToken(): Promise<string | null> {
         assertion: jwt,
       }),
     });
-
+    // 🔽 ADD THIS RIGHT AFTER FETCH:
+    const responseText = await response.text();
+    console.error('Token exchange response:', responseText);
+    
     if (!response.ok) {
       console.error('Failed to get access token:', await response.text());
       return null;
