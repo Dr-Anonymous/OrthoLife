@@ -19,7 +19,7 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({ paymentOption }) => {
       </CardHeader>
       <CardContent className="space-y-6">
         <p className="text-gray-600">
-          Your appointment has been confirmed and you will receive a confirmation email shortly.
+          Your appointment has been booked and you will receive a confirmation through SMS/Whatsapp shortly.
         </p>
 
         {paymentOption === 'offline' && (
@@ -48,12 +48,8 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({ paymentOption }) => {
 
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-center gap-2 text-blue-600">
-            <Calendar className="w-4 h-4" />
-            <span>Check your email for appointment details</span>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-blue-600">
             <Clock className="w-4 h-4" />
-            <span>Please arrive 15 minutes before your appointment</span>
+            <span>Please arrive 10 minutes before your appointment</span>
           </div>
           <div className="flex items-center justify-center gap-2 text-blue-600">
             <Mail className="w-4 h-4" />
