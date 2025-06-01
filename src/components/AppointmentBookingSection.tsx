@@ -86,8 +86,7 @@ const AppointmentBookingSection: React.FC = () => {
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
             Book Your Appointment
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Schedule your visit with our experienced orthopedic specialists. 
+          <p className="text-gray-600 max-w-2xl mx-auto"> 
             Easy online booking with flexible payment options.
           </p>
         </div>
@@ -95,14 +94,14 @@ const AppointmentBookingSection: React.FC = () => {
         <div className="max-w-2xl mx-auto">
           {/* Progress Indicator */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap">
               {[
                 { step: 'registration', label: 'Registration', number: 1 },
                 { step: 'appointment', label: 'Appointment', number: 2 },
                 { step: 'payment', label: 'Payment', number: 3 },
                 { step: 'success', label: 'Confirmation', number: 4 },
               ].map((item, index) => (
-                <div key={item.step} className="flex items-center">
+                <div key={item.step} className="flex items-center mb-4 sm:mb-0">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                       currentStep === item.step
@@ -119,7 +118,7 @@ const AppointmentBookingSection: React.FC = () => {
                   </span>
                   {index < 3 && (
                     <div
-                      className={`flex-1 h-1 mx-4 ${
+                      className={`flex-1 h-1 mx-4 hidden sm:block ${
                         index < ['registration', 'appointment', 'payment', 'success'].indexOf(currentStep)
                           ? 'bg-green-600'
                           : 'bg-gray-200'
