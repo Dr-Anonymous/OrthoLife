@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -6,6 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Function to decode base64 string to Uint8Array
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
 // Function to generate JWT for service account
 async function createJWT(serviceAccount: any, scopes: string[]): Promise<string> {
@@ -32,11 +41,22 @@ async function createJWT(serviceAccount: any, scopes: string[]): Promise<string>
   
   const data = `${headerB64}.${payloadB64}`;
   
+  // Clean and format the private key
+  const privateKeyPem = serviceAccount.private_key
+    .replace(/\\n/g, '\n')
+    .replace(/\r/g, '');
+  
+  // Extract the base64 content between the headers
+  const keyData = privateKeyPem
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\s/g, '');
+  
   // Import the private key
-  const privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
-  const keyData = await crypto.subtle.importKey(
+  const keyBytes = base64ToUint8Array(keyData);
+  const cryptoKey = await crypto.subtle.importKey(
     'pkcs8',
-    new TextEncoder().encode(privateKey.replace('-----BEGIN PRIVATE KEY-----', '').replace('-----END PRIVATE KEY-----', '').replace(/\s/g, '')),
+    keyBytes,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false,
     ['sign']
@@ -45,7 +65,7 @@ async function createJWT(serviceAccount: any, scopes: string[]): Promise<string>
   // Sign the JWT
   const signature = await crypto.subtle.sign(
     'RSASSA-PKCS1-v1_5',
-    keyData,
+    cryptoKey,
     encoder.encode(data)
   );
 
