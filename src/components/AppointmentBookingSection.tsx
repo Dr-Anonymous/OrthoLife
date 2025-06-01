@@ -92,7 +92,7 @@ const AppointmentBookingSection: React.FC = () => {
           </p>
         </div>
 
-        <div className="mb-12 max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           {/* Progress Indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
