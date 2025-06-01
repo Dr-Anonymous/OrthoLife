@@ -166,7 +166,7 @@ serve(async (req) => {
     }
 
     // Fetch events from Google Calendar for the specified date
-    const calendarId = 'primary';
+    const calendarId = 'gangrenesoul@gmail.com';
     const timeMin = startTime.toISOString();
     const timeMax = endTime.toISOString();
 
