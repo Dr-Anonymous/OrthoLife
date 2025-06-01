@@ -33,10 +33,10 @@ interface AppointmentBookingProps {
 }
 
 const services: ServiceType[] = [
-  { name: 'General Consultation', duration: 30, price: 500 },
-  { name: 'Physiotherapy Session', duration: 45, price: 800 },
-  { name: 'X-Ray & Consultation', duration: 60, price: 1200 },
+  { name: 'New Consultation', duration: 30, price: 500 },
   { name: 'Follow-up Visit', duration: 20, price: 300 },
+  { name: 'General Physician Consultation', duration: 45, price: 500 },
+  { name: 'X-Ray', duration: 15, price: 300 },
 ];
 
 const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ 
@@ -109,7 +109,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
   const isWeekend = (date: Date) => {
     const day = date.getDay();
-    return day === 0 || day === 6;
+    return day === 0 ;//|| day === 6;
   };
 
   const isPastDate = (date: Date) => {
@@ -169,7 +169,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
               className="rounded-md border"
             />
             <p className="text-sm text-gray-500 mt-2">
-              Appointments available Monday to Friday only
+              Appointments available Monday to Saturday only. For instant EMERGENCY / Sunday consultation contact through <a href"https://wa.me/919866812555?text=Hi%2C%0AI%20would%20like%20to%20book%20an%20appointment%20for%20today.">Whatsapp</a>
             </p>
           </div>
 
