@@ -42,7 +42,7 @@ const Header = () => {
               <span>9866812555</span>
             </Button>
             <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}} className="bg-primary hover:bg-primary/90 transition-colors">
-              Book Appointment
+              WhatsApp
             </Button>
           </div>
         </div>
