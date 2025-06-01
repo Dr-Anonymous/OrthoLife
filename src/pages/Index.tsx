@@ -19,8 +19,8 @@ const Index = () => {
         <Services />
         <About />
         <PatientReviews />
-        <AppointmentBookingSection />
         <CTA />
+        <AppointmentBookingSection />
         <Contact />
       </main>
       <Footer />
