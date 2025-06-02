@@ -31,13 +31,11 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     const newErrors: Partial<PatientData> = {};
     
     if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    //if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
     
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
+    //if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) { newErrors.email = 'Please enter a valid email';  }
     
     if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
@@ -84,6 +82,21 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
           </div>
 
           <div>
+            <Label htmlFor="phone">Phone Number</Label>
+            <div className="relative">
+              <Phone className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
+                className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
+                placeholder="1234567890"
+              />
+            </div>
+            {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
+          </div>
+
+           <div>
             <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -97,21 +110,6 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
               />
             </div>
             {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <div className="relative">
-              <Phone className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
-                className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
-                placeholder="1234567890"
-              />
-            </div>
-            {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
           </div>
 
           <div>
