@@ -122,21 +122,26 @@ serve(async (req) => {
     const { date, timezone = 'Asia/Kolkata' } = await req.json();
     console.log('Fetching slots for date:', date, 'timezone:', timezone);
     
-    // Parse the incoming date and ensure it's in the correct timezone
+    // Parse the incoming date
     const requestDate = new Date(date);
+    console.log('Parsed request date:', requestDate.toString());
+    console.log('Request date UTC:', requestDate.toISOString());
     
-    // Create start and end times in the specified timezone (Asia/Kolkata)
-    const startTime = new Date(requestDate);
-    startTime.setHours(9, 0, 0, 0); // 9 AM local time
+    // Create start and end times for the same date in the local timezone
+    const year = requestDate.getFullYear();
+    const month = requestDate.getMonth();
+    const day = requestDate.getDate();
     
-    const endTime = new Date(requestDate);
-    endTime.setHours(17, 0, 0, 0); // 5 PM local time
+    // Create times in local timezone
+    const startTime = new Date(year, month, day, 9, 0, 0, 0); // 9 AM local
+    const endTime = new Date(year, month, day, 17, 0, 0, 0); // 5 PM local
+    
+    console.log('Local start time:', startTime.toString());
+    console.log('Local end time:', endTime.toString());
+    console.log('UTC start time:', startTime.toISOString());
+    console.log('UTC end time:', endTime.toISOString());
 
-    // Convert to UTC for Google Calendar API
-    const startTimeUTC = new Date(startTime.toLocaleString("en-US", {timeZone: "UTC"}));
-    const endTimeUTC = new Date(endTime.toLocaleString("en-US", {timeZone: "UTC"}));
-
-    // Generate potential 30-minute slots in local time
+    // Generate potential 30-minute slots
     const potentialSlots = [];
     const slotDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
 
@@ -163,6 +168,8 @@ serve(async (req) => {
         })
       });
     }
+
+    console.log('Generated potential slots:', potentialSlots.length);
 
     // Get Google Calendar access token using service account
     const accessToken = await getAccessToken();
