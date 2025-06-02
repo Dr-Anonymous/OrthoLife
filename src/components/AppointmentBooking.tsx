@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,17 +66,10 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
     setLoading(true);
     setError('');
     try {
-      // Create date in local timezone for the selected date at start of day
-      const localDate = new Date(selectedDate);
-      localDate.setHours(0, 0, 0, 0);
-      
-      console.log('Fetching slots for date:', localDate.toISOString());
+      console.log('Fetching slots for date:', selectedDate.toISOString());
       
       const { data, error } = await supabase.functions.invoke('get-available-slots', {
-        body: { 
-          date: localDate.toISOString(),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        }
+        body: { date: selectedDate.toISOString()}
       });
 
       if (error) {
@@ -117,7 +109,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
   const isWeekend = (date: Date) => {
     const day = date.getDay();
-    return day === 0; // Only Sunday is disabled
+    return day === 0 ;//|| day === 6;
   };
 
   const isPastDate = (date: Date) => {
