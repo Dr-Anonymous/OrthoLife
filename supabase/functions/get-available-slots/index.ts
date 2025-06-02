@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -87,8 +88,6 @@ async function getAccessToken(): Promise<string | null> {
     const scopes = ['https://www.googleapis.com/auth/calendar'];
     
     const jwt = await createJWT(serviceAccount, scopes);
-    console.log('JWT:', jwt); // Debug print to verify the JWT contents
-
     
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -100,9 +99,6 @@ async function getAccessToken(): Promise<string | null> {
         assertion: jwt,
       }),
     });
-    // 🔽 ADD THIS RIGHT AFTER FETCH:
-    const responseText = await response.text();
-    console.error('Token exchange response:', responseText);
     
     if (!response.ok) {
       console.error('Failed to get access token:', await response.text());
@@ -123,17 +119,24 @@ serve(async (req) => {
   }
 
   try {
-    const { date } = await req.json();
-    console.log('Fetching slots for date:', date);
+    const { date, timezone = 'Asia/Kolkata' } = await req.json();
+    console.log('Fetching slots for date:', date, 'timezone:', timezone);
     
-    // Define working hours (9 AM to 5 PM)
-    const startTime = new Date(date);
-    startTime.setHours(9, 0, 0, 0);
+    // Parse the incoming date and ensure it's in the correct timezone
+    const requestDate = new Date(date);
     
-    const endTime = new Date(date);
-    endTime.setHours(17, 0, 0, 0);
+    // Create start and end times in the specified timezone (Asia/Kolkata)
+    const startTime = new Date(requestDate);
+    startTime.setHours(9, 0, 0, 0); // 9 AM local time
+    
+    const endTime = new Date(requestDate);
+    endTime.setHours(17, 0, 0, 0); // 5 PM local time
 
-    // Generate potential 30-minute slots
+    // Convert to UTC for Google Calendar API
+    const startTimeUTC = new Date(startTime.toLocaleString("en-US", {timeZone: "UTC"}));
+    const endTimeUTC = new Date(endTime.toLocaleString("en-US", {timeZone: "UTC"}));
+
+    // Generate potential 30-minute slots in local time
     const potentialSlots = [];
     const slotDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
 
@@ -155,7 +158,8 @@ serve(async (req) => {
         display: slotStart.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
-          hour12: true 
+          hour12: true,
+          timeZone: timezone
         })
       });
     }
@@ -170,7 +174,7 @@ serve(async (req) => {
       });
     }
 
-    // Fetch events from Google Calendar for the specified date
+    // Fetch events from Google Calendar for the specified date range
     const calendarId = 'gangrenesoul@gmail.com';
     const timeMin = startTime.toISOString();
     const timeMax = endTime.toISOString();

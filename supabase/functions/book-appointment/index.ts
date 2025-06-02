@@ -1,4 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // CORS headers
 const corsHeaders = {
@@ -91,12 +93,12 @@ async function getAccessToken(): Promise<string | null> {
       }),
     });
 
-    const responseText = await response.text();
-    console.error('Token exchange response:', responseText);
+    if (!response.ok) {
+      console.error('Failed to get access token:', await response.text());
+      return null;
+    }
 
-    if (!response.ok) return null;
-
-    const data = JSON.parse(responseText);
+    const data = await response.json();
     return data.access_token;
   } catch (error) {
     console.error('Error generating access token:', error);
@@ -117,6 +119,48 @@ serve(async (req) => {
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
     const appointmentId = crypto.randomUUID();
 
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Convert appointment times to proper timezone handling
+    const appointmentStart = new Date(appointmentData.start);
+    const appointmentEnd = new Date(appointmentData.end);
+
+    console.log('Appointment times:', {
+      start: appointmentStart.toISOString(),
+      end: appointmentEnd.toISOString(),
+      startLocal: appointmentStart.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }),
+      endLocal: appointmentEnd.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
+    });
+
+    // Store appointment in database
+    const { data: dbData, error: dbError } = await supabase
+      .from('appointments')
+      .insert({
+        patient_name: patientData.name,
+        patient_email: patientData.email,
+        patient_phone: patientData.phone,
+        patient_address: patientData.address,
+        appointment_date: appointmentStart.toISOString(),
+        appointment_end: appointmentEnd.toISOString(),
+        service_type: appointmentData.serviceType,
+        amount: appointmentData.amount,
+        payment_method: paymentData.paymentMethod,
+        payment_status: paymentStatus,
+        status: 'confirmed'
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Database error:', dbError);
+      throw new Error(`Failed to save appointment: ${dbError.message}`);
+    }
+
+    console.log('Appointment saved to database:', dbData.id);
+
     const accessToken = await getAccessToken();
 
     if (accessToken) {
@@ -133,11 +177,11 @@ Amount: ₹${appointmentData.amount}
 Payment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}
 Appointment ID: ${appointmentId}`,
         start: {
-          dateTime: appointmentData.start,
+          dateTime: appointmentStart.toISOString(),
           timeZone: 'Asia/Kolkata',
         },
         end: {
-          dateTime: appointmentData.end,
+          dateTime: appointmentEnd.toISOString(),
           timeZone: 'Asia/Kolkata',
         },
         attendees: [
@@ -174,6 +218,12 @@ Appointment ID: ${appointmentId}`,
       } else {
         const calendarEventData = await calendarResponse.json();
         console.log('Google Calendar event created:', calendarEventData.id);
+        
+        // Update database with calendar event ID
+        await supabase
+          .from('appointments')
+          .update({ calendar_event_id: calendarEventData.id })
+          .eq('id', dbData.id);
       }
     } else {
       console.log('No Google Calendar access token available, skipping event creation');
