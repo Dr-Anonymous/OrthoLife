@@ -19,7 +19,7 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({ paymentOption }) => {
       </CardHeader>
       <CardContent className="space-y-6">
         <p className="text-gray-600">
-          Your appointment has been booked and you will receive a confirmation through SMS/Whatsapp shortly.
+          You will receive a confirmation through SMS/WhatsApp shortly.
         </p>
 
         {paymentOption === 'offline' && (
