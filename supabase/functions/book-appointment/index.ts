@@ -124,7 +124,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Convert appointment times to proper Date objects
+    // Convert appointment times to proper timezone handling
     const appointmentStart = new Date(appointmentData.start);
     const appointmentEnd = new Date(appointmentData.end);
 
@@ -147,7 +147,7 @@ serve(async (req) => {
         appointment_end: appointmentEnd.toISOString(),
         service_type: appointmentData.serviceType,
         amount: appointmentData.amount,
-        payment_method: paymentData.paymentMethod || 'offline',
+        payment_method: paymentData.paymentMethod,
         payment_status: paymentStatus,
         status: 'confirmed'
       })
@@ -156,8 +156,7 @@ serve(async (req) => {
 
     if (dbError) {
       console.error('Database error:', dbError);
-      console.error('Database error details:', JSON.stringify(dbError, null, 2));
-      throw new Error(`Failed to save appointment: ${dbError.message || 'Unknown database error'}`);
+      throw new Error(`Failed to save appointment: ${dbError.message}`);
     }
 
     console.log('Appointment saved to database:', dbData.id);
