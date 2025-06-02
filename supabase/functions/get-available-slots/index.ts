@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -88,7 +87,7 @@ async function getAccessToken(): Promise<string | null> {
     const scopes = ['https://www.googleapis.com/auth/calendar'];
     
     const jwt = await createJWT(serviceAccount, scopes);
-    console.log('JWT:', jwt); // Debug print to verify the JWT contents
+    console.log('JWT created successfully');
 
     
     const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -101,16 +100,15 @@ async function getAccessToken(): Promise<string | null> {
         assertion: jwt,
       }),
     });
-    // 🔽 ADD THIS RIGHT AFTER FETCH:
-    const responseText = await response.text();
-    console.error('Token exchange response:', responseText);
     
     if (!response.ok) {
-      console.error('Failed to get access token:', await response.text());
+      const errorText = await response.text();
+      console.error('Failed to get access token:', errorText);
       return null;
     }
 
     const data = await response.json();
+    console.log('Successfully obtained access token');
     return data.access_token;
   } catch (error) {
     console.error('Error generating access token:', error);

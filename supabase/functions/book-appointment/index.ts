@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers
@@ -141,12 +140,7 @@ Appointment ID: ${appointmentId}`,
           dateTime: appointmentData.end,
           timeZone: 'Asia/Kolkata',
         },
-        attendees: [
-          {
-            email: patientData.email,
-            displayName: patientData.name
-          }
-        ],
+        // Remove attendees to avoid Domain-Wide Delegation error
         reminders: {
           useDefault: false,
           overrides: [
