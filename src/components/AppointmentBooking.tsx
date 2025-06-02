@@ -7,8 +7,6 @@ import { Clock, Calendar as CalendarIcon, DollarSign, CreditCard, MapPin } from 
 import { supabase } from '@/integrations/supabase/client';
 
 
-var myDate;
-
 interface TimeSlot {
   start: string;
   end: string;
@@ -69,7 +67,11 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
     setLoading(true);
     setError('');
     try {
-      myDate = selectedDate;
+      console.log(selectedDate);
+      console.log(selectedDate.toLocaleDateString()); 
+      console.log(selectedDate.toLocaleString()); 
+      console.log(selectedDate.toLocaleTimeString())
+      
       console.log('Fetching slots for date:', selectedDate.toISOString());
       
       const { data, error } = await supabase.functions.invoke('get-available-slots', {
