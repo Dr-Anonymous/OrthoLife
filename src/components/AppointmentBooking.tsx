@@ -75,7 +75,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
       console.log('Fetching slots for date:', selectedDate.toISOString());
       
       const { data, error } = await supabase.functions.invoke('get-available-slots', {
-        body: { date: selectedDate.toISOString()}
+        body: { date: selectedDate}
       });
 
       if (error) {
