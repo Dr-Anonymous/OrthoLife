@@ -83,7 +83,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
         return;
       }
 
-      console.log('Received slots data:', data);
+      //console.log('Received slots data:', data);
       setAvailableSlots(data?.slots || []);
       
       if (!data?.slots || data.slots.length === 0) {
