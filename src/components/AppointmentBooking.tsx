@@ -67,10 +67,10 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
     setLoading(true);
     setError('');
     try {  
-      const year = selectedDate.getUTCFullYear();
-      const month = String(selectedDate.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getUTCDate()).padStart(2, '0');
-      console.log('Fetching slots for date:', `${year}-${month}-${day}`);
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      //console.log('Fetching slots for date:', `${year}-${month}-${day}`);
       
       const { data, error } = await supabase.functions.invoke('get-available-slots', {
         body: { date: `${year}-${month}-${day}`}
