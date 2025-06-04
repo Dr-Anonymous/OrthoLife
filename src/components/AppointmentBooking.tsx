@@ -34,10 +34,9 @@ interface AppointmentBookingProps {
 }
 
 const services: ServiceType[] = [
-  { name: 'New Consultation', duration: 30, price: 500 },
-  { name: 'Follow-up Visit', duration: 20, price: 300 },
-  { name: 'General Physician Consultation', duration: 45, price: 500 },
-  { name: 'X-Ray', duration: 15, price: 300 },
+  { name: 'Ortho Consultation', duration: 30, price: 400 },
+  { name: 'General Physician Consultation', duration: 45, price: 400 },
+  { name: 'Follow-up Visit', duration: 20, price: 0 },
 ];
 
 const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ 
@@ -70,7 +69,6 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
-      //console.log('Fetching slots for date:', `${year}-${month}-${day}`);
       
       const { data, error } = await supabase.functions.invoke('get-available-slots', {
         body: { date: `${year}-${month}-${day}`}
