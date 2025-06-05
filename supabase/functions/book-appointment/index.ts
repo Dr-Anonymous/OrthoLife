@@ -92,12 +92,14 @@ async function getAccessToken(): Promise<string | null> {
       }),
     });
 
-    const responseText = await response.text();
-    console.error('Token exchange response:', responseText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to get access token:', errorText);
+      return null;
+    }
 
-    if (!response.ok) return null;
-
-    const data = JSON.parse(responseText);
+    const data = await response.json();
+    console.log('Successfully obtained access token');
     return data.access_token;
   } catch (error) {
     console.error('Error generating access token:', error);
@@ -135,7 +137,7 @@ serve(async (req) => {
     const accessToken = await getAccessToken();
 
     if (accessToken) {
-      const calendarId = 'gangrenesoul@gmail.com';
+      const calendarId = 'primary'; // Changed from specific email to 'primary'
 
       // Format appointment times for display in Indian timezone
       const appointmentStartIST = formatIndianDateTime(appointmentData.start);
@@ -202,7 +204,7 @@ Appointment ID: ${appointmentId}`,
       success: true,
       appointmentId,
       paymentStatus,
-      message: 'Appointment booked and added to Google Calendar!',
+      message: 'Appointment booked successfully!',
       appointmentTime: formatIndianDateTime(appointmentData.start)
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
