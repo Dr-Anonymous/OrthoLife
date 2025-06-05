@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers
@@ -104,6 +105,20 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
+// Function to format date for Indian timezone display
+function formatIndianDateTime(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
 // Main server handler
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -122,6 +137,10 @@ serve(async (req) => {
     if (accessToken) {
       const calendarId = 'gangrenesoul@gmail.com';
 
+      // Format appointment times for display in Indian timezone
+      const appointmentStartIST = formatIndianDateTime(appointmentData.start);
+      const appointmentEndIST = formatIndianDateTime(appointmentData.end);
+
       const calendarEvent = {
         summary: `Orthopedic Appointment - ${patientData.name}`,
         description: `Patient: ${patientData.name}
@@ -131,6 +150,7 @@ Address: ${patientData.address}
 Service: ${appointmentData.serviceType}
 Amount: ₹${appointmentData.amount}
 Payment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}
+Appointment Time (IST): ${appointmentStartIST} - ${appointmentEndIST}
 Appointment ID: ${appointmentId}`,
         start: {
           dateTime: appointmentData.start,
@@ -140,15 +160,18 @@ Appointment ID: ${appointmentId}`,
           dateTime: appointmentData.end,
           timeZone: 'Asia/Kolkata',
         },
-        // Remove attendees to avoid Domain-Wide Delegation error
         reminders: {
           useDefault: false,
           overrides: [
-            { method: 'email', minutes: 1440 },
-            { method: 'popup', minutes: 60 },
+            { method: 'email', minutes: 1440 }, // 24 hours before
+            { method: 'popup', minutes: 60 },   // 1 hour before
           ],
         },
       };
+
+      console.log('Creating calendar event with timezone:', calendarEvent.start.timeZone);
+      console.log('Event start time:', appointmentData.start);
+      console.log('Event end time:', appointmentData.end);
 
       const calendarResponse = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`,
@@ -169,6 +192,7 @@ Appointment ID: ${appointmentId}`,
       } else {
         const calendarEventData = await calendarResponse.json();
         console.log('Google Calendar event created:', calendarEventData.id);
+        console.log('Event created for time (IST):', appointmentStartIST);
       }
     } else {
       console.log('No Google Calendar access token available, skipping event creation');
@@ -179,6 +203,7 @@ Appointment ID: ${appointmentId}`,
       appointmentId,
       paymentStatus,
       message: 'Appointment booked and added to Google Calendar!',
+      appointmentTime: formatIndianDateTime(appointmentData.start)
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

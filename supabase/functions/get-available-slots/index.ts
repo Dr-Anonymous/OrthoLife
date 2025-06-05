@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -116,6 +117,25 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
+// Function to convert date to Indian timezone
+function toIndianTimezone(date: Date): Date {
+  // Convert to Indian timezone (UTC+5:30)
+  const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const indianTime = new Date(utcTime + (5.5 * 3600000));
+  return indianTime;
+}
+
+// Function to create date in Indian timezone
+function createIndianDate(dateString: string): Date {
+  // Parse the date string and treat it as Indian timezone
+  const date = new Date(dateString);
+  // Adjust for timezone difference to get correct UTC representation
+  const indianOffset = 5.5 * 60; // Indian timezone is UTC+5:30
+  const localOffset = date.getTimezoneOffset();
+  const totalOffset = indianOffset + localOffset;
+  return new Date(date.getTime() - (totalOffset * 60000));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -125,12 +145,17 @@ serve(async (req) => {
     const { date } = await req.json();
     console.log('Fetching slots for date:', date);
     
-    // Define working hours (9 AM to 5 PM)
-    const startTime = new Date(date);
-    startTime.setHours(9, 0, 0, 0);
+    // Create date in Indian timezone
+    const selectedDate = createIndianDate(date);
     
-    const endTime = new Date(date);
-    endTime.setHours(17, 0, 0, 0);
+    // Define working hours in Indian timezone (9 AM to 5 PM IST)
+    const startTime = new Date(selectedDate);
+    startTime.setUTCHours(3, 30, 0, 0); // 9:00 AM IST = 3:30 UTC
+    
+    const endTime = new Date(selectedDate);
+    endTime.setUTCHours(11, 30, 0, 0); // 5:00 PM IST = 11:30 UTC
+
+    console.log('Working hours in UTC:', startTime.toISOString(), 'to', endTime.toISOString());
 
     // Generate potential 30-minute slots
     const potentialSlots = [];
@@ -140,24 +165,30 @@ serve(async (req) => {
       const slotStart = new Date(time);
       const slotEnd = new Date(time + slotDuration);
       
-      // Skip lunch hour (12:30 PM to 1:30 PM)
-      if (slotStart.getHours() === 12 && slotStart.getMinutes() >= 30) {
+      // Convert to Indian time for lunch hour check
+      const slotStartIST = toIndianTimezone(slotStart);
+      
+      // Skip lunch hour (12:30 PM to 1:30 PM IST)
+      if (slotStartIST.getHours() === 12 && slotStartIST.getMinutes() >= 30) {
         continue;
       }
-      if (slotStart.getHours() === 13 && slotStart.getMinutes() < 30) {
+      if (slotStartIST.getHours() === 13 && slotStartIST.getMinutes() < 30) {
         continue;
       }
 
       potentialSlots.push({
         start: slotStart.toISOString(),
         end: slotEnd.toISOString(),
-        display: slotStart.toLocaleTimeString('en-US', { 
+        display: slotStartIST.toLocaleTimeString('en-IN', { 
           hour: '2-digit', 
           minute: '2-digit',
-          hour12: true 
+          hour12: true,
+          timeZone: 'Asia/Kolkata'
         })
       });
     }
+
+    console.log(`Generated ${potentialSlots.length} potential slots`);
 
     // Get Google Calendar access token using service account
     const accessToken = await getAccessToken();
