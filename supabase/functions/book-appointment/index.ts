@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers
@@ -92,7 +93,7 @@ async function getAccessToken(): Promise<string | null> {
     });
 
     const responseText = await response.text();
-    console.error('Token exchange response:', responseText);
+    console.log('Token exchange response:', responseText);
 
     if (!response.ok) return null;
 
@@ -101,6 +102,55 @@ async function getAccessToken(): Promise<string | null> {
   } catch (error) {
     console.error('Error generating access token:', error);
     return null;
+  }
+}
+
+// Trigger Zapier webhook
+async function triggerZapierWebhook(appointmentData: any, patientData: any, appointmentId: string) {
+  const zapierWebhookUrl = Deno.env.get('ZAPIER_WEBHOOK_URL');
+  
+  if (!zapierWebhookUrl) {
+    console.log('No Zapier webhook URL configured, skipping WhatsApp notification');
+    return;
+  }
+
+  try {
+    const webhookPayload = {
+      appointmentId,
+      patientName: patientData.name,
+      patientPhone: patientData.phone,
+      patientEmail: patientData.email,
+      serviceType: appointmentData.serviceType,
+      appointmentDate: new Date(appointmentData.start).toLocaleDateString('en-IN'),
+      appointmentTime: new Date(appointmentData.start).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      amount: appointmentData.amount,
+      paymentMethod: appointmentData.paymentMethod || 'offline',
+      clinicName: 'Dr. Samuel Manoj Cherukuri Orthopedic Clinic',
+      clinicAddress: 'Kakinada, Andhra Pradesh',
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('Triggering Zapier webhook with payload:', webhookPayload);
+
+    const response = await fetch(zapierWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(webhookPayload),
+    });
+
+    if (response.ok) {
+      console.log('Zapier webhook triggered successfully');
+    } else {
+      console.error('Failed to trigger Zapier webhook:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.error('Error triggering Zapier webhook:', error);
   }
 }
 
@@ -140,7 +190,6 @@ Appointment ID: ${appointmentId}`,
           dateTime: appointmentData.end,
           timeZone: 'Asia/Kolkata',
         },
-        // Remove attendees to avoid Domain-Wide Delegation error
         reminders: {
           useDefault: false,
           overrides: [
@@ -165,7 +214,6 @@ Appointment ID: ${appointmentId}`,
       if (!calendarResponse.ok) {
         const errorText = await calendarResponse.text();
         console.error('Failed to create calendar event:', errorText);
-        // Continue response even if calendar fails
       } else {
         const calendarEventData = await calendarResponse.json();
         console.log('Google Calendar event created:', calendarEventData.id);
@@ -174,11 +222,17 @@ Appointment ID: ${appointmentId}`,
       console.log('No Google Calendar access token available, skipping event creation');
     }
 
+    // Trigger Zapier webhook for WhatsApp notification
+    await triggerZapierWebhook({
+      ...appointmentData,
+      paymentMethod: paymentData.paymentMethod
+    }, patientData, appointmentId);
+
     return new Response(JSON.stringify({
       success: true,
       appointmentId,
       paymentStatus,
-      message: 'Appointment booked and added to Google Calendar!',
+      message: 'Appointment booked successfully! WhatsApp confirmation will be sent shortly.',
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
