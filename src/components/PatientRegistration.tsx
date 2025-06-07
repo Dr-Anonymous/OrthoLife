@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +33,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
 
   const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof PatientData, string>> = {};
@@ -73,6 +73,9 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     setFormData(prev => ({ ...prev, dateOfBirth: date }));
     if (errors.dateOfBirth) {
       setErrors(prev => ({ ...prev, dateOfBirth: undefined }));
+    }
+    if (date) {
+      setIsDatePickerOpen(false);
     }
   };
 
@@ -121,7 +124,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
 
           <div>
             <Label htmlFor="dateOfBirth">Date of Birth</Label>
-            <Popover>
+            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
