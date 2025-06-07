@@ -28,7 +28,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     email: '',
     phone: '',
     address: '',
-    dateOfBirth: undefined
+    dateOfBirth: ''
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
@@ -47,7 +47,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
 
-    if (formData.dateOfBirth && formData.dateOfBirth > new Date()) {
+    if (formData.dateOfBirth && new Date(formData.dateOfBirth) > new Date()) {
       newErrors.dateOfBirth = 'Date of birth cannot be in the future';
     }
 
@@ -69,7 +69,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     }
   };
 
-  const handleDateChange = (date: Date | undefined) => {
+  const handleDateChange = (date: Date | undefined | String) => {
     setFormData(prev => ({ ...prev, dateOfBirth: date }));
     if (errors.dateOfBirth) {
       setErrors(prev => ({ ...prev, dateOfBirth: undefined }));
