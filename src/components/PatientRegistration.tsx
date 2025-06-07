@@ -22,6 +22,7 @@ interface PatientRegistrationProps {
   onComplete: (data: PatientData) => void;
 }
 
+
 const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete }) => {
   const [formData, setFormData] = useState<PatientData>({
     name: '',
