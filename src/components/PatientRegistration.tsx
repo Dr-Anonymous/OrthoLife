@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Mail, Phone, MapPin, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,6 @@ interface PatientRegistrationProps {
   onComplete: (data: PatientData) => void;
 }
 
-
 const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete }) => {
   const [formData, setFormData] = useState<PatientData>({
     name: '',
@@ -33,6 +33,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof PatientData, string>> = {};
@@ -61,7 +62,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     }
   };
 
-  const handleInputChange = (field: 'name' | 'email' | 'phone' | 'address', value: string) => {
+  const handleInputChange = (field: keyof Omit<PatientData, 'dateOfBirth'>, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -74,6 +75,27 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
       setErrors(prev => ({ ...prev, dateOfBirth: undefined }));
     }
   };
+
+  const handleYearChange = (year: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setFullYear(parseInt(year));
+    setCalendarDate(newDate);
+  };
+
+  const handleMonthChange = (month: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setMonth(parseInt(month));
+    setCalendarDate(newDate);
+  };
+
+  // Generate years from 1930 to current year
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i);
+  
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
   return (
     <Card className="w-full max-w-md">
@@ -118,10 +140,40 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-3 border-b space-y-2">
+                  <div className="flex gap-2">
+                    <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-48">
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <Calendar
                   mode="single"
                   selected={formData.dateOfBirth}
                   onSelect={handleDateChange}
+                  month={calendarDate}
+                  onMonthChange={setCalendarDate}
                   disabled={(date) =>
                     date > new Date() || date < new Date("1900-01-01")
                   }
