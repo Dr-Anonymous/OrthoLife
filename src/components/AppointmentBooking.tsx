@@ -34,9 +34,9 @@ interface AppointmentBookingProps {
 }
 
 const services: ServiceType[] = [
-  { name: 'Ortho Consultation', duration: 30, price: 400 },
-  { name: 'General Physician Consultation', duration: 45, price: 400 },
-  { name: 'Follow-up Visit', duration: 20, price: 0 },
+  { name: 'Orthopaedic Consultation', duration: 20, price: 400 },
+  { name: 'General Physician Consultation', duration: 30, price: 400 },
+  { name: 'Follow-up Visit', duration: 10, price: 0 },
 ];
 
 const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ 
@@ -46,7 +46,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
   onPaymentOptionChange 
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedService, setSelectedService] = useState<string>('');
+  const [selectedService, setSelectedService] = useState<string>(services[0].name);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(false);
