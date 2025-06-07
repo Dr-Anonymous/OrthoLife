@@ -60,10 +60,17 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     }
   };
 
-  const handleChange = (field: keyof PatientData, value: string | Date | undefined) => {
+  const handleInputChange = (field: 'name' | 'email' | 'phone' | 'address', value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    setFormData(prev => ({ ...prev, dateOfBirth: date }));
+    if (errors.dateOfBirth) {
+      setErrors(prev => ({ ...prev, dateOfBirth: undefined }));
     }
   };
 
@@ -82,7 +89,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={(e) => handleInputChange('name', e.target.value)}
               className={errors.name ? 'border-red-500' : ''}
               placeholder="Enter your full name"
             />
@@ -113,7 +120,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
                 <Calendar
                   mode="single"
                   selected={formData.dateOfBirth}
-                  onSelect={(date) => handleChange('dateOfBirth', date)}
+                  onSelect={handleDateChange}
                   disabled={(date) =>
                     date > new Date() || date < new Date("1900-01-01")
                   }
@@ -132,7 +139,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
                 className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
                 placeholder="1234567890"
               />
@@ -148,7 +155,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
                 placeholder="your.email@example.com"
               />
@@ -163,7 +170,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
               <Input
                 id="address"
                 value={formData.address}
-                onChange={(e) => handleChange('address', e.target.value)}
+                onChange={(e) => handleInputChange('address', e.target.value)}
                 className={`pl-10 ${errors.address ? 'border-red-500' : ''}`}
                 placeholder="Your full address"
               />
