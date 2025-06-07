@@ -31,10 +31,10 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     dateOfBirth: undefined
   });
 
-  const [errors, setErrors] = useState<Partial<PatientData>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<PatientData> = {};
+    const newErrors: Partial<Record<keyof PatientData, string>> = {};
     
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
