@@ -4,13 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Mail, Phone, MapPin } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { User, Mail, Phone, MapPin, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface PatientData {
   name: string;
   email: string;
   phone: string;
   address: string;
+  dateOfBirth: Date | undefined;
 }
 
 interface PatientRegistrationProps {
@@ -22,7 +27,8 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    dateOfBirth: undefined
   });
 
   const [errors, setErrors] = useState<Partial<PatientData>>({});
@@ -31,14 +37,16 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     const newErrors: Partial<PatientData> = {};
     
     if (!formData.name.trim()) newErrors.name = 'Name is required';
-    //if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
-    
-    //if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) { newErrors.email = 'Please enter a valid email';  }
+    if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
     
     if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
+    }
+
+    if (formData.dateOfBirth && formData.dateOfBirth > new Date()) {
+      newErrors.dateOfBirth = 'Date of birth cannot be in the future';
     }
 
     setErrors(newErrors);
@@ -52,7 +60,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     }
   };
 
-  const handleChange = (field: keyof PatientData, value: string) => {
+  const handleChange = (field: keyof PatientData, value: string | Date | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -79,6 +87,42 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
               placeholder="Enter your full name"
             />
             {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !formData.dateOfBirth && "text-muted-foreground",
+                    errors.dateOfBirth && "border-red-500"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.dateOfBirth ? (
+                    format(formData.dateOfBirth, "PPP")
+                  ) : (
+                    <span>Select your date of birth</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={formData.dateOfBirth}
+                  onSelect={(date) => handleChange('dateOfBirth', date)}
+                  disabled={(date) =>
+                    date > new Date() || date < new Date("1900-01-01")
+                  }
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+            {errors.dateOfBirth && <p className="text-sm text-red-500 mt-1">{errors.dateOfBirth}</p>}
           </div>
 
           <div>
