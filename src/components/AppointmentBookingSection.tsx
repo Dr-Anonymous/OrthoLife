@@ -13,7 +13,7 @@ interface PatientData {
   email: string;
   phone: string;
   address: string;
-  dateOfBirth: Date | undefined;
+  dateOfBirth: string;
 }
 
 interface AppointmentData {
