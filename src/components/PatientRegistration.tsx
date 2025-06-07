@@ -15,7 +15,7 @@ interface PatientData {
   email: string;
   phone: string;
   address: string;
-  dateOfBirth: Date | undefined;
+  dateOfBirth: Date | string;
 }
 
 interface PatientRegistrationProps {
@@ -41,7 +41,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
+    //if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
     
     if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
