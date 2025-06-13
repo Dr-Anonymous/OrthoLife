@@ -7,8 +7,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoError, setLogoError] = useState(false);
   
-  // Logo configuration - you can update these values
-  const logoUrl = "/logo.png"; // Update this path to your logo file
+  const logoUrl = "/public/logo.png";
   const logoAlt = "OrthoLife Logo";
   const fallbackText = "OrthoLife";
   
