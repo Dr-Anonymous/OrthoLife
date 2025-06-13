@@ -5,6 +5,12 @@ import { Phone } from "lucide-react";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  
+  // Logo configuration - you can update these values
+  const logoUrl = "/logo.png"; // Update this path to your logo file
+  const logoAlt = "OrthoLife Logo";
+  const fallbackText = "OrthoLife";
   
   useEffect(() => {
     const handleScroll = () => {
@@ -19,14 +25,28 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
+
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'}`}>
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <h1 className="text-primary font-heading font-bold text-2xl">
-              OrthoLife
-            </h1>
+            {!logoError ? (
+              <img 
+                src={logoUrl} 
+                alt={logoAlt}
+                className="h-8 w-auto mr-2"
+                onError={handleLogoError}
+                onLoad={() => setLogoError(false)}
+              />
+            ) : (
+              <h1 className="text-primary font-heading font-bold text-2xl">
+                {fallbackText}
+              </h1>
+            )}
           </div>
           
           <nav className="hidden md:flex items-center space-x-8">
