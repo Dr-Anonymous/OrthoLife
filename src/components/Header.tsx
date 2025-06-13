@@ -7,7 +7,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoError, setLogoError] = useState(false);
   
-  const logoUrl = "/public/logo.png";
+  const logoUrl = "/logo.png";
   const logoAlt = "OrthoLife Logo";
   const fallbackText = "OrthoLife";
   
