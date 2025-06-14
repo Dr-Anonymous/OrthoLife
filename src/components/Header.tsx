@@ -7,6 +7,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoError, setLogoError] = useState(false);
   
+  // Use absolute path from public directory
   const logoUrl = "/logo.png";
   const logoAlt = "OrthoLife Logo";
   const fallbackText = "OrthoLife";
@@ -25,7 +26,13 @@ const Header = () => {
   }, []);
 
   const handleLogoError = () => {
+    console.log('Logo failed to load, showing fallback text');
     setLogoError(true);
+  };
+
+  const handleLogoLoad = () => {
+    console.log('Logo loaded successfully');
+    setLogoError(false);
   };
 
   return (
@@ -39,7 +46,7 @@ const Header = () => {
                 alt={logoAlt}
                 className="h-8 w-auto mr-2"
                 onError={handleLogoError}
-                onLoad={() => setLogoError(false)}
+                onLoad={handleLogoLoad}
               />
             ) : (
               <h1 className="text-primary font-heading font-bold text-2xl">

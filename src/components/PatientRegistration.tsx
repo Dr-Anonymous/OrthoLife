@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,7 @@ interface PatientData {
   email: string;
   phone: string;
   address: string;
-  dateOfBirth: Date | string;
+  dateOfBirth: Date | undefined;
 }
 
 interface PatientRegistrationProps {
@@ -28,7 +29,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     email: '',
     phone: '',
     address: '',
-    dateOfBirth: ''
+    dateOfBirth: undefined
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
@@ -41,7 +42,6 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
-    //if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
     
     if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
