@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,15 +27,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadRazorpayScript = (): Promise<boolean> => {
+  const loadCashfreeScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      if (window.Razorpay) {
+      // If already loaded
+      if ((window as any).Cashfree) {
         resolve(true);
         return;
       }
-
       const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
@@ -48,78 +47,76 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     setError(null);
 
     try {
-      // Load Razorpay script
-      const scriptLoaded = await loadRazorpayScript();
+      // Load Cashfree script
+      const scriptLoaded = await loadCashfreeScript();
       if (!scriptLoaded) {
-        throw new Error('Failed to load Razorpay SDK');
+        throw new Error('Failed to load Cashfree SDK');
       }
 
-      // Create Razorpay order
-      const { data: orderData, error: orderError } = await supabase.functions.invoke(
-        'create-razorpay-order',
+      // Step 1: Create Cashfree order on backend
+      const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
+        'create-cashfree-order',
         {
           body: {
             amount: appointmentData.amount,
             currency: 'INR',
-            receipt: `appointment_${Date.now()}`
+            orderNote: `${appointmentData.serviceType} - Appointment`,
+            customerDetails: {
+              customer_id: patientData.phone,
+              customer_email: patientData.email,
+              customer_phone: patientData.phone,
+              customer_name: patientData.name
+            }
           }
         }
       );
 
-      if (orderError) throw orderError;
+      if (cfError) throw cfError;
+      if (!cashfreeData.paymentSessionId) {
+        throw new Error("Cashfree order creation failed.");
+      }
 
-      // Configure Razorpay options
-      const options = {
-        key: orderData.keyId,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'OrthoLife Clinic',
-        description: `${appointmentData.serviceType} - Appointment`,
-        order_id: orderData.orderId,
-        prefill: {
-          name: patientData.name,
-          email: patientData.email,
-          contact: patientData.phone,
+      // Step 2: Show Cashfree checkout popup
+      const cashfree = (window as any).Cashfree;
+      cashfree?.popups?.initiatePayment(
+        {
+          paymentSessionId: cashfreeData.paymentSessionId,
+          returnUrl: window.location.href + '?cf_payment_success={order_id}'
         },
-        theme: {
-          color: '#3B82F6',
-        },
-        handler: async function (response: any) {
-          // Payment successful
-          try {
-            // Book the appointment
-            const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
-              'book-appointment',
-              {
-                body: {
-                  patientData,
-                  appointmentData,
-                  paymentData: {
-                    paymentId: response.razorpay_payment_id,
-                    orderId: response.razorpay_order_id,
-                    signature: response.razorpay_signature,
+        {
+          onSuccess: async (data: any) => {
+            try {
+              // Book the appointment
+              const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
+                'book-appointment',
+                {
+                  body: {
+                    patientData,
+                    appointmentData,
+                    paymentData: {
+                      paymentMethod: "cashfree",
+                      paymentStatus: "paid",
+                      cashfreeDetails: data
+                    }
                   }
                 }
-              }
-            );
-
-            if (bookingError) throw bookingError;
-            onSuccess();
-          } catch (error) {
-            console.error('Error booking appointment:', error);
-            setError('Payment successful but failed to book appointment. Please contact support.');
-          }
-        },
-        modal: {
-          ondismiss: function () {
+              );
+              if (bookingError) throw bookingError;
+              onSuccess();
+            } catch (error) {
+              setError('Payment successful but failed to book appointment. Please contact support.');
+              console.error('Error booking appointment:', error);
+            }
+          },
+          onFailure: (data: any) => {
+            setError(data?.message || 'Payment failed. Please try again.');
             setProcessing(false);
           },
-        },
-      };
-
-      // Open Razorpay checkout
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+          onClose: () => {
+            setProcessing(false);
+          }
+        }
+      );
 
     } catch (error: any) {
       console.error('Payment error:', error);
