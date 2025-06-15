@@ -18,8 +18,19 @@ serve(async (req) => {
     const clientId = Deno.env.get('CASHFREE_CLIENT_ID');
     const clientSecret = Deno.env.get('CASHFREE_CLIENT_SECRET');
 
+    // Improved secret check
     if (!clientId || !clientSecret) {
-      throw new Error("Cashfree credentials not configured");
+      console.error("[Cashfree] Missing API credentials. Provided values:", {
+        clientId,
+        clientSecret: !!clientSecret ? "set" : "missing"
+      });
+      return new Response(
+        JSON.stringify({ error: "Cashfree credentials not configured in Supabase project secrets." }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     // Step 1. Get access token from Cashfree
@@ -31,10 +42,25 @@ serve(async (req) => {
       },
     });
 
-    if (!tokenRes.ok) {
-      throw new Error("Failed to get Cashfree access token");
+    const tokenText = await tokenRes.clone().text();
+    let token, tokenErr;
+    try {
+      const parsedToken = JSON.parse(tokenText);
+      token = parsedToken?.data?.token;
+      tokenErr = parsedToken?.message || parsedToken?.error;
+    } catch (e) {
+      token = undefined;
+      tokenErr = "Malformed response from Cashfree";
     }
-    const { data: { token } = {} } = await tokenRes.json();
+
+    if (!tokenRes.ok || !token) {
+      // Log detailed error
+      console.error("[Cashfree] Failed to get access token. Status:", tokenRes.status, "Response:", tokenText);
+      return new Response(JSON.stringify({ error: tokenErr || "Failed to get Cashfree access token" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
 
     // Step 2. Create order
     const orderPayload = {
@@ -54,10 +80,21 @@ serve(async (req) => {
       },
       body: JSON.stringify(orderPayload),
     });
-    const order = await orderRes.json();
+
+    const orderText = await orderRes.clone().text();
+    let order;
+    try {
+      order = JSON.parse(orderText);
+    } catch (e) {
+      order = {};
+    }
 
     if (orderRes.status !== 200 || !order.data) {
-      throw new Error(order.message || "Failed to create Cashfree order");
+      console.error("[Cashfree] Failed to create order. Status:", orderRes.status, "Response:", orderText);
+      return new Response(JSON.stringify({ error: order.message || "Failed to create Cashfree order" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
     }
 
     return new Response(JSON.stringify({
@@ -76,3 +113,4 @@ serve(async (req) => {
     });
   }
 });
+
