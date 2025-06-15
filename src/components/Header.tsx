@@ -44,7 +44,8 @@ const Header = () => {
               <img 
                 src={logoUrl} 
                 alt={logoAlt}
-                className="h-8 w-auto mr-2"
+                className="h-10 max-h-10 md:h-12 md:max-h-12 w-auto mr-3 align-middle object-contain transition-all duration-150"
+                style={{ minHeight: '32px' }}
                 onError={handleLogoError}
                 onLoad={handleLogoLoad}
               />
@@ -78,3 +79,4 @@ const Header = () => {
 };
 
 export default Header;
+
