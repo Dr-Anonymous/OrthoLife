@@ -22,19 +22,19 @@ function createISTDate(dateStr, hours = 0, minutes = 0) {
   return date;
 }
 function generatePotentialSlots(date) {
-  console.log('Generating slots for date:', date);
+  //console.log('Generating slots for date:', date);
   // Create start and end times in IST
   const startTime = createISTDate(date, 9, 0); // 9:00 AM IST
-  const endTime = createISTDate(date, 17, 0); // 5:00 PM IST
+  const endTime = createISTDate(date, 20, 0); // 8:00 PM IST
   const potentialSlots = [];
-  const slotDuration = 30 * 60 * 1000; // 30 minutes
+  const slotDuration = 15 * 60 * 1000; // slot duration -- 15 minutes
   for(let time = startTime.getTime(); time < endTime.getTime(); time += slotDuration){
     const slotStart = new Date(time);
     const slotEnd = new Date(time + slotDuration);
     // Skip lunch hour (12:30 PM to 1:30 PM IST)
     const hours = slotStart.getHours();
     const minutes = slotStart.getMinutes();
-    if (hours === 12 && minutes >= 30 || hours === 13 && minutes < 30) {
+    if (hours === 12 && minutes >= 30 || hours === 13 && minutes < 30 || hours === 17 || hours === 18 || hours === 19 && minutes < 30) {
       continue;
     }
     // Convert to UTC for Google Calendar API comparison
@@ -53,7 +53,7 @@ function generatePotentialSlots(date) {
       })
     });
   }
-  console.log(`Generated ${potentialSlots.length} potential slots`);
+  //console.log(`Generated ${potentialSlots.length} potential slots`);
   return potentialSlots;
 }
 async function fetchCalendarEvents(accessToken, date) {
@@ -62,8 +62,8 @@ async function fetchCalendarEvents(accessToken, date) {
   const dayEndIST = createISTDate(date, 23, 59);
   const timeMin = istToUTC(dayStartIST).toISOString();
   const timeMax = istToUTC(dayEndIST).toISOString();
-  console.log(`Fetching calendar events from ${timeMin} to ${timeMax} (UTC)`);
-  console.log(`IST equivalent: ${dayStartIST.toISOString()} to ${dayEndIST.toISOString()}`);
+  //console.log(`Fetching calendar events from ${timeMin} to ${timeMax} (UTC)`);
+  //console.log(`IST equivalent: ${dayStartIST.toISOString()} to ${dayEndIST.toISOString()}`);
   const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?` + `timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`, {
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -91,7 +91,7 @@ function filterAvailableSlots(potentialSlots, existingEvents) {
       // Check for overlap
       const overlap = slotStartUTC < eventEnd && slotEndUTC > eventStart;
       if (overlap) {
-        console.log(`Conflict found: Slot ${slot.display} (${slot.startUTC}) conflicts with event "${event.summary}" (${eventStart.toISOString()})`);
+      //console.log(`Conflict found: Slot ${slot.display} (${slot.startUTC}) conflicts with event "${event.summary}" (${eventStart.toISOString()})`);
       }
       return overlap;
     });
