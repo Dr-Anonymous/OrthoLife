@@ -28,13 +28,24 @@ const AppointmentBookingSection: React.FC = () => {
   const [appointmentData, setAppointmentData] = useState<AppointmentData | null>(null);
   const [paymentOption, setPaymentOption] = useState<'online' | 'offline'>('offline');
 
-  const handlePatientRegistration = (data: PatientData) => {
-    // Defensive: ensure dateOfBirth is a string (in case upstream passes Date object)
+  // Accepts patient from PatientRegistration, possibly with Date type, converts to correct shape
+  const handlePatientRegistration = (data: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    dateOfBirth: string | Date | undefined;
+  }) => {
+    // Defensive: always convert dateOfBirth to string (ISO or empty string)
     const fixedData: PatientData = {
       ...data,
-      dateOfBirth: typeof data.dateOfBirth === "string"
-        ? data.dateOfBirth
-        : data.dateOfBirth?.toISOString?.() || String(data.dateOfBirth)
+      dateOfBirth: data.dateOfBirth
+        ? typeof data.dateOfBirth === "string"
+          ? data.dateOfBirth
+          : (data.dateOfBirth instanceof Date && !isNaN(data.dateOfBirth.getTime()))
+            ? data.dateOfBirth.toISOString()
+            : ""
+        : ""
     };
     setPatientData(fixedData);
     setCurrentStep('appointment');
@@ -97,7 +108,6 @@ const AppointmentBookingSection: React.FC = () => {
             Easy online booking with flexible payment options.
           </p>
         </div>
-
         <div className="max-w-2xl mx-auto">
           {/* Progress Indicator */}
           <div className="mb-8">
