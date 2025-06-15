@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Phone } from "lucide-react";
@@ -44,8 +43,8 @@ const Header = () => {
               <img 
                 src={logoUrl} 
                 alt={logoAlt}
-                className="h-10 max-h-10 md:h-12 md:max-h-12 w-auto mr-3 align-middle object-contain transition-all duration-150"
-                style={{ minHeight: '32px' }}
+                className="h-16 max-h-16 md:h-20 md:max-h-20 w-auto mr-4 align-middle object-contain transition-all duration-150"
+                style={{ minHeight: '48px' }}
                 onError={handleLogoError}
                 onLoad={handleLogoLoad}
               />
@@ -79,4 +78,3 @@ const Header = () => {
 };
 
 export default Header;
-
