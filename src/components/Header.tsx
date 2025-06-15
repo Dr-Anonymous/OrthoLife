@@ -43,8 +43,7 @@ const Header = () => {
               <img 
                 src={logoUrl} 
                 alt={logoAlt}
-                className="h-16 max-h-16 md:h-20 md:max-h-20 w-auto mr-4 align-middle object-contain transition-all duration-150"
-                style={{ minHeight: '48px' }}
+                className="h-24 max-h-24 md:h-28 md:max-h-28 w-auto align-middle object-contain p-0 m-0"
                 onError={handleLogoError}
                 onLoad={handleLogoLoad}
               />
