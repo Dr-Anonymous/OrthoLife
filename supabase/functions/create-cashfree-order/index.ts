@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // Set CORS headers as required
@@ -34,7 +33,7 @@ serve(async (req) => {
     }
 
     // Step 1. Get access token from Cashfree
-    const tokenRes = await fetch('https://api.cashfree.com/pg/v1/auth/token', {
+    const tokenRes = await fetch('https://api.cashfree.com/pg/services/v1/auth/token', {
       method: "POST",
       headers: {
         'x-client-id': clientId,
@@ -113,4 +112,3 @@ serve(async (req) => {
     });
   }
 });
-
