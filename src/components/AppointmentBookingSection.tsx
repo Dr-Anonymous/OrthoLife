@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import PatientRegistration from './PatientRegistration';
@@ -13,7 +12,7 @@ interface PatientData {
   email: string;
   phone: string;
   address: string;
-  dateOfBirth: string;
+  dateOfBirth: string; // make sure it's a string everywhere
 }
 
 interface AppointmentData {
@@ -30,7 +29,14 @@ const AppointmentBookingSection: React.FC = () => {
   const [paymentOption, setPaymentOption] = useState<'online' | 'offline'>('offline');
 
   const handlePatientRegistration = (data: PatientData) => {
-    setPatientData(data);
+    // Defensive: ensure dateOfBirth is a string (in case upstream passes Date object)
+    const fixedData: PatientData = {
+      ...data,
+      dateOfBirth: typeof data.dateOfBirth === "string"
+        ? data.dateOfBirth
+        : data.dateOfBirth?.toISOString?.() || String(data.dateOfBirth)
+    };
+    setPatientData(fixedData);
     setCurrentStep('appointment');
   };
 

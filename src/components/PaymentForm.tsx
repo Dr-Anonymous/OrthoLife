@@ -27,6 +27,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Update this function to use production SDK:
   const loadCashfreeScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
       // If already loaded
@@ -34,8 +35,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         resolve(true);
         return;
       }
+      // Always load PRODUCTION JS SDK for production environment
       const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js';
+      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
