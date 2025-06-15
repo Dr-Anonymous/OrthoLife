@@ -43,7 +43,7 @@ const Header = () => {
               <img 
                 src={logoUrl} 
                 alt={logoAlt}
-                className="h-18 max-h-18 md:h-22 md:max-h-22 w-auto align-middle object-contain p-0 m-0"
+                className="h-12"
                 onError={handleLogoError}
                 onLoad={handleLogoLoad}
               />
