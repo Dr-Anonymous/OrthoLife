@@ -20,17 +20,22 @@ serve(async (req)=>{
     if (accessToken) {
       const calendarId = Deno.env.get('GOOGLE_CALENDAR_ID');
       const calendarEvent = {
-        summary: `Appointment - ${patientData.name}`,
+        summary: patientData.name,
         description: `Patient: ${patientData.name}
+DOB: ${new Date(patientData.dateOfBirth).toLocaleDateString('en-GB', {
+          timeZone: 'Asia/Kolkata'
+        })}
 Email: ${patientData.email}
 Phone: ${patientData.phone}
 Address: ${patientData.address}
 Service: ${appointmentData.serviceType}
 Amount: ₹${appointmentData.amount}
 Payment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}
-WhatsApp: <a href="https://wa.me/91${patientData.phone}?text=` + encodeURI(`Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled for ${new Date(appointmentData.start).toLocaleString('en-GB', {
+WhatsApp: <a href="https://wa.me/91${patientData.phone}?text=` + encodeURI(`Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${new Date(appointmentData.start).toLocaleTimeString('en-GB', {
           timeZone: 'UTC',
           hour12: true
+        })} on ${new Date(appointmentData.start).toLocaleDateString('en-GB', {
+          timeZone: 'UTC'
         })}.`) + `">Send</a>
 Appointment ID: ${appointmentId}`,
         start: {
