@@ -30,7 +30,7 @@ const Header = () => {
   };
 
   const handleLogoLoad = () => {
-    console.log('Logo loaded successfully');
+    //console.log('Logo loaded successfully');
     setLogoError(false);
   };
 
