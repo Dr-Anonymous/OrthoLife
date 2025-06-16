@@ -41,7 +41,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    //if (!formData.address.trim()) newErrors.address = 'Address is required';
     
     if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
@@ -228,7 +228,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 className={`pl-10 ${errors.address ? 'border-red-500' : ''}`}
-                placeholder="Your full address"
+                placeholder="Your address"
               />
             </div>
             {errors.address && <p className="text-sm text-red-500 mt-1">{errors.address}</p>}
