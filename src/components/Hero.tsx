@@ -13,7 +13,7 @@ const Hero = () => {
                 Specialized Care For Your <span className="text-primary">Orthopaedic</span> Needs
               </h1>
               <p className="text-lg text-gray-700">
-                OrthoLife provides expert orthopaedic and general medical services with compassionate care for all patients.
+                OrthoLife offers expert care for sports injuries, spine surgery, joint replacement, and orthobiologic treatments. Get back to doing what you love—stronger, faster, pain-free.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-white" onClick={(e) => {e.preventDefault();window.location.href='#book-appointment';}}>
