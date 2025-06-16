@@ -22,10 +22,10 @@ const About = () => {
           <div className="w-full md:w-1/2 space-y-6">
             <h2 className="text-3xl md:text-4xl font-heading font-bold">About OrthoLife</h2>
             <p className="text-gray-700">
-              OrthoLife is a state-of-the-art orthopaedic and general medical clinic dedicated to providing exceptional healthcare services. With a team of experienced specialists and modern facilities, we are committed to improving the quality of life for our patients through personalized treatment plans.
+              At OrthoLife, we are dedicated to helping you move better, feel stronger, and live pain-free. Our experienced team of orthopaedic specialists offers a full spectrum of services, from diagnosis and non-surgical treatments to advanced interventions like arthroscopy, spine surgery, joint replacement, and cutting-edge orthobiologic treatments.
             </p>
             <p className="text-gray-700">
-              Our mission is to deliver compassionate care while utilizing the latest technologies and evidence-based practices in orthopaedics and general medicine.
+              Whether you're an athlete recovering from an injury, someone seeking relief from chronic back or joint pain, or exploring non-surgical regenerative options, our team is here to guide you with compassion, precision, and innovation. At OrthoLife, we are committed to guiding you every step of the way — <i>Back to Health</i>.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
@@ -43,7 +43,7 @@ const About = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <span className="text-gray-700">Modern Equipment</span>
+                <span className="text-gray-700">Modern Techniques</span>
               </div>
               <div className="flex items-start gap-2">
                 <div className="rounded-full bg-primary/10 p-1">
