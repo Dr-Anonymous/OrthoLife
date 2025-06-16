@@ -10,7 +10,7 @@ const Footer = () => {
           <div>
             <h3 className="text-2xl font-heading font-bold mb-4">OrthoLife</h3>
             <p className="text-gray-300 mb-4">
-              Providing specialized orthopaedic and general medical services with compassionate care for all patients.
+              Providing expert orthopaedic care for joints, spine, and sports injuries—personalized to get you <i>Back to Health</i>.
             </p>
             <div className="flex space-x-4">
               <a href="https://www.facebook.com/drsamuelcherukuri" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-colors">
@@ -57,15 +57,19 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>Orthopaedic Surgery</span>
+                <span>Fracture Care</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>Sports Medicine</span>
+                <span>Arthroscopy</span>
+              </li>
+               <li className="flex items-center gap-2">
+                <CheckCircle size={16} className="text-secondary" />
+                <span>Joint Replacement</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>General Consultation</span>
+                <span>Physician Consultation</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
