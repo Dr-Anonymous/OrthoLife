@@ -11,52 +11,35 @@ interface PaymentFormProps {
   onBack: () => void;
 }
 
+// Cashfree types
 declare global {
   interface Window {
     Cashfree: any;
   }
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData, onSuccess, onBack }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ 
+  appointmentData, 
+  patientData, 
+  onSuccess, 
+  onBack 
+}) => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Update this function to use production SDK:
   const loadCashfreeScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      if (window?.Cashfree?.popups?.initiatePayment) {
-        return resolve(true);
-      }
-
-      // Prevent duplicate script
-      if (document.querySelector('script[src*="cashfree.prod.js"]')) {
-        const waitForInit = () => {
-          if (window?.Cashfree?.popups?.initiatePayment) {
-            resolve(true);
-          } else {
-            setTimeout(waitForInit, 100);
-          }
-        };
-        waitForInit();
+      // If already loaded
+      if ((window as any).Cashfree) {
+        resolve(true);
         return;
       }
-
+      // Always load PRODUCTION JS SDK for production environment
       const script = document.createElement('script');
       script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
-      script.async = true;
-      script.onload = () => {
-        const waitForInit = () => {
-          if (window?.Cashfree?.popups?.initiatePayment) {
-            resolve(true);
-          } else {
-            setTimeout(waitForInit, 100);
-          }
-        };
-        waitForInit();
-      };
-      script.onerror = () => {
-        console.error('[Cashfree] Failed to load SDK');
-        resolve(false);
-      };
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
   };
@@ -66,8 +49,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
     setError(null);
 
     try {
+      // Load Cashfree script
       const scriptLoaded = await loadCashfreeScript();
-      if (!scriptLoaded) throw new Error('Failed to load Cashfree SDK');
+      if (!scriptLoaded) {
+        throw new Error('Failed to load Cashfree SDK');
+      }
 
       // Step 1: Create Cashfree order on backend
       const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
@@ -88,18 +74,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
       );
 
       if (cfError) throw cfError;
-      if (!cashfreeData?.payment_session_id) {
-        throw new Error('Cashfree order creation failed.');
+      if (!cashfreeData.payment_session_id) {
+        throw new Error("Cashfree order creation failed.");
       }
 
-      const cashfree = window.Cashfree;
-
-      if (!cashfree?.popups?.initiatePayment) {
-        throw new Error('Cashfree popup method not available.');
-      }
-
-      console.log('[Cashfree] Starting payment process...');
-      cashfree.popups.initiatePayment(
+      // Step 2: Show Cashfree checkout popup
+      const cashfree = (window as any).Cashfree;
+      cashfree?.popups?.initiatePayment(
         {
           paymentSessionId: cashfreeData.payment_session_id,
           returnUrl: window.location.href + '?cf_payment_success={order_id}'
@@ -107,6 +88,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
         {
           onSuccess: async (data: any) => {
             try {
+              // Book the appointment
               const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
                 'book-appointment',
                 {
@@ -114,8 +96,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
                     patientData,
                     appointmentData,
                     paymentData: {
-                      paymentMethod: 'cashfree',
-                      paymentStatus: 'paid',
+                      paymentMethod: "cashfree",
+                      paymentStatus: "paid",
                       cashfreeDetails: data
                     }
                   }
@@ -123,25 +105,24 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
               );
               if (bookingError) throw bookingError;
               onSuccess();
-            } catch (err) {
-              setError('Payment successful but booking failed. Please contact support.');
-              console.error('[Booking Error]:', err);
+            } catch (error) {
+              setError('Payment successful but failed to book appointment. Please contact support.');
+              console.error('Error booking appointment:', error);
             }
           },
           onFailure: (data: any) => {
             setError(data?.message || 'Payment failed. Please try again.');
-            console.error('[Cashfree] Payment Failed:', data);
             setProcessing(false);
           },
           onClose: () => {
-            console.log('[Cashfree] Popup Closed');
             setProcessing(false);
           }
         }
       );
-    } catch (err: any) {
-      console.error('[Cashfree Error]:', err);
-      setError(err.message || 'Payment failed. Please try again.');
+
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      setError(error.message || 'Payment failed. Please try again.');
       setProcessing(false);
     }
   };
@@ -155,6 +136,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Payment Summary */}
         <div className="p-4 bg-gray-50 rounded-lg">
           <h4 className="font-medium mb-3">Payment Summary</h4>
           <div className="space-y-2 text-sm">
@@ -180,6 +162,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
           </div>
         </div>
 
+        {/* Patient Details */}
         <div className="p-4 bg-blue-50 rounded-lg">
           <h4 className="font-medium mb-3">Patient Details</h4>
           <div className="space-y-1 text-sm">
@@ -189,6 +172,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
           </div>
         </div>
 
+        {/* Error Message */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
@@ -196,6 +180,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
           </div>
         )}
 
+        {/* Payment Information */}
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-start gap-2">
             <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
@@ -206,11 +191,16 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex gap-3">
           <Button variant="outline" onClick={onBack} disabled={processing} className="flex-1">
             Back
           </Button>
-          <Button onClick={handlePayment} disabled={processing} className="flex-1">
+          <Button 
+            onClick={handlePayment} 
+            disabled={processing}
+            className="flex-1"
+          >
             {processing ? 'Processing...' : `Pay ₹${appointmentData.amount}`}
           </Button>
         </div>
