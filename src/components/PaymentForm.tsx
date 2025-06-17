@@ -82,12 +82,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         throw new Error('Failed to create payment session');
       }
 
-      const cf = window.Cashfree({ mode: 'PROD' }); // ✅ Correct usage
-      const result = await cf.checkout({
+     const cf = new window.Cashfree(); // ✅ instantiate class
+      await cf.init({
         paymentSessionId: cashfreeData.payment_session_id,
-        redirectTarget: '_modal',
-        returnUrl: `${window.location.origin}?payment_status=success&order_id=${cashfreeData.order_id}`
+        mode: 'PROD'
       });
+      const result = await cf.checkout({
+        redirectTarget: '_modal'
+      });
+
 
       console.log('Cashfree Result:', result);
 
