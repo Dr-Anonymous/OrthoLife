@@ -27,19 +27,37 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCashfreeScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.Cashfree) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
+ const loadCashfreeScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (window?.Cashfree?.popups?.initiatePayment) {
+      return resolve(true);
+    }
+
+    // Prevent duplicate loading
+    if (document.querySelector('script[src*="cashfree.prod.js"]')) {
+      return resolve(true);
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
+    script.async = true;
+    script.onload = () => {
+      const waitForCashfree = () => {
+        if (window?.Cashfree?.popups?.initiatePayment) {
+          resolve(true);
+        } else {
+          setTimeout(waitForCashfree, 100);
+        }
+      };
+      waitForCashfree();
+    };
+    script.onerror = () => {
+      console.error('Failed to load Cashfree SDK');
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
 
   const handlePayment = async () => {
     setProcessing(true);
