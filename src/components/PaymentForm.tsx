@@ -42,7 +42,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               customer_name: patientData.name
             },
             order_meta: {
-              return_url: `${window.location.origin}/payment-success?order_id={order_id}&order_token={order_token}`,
+              return_url: `${window.location.origin}/payment-success?order_id={order_id}`,
               notify_url: `${window.location.origin}/api/cashfree-webhook`
             }
           }
