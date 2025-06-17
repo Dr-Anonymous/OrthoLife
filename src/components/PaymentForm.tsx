@@ -14,7 +14,7 @@ interface PaymentFormProps {
 // Correct Cashfree types for current SDK
 declare global {
   interface Window {
-    Cashfree: (options: { mode: string }) => {
+    Cashfree: new (options: { mode: string }) => {
       checkout: (options: any) => Promise<any>;
     };
   }
@@ -87,9 +87,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       }
 
       // Step 2: Initialize Cashfree SDK and open checkout
-      const cashfree = (window as any).Cashfree({
-        mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox'
-      });
+      const cashfree = new window.Cashfree({ mode: 'sandbox' });
+
 
       // For redirect checkout (most common and stable)
       const checkoutOptions = {
