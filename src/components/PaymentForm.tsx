@@ -6,10 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 
 
        
+declare global {
+  interface Window {
+    Cashfree?: any;
+  }
+}
 
 let cashfree;
 var initializeSDK = async function () {      
-    cashfree = await load({
+    cashfree = await Cashfree({
         mode: "production"
     });
 }
