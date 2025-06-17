@@ -4,11 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-declare global {
-  interface Window {
-    Cashfree?: any;
-  }
+
+       
+
+let cashfree;
+var initializeSDK = async function () {      
+    cashfree = await load({
+        mode: "production"
+    });
 }
+initializeSDK();
+
 
 interface PaymentFormProps {
   appointmentData: any;
@@ -31,7 +37,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     setError(null);
 
     try {
-      const cashfree = window.Cashfree;
       if (!cashfree) throw new Error('Cashfree SDK not loaded');
 
       const { data: cfOrder, error: cfErr } = await supabase.functions.invoke(
@@ -57,8 +62,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
       const result = await cashfree.checkout({
         paymentSessionId: sessionId,
-        mode: 'production',
-        returnUrl: `${window.location.origin}/payment-return?order_id={order_id}`
+        redirectTarget: '_self'
       });
 
       if (result.error) {
