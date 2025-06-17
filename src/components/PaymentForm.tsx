@@ -9,15 +9,13 @@ interface PaymentFormProps {
     serviceType: string;
     start: string;
     amount: number;
-    // Add other relevant appointment data fields as needed, e.g., id
-    id?: string;
+    id?: string; // Optional: appointment ID
   };
   patientData: {
     name: string;
     email: string;
     phone: string;
-    // Add other relevant patient data fields as needed, e.g., id
-    id?: string;
+    id?: string; // Optional: patient ID
   };
   onSuccess: () => void;
   onBack: () => void;
@@ -32,7 +30,7 @@ declare global {
           options: {
             paymentSessionId: string;
             returnUrl?: string;
-            redirectTarget?: '_self' | '_blank'; // Explicitly define accepted values
+            redirectTarget?: '_self' | '_blank';
           },
           callbacks: {
             onSuccess: (data: any) => void;
@@ -41,9 +39,6 @@ declare global {
           }
         ) => void;
       };
-      // IMPORTANT: For Cashfree Web SDK 2.0.0 for popup payments,
-      // there is typically NO top-level 'init' function required or used here.
-      // The initiatePayment method handles the initialization internally for the popup.
     };
   }
 }
@@ -60,41 +55,69 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   // Memoize loadCashfreeScript to prevent re-creation on every render
   const loadCashfreeScript = useCallback((): Promise<boolean> => {
     return new Promise((resolve) => {
-      // Check if Cashfree SDK is already loaded and its initiatePayment function is available
-      if (window.Cashfree && typeof window.Cashfree.popups?.initiatePayment === 'function') {
+      const scriptId = 'cashfree-sdk-script';
+
+      // Function to check if SDK is ready
+      const isCashfreeSdkReady = () => {
+        return window.Cashfree && typeof window.Cashfree.popups?.initiatePayment === 'function';
+      };
+
+      // 1. Check if SDK is already loaded and ready
+      if (isCashfreeSdkReady()) {
         console.log('Cashfree SDK already loaded and ready.');
         resolve(true);
         return;
       }
 
-      const scriptId = 'cashfree-sdk-script';
-      if (document.getElementById(scriptId)) {
-        console.warn('Cashfree SDK script element already exists. Waiting for it to load.');
-        // If the script element exists, it might be loading.
-        // We'll proceed, and the later check on `window.Cashfree` will confirm readiness.
-        resolve(true);
+      // 2. Check if script element already exists (might be loading)
+      let script = document.getElementById(scriptId) as HTMLScriptElement;
+      if (script) {
+        console.warn('Cashfree SDK script element already exists. Waiting for it to become ready...');
+        // If script exists, poll for readiness
+        pollForCashfreeSdkReady(resolve);
         return;
       }
 
-      const script = document.createElement('script');
+      // 3. Create and append the script if it doesn't exist
+      script = document.createElement('script');
       script.id = scriptId;
-      // Use the production SDK URL for Cashfree Web SDK 2.0.0
       script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
-      script.async = true; // Load script asynchronously to avoid blocking rendering
+      script.async = true;
 
       script.onload = () => {
-        console.log('Cashfree SDK script loaded successfully.');
-        // Give a very small delay to ensure the `Cashfree` object is fully available in `window`
-        // before proceeding, as script.onload might fire before the global object is fully populated.
-        setTimeout(() => resolve(true), 50);
+        console.log('Cashfree SDK script loaded. Now polling for object readiness...');
+        // Start polling after the script file itself has loaded
+        pollForCashfreeSdkReady(resolve);
       };
 
       script.onerror = () => {
-        console.error('Failed to load Cashfree SDK script.');
+        console.error('Failed to load Cashfree SDK script. Network error or resource not found.');
         setError('Failed to load payment gateway. Please check your internet connection and try again.');
         resolve(false);
       };
+
       document.body.appendChild(script);
+
+      // Polling mechanism to wait for the Cashfree object to be fully available
+      let attempts = 0;
+      const maxAttempts = 20; // Try for 20 * 200ms = 4 seconds
+      const intervalTime = 200; // Check every 200ms
+
+      const pollForCashfreeSdkReady = (resolver: (value: boolean) => void) => {
+        const interval = setInterval(() => {
+          if (isCashfreeSdkReady()) {
+            clearInterval(interval);
+            console.log('Cashfree SDK object is now fully ready.');
+            resolver(true);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            console.error('Cashfree SDK object did not become ready within timeout.');
+            setError('Payment gateway did not initialize within expected time. Please refresh and try again.');
+            resolver(false);
+          }
+          attempts++;
+        }, intervalTime);
+      };
     });
   }, []); // Empty dependency array means this function is created once
 
@@ -103,15 +126,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     setError(null);
 
     try {
-      const scriptLoaded = await loadCashfreeScript();
-      if (!scriptLoaded) {
-        throw new Error('Payment gateway SDK failed to load. Cannot proceed with payment.');
+      const scriptLoadedAndReady = await loadCashfreeScript();
+      if (!scriptLoadedAndReady) {
+        throw new Error('Payment gateway SDK failed to load or initialize. Cannot proceed.');
       }
 
-      // Crucial check: Ensure the global Cashfree object and its required method are available
+      // This final check should ideally pass if loadCashfreeScript resolves true
       if (!window.Cashfree || typeof window.Cashfree.popups?.initiatePayment !== 'function') {
-        console.error('Cashfree SDK object or its `initiatePayment` method is not found after loading.');
-        throw new Error('Payment gateway is not ready. Please try again or refresh the page.');
+        console.error('Critical: Cashfree SDK object or its `initiatePayment` method is still not found despite load attempt.');
+        throw new Error('Payment gateway is not ready for transactions. Please refresh the page.');
       }
 
       // Step 1: Create Cashfree order on backend via Supabase Function
@@ -129,13 +152,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               customer_phone: patientData.phone,
               customer_name: patientData.name,
             },
-            // It's good practice to send `return_url` in `order_meta` to the backend
-            // so your backend can include it in the Cashfree order creation request.
             order_meta: {
                 return_url: `${window.location.origin}/payment-status?cf_payment_success={order_id}&cf_order_id={order_id}&cf_txn_status={txStatus}`,
-                // If you implement Instant Payment Notifications (IPN/webhooks),
-                // the `notify_url` would typically be set on your backend.
-                // notify_url: 'YOUR_SECURE_BACKEND_IPN_URL_HERE',
             }
           },
         }
@@ -146,35 +164,24 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         throw new Error(cfError.message || "Failed to create a payment order on the server. Please try again.");
       }
       if (!cashfreeData || !cashfreeData.payment_session_id) {
-        throw new new Error("Backend did not return a valid payment session ID. Payment cannot proceed.");
+        throw new Error("Backend did not return a valid payment session ID. Payment cannot proceed.");
       }
 
-      console.log('Received payment session ID from backend.');
+      console.log('Received payment session ID from backend. Initiating Cashfree popup...');
 
       // Step 2: Show Cashfree checkout popup
       const cashfree = window.Cashfree;
 
-      // This is the correct method for Cashfree Web SDK 2.0.0 popup integration.
-      // ENSURE you are NOT calling any `cashfree.init()` or `window.Cashfree.init()` here.
-      // That was likely the cause of your previous `TypeError`.
       cashfree.popups.initiatePayment(
         {
           paymentSessionId: cashfreeData.payment_session_id,
-          // This returnUrl is used by the Cashfree SDK to redirect the user after payment.
-          // It's important to include the placeholders for order_id and txStatus.
           returnUrl: `${window.location.origin}/payment-status?cf_payment_success={order_id}&cf_order_id={order_id}&cf_txn_status={txStatus}`,
           redirectTarget: '_self' // Opens the payment page in the same window/tab
         },
         {
           onSuccess: async (data: any) => {
             console.log('Cashfree Payment Success Callback:', data);
-            // SECURITY NOTE: Client-side callbacks are not fully trustworthy.
-            // In a production system, ALWAYS verify payment status on your backend
-            // using Cashfree's IPN (webhook) or a server-to-server API call
-            // BEFORE confirming the booking or service provision.
             try {
-              // For this example, directly invoking book-appointment.
-              // For full robustness, this should be part of your backend's IPN handler.
               const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
                 'book-appointment', // Your Supabase Edge Function to finalize booking
                 {
@@ -183,8 +190,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                     appointmentData,
                     paymentData: {
                       paymentMethod: "cashfree",
-                      paymentStatus: "paid", // This status should ideally be confirmed by backend verification
-                      cashfreeDetails: data, // Store relevant Cashfree response data
+                      paymentStatus: "paid",
+                      cashfreeDetails: data,
                       cashfreeOrderId: data.orderId,
                       cashfreeTxnId: data.transactionId,
                     }
@@ -202,18 +209,17 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               setError(error.message || 'An error occurred during appointment booking after successful payment. Please contact support.');
               console.error('Error in onSuccess callback during appointment booking:', error);
             } finally {
-              setProcessing(false); // Ensure processing state is reset
+              setProcessing(false);
             }
           },
           onFailure: (data: any) => {
             console.error('Cashfree Payment Failure Callback:', data);
-            // 'data' might contain 'message', 'code', 'type' from Cashfree
             setError(data?.message || data?.reason || 'Payment failed. Please try again or choose another payment method.');
             setProcessing(false);
           },
           onClose: () => {
             console.log('Cashfree Payment popup closed by user.');
-            setProcessing(false); // Reset processing state if user closes the popup
+            setProcessing(false);
             setError('Payment process was interrupted. Please try again.');
           }
         }
@@ -228,11 +234,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
   // Helper function to format currency for display
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', { // 'en-IN' for Indian Rupee format
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      minimumFractionDigits: 0, // No decimal for whole rupees
-      maximumFractionDigits: 2, // Allow two decimals if cents are present
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
