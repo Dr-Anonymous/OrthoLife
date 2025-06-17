@@ -48,101 +48,87 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     });
   };
 
-  const handlePayment = async () => {
-    setProcessing(true);
-    setError(null);
+const handlePayment = async () => {
+  setProcessing(true);
+  setError(null);
 
-    try {
-      // Load Cashfree script
-      const scriptLoaded = await loadCashfreeScript();
-      if (!scriptLoaded) {
-        throw new Error('Failed to load Cashfree SDK');
+  try {
+    // Load Cashfree script
+    const scriptLoaded = await loadCashfreeScript();
+    if (!scriptLoaded || !window.Cashfree) {
+      throw new Error('Failed to load Cashfree SDK');
+    }
+
+    // Step 1: Create Cashfree order on backend
+    const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
+      'create-cashfree-order',
+      {
+        body: {
+          order_amount: appointmentData.amount,
+          order_currency: 'INR',
+          order_note: `${appointmentData.serviceType} - Appointment`,
+          customer_details: {
+            customer_id: patientData.phone,
+            customer_email: patientData.email,
+            customer_phone: patientData.phone,
+            customer_name: patientData.name
+          },
+          order_meta: {
+            return_url: `${window.location.origin}?payment_status=success&order_id={order_id}`,
+            notify_url: `${window.location.origin}/api/cashfree-webhook`
+          }
+        }
       }
+    );
 
-      // Step 1: Create Cashfree order on backend
-      const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
-        'create-cashfree-order',
+    if (cfError) throw cfError;
+    if (!cashfreeData.payment_session_id) {
+      throw new Error('Failed to create payment session');
+    }
+
+    // Step 2: Launch Cashfree checkout
+    const result = await window.Cashfree.init({
+      paymentSessionId: cashfreeData.payment_session_id,
+      redirectTarget: '_modal', // Or '_self' for full redirect
+      returnUrl: `${window.location.origin}?payment_status=success&order_id=${cashfreeData.order_id}`
+    });
+
+    console.log('Cashfree Result:', result);
+
+    if (result && result.paymentDetails && result.paymentDetails.paymentStatus === 'SUCCESS') {
+      // Step 3: Book appointment
+      const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
+        'book-appointment',
         {
           body: {
-            order_amount: appointmentData.amount,
-            order_currency: 'INR',
-            order_note: `${appointmentData.serviceType} - Appointment`,
-            customer_details: {
-              customer_id: patientData.phone,
-              customer_email: patientData.email,
-              customer_phone: patientData.phone,
-              customer_name: patientData.name
-            },
-            order_meta: {
-              return_url: `${window.location.origin}?payment_status=success&order_id={order_id}`,
-              notify_url: `${window.location.origin}/api/cashfree-webhook`
+            patientData,
+            appointmentData,
+            paymentData: {
+              paymentMethod: 'cashfree',
+              paymentStatus: 'completed',
+              orderId: result.paymentDetails.orderId,
+              paymentSessionId: cashfreeData.payment_session_id,
+              cashfreeDetails: result
             }
           }
         }
       );
 
-      if (cfError) throw cfError;
-      if (!cashfreeData.payment_session_id) {
-        throw new Error("Failed to create payment session");
-      }
+      if (bookingError) throw bookingError;
 
-      // Handle the checkout promise
-      try {
-        const result = await window.Cashfree.init({
-        paymentSessionId: cashfreeData.payment_session_id,
-        redirectTarget: '_modal', // or '_self' for redirect flow
-      });
-
-        // Handle success case
-        if (result && result.paymentDetails) {
-          console.log('Payment Success:', result);
-          
-          try {
-            // Verify payment and book appointment
-            const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
-              'book-appointment',
-              {
-                body: {
-                  patientData,
-                  appointmentData,
-                  paymentData: {
-                    paymentMethod: "cashfree",
-                    paymentStatus: "completed",
-                    orderId: result.paymentDetails.orderId || cashfreeData.order_id,
-                    paymentSessionId: cashfreeData.payment_session_id,
-                    cashfreeDetails: result
-                  }
-                }
-              }
-            );
-            
-            if (bookingError) throw bookingError;
-            
-            setProcessing(false);
-            onSuccess();
-          } catch (error) {
-            console.error('Error booking appointment:', error);
-            setError('Payment successful but failed to book appointment. Please contact support.');
-            setProcessing(false);
-          }
-        } else {
-          // Payment was not successful or was cancelled
-          console.log('Payment not completed:', result);
-          setError('Payment was not completed. Please try again.');
-          setProcessing(false);
-        }
-      } catch (checkoutError: any) {
-        console.error('Checkout error:', checkoutError);
-        setError(checkoutError.message || 'Payment failed. Please try again.');
-        setProcessing(false);
-      }
-
-    } catch (error: any) {
-      console.error('Payment initialization error:', error);
-      setError(error.message || 'Failed to initialize payment. Please try again.');
+      setProcessing(false);
+      onSuccess();
+    } else {
+      setError('Payment was not completed or was cancelled.');
       setProcessing(false);
     }
-  };
+  } catch (error: any) {
+    console.error('Payment error:', error);
+    setError(error.message || 'Failed to process payment. Please try again.');
+    setProcessing(false);
+  }
+};
+
 
   return (
     <Card>
