@@ -62,6 +62,34 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         return window.Cashfree && typeof window.Cashfree.popups?.initiatePayment === 'function';
       };
 
+      // ************************************************************
+      // IMPORTANT FIX: Moved pollForCashfreeSdkReady declaration
+      // to be before any potential calls to it.
+      // ************************************************************
+      let attempts = 0;
+      const maxAttempts = 50; // Increased attempts for up to 10 seconds (50 * 200ms)
+      const intervalTime = 200; // Check every 200ms
+
+      const pollForCashfreeSdkReady = (resolver: (value: boolean) => void) => {
+        const interval = setInterval(() => {
+          if (isCashfreeSdkReady()) {
+            clearInterval(interval);
+            console.log('Cashfree SDK object is now fully ready after polling.');
+            resolver(true);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            console.error(`Cashfree SDK object did not become ready within timeout (${maxAttempts * intervalTime}ms).`);
+            setError('Payment gateway did not initialize within expected time. Please refresh and try again.');
+            resolver(false);
+          }
+          attempts++;
+        }, intervalTime);
+      };
+      // ************************************************************
+      // END OF MOVED SECTION
+      // ************************************************************
+
+
       // 1. Check if SDK is already loaded and ready
       if (isCashfreeSdkReady()) {
         console.log('Cashfree SDK already loaded and ready.');
@@ -74,6 +102,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       if (script) {
         console.warn('Cashfree SDK script element already exists. Waiting for it to become ready...');
         // If script exists, poll for readiness
+        // This call is now safe because pollForCashfreeSdkReady is declared above.
         pollForCashfreeSdkReady(resolve);
         return;
       }
@@ -85,7 +114,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       script.async = true;
 
       script.onload = () => {
-        console.log('Cashfree SDK script loaded. Now polling for object readiness...');
+        console.log('Cashfree SDK script file loaded successfully. Starting polling for global object...');
         // Start polling after the script file itself has loaded
         pollForCashfreeSdkReady(resolve);
       };
@@ -98,26 +127,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
       document.body.appendChild(script);
 
-      // Polling mechanism to wait for the Cashfree object to be fully available
-      let attempts = 0;
-      const maxAttempts = 20; // Try for 20 * 200ms = 4 seconds
-      const intervalTime = 200; // Check every 200ms
-
-      const pollForCashfreeSdkReady = (resolver: (value: boolean) => void) => {
-        const interval = setInterval(() => {
-          if (isCashfreeSdkReady()) {
-            clearInterval(interval);
-            console.log('Cashfree SDK object is now fully ready.');
-            resolver(true);
-          } else if (attempts >= maxAttempts) {
-            clearInterval(interval);
-            console.error('Cashfree SDK object did not become ready within timeout.');
-            setError('Payment gateway did not initialize within expected time. Please refresh and try again.');
-            resolver(false);
-          }
-          attempts++;
-        }, intervalTime);
-      };
     });
   }, []); // Empty dependency array means this function is created once
 
@@ -133,7 +142,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
       // This final check should ideally pass if loadCashfreeScript resolves true
       if (!window.Cashfree || typeof window.Cashfree.popups?.initiatePayment !== 'function') {
-        console.error('Critical: Cashfree SDK object or its `initiatePayment` method is still not found despite load attempt.');
+        console.error('Critical: Cashfree SDK object or its `initiatePayment` method is still not found despite successful load and polling.');
         throw new Error('Payment gateway is not ready for transactions. Please refresh the page.');
       }
 
@@ -228,7 +237,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     } catch (error: any) {
       console.error('Error during payment process in handlePayment:', error);
       setError(error.message || 'An unexpected error occurred during payment. Please try again.');
-      setProcessing(false);
+    } finally {
+        setProcessing(false); // Ensure processing state is always reset
     }
   };
 
