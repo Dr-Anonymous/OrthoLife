@@ -11,22 +11,14 @@ interface PaymentFormProps {
   onBack: () => void;
 }
 
-// Correct Cashfree types for current SDK
 declare global {
   interface Window {
-    Cashfree: new (options: { mode: 'PROD' | 'SANDBOX' }) => {
+    Cashfree: (options: { mode: string }) => {
       checkout: (options: {
         paymentSessionId: string;
-        redirectTarget: '_modal' | '_blank' | '_self';
+        redirectTarget: '_modal' | '_self' | '_blank';
+        returnUrl?: string;
       }) => Promise<any>;
-    };
-  }
-}
-
-declare global {
-  interface Window {
-    Cashfree: new (options: { mode: string }) => {
-      checkout: (options: any) => Promise<any>;
     };
   }
 }
@@ -40,18 +32,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load correct Cashfree SDK
   const loadCashfreeScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      // If already loaded
       if ((window as any).Cashfree) {
         resolve(true);
         return;
       }
-      
-      // Load the current Cashfree JS SDK
       const script = document.createElement('script');
-      // Using the correct SDK URL from documentation
       script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
@@ -59,88 +46,82 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     });
   };
 
-const handlePayment = async () => {
-  setProcessing(true);
-  setError(null);
+  const handlePayment = async () => {
+    setProcessing(true);
+    setError(null);
 
-  try {
-    const scriptLoaded = await loadCashfreeScript();
-    if (!scriptLoaded || !window.Cashfree) {
-      throw new Error('Failed to load Cashfree SDK');
-    }
-
-    // Step 1: Create Cashfree order on backend
-    const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
-      'create-cashfree-order',
-      {
-        body: {
-          order_amount: appointmentData.amount,
-          order_currency: 'INR',
-          order_note: `${appointmentData.serviceType} - Appointment`,
-          customer_details: {
-            customer_id: patientData.phone,
-            customer_email: patientData.email,
-            customer_phone: patientData.phone,
-            customer_name: patientData.name
-          },
-          order_meta: {
-            return_url: `${window.location.origin}?payment_status=success&order_id={order_id}`,
-            notify_url: `${window.location.origin}/api/cashfree-webhook`
-          }
-        }
+    try {
+      const scriptLoaded = await loadCashfreeScript();
+      if (!scriptLoaded || !window.Cashfree) {
+        throw new Error('Failed to load Cashfree SDK');
       }
-    );
 
-    if (cfError) throw cfError;
-    if (!cashfreeData.payment_session_id) {
-      throw new Error('Failed to create payment session');
-    }
-
-    // ✅ Step 2: Launch Cashfree checkout using new SDK style
-    const cf = new window.Cashfree({ mode: 'PROD' }); // or 'SANDBOX' if testing
-
-    const result = await cf.checkout({
-      paymentSessionId: cashfreeData.payment_session_id,
-      redirectTarget: '_modal' // or '_self'
-    });
-
-    console.log('Cashfree Result:', result);
-
-    if (result && result.paymentDetails && result.paymentDetails.paymentStatus === 'SUCCESS') {
-      // Step 3: Book appointment
-      const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
-        'book-appointment',
+      const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
+        'create-cashfree-order',
         {
           body: {
-            patientData,
-            appointmentData,
-            paymentData: {
-              paymentMethod: 'cashfree',
-              paymentStatus: 'completed',
-              orderId: result.paymentDetails.orderId,
-              paymentSessionId: cashfreeData.payment_session_id,
-              cashfreeDetails: result
+            order_amount: appointmentData.amount,
+            order_currency: 'INR',
+            order_note: `${appointmentData.serviceType} - Appointment`,
+            customer_details: {
+              customer_id: patientData.phone,
+              customer_email: patientData.email,
+              customer_phone: patientData.phone,
+              customer_name: patientData.name
+            },
+            order_meta: {
+              return_url: `${window.location.origin}?payment_status=success&order_id={order_id}`,
+              notify_url: `${window.location.origin}/api/cashfree-webhook`
             }
           }
         }
       );
 
-      if (bookingError) throw bookingError;
+      if (cfError) throw cfError;
+      if (!cashfreeData.payment_session_id) {
+        throw new Error('Failed to create payment session');
+      }
 
-      setProcessing(false);
-      onSuccess();
-    } else {
-      setError('Payment was not completed or was cancelled.');
+      const cf = window.Cashfree({ mode: 'PROD' }); // ✅ Correct usage
+      const result = await cf.checkout({
+        paymentSessionId: cashfreeData.payment_session_id,
+        redirectTarget: '_modal',
+        returnUrl: `${window.location.origin}?payment_status=success&order_id=${cashfreeData.order_id}`
+      });
+
+      console.log('Cashfree Result:', result);
+
+      if (result && result.paymentDetails && result.paymentDetails.paymentStatus === 'SUCCESS') {
+        const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
+          'book-appointment',
+          {
+            body: {
+              patientData,
+              appointmentData,
+              paymentData: {
+                paymentMethod: 'cashfree',
+                paymentStatus: 'completed',
+                orderId: result.paymentDetails.orderId,
+                paymentSessionId: cashfreeData.payment_session_id,
+                cashfreeDetails: result
+              }
+            }
+          }
+        );
+
+        if (bookingError) throw bookingError;
+        setProcessing(false);
+        onSuccess();
+      } else {
+        setError('Payment was not completed or was cancelled.');
+        setProcessing(false);
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      setError(error.message || 'Failed to process payment. Please try again.');
       setProcessing(false);
     }
-  } catch (error: any) {
-    console.error('Payment error:', error);
-    setError(error.message || 'Failed to process payment. Please try again.');
-    setProcessing(false);
-  }
-};
-
-
+  };
 
   return (
     <Card>
@@ -212,7 +193,7 @@ const handlePayment = async () => {
           </div>
         )}
 
-        {/* Payment Security Information */}
+        {/* Secure Info */}
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-start gap-3">
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -226,7 +207,7 @@ const handlePayment = async () => {
           </div>
         </div>
 
-        {/* Payment Methods Preview */}
+        {/* Accepted Methods */}
         <div className="p-4 bg-slate-50 rounded-lg">
           <h4 className="font-medium mb-3 text-slate-700">Accepted Payment Methods</h4>
           <div className="flex flex-wrap gap-2 text-xs">
@@ -239,7 +220,7 @@ const handlePayment = async () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <div className="flex gap-3 pt-2">
           <Button 
             variant="outline" 
