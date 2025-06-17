@@ -86,21 +86,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         throw new Error("Failed to create payment session");
       }
 
-      // Step 2: Initialize Cashfree SDK and open checkout
-      const cashfree = new window.Cashfree({ mode: 'sandbox' });
-
-
-      // For redirect checkout (most common and stable)
-      const checkoutOptions = {
-        paymentSessionId: cashfreeData.payment_session_id,
-        redirectTarget: '_modal', // Opens in popup modal
-        returnUrl: `${window.location.origin}?payment_status=success&order_id=${cashfreeData.order_id}`
-      };
-
       // Handle the checkout promise
       try {
-        const result = await cashfree.checkout(checkoutOptions);
-        
+        const result = await window.Cashfree.init({
+        paymentSessionId: cashfreeData.payment_session_id,
+        redirectTarget: '_modal', // or '_self' for redirect flow
+      });
+
         // Handle success case
         if (result && result.paymentDetails) {
           console.log('Payment Success:', result);
