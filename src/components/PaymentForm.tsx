@@ -27,20 +27,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCashfreeScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.Cashfree) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/ui/2.0.5/cashfree.prod.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
   const handlePayment = async () => {
     setProcessing(true);
     setError(null);
