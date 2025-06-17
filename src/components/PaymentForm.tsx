@@ -14,6 +14,17 @@ interface PaymentFormProps {
 // Correct Cashfree types for current SDK
 declare global {
   interface Window {
+    Cashfree: new (options: { mode: 'PROD' | 'SANDBOX' }) => {
+      checkout: (options: {
+        paymentSessionId: string;
+        redirectTarget: '_modal' | '_blank' | '_self';
+      }) => Promise<any>;
+    };
+  }
+}
+
+declare global {
+  interface Window {
     Cashfree: new (options: { mode: string }) => {
       checkout: (options: any) => Promise<any>;
     };
@@ -53,7 +64,6 @@ const handlePayment = async () => {
   setError(null);
 
   try {
-    // Load Cashfree script
     const scriptLoaded = await loadCashfreeScript();
     if (!scriptLoaded || !window.Cashfree) {
       throw new Error('Failed to load Cashfree SDK');
@@ -86,11 +96,12 @@ const handlePayment = async () => {
       throw new Error('Failed to create payment session');
     }
 
-    // Step 2: Launch Cashfree checkout
-    const result = await window.Cashfree.init({
+    // ✅ Step 2: Launch Cashfree checkout using new SDK style
+    const cf = new window.Cashfree({ mode: 'PROD' }); // or 'SANDBOX' if testing
+
+    const result = await cf.checkout({
       paymentSessionId: cashfreeData.payment_session_id,
-      redirectTarget: '_modal', // Or '_self' for full redirect
-      returnUrl: `${window.location.origin}?payment_status=success&order_id=${cashfreeData.order_id}`
+      redirectTarget: '_modal' // or '_self'
     });
 
     console.log('Cashfree Result:', result);
@@ -128,6 +139,7 @@ const handlePayment = async () => {
     setProcessing(false);
   }
 };
+
 
 
   return (
