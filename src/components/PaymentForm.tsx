@@ -74,7 +74,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       );
 
       if (cfError) throw cfError;
-      if (!cashfreeData.paymentSessionId) {
+      if (!cashfreeData.payment_session_id) {
         throw new Error("Cashfree order creation failed.");
       }
 
@@ -82,7 +82,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       const cashfree = (window as any).Cashfree;
       cashfree?.popups?.initiatePayment(
         {
-          paymentSessionId: cashfreeData.paymentSessionId,
+          paymentSessionId: cashfreeData.payment_session_id,
           returnUrl: window.location.href + '?cf_payment_success={order_id}'
         },
         {
