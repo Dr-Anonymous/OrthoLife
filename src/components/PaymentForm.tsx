@@ -27,17 +27,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Update this function to use production SDK:
   const loadCashfreeScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      // If already loaded
-      if ((window as any).Cashfree) {
+      if (window.Cashfree) {
         resolve(true);
         return;
       }
-      // Always load PRODUCTION JS SDK for production environment
       const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
+      script.src = 'https://sdk.cashfree.com/js/ui/2.0.5/cashfree.prod.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
@@ -49,13 +46,16 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     setError(null);
 
     try {
-      // Load Cashfree script
+      console.log('[Cashfree] Starting payment process...');
+
+      // Load SDK
       const scriptLoaded = await loadCashfreeScript();
       if (!scriptLoaded) {
         throw new Error('Failed to load Cashfree SDK');
       }
+      console.log('[Cashfree] SDK loaded');
 
-      // Step 1: Create Cashfree order on backend
+      // Create Cashfree order
       const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
         'create-cashfree-order',
         {
@@ -74,21 +74,31 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       );
 
       if (cfError) throw cfError;
-      if (!cashfreeData.payment_session_id) {
-        throw new Error("Cashfree order creation failed.");
+
+      console.log('[Cashfree] Response:', cashfreeData);
+
+      const sessionId = cashfreeData?.payment_session_id;
+      if (!sessionId || typeof sessionId !== 'string') {
+        throw new Error("Invalid payment_session_id received.");
       }
 
-      // Step 2: Show Cashfree checkout popup
-      const cashfree = (window as any).Cashfree;
-      cashfree?.popups?.initiatePayment(
+      const cashfree = window?.Cashfree;
+      if (!cashfree?.popups?.initiatePayment) {
+        throw new Error("Cashfree popup method not available.");
+      }
+
+      console.log('[Cashfree] Initiating popup with session ID:', sessionId);
+
+      // Initiate payment popup
+      cashfree.popups.initiatePayment(
         {
-          paymentSessionId: cashfreeData.payment_session_id,
-          returnUrl: window.location.href + '?cf_payment_success={order_id}'
+          paymentSessionId: sessionId,
+          returnUrl: `${window.location.origin}/payment-success?cf_payment_success={order_id}`
         },
         {
           onSuccess: async (data: any) => {
+            console.log('[Cashfree] Payment success:', data);
             try {
-              // Book the appointment
               const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
                 'book-appointment',
                 {
@@ -105,23 +115,32 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               );
               if (bookingError) throw bookingError;
               onSuccess();
-            } catch (error) {
-              setError('Payment successful but failed to book appointment. Please contact support.');
-              console.error('Error booking appointment:', error);
+            } catch (err) {
+              setError('Payment successful, but booking failed. Please contact support.');
+              console.error('[Booking Error]:', err);
             }
           },
           onFailure: (data: any) => {
+            console.error('[Cashfree] Payment failure:', data);
             setError(data?.message || 'Payment failed. Please try again.');
             setProcessing(false);
           },
           onClose: () => {
+            console.warn('[Cashfree] Payment popup closed by user');
             setProcessing(false);
           }
         }
       );
 
+      // Fallback: alert if popup didn’t open in 5 seconds
+      setTimeout(() => {
+        if (processing) {
+          alert('If the payment popup didn’t open, please disable popup blockers and try again.');
+        }
+      }, 5000);
+
     } catch (error: any) {
-      console.error('Payment error:', error);
+      console.error('[Cashfree Error]:', error);
       setError(error.message || 'Payment failed. Please try again.');
       setProcessing(false);
     }
