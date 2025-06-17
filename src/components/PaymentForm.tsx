@@ -21,50 +21,35 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCashfreeScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window?.Cashfree?.popups?.initiatePayment) {
-        return resolve(true);
-      }
-
-      // Prevent duplicate script
-      if (document.querySelector('script[src*="cashfree.prod.js"]')) {
-        const waitForInit = () => {
-          if (window?.Cashfree?.popups?.initiatePayment) {
-            resolve(true);
-          } else {
-            setTimeout(waitForInit, 100);
-          }
-        };
-        waitForInit();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
-      script.async = true;
-      script.onload = () => {
-        const waitForInit = () => {
-          if (window?.Cashfree?.popups?.initiatePayment) {
-            resolve(true);
-          } else {
-            setTimeout(waitForInit, 100);
-          }
-        };
-        waitForInit();
+const loadCashfreeScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (window?.Cashfree?.popups?.initiatePayment) {
+      resolve(true);
+    } else {
+      let attempts = 10;
+      const check = () => {
+        if (window?.Cashfree?.popups?.initiatePayment) {
+          resolve(true);
+        } else if (--attempts > 0) {
+          setTimeout(check, 300);
+        } else {
+          resolve(false);
+        }
       };
-      script.onerror = () => {
-        console.error('[Cashfree] Failed to load SDK');
-        resolve(false);
-      };
-      document.body.appendChild(script);
-    });
-  };
+      check();
+    }
+  });
+};
+
 
 const handlePayment = async () => {
   setProcessing(true);
   setError(null);
   console.log('[Payment] Started handlePayment');
+  if (typeof window === 'undefined') {
+      console.warn('[Cashfree] Not in browser environment');
+      return;
+    }
 
   try {
     const scriptLoaded = await loadCashfreeScript();
