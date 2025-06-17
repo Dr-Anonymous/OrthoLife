@@ -27,7 +27,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load Cashfree SDK - try the latest version
+  // Load Cashfree SDK - use the correct version for checkout
   const loadCashfreeScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
       // If already loaded
@@ -38,15 +38,18 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       }
       
       const script = document.createElement('script');
-      // Try the latest version first
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-      // Fallback options:
-      // script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
-      // script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js'; // For sandbox
+      // Use the checkout-specific SDK
+      script.src = 'https://sdk.cashfree.com/js/ui/2.0.0/cashfree.prod.js';
       
       script.onload = () => {
         console.log('Cashfree SDK loaded successfully');
-        console.log('Window.Cashfree:', (window as any).Cashfree);
+        // Initialize Cashfree with your credentials
+        const cashfree = (window as any).Cashfree;
+        if (cashfree && cashfree.init) {
+          // Note: You might need to pass your app ID here for some versions
+          console.log('Initializing Cashfree SDK...');
+        }
+        console.log('Window.Cashfree:', cashfree);
         resolve(true);
       };
       script.onerror = (error) => {
@@ -113,7 +116,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         throw new Error('Cashfree SDK not loaded properly');
       }
 
-      // Step 3: Show Cashfree checkout
+      // Step 3: Show Cashfree checkout using the correct method
       console.log('Initiating payment with session ID:', paymentSessionId);
       
       const checkoutOptions = {
@@ -123,69 +126,84 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
       console.log('Checkout options:', checkoutOptions);
 
-      const callbacks = {
-        onSuccess: async (data: any) => {
-          console.log('Payment successful:', data);
-          try {
-            // Book the appointment
-            const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
-              'book-appointment',
-              {
-                body: {
-                  patientData,
-                  appointmentData,
-                  paymentData: {
-                    paymentMethod: "cashfree",
-                    paymentStatus: "paid",
-                    orderId: data.order?.orderId || cashfreeData.orderId,
-                    cashfreeDetails: data
-                  }
-                }
-              }
-            );
-            
-            if (bookingError) {
-              console.error('Booking error:', bookingError);
-              throw bookingError;
-            }
-            
-            console.log('Appointment booked successfully:', bookingData);
-            onSuccess();
-          } catch (error) {
-            console.error('Error booking appointment:', error);
-            setError('Payment successful but failed to book appointment. Please contact support.');
-          } finally {
-            setProcessing(false);
-          }
-        },
-        onFailure: (data: any) => {
-          console.error('Payment failed:', data);
-          setError(data?.order?.errorText || data?.message || 'Payment failed. Please try again.');
-          setProcessing(false);
-        },
-        onClose: () => {
-          console.log('Payment popup closed');
-          setProcessing(false);
-        }
-      };
-
-      console.log('Callbacks defined:', callbacks);
-
-      // Try different SDK methods
+      // For Cashfree SDK v2.0.0, use the drop method
       try {
-        if (cashfree.checkout) {
+        if (typeof cashfree.drop === 'function') {
+          console.log('Using cashfree.drop method');
+          cashfree.drop({
+            mode: "popup",
+            paymentSessionId: paymentSessionId,
+            onSuccess: async (data: any) => {
+              console.log('Payment successful:', data);
+              try {
+                // Book the appointment
+                const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
+                  'book-appointment',
+                  {
+                    body: {
+                      patientData,
+                      appointmentData,
+                      paymentData: {
+                        paymentMethod: "cashfree",
+                        paymentStatus: "paid",
+                        orderId: data.order?.orderId || data.orderId || cashfreeData.orderId,
+                        cashfreeDetails: data
+                      }
+                    }
+                  }
+                );
+                
+                if (bookingError) {
+                  console.error('Booking error:', bookingError);
+                  throw bookingError;
+                }
+                
+                console.log('Appointment booked successfully:', bookingData);
+                onSuccess();
+              } catch (error) {
+                console.error('Error booking appointment:', error);
+                setError('Payment successful but failed to book appointment. Please contact support.');
+              } finally {
+                setProcessing(false);
+              }
+            },
+            onFailure: (data: any) => {
+              console.error('Payment failed:', data);
+              setError(data?.order?.errorText || data?.message || 'Payment failed. Please try again.');
+              setProcessing(false);
+            },
+            onClose: () => {
+              console.log('Payment popup closed');
+              setProcessing(false);
+            }
+          });
+        } else if (cashfree.checkout && typeof cashfree.checkout === 'function') {
           console.log('Using cashfree.checkout method');
           const result = await cashfree.checkout(checkoutOptions);
           console.log('Checkout result:', result);
         } else if (cashfree.popups && cashfree.popups.initiatePayment) {
           console.log('Using cashfree.popups.initiatePayment method');
-          cashfree.popups.initiatePayment(checkoutOptions, callbacks);
-        } else if (cashfree.initiatePayment) {
-          console.log('Using cashfree.initiatePayment method');
-          cashfree.initiatePayment(checkoutOptions, callbacks);
+          cashfree.popups.initiatePayment(checkoutOptions, {
+            onSuccess: async (data: any) => {
+              console.log('Payment successful:', data);
+              // Handle success
+              setProcessing(false);
+              onSuccess();
+            },
+            onFailure: (data: any) => {
+              console.error('Payment failed:', data);
+              setError(data?.order?.errorText || data?.message || 'Payment failed. Please try again.');
+              setProcessing(false);
+            },
+            onClose: () => {
+              console.log('Payment popup closed');
+              setProcessing(false);
+            }
+          });
         } else {
           console.error('Available Cashfree methods:', Object.keys(cashfree));
-          throw new Error('No suitable Cashfree checkout method found');
+          console.error('Cashfree object structure:', cashfree);
+          throw new Error('No suitable Cashfree checkout method found. Available methods: ' + Object.keys(cashfree).join(', '));
         }
       } catch (sdkError) {
         console.error('SDK method error:', sdkError);
