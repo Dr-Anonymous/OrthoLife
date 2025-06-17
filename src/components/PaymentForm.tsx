@@ -13,138 +13,114 @@ interface PaymentFormProps {
 
 declare global {
   interface Window {
-    Cashfree: any;
+    cashfree: any;
   }
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData, onSuccess, onBack }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({
+  appointmentData,
+  patientData,
+  onSuccess,
+  onBack
+}) => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-const loadCashfreeScript = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (window?.Cashfree?.popups?.initiatePayment) {
-      resolve(true);
-    } else {
-      let attempts = 10;
-      const check = () => {
-        if (window?.Cashfree?.popups?.initiatePayment) {
-          resolve(true);
-        } else if (--attempts > 0) {
-          setTimeout(check, 300);
-        } else {
-          resolve(false);
-        }
+  const loadCashfree = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.cashfree?.checkout) return resolve(true);
+      const existing = document.querySelector('script[src*="v3/cashfree.js"]');
+      if (existing) {
+        const check = () => {
+          if (window.cashfree?.checkout) resolve(true);
+          else setTimeout(check, 100);
+        };
+        return check();
+      }
+      const s = document.createElement('script');
+      s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      s.async = true;
+      s.onload = () => {
+        const check = () => {
+          if (window.cashfree?.checkout) resolve(true);
+          else setTimeout(check, 100);
+        };
+        check();
       };
-      check();
-    }
-  });
-};
+      s.onerror = () => resolve(false);
+      document.body.appendChild(s);
+    });
+  };
 
+  const handlePayment = async () => {
+    setProcessing(true);
+    setError(null);
+    try {
+      console.log('[Payment] Loading Cashfree SDK...');
+      const ok = await loadCashfree();
+      if (!ok) throw new Error('Cashfree SDK failed to load.');
 
-const handlePayment = async () => {
-  setProcessing(true);
-  setError(null);
-  console.log('[Payment] Started handlePayment');
-  if (typeof window === 'undefined') {
-      console.warn('[Cashfree] Not in browser environment');
-      return;
-    }
+      console.log('[Payment] Creating Cashfree order...');
+      const { data: cfData, error: cfErr } = await supabase.functions.invoke(
+        'create-cashfree-order',
+        {
+          body: {
+            amount: appointmentData.amount,
+            currency: 'INR',
+            orderNote: `${appointmentData.serviceType} - Appointment`,
+            customerDetails: {
+              customer_id: patientData.phone,
+              customer_email: patientData.email,
+              customer_phone: patientData.phone,
+              customer_name: patientData.name
+            }
+          }
+        }
+      );
+      console.log('[Payment] Cashfree order response:', cfData, cfErr);
+      if (cfErr) throw cfErr;
+      const sessionId = cfData?.payment_session_id;
+      if (!sessionId) throw new Error('No payment session ID returned from backend');
 
-  try {
-    const scriptLoaded = await loadCashfreeScript();
-    console.log('[Payment] Cashfree SDK loaded:', scriptLoaded);
-    if (!scriptLoaded) throw new Error('Failed to load Cashfree SDK');
+      // ✅ NEW: Use simplified checkout()
+      console.log('[Payment] Initiating Cashfree checkout...');
+      const result = await window.cashfree.checkout({
+        paymentSessionId: sessionId,
+        returnUrl: `${window.location.origin}/payment-success?cf_payment_success={order_id}`
+      });
 
-    console.log('[Payment] Invoking create-cashfree-order');
-    const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
-      'create-cashfree-order',
-      {
+      console.log('[Payment] checkout() result:', result);
+      if (result.error) {
+        throw new Error(result.error.message || 'Payment failed');
+      }
+      if (result.redirect) {
+        console.log('Redirecting to payment page...');
+        return; // user is being redirected
+      }
+
+      // PaymentResult inline success (e.g. UPI)
+      console.log('Payment inline success', result.paymentDetails);
+      // Proceed to appointment booking
+      const { error: bookingEr } = await supabase.functions.invoke('book-appointment', {
         body: {
-          amount: appointmentData.amount,
-          currency: 'INR',
-          orderNote: `${appointmentData.serviceType} - Appointment`,
-          customerDetails: {
-            customer_id: patientData.phone,
-            customer_email: patientData.email,
-            customer_phone: patientData.phone,
-            customer_name: patientData.name
+          patientData,
+          appointmentData,
+          paymentData: {
+            paymentMethod: 'cashfree',
+            paymentStatus: 'paid',
+            cashfreeDetails: result.paymentDetails
           }
         }
-      }
-    );
+      });
+      if (bookingEr) throw bookingEr;
+      onSuccess();
 
-    console.log('[Payment] Cashfree response:', cashfreeData);
-    if (cfError) throw cfError;
-    if (!cashfreeData?.payment_session_id) {
-      throw new Error('Cashfree order creation failed.');
+    } catch (err: any) {
+      console.error('[Payment] Error:', err);
+      setError(err.message || 'Unexpected error');
+      setProcessing(false);
     }
-
-    // Wait for Cashfree popup to initialize
-    let retries = 10;
-    while (
-      (!window.Cashfree?.popups?.initiatePayment ||
-      typeof window.Cashfree.popups.initiatePayment !== 'function') &&
-      retries > 0
-    ) {
-      console.warn('[Cashfree] Waiting for popup method...');
-      await new Promise(res => setTimeout(res, 300));
-      retries--;
-    }
-
-    if (!window.Cashfree?.popups?.initiatePayment) {
-      throw new Error('Cashfree popup method not available');
-    }
-
-    console.log('[Cashfree] Initiating payment popup...');
-    window.Cashfree.popups.initiatePayment(
-      {
-        paymentSessionId: cashfreeData.payment_session_id,
-        returnUrl: window.location.href + '?cf_payment_success={order_id}'
-      },
-      {
-        onSuccess: async (data: any) => {
-          console.log('[Payment] Success:', data);
-          try {
-            const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
-              'book-appointment',
-              {
-                body: {
-                  patientData,
-                  appointmentData,
-                  paymentData: {
-                    paymentMethod: 'cashfree',
-                    paymentStatus: 'paid',
-                    cashfreeDetails: data
-                  }
-                }
-              }
-            );
-            if (bookingError) throw bookingError;
-            onSuccess();
-          } catch (err) {
-            console.error('[Booking Error]:', err);
-            setError('Payment successful but booking failed. Please contact support.');
-          }
-        },
-        onFailure: (data: any) => {
-          console.error('[Cashfree] Payment Failed:', data);
-          setError(data?.message || 'Payment failed. Please try again.');
-          setProcessing(false);
-        },
-        onClose: () => {
-          console.log('[Cashfree] Payment popup closed');
-          setProcessing(false);
-        }
-      }
-    );
-  } catch (err: any) {
-    console.error('[Cashfree Error - Catch]:', err);
-    setError(err.message || 'Payment failed. Please try again.');
-    setProcessing(false);
-  }
-};
-
+  };
 
   return (
     <Card>
@@ -155,56 +131,13 @@ const handlePayment = async () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium mb-3">Payment Summary</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Service:</span>
-              <span>{appointmentData.serviceType}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Date & Time:</span>
-              <span>
-                {new Date(appointmentData.start).toLocaleDateString()} at{' '}
-                {new Date(appointmentData.start).toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                })}
-              </span>
-            </div>
-            <div className="flex justify-between font-medium text-lg border-t pt-2">
-              <span>Total Amount:</span>
-              <span className="text-green-600">₹{appointmentData.amount}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium mb-3">Patient Details</h4>
-          <div className="space-y-1 text-sm">
-            <p><strong>Name:</strong> {patientData.name}</p>
-            <p><strong>Email:</strong> {patientData.email}</p>
-            <p><strong>Phone:</strong> {patientData.phone}</p>
-          </div>
-        </div>
-
+        {/* Summary, details, error block */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
             <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
-
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-            <div className="text-sm text-green-700">
-              <p className="font-medium">Secure Payment</p>
-              <p>Your payment is processed securely through Cashfree. We accept all major cards, UPI, and net banking.</p>
-            </div>
-          </div>
-        </div>
 
         <div className="flex gap-3">
           <Button variant="outline" onClick={onBack} disabled={processing} className="flex-1">
