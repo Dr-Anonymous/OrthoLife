@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentFormProps {
@@ -11,15 +11,7 @@ interface PaymentFormProps {
   onBack: () => void;
 }
 
-// Updated Cashfree types for latest SDK
-declare global {
-  interface Window {
-    Cashfree: {
-      checkout: (options: any) => void;
-    };
-  }
-}
-
+// Simplified Cashfree integration using redirect approach
 const PaymentForm: React.FC<PaymentFormProps> = ({ 
   appointmentData, 
   patientData, 
@@ -28,37 +20,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 }) => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Updated to use latest Cashfree SDK
-  const loadCashfreeScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      // If already loaded
-      if (window.Cashfree) {
-        resolve(true);
-        return;
-      }
-      
-      // Load the latest Cashfree JS SDK
-      const script = document.createElement('script');
-      // Using the latest production SDK URL
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.head.appendChild(script);
-    });
-  };
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
 
   const handlePayment = async () => {
     setProcessing(true);
     setError(null);
 
     try {
-      // Load Cashfree script
-      const scriptLoaded = await loadCashfreeScript();
-      if (!scriptLoaded) {
-        throw new Error('Failed to load Cashfree SDK');
-      }
-
       // Step 1: Create Cashfree order on backend
       const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
         'create-cashfree-order',
@@ -74,7 +42,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               customer_name: patientData.name
             },
             order_meta: {
-              return_url: `${window.location.origin}?payment_status=success&order_id={order_id}`,
+              return_url: `${window.location.origin}/payment-success?order_id={order_id}&order_token={order_token}`,
               notify_url: `${window.location.origin}/api/cashfree-webhook`
             }
           }
@@ -86,70 +54,96 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         throw new Error("Failed to create payment session");
       }
 
-      // Step 2: Initialize Cashfree checkout with latest SDK
-      const checkoutOptions = {
+      // Step 2: Store order details in sessionStorage for later verification
+      sessionStorage.setItem('pendingPayment', JSON.stringify({
+        orderId: cashfreeData.order_id,
         paymentSessionId: cashfreeData.payment_session_id,
-        environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox', // or 'production'
-        returnUrl: `${window.location.origin}?payment_status=success&order_id=${cashfreeData.order_id}`,
-        components: [
-          "order-details",
-          "card",
-          "netbanking", 
-          "app",
-          "cardlessemi",
-          "paylater",
-          "wallet",
-          "upi"
-        ],
-        onSuccess: async (data: any) => {
-          console.log('Payment Success:', data);
-          try {
-            // Verify payment and book appointment
-            const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
-              'book-appointment',
-              {
-                body: {
-                  patientData,
-                  appointmentData,
-                  paymentData: {
-                    paymentMethod: "cashfree",
-                    paymentStatus: "completed",
-                    orderId: data.order?.orderId || data.orderId,
-                    paymentSessionId: cashfreeData.payment_session_id,
-                    cashfreeDetails: data
-                  }
-                }
-              }
-            );
-            
-            if (bookingError) throw bookingError;
-            
-            setProcessing(false);
-            onSuccess();
-          } catch (error) {
-            console.error('Error booking appointment:', error);
-            setError('Payment successful but failed to book appointment. Please contact support.');
-            setProcessing(false);
-          }
-        },
-        onFailure: (data: any) => {
-          console.log('Payment Failed:', data);
-          setError(data?.error?.message || 'Payment failed. Please try again.');
-          setProcessing(false);
-        },
-        onClose: () => {
-          console.log('Checkout closed by user');
-          setProcessing(false);
-        }
-      };
+        patientData,
+        appointmentData,
+        timestamp: Date.now()
+      }));
 
-      // Launch Cashfree checkout
-      window.Cashfree.checkout(checkoutOptions);
+      // Step 3: Redirect to Cashfree payment page
+      const environment = process.env.NODE_ENV === 'production' ? 'production' : 'sandbox';
+      const baseUrl = environment === 'production' 
+        ? 'https://payments.cashfree.com/pay' 
+        : 'https://payments-test.cashfree.com/pay';
+      
+      const paymentPageUrl = `${baseUrl}/${cashfreeData.payment_session_id}`;
+      
+      // Option 1: Redirect in same window
+      window.location.href = paymentPageUrl;
+      
+      // Option 2: Open in new window (uncomment below and comment above line)
+      // const paymentWindow = window.open(paymentPageUrl, '_blank', 'width=800,height=600');
+      // if (!paymentWindow) {
+      //   throw new Error('Please allow popups for payment window');
+      // }
 
     } catch (error: any) {
       console.error('Payment initialization error:', error);
       setError(error.message || 'Failed to initialize payment. Please try again.');
       setProcessing(false);
+    }
+  };
+
+  // Check for payment completion on component mount
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment_status');
+    const orderId = urlParams.get('order_id');
+
+    if (paymentStatus === 'success' && orderId) {
+      handlePaymentSuccess(orderId);
+    } else if (paymentStatus === 'failed') {
+      setError('Payment failed. Please try again.');
+    }
+  }, []);
+
+  const handlePaymentSuccess = async (orderId: string) => {
+    try {
+      // Get stored payment details
+      const pendingPaymentStr = sessionStorage.getItem('pendingPayment');
+      if (!pendingPaymentStr) {
+        throw new Error('Payment session not found');
+      }
+
+      const pendingPayment = JSON.parse(pendingPaymentStr);
+      
+      // Verify the order ID matches
+      if (pendingPayment.orderId !== orderId) {
+        throw new Error('Payment verification failed');
+      }
+
+      // Book the appointment
+      const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
+        'book-appointment',
+        {
+          body: {
+            patientData: pendingPayment.patientData,
+            appointmentData: pendingPayment.appointmentData,
+            paymentData: {
+              paymentMethod: "cashfree",
+              paymentStatus: "completed",
+              orderId: orderId,
+              paymentSessionId: pendingPayment.paymentSessionId
+            }
+          }
+        }
+      );
+
+      if (bookingError) throw bookingError;
+
+      // Clear pending payment data
+      sessionStorage.removeItem('pendingPayment');
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      onSuccess();
+    } catch (error) {
+      console.error('Error processing payment success:', error);
+      setError('Payment successful but failed to book appointment. Please contact support.');
     }
   };
 
@@ -230,7 +224,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             <div className="text-sm text-green-700">
               <p className="font-medium mb-1">100% Secure Payment</p>
               <p className="text-green-600">
-                Your payment is processed securely through Cashfree Payment Gateway. 
+                You will be redirected to Cashfree's secure payment page. 
                 We support UPI, Cards, Net Banking, Wallets and EMI options.
               </p>
             </div>
@@ -272,14 +266,17 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
                 Processing...
               </div>
             ) : (
-              `Pay ₹${appointmentData.amount} Securely`
+              <div className="flex items-center gap-2">
+                <span>Pay ₹{appointmentData.amount} Securely</span>
+                <ExternalLink className="w-4 h-4" />
+              </div>
             )}
           </Button>
         </div>
 
         {/* Terms */}
         <p className="text-xs text-gray-500 text-center leading-relaxed">
-          By proceeding with payment, you agree to our terms of service. 
+          By proceeding with payment, you will be redirected to Cashfree's secure payment page. 
           Your appointment will be confirmed upon successful payment.
         </p>
       </CardContent>
