@@ -61,90 +61,105 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ appointmentData, patientData,
     });
   };
 
-  const handlePayment = async () => {
-    setProcessing(true);
-    setError(null);
+const handlePayment = async () => {
+  setProcessing(true);
+  setError(null);
+  console.log('[Payment] Started handlePayment');
 
-    try {
-      const scriptLoaded = await loadCashfreeScript();
-      if (!scriptLoaded) throw new Error('Failed to load Cashfree SDK');
+  try {
+    const scriptLoaded = await loadCashfreeScript();
+    console.log('[Payment] Cashfree SDK loaded:', scriptLoaded);
+    if (!scriptLoaded) throw new Error('Failed to load Cashfree SDK');
 
-      // Step 1: Create Cashfree order on backend
-      const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
-        'create-cashfree-order',
-        {
-          body: {
-            amount: appointmentData.amount,
-            currency: 'INR',
-            orderNote: `${appointmentData.serviceType} - Appointment`,
-            customerDetails: {
-              customer_id: patientData.phone,
-              customer_email: patientData.email,
-              customer_phone: patientData.phone,
-              customer_name: patientData.name
-            }
+    console.log('[Payment] Invoking create-cashfree-order');
+    const { data: cashfreeData, error: cfError } = await supabase.functions.invoke(
+      'create-cashfree-order',
+      {
+        body: {
+          amount: appointmentData.amount,
+          currency: 'INR',
+          orderNote: `${appointmentData.serviceType} - Appointment`,
+          customerDetails: {
+            customer_id: patientData.phone,
+            customer_email: patientData.email,
+            customer_phone: patientData.phone,
+            customer_name: patientData.name
           }
         }
-      );
-
-      if (cfError) throw cfError;
-      if (!cashfreeData?.payment_session_id) {
-        throw new Error('Cashfree order creation failed.');
       }
+    );
 
-      const cashfree = window.Cashfree;
+    console.log('[Payment] Cashfree response:', cashfreeData);
+    if (cfError) throw cfError;
+    if (!cashfreeData?.payment_session_id) {
+      throw new Error('Cashfree order creation failed.');
+    }
 
-      if (!cashfree?.popups?.initiatePayment) {
-        throw new Error('Cashfree popup method not available.');
-      }
+    // Wait for Cashfree popup to initialize
+    let retries = 10;
+    while (
+      (!window.Cashfree?.popups?.initiatePayment ||
+      typeof window.Cashfree.popups.initiatePayment !== 'function') &&
+      retries > 0
+    ) {
+      console.warn('[Cashfree] Waiting for popup method...');
+      await new Promise(res => setTimeout(res, 300));
+      retries--;
+    }
 
-      console.log('[Cashfree] Starting payment process...');
-      cashfree.popups.initiatePayment(
-        {
-          paymentSessionId: cashfreeData.payment_session_id,
-          returnUrl: window.location.href + '?cf_payment_success={order_id}'
-        },
-        {
-          onSuccess: async (data: any) => {
-            try {
-              const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
-                'book-appointment',
-                {
-                  body: {
-                    patientData,
-                    appointmentData,
-                    paymentData: {
-                      paymentMethod: 'cashfree',
-                      paymentStatus: 'paid',
-                      cashfreeDetails: data
-                    }
+    if (!window.Cashfree?.popups?.initiatePayment) {
+      throw new Error('Cashfree popup method not available');
+    }
+
+    console.log('[Cashfree] Initiating payment popup...');
+    window.Cashfree.popups.initiatePayment(
+      {
+        paymentSessionId: cashfreeData.payment_session_id,
+        returnUrl: window.location.href + '?cf_payment_success={order_id}'
+      },
+      {
+        onSuccess: async (data: any) => {
+          console.log('[Payment] Success:', data);
+          try {
+            const { data: bookingData, error: bookingError } = await supabase.functions.invoke(
+              'book-appointment',
+              {
+                body: {
+                  patientData,
+                  appointmentData,
+                  paymentData: {
+                    paymentMethod: 'cashfree',
+                    paymentStatus: 'paid',
+                    cashfreeDetails: data
                   }
                 }
-              );
-              if (bookingError) throw bookingError;
-              onSuccess();
-            } catch (err) {
-              setError('Payment successful but booking failed. Please contact support.');
-              console.error('[Booking Error]:', err);
-            }
-          },
-          onFailure: (data: any) => {
-            setError(data?.message || 'Payment failed. Please try again.');
-            console.error('[Cashfree] Payment Failed:', data);
-            setProcessing(false);
-          },
-          onClose: () => {
-            console.log('[Cashfree] Popup Closed');
-            setProcessing(false);
+              }
+            );
+            if (bookingError) throw bookingError;
+            onSuccess();
+          } catch (err) {
+            console.error('[Booking Error]:', err);
+            setError('Payment successful but booking failed. Please contact support.');
           }
+        },
+        onFailure: (data: any) => {
+          console.error('[Cashfree] Payment Failed:', data);
+          setError(data?.message || 'Payment failed. Please try again.');
+          setProcessing(false);
+        },
+        onClose: () => {
+          console.log('[Cashfree] Payment popup closed');
+          setProcessing(false);
         }
-      );
-    } catch (err: any) {
-      console.error('[Cashfree Error]:', err);
-      setError(err.message || 'Payment failed. Please try again.');
-      setProcessing(false);
-    }
-  };
+      }
+    );
+  } catch (err: any) {
+    console.error('[Cashfree Error - Catch]:', err);
+    setError(err.message || 'Payment failed. Please try again.');
+    setProcessing(false);
+  }
+};
+
 
   return (
     <Card>
