@@ -11,10 +11,10 @@ interface PaymentFormProps {
   onBack: () => void;
 }
 
-// Razorpay types
+// Cashfree types
 declare global {
   interface Window {
-    Razorpay: any;
+    Cashfree: any;
   }
 }
 
@@ -186,7 +186,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
             <div className="text-sm text-green-700">
               <p className="font-medium">Secure Payment</p>
-              <p>Your payment is processed securely through Razorpay. We accept all major cards, UPI, and net banking.</p>
+              <p>Your payment is processed securely through Cashfree. We accept all major cards, UPI, and net banking.</p>
             </div>
           </div>
         </div>
