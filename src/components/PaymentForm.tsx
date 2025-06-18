@@ -65,12 +65,29 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       const sessionId = cfOrder.payment_session_id;
       if (!sessionId) throw new Error('No payment session ID');
 
-      const result = await cashfree.checkout({
+      const checkout = await cashfree.checkout({
         paymentSessionId: sessionId,
-        redirectTarget: '_self'
-      });
+        redirectTarget: '_modal'
+      }).then((result) => {
+            if(result.error){
+                // This will be true whenever user clicks on close icon inside the modal or any error happens during the payment
+                console.log("User has closed the popup or there is some payment error, Check for Payment Status");
+                console.log(result.error);
+            }
+            if(result.redirect){
+                // This will be true when the payment redirection page couldnt be opened in the same window
+                // This is an exceptional case only when the page is opened inside an inAppBrowser
+                // In this case the customer will be redirected to return url once payment is completed
+                console.log("Payment will be redirected");
+            }
+            if(result.paymentDetails){
+                // This will be called whenever the payment is completed irrespective of transaction status
+                console.log("Payment has been completed, Check for Payment Status");
+                console.log(result.paymentDetails.paymentMessage);
+            }
+        });
 
-      if (result.error) {
+      if (checkout.error) {
         throw new Error(result.error?.message || 'Payment failed');
       }
 
