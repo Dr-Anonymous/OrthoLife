@@ -36,7 +36,7 @@ interface AppointmentBookingProps {
 const services: ServiceType[] = [
   { name: 'Orthopaedic Consultation', duration: 15, price: 400 },
   { name: 'General Physician Consultation', duration: 20, price: 400 },
-  { name: 'Follow-up Visit', duration: 10, price: 1 },
+  { name: 'Follow-up Visit', duration: 10, price: 0 },
   { name: 'House Visit', duration: 15, price: 1000 },
 ];
 
@@ -142,7 +142,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
                 {services.map((service) => (
                   <SelectItem key={service.name} value={service.name}>
                     <div className="flex justify-between items-center w-full">
-                      <span>{service.name}</span>
+                      <span>{service.name} </span>
                       <span className="text-green-600 font-medium">₹{service.price}</span>
                     </div>
                   </SelectItem>
