@@ -65,7 +65,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       const sessionId = cfOrder.payment_session_id;
       if (!sessionId) throw new Error('No payment session ID');
 
-      const checkout = await cashfree.checkout({
+      const myCheckout = await cashfree.checkout({
         paymentSessionId: sessionId,
         redirectTarget: '_modal'
       }).then((result) => {
@@ -87,8 +87,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             }
         });
 
-      if (checkout.error) {
-        throw new Error(result.error?.message || 'Payment failed');
+      if (myCheckout.error) {
+        throw new Error(myCheckout.error?.message || 'Payment failed');
       }
 
       onSuccess();
