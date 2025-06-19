@@ -53,7 +53,7 @@ const AppointmentBookingSection: React.FC = () => {
 
   const handleAppointmentBooking = (data: AppointmentData) => {
     setAppointmentData(data);
-    if (paymentOption === 'online') {
+    if (paymentOption === 'online' && data['amount'] !== 0) {
       setCurrentStep('payment');
     } else {
       handleOfflineBooking(data);
