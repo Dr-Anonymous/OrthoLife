@@ -270,7 +270,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
               disabled={!selectedSlot || !selectedService}
               className="flex-1"
             >
-              {paymentOption === 'online' ? 'Proceed to Payment' : 'Book Appointment'}
+              {(paymentOption === 'online' && selectedServiceData.price !== 0) ? 'Proceed to Payment' : 'Book Appointment'}
             </Button>
           </div>
         </CardContent>
