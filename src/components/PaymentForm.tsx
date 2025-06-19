@@ -150,7 +150,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
             <div className="text-sm text-green-700">
               <p className="font-medium">Secure Payment</p>
-              <p>Your payment is securely processed via Cashfree Checkout.</p>
+              <p>Your payment is securely processed via Cashfree.</p>
             </div>
           </div>
         </div>
