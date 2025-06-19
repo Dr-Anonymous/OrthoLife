@@ -114,24 +114,16 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         }
         if(result.paymentDetails){
           // This will be called whenever the payment is completed irrespective of transaction status
-          console.log("Payment has been completed, Check for Payment Status");
+          console.log(result.paymentDetails);
           console.log(result.paymentDetails.paymentMessage);
           
-          // Check if payment was successful
-          if (result.paymentDetails.paymentStatus === 'SUCCESS' || 
-              result.paymentDetails.paymentMessage?.toLowerCase().includes('success')) {
+          // Book the appointment after successful payment
+          const bookingSuccess = await bookAppointmentAfterPayment(result.paymentDetails);
             
-            // Book the appointment after successful payment
-            const bookingSuccess = await bookAppointmentAfterPayment(result.paymentDetails);
-            
-            if (bookingSuccess) {
-              onSuccess(); // This will move to the success step
-            }
-            // If booking failed, error message is already set in bookAppointmentAfterPayment
-          } else {
-            setError('Payment failed. Please try again or contact support.');
-            console.log('Payment failed:', result.paymentDetails);
+          if (bookingSuccess) {
+            onSuccess(); // This will move to the success step
           }
+          
         }
       });
 
