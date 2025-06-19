@@ -36,7 +36,7 @@ interface AppointmentBookingProps {
 const services: ServiceType[] = [
   { name: 'Orthopaedic Consultation', duration: 15, price: 400 },
   { name: 'General Physician Consultation', duration: 20, price: 400 },
-  { name: 'Follow-up Visit', duration: 10, price: 0 },
+  { name: 'Follow-up Visit', duration: 10, price: 1 },
   { name: 'House Visit', duration: 15, price: 1000 },
 ];
 
@@ -82,7 +82,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
         return;
       }
 
-      console.log('Received slots data:', data);
+      //console.log('Received slots data:', data);
       setAvailableSlots(data?.slots || []);
       
       if (!data?.slots || data.slots.length === 0) {
