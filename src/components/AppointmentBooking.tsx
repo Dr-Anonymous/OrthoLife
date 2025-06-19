@@ -172,7 +172,8 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
               className="rounded-md border"
             />
             <p className="text-sm text-gray-500 mt-2">
-              Appointments available Monday to Saturday only. For instant EMERGENCY / Sunday consultation contact through Whatsapp
+              Appointments available Monday to Saturday only.
+              For Emergency/Sunday consultation contact through Whatsapp
             </p>
           </div>
 
