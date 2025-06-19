@@ -5,22 +5,6 @@ import { CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 
-       
-declare global {
-  interface Window {
-    Cashfree?: any;
-  }
-}
-
-let cashfree;
-var initializeSDK = async function () {      
-    cashfree = await Cashfree({
-        mode: "production"
-    });
-}
-initializeSDK();
-
-
 interface PaymentFormProps {
   appointmentData: any;
   patientData: any;
@@ -36,7 +20,22 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 }) => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+         
+  declare global {
+   interface Window {
+    Cashfree?: any;
+   }
+  }
 
+  let cashfree;
+  var initializeSDK = async function () {      
+  cashfree = await Cashfree({
+   mode: "production"
+   });
+  }
+  initializeSDK();
+
+ 
   const handlePayment = async () => {
     setProcessing(true);
     setError(null);
