@@ -36,7 +36,7 @@ interface AppointmentBookingProps {
 const services: ServiceType[] = [
   { name: 'Orthopaedic Consultation', duration: 15, price: 400 },
   { name: 'General Physician Consultation', duration: 20, price: 400 },
-  { name: 'Follow-up Visit', duration: 10, price: 1 },
+  { name: 'Follow-up Visit', duration: 10, price: 0 },
   { name: 'House Visit', duration: 15, price: 1000 },
 ];
 
