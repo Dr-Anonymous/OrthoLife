@@ -35,6 +35,38 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   }
   initializeSDK();
 
+  // Function to book appointment after successful payment
+  const bookAppointmentAfterPayment = async (paymentDetails: any) => {
+    try {
+      const { data: bookingData, error } = await supabase.functions.invoke(
+        'book-appointment',
+        {
+          body: {
+            patientData,
+            appointmentData,
+            paymentData: {
+              paymentMethod: 'online',
+              paymentStatus: 'completed',
+              paymentId: paymentDetails.paymentId || paymentDetails.cf_payment_id,
+              transactionDetails: paymentDetails
+            }
+          }
+        }
+      );
+
+      if (error) {
+        console.error('Error booking appointment after payment:', error);
+        setError('Payment successful but appointment booking failed. Please contact support.');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      setError('Payment successful but appointment booking failed. Please contact support.');
+      return false;
+    }
+  };
  
   const handlePayment = async () => {
     setProcessing(true);
@@ -67,25 +99,41 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       await cashfree.checkout({
         paymentSessionId: sessionId,
         redirectTarget: '_modal'
-      }).then((result) => {
-            if(result.error){
-                // This will be true whenever user clicks on close icon inside the modal or any error happens during the payment
-                console.log("User has closed the popup or there is some payment error, Check for Payment Status");
-                console.log(result.error);
+      }).then(async (result) => {
+        if(result.error){
+          // This will be true whenever user clicks on close icon inside the modal or any error happens during the payment
+          console.log("User has closed the popup or there is some payment error, Check for Payment Status");
+          console.log(result.error);
+          setError('Payment was cancelled or failed. Please try again.');
+        }
+        if(result.redirect){
+          // This will be true when the payment redirection page couldnt be opened in the same window
+          // This is an exceptional case only when the page is opened inside an inAppBrowser
+          // In this case the customer will be redirected to return url once payment is completed
+          console.log("Payment will be redirected");
+        }
+        if(result.paymentDetails){
+          // This will be called whenever the payment is completed irrespective of transaction status
+          console.log("Payment has been completed, Check for Payment Status");
+          console.log(result.paymentDetails.paymentMessage);
+          
+          // Check if payment was successful
+          if (result.paymentDetails.paymentStatus === 'SUCCESS' || 
+              result.paymentDetails.paymentMessage?.toLowerCase().includes('success')) {
+            
+            // Book the appointment after successful payment
+            const bookingSuccess = await bookAppointmentAfterPayment(result.paymentDetails);
+            
+            if (bookingSuccess) {
+              onSuccess(); // This will move to the success step
             }
-            if(result.redirect){
-                // This will be true when the payment redirection page couldnt be opened in the same window
-                // This is an exceptional case only when the page is opened inside an inAppBrowser
-                // In this case the customer will be redirected to return url once payment is completed
-                console.log("Payment will be redirected");
-            }
-            if(result.paymentDetails){
-                    onSuccess();
-                     // This will be called whenever the payment is completed irrespective of transaction status
-                     console.log("Payment has been completed, Check for Payment Status");
-                     console.log(result.paymentDetails.paymentMessage);   
-            }
-        });
+            // If booking failed, error message is already set in bookAppointmentAfterPayment
+          } else {
+            setError('Payment failed. Please try again or contact support.');
+            console.log('Payment failed:', result.paymentDetails);
+          }
+        }
+      });
 
     } catch (err: any) {
       console.error(err);
