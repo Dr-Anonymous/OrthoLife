@@ -12,7 +12,7 @@ const CTA = () => {
             Take the first step towards better health by booking an appointment with our specialists. We're here to help you live pain-free and get back to doing what you love.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white" onClick={(e) => {e.preventDefault();window.location.href='#book-appointment';}}>
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white" onClick={(e) => {e.preventDefault();window.location.href='/appointment';}}>
               Book an Appointment
             </Button>
             <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10" onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}}>
