@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import AppointmentPage from "./pages/AppointmentPage";
 import LegalPoliciesPage from "./pages/LegalPoliciesPage";
 import WhatsAppMe from "./pages/WhatsAppMe";
-import emr from "./pages/Emr";
+import Emr from "./pages/Emr";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
