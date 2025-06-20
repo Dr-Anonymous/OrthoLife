@@ -15,7 +15,7 @@ const LegalPoliciesPage = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-grow">
-        <section id="legal" className="py-16 md:py-24">
+        <section id="legal" className="pt-24 md:pt-32 pb-16 md:pb-24 relative overflow-hidden">
          <div className="max-w-6xl mx-auto">
           {/* Page Header */}
           <div className="text-center mb-8">
