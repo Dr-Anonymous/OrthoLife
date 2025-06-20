@@ -15,6 +15,7 @@ const LegalPoliciesPage = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-grow">
+        <section id="legal" className="py-16 md:py-24">
          <div className="max-w-6xl mx-auto">
           {/* Page Header */}
           <div className="text-center mb-8">
@@ -58,7 +59,7 @@ const LegalPoliciesPage = () => {
                 <CardContent className="prose max-w-none">
                   <div className="space-y-6">
                     <p className="text-gray-700 leading-relaxed">
-                      Thank you for accessing our medical services at <strong>ortho.life</strong>. This site is owned by <strong>Dr. Samuel Manoj Cherukuri</strong> and OrthoLife Medical Services. By accessing and using our services, you indicate your unconditional acceptance of these terms and conditions.
+                      Thank you for accessing our medical services at <strong>ortho.life</strong>. This site is owned by <strong>Dr. Samuel Manoj Cherukuri</strong>. By accessing and using our services, you indicate your unconditional acceptance of these terms and conditions.
                     </p>
 
                     <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
@@ -104,14 +105,14 @@ const LegalPoliciesPage = () => {
                     <section>
                       <h3 className="text-xl font-semibold text-gray-900 mb-3">4. Medical Information Accuracy</h3>
                       <p className="text-gray-700">
-                        While we strive to provide accurate medical information on our website, this content is for informational purposes only and should not replace professional medical advice. Always consult with Dr. Cherukuri or qualified healthcare providers for specific medical concerns.
+                        While we strive to provide accurate medical information on our website, this content is for informational purposes only and should not replace professional medical advice. Always consult with Dr. Samuel Manoj Cherukuri in-person for specific medical concerns.
                       </p>
                     </section>
 
                     <section>
                       <h3 className="text-xl font-semibold text-gray-900 mb-3">5. Limitation of Liability</h3>
                       <p className="text-gray-700">
-                        Our liability is limited to the scope of professional medical practice. We maintain appropriate medical malpractice insurance as required by law. This agreement does not limit your rights under applicable healthcare and consumer protection laws.
+                        Our liability is limited to the scope of professional medical practice. This agreement does not limit your rights under applicable healthcare and consumer protection laws.
                       </p>
                     </section>
                   </div>
@@ -137,7 +138,7 @@ const LegalPoliciesPage = () => {
                     <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
                       <p className="text-green-800 font-semibold">HIPAA Compliance</p>
                       <p className="text-green-700 text-sm mt-1">
-                        We strictly comply with HIPAA regulations and maintain the highest standards of medical privacy protection.
+                        We don't comply with HIPAA regulations but maintain the highest standards of medical privacy protection.
                       </p>
                     </div>
 
@@ -187,13 +188,12 @@ const LegalPoliciesPage = () => {
 
                     <section>
                       <h3 className="text-xl font-semibold text-gray-900 mb-3">Your Rights</h3>
-                      <p className="text-gray-700 mb-2">Under HIPAA and applicable privacy laws, you have the right to:</p>
+                      <p className="text-gray-700 mb-2">You have the right to:</p>
                       <ul className="list-disc pl-6 text-gray-700 space-y-1">
                         <li>Access and review your medical records</li>
                         <li>Request corrections to your medical information</li>
                         <li>Request restrictions on use of your information</li>
                         <li>Receive a detailed privacy practices notice</li>
-                        <li>File complaints about privacy practices</li>
                       </ul>
                     </section>
 
@@ -229,15 +229,15 @@ const LegalPoliciesPage = () => {
                     <section>
                       <h3 className="text-xl font-semibold text-gray-900 mb-3">Appointment Cancellation Policy</h3>
                       <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                        <p className="text-blue-800 font-semibold">24-Hour Cancellation Rule</p>
+                        <p className="text-blue-800 font-semibold">2-Hour Cancellation Rule</p>
                         <p className="text-blue-700 text-sm mt-1">
-                          Appointments can be cancelled or rescheduled up to 24 hours before the scheduled time without penalty.
+                          Appointments can be cancelled or rescheduled up to 2 hours before the scheduled time.
                         </p>
                       </div>
                       
                       <ul className="list-disc pl-6 text-gray-700 space-y-2">
-                        <li><strong>More than 24 hours notice:</strong> Full refund or free rescheduling available</li>
-                        <li><strong>Less than 24 hours notice:</strong> Cancellation fee may apply (50% of consultation fee)</li>
+                        <li><strong>More than 2 hours notice:</strong> Full refund or free rescheduling available</li>
+                        <li><strong>Less than 2 hours notice:</strong> Cancellation fee may apply (50% of consultation fee)</li>
                         <li><strong>No-show appointments:</strong> Full consultation fee will be charged</li>
                         <li><strong>Same-day emergencies:</strong> Medical emergencies are exempt from cancellation fees</li>
                       </ul>
@@ -250,8 +250,8 @@ const LegalPoliciesPage = () => {
                         <div className="border rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">Consultation Fees</h4>
                           <ul className="list-disc pl-6 text-gray-700 space-y-1">
-                            <li>Refundable if cancelled 24+ hours in advance</li>
-                            <li>50% refundable if cancelled with less than 24 hours notice</li>
+                            <li>Refundable if cancelled 2+ hours in advance</li>
+                            <li>50% refundable if cancelled with less than 2 hours notice</li>
                             <li>Non-refundable for no-show appointments</li>
                           </ul>
                         </div>
@@ -281,7 +281,6 @@ const LegalPoliciesPage = () => {
                         <ul className="list-disc pl-6 text-gray-700 space-y-1">
                           <li>Call our office during business hours</li>
                           <li>Email us with your appointment details</li>
-                          <li>Use our online patient portal if available</li>
                           <li>Provide at least 24 hours notice when possible</li>
                         </ul>
                       </div>
@@ -290,7 +289,7 @@ const LegalPoliciesPage = () => {
                     <section>
                       <h3 className="text-xl font-semibold text-gray-900 mb-3">Refund Processing</h3>
                       <ul className="list-disc pl-6 text-gray-700 space-y-1">
-                        <li>Refunds are processed within 5-7 business days</li>
+                        <li>Refunds are processed within 2 business days</li>
                         <li>Refunds are issued to the original payment method</li>
                         <li>Administrative fees may apply for processing</li>
                         <li>Bank processing times may vary</li>
@@ -315,6 +314,7 @@ const LegalPoliciesPage = () => {
            
         </div>
         <Contact />
+       </section>
       </main>
       <Footer />
     </div>
