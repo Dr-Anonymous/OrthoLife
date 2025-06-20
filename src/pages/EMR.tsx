@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
-const emr = () => {
+const EMR = () => {
   const [formData, setFormData] = useState({
     name: '',
     dob: '',
@@ -191,4 +191,4 @@ const emr = () => {
   );
 };
 
-export default emr;
+export default EMR;
