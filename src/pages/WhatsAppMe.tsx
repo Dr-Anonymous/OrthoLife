@@ -8,12 +8,29 @@ const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const formatPhoneNumber = (input: string) => {
+    // Remove all non-digit characters
+    const digitsOnly = input.replace(/[^0-9]/g, '');
+    
+    // If number starts with 91 and is 12 digits, remove the 91
+    if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
+      return digitsOnly.slice(2);
+    }
+    return digitsOnly;
+  };
+
   const process = (e: number) => {
     if (!phone) {
       showError('Please enter a phone number');
       return;
     }
     
+    const formattedPhone = formatPhoneNumber(phone);
+    if (!formattedPhone) {
+      showError('Please enter a valid phone number');
+      return;
+    }
+
     let address;
     switch (e) {
       case 2:
@@ -26,7 +43,7 @@ const WhatsAppMe = () => {
         address = "%2F";
     }
 
-    window.location.href = `https://wa.me/${phone.replace(/[^A-Z0-9]+/ig, "")}?text=${address}`;
+    window.location.href = `https://wa.me/91${formattedPhone}?text=${address}`;
   };
 
   const inform = (e: number) => {
@@ -35,13 +52,19 @@ const WhatsAppMe = () => {
       return;
     }
     
+    const formattedPhone = formatPhoneNumber(phone);
+    if (!formattedPhone) {
+      showError('Please enter a valid phone number');
+      return;
+    }
+
     let address;
     switch (e) {
       case 1:
-        address = `https://wa.me/917093551714?text=${phone.replace(/[^A-Z0-9]+/ig, "")}`;
+        address = `https://wa.me/917093551714?text=${formattedPhone}`;
         break;
       case 2:
-        address = `https://wa.me/919652377616?text=${phone.replace(/[^A-Z0-9]+/ig, "")}`;
+        address = `https://wa.me/919652377616?text=${formattedPhone}`;
         break;
       default:
         address = "%2F";
@@ -55,14 +78,22 @@ const WhatsAppMe = () => {
       showError('Please enter a phone number');
       return;
     }
-    window.location.href = `sms:${phone}?body=Dr%20Samuel%20Manoj%20Cherukuri%0A098668%2012555%0A%0A9-5pm%20at%3A%0ALaxmi%20Hospital%2C%20Gudarigunta%2C%20Kakinada%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F5Xkr4FU%0A%0AAfter%207pm%20at%20%28clinic%20address%29%3A%0ARoad%20number%203%2C%0AR%20R%20Nagar%2C%20near%20RTO%20office%2C%20Kakinada%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F6ZEukv`;
+    
+    const formattedPhone = formatPhoneNumber(phone);
+    if (!formattedPhone) {
+      showError('Please enter a valid phone number');
+      return;
+    }
+
+    window.location.href = `sms:${formattedPhone}?body=Dr%20Samuel%20Manoj%20Cherukuri%0A098668%2012555%0A%0A9-5pm%20at%3A%0ALaxmi%20Hospital%2C%20Gudarigunta%2C%20Kakinada%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F5Xkr4FU%0A%0AAfter%207pm%20at%20%28clinic%20address%29%3A%0ARoad%20number%203%2C%0AR%20R%20Nagar%2C%20near%20RTO%20office%2C%20Kakinada%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F6ZEukv`;
   };
 
-  const handlePaste = async () => {
+  const handlePasteClick = async () => {
     setIsProcessing(true);
     try {
       const text = await navigator.clipboard.readText();
-      setPhone(text.replace(/[^0-9]/g, '').slice(0, 10));
+      const formattedNumber = formatPhoneNumber(text);
+      setPhone(formattedNumber);
       showSuccess('Phone number pasted from clipboard');
     } catch (error) {
       showError('Failed to read clipboard. Please paste manually.');
@@ -70,6 +101,10 @@ const WhatsAppMe = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(e.target.value);
   };
 
   const showError = (message: string) => {
@@ -108,23 +143,19 @@ const WhatsAppMe = () => {
               type="tel"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="Enter 10-digit mobile number"
-              maxLength={10}
+              onChange={handlePhoneChange}
+              placeholder="Enter phone number (with or without country code)"
             />
             <Button
               variant="ghost"
               size="sm"
-              onClick={handlePaste}
+              onClick={handlePasteClick}
               disabled={isProcessing}
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 px-2"
             >
               <Clipboard className="w-4 h-4" />
             </Button>
           </div>
-          <p className="text-xs text-gray-500">
-            {phone.length}/10 digits
-          </p>
         </div>
 
         <div className="space-y-3">
@@ -193,7 +224,7 @@ const WhatsAppMe = () => {
 
         <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start gap-2">
           <Clipboard className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <p>Click the clipboard icon or focus the field to paste a phone number automatically</p>
+          <p>Click the clipboard icon to paste a phone number</p>
         </div>
       </CardContent>
     </Card>
