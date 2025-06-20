@@ -38,16 +38,16 @@ const Footer = () => {
             <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#home" className="hover:text-primary transition-colors">Home</a>
+                <a href="/#home" className="hover:text-primary transition-colors">Home</a>
               </li>
               <li>
-                <a href="#about" className="hover:text-primary transition-colors">About Us</a>
+                <a href="/#about" className="hover:text-primary transition-colors">About Us</a>
               </li>
               <li>
-                <a href="#services" className="hover:text-primary transition-colors">Services</a>
+                <a href="/#services" className="hover:text-primary transition-colors">Services</a>
               </li>
               <li>
-                <a href="#contact" className="hover:text-primary transition-colors">Contact</a>
+                <a href="/#contact" className="hover:text-primary transition-colors">Contact</a>
               </li>
             </ul>
           </div>
