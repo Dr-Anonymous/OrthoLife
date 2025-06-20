@@ -98,7 +98,7 @@ const AppointmentBookingSection: React.FC = () => {
   };
 
   return (
-    <section id="book-appointment" className="py-16 bg-gradient-to-br from-blue-50 to-white">
+    <section id="book-appointment" className="pt-24 md:pt-32 pb-16 md:pb-24 relative overflow-hidden bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
