@@ -3,8 +3,7 @@ import Header from '@/components/Header';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 
-import { ArrowLeft, FileText, Shield, RefreshCw, Phone, Mail, MapPin } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FileText, Shield, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
