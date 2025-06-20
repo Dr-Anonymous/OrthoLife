@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
+import Index from "./pages/AppointmentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
