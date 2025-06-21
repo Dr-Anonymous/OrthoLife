@@ -31,18 +31,27 @@ const LegalPoliciesPage = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="terms" className="flex items-center gap-2">
-                <FileText size={16} />
-                Terms of Service
+            <TabsList className="flex w-full mb-8 overflow-x-auto pb-2 no-scrollbar gap-2">
+              <TabsTrigger 
+                value="terms" 
+                className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm"
+              >
+                <FileText size={14} className="hidden xs:block" />
+                <span className="truncate">Terms{window.innerWidth >= 640 ? ' of Service' : ''}</span>
               </TabsTrigger>
-              <TabsTrigger value="privacy" className="flex items-center gap-2">
-                <Shield size={16} />
-                Privacy Policy
+              <TabsTrigger 
+                value="privacy" 
+                className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm"
+              >
+                <Shield size={14} className="hidden xs:block" />
+                <span className="truncate">Privacy{window.innerWidth >= 640 ? ' Policy' : ''}</span>
               </TabsTrigger>
-              <TabsTrigger value="refund" className="flex items-center gap-2">
-                <RefreshCw size={16} />
-                Refund & Cancellation
+              <TabsTrigger 
+                value="refund" 
+                className="flex-shrink-0 flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm"
+              >
+                <RefreshCw size={14} className="hidden xs:block" />
+                <span className="truncate">Refund{window.innerWidth >= 640 ? ' & Cancellation' : ''}</span>
               </TabsTrigger>
             </TabsList>
 
