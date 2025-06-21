@@ -273,6 +273,18 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
             >
               {(paymentOption === 'online' && selectedServiceData.price !== 0) ? 'Proceed to Payment' : 'Book Appointment'}
             </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+            By booking, you agree to our{' '}
+            <a 
+              href="/legal" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary underline hover:text-primary/80"
+            >
+              Terms&Conditions and Cancellation&Refund policies
+            </a>
+          </p>
           </div>
         </CardContent>
       </Card>
