@@ -264,6 +264,7 @@ const Emr = () => {
           <div>
             <Label htmlFor="sex">Sex</Label>
             <div className="relative">
+              <VenusAndMars className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
               <Select value={formData.sex} onValueChange={handleSexChange}>
                 <SelectTrigger className={`pl-10 ${errors.sex ? 'border-red-500' : ''}`}>
                   <SelectValue placeholder="Select sex" />
