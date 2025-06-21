@@ -5,8 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2, User, Phone, Calendar as CalendarIcon } from 'lucide-react';
-import { VenusMars } from 'lucide-react';
+import { Loader2, User, Phone, Gender, Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -264,7 +263,7 @@ const Emr = () => {
           <div>
             <Label htmlFor="sex">Sex</Label>
             <div className="relative">
-              <VenusMars className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <Gender className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
               <Select value={formData.sex} onValueChange={handleSexChange}>
                 <SelectTrigger className={`pl-10 ${errors.sex ? 'border-red-500' : ''}`}>
                   <SelectValue placeholder="Select sex" />
