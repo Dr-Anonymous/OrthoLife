@@ -133,6 +133,7 @@ const Emr = () => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
+
   if (registrationSuccess) {
     return (
       <Card className="w-full max-w-md">
@@ -153,11 +154,22 @@ const Emr = () => {
           </div>
           <div className="space-y-2">
             <p>You can view your prescriptions here:</p>
-            <Button asChild variant="outline" className="w-full">
-              <a href={prescriptionLink} target="_blank" rel="noopener noreferrer">
-                View Prescriptions
-              </a>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => window.location.href = prescriptionLink}
+            >
+              View Prescriptions
             </Button>
+            
+            {/* Optional: If you prefer to show in an iframe */}
+            {/* <div className="mt-4 border rounded-lg overflow-hidden">
+              <iframe 
+                src={prescriptionLink} 
+                className="w-full h-96 border-0"
+                title="Prescription"
+              />
+            </div> */}
           </div>
         </CardContent>
       </Card>
