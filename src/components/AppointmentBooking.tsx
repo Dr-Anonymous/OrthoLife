@@ -142,7 +142,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
                 {services.map((service) => (
                   <SelectItem key={service.name} value={service.name}>
                     <div className="flex justify-between items-center w-full">
-                      <span>{service.name} </span>
+                      <span>{service.name }{' '}</span>
                       <span className="text-green-600 font-medium">₹{service.price}</span>
                     </div>
                   </SelectItem>
