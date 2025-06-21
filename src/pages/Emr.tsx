@@ -145,14 +145,6 @@ const Emr = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <p>Click the button below on a mobile device to complete payment via UPI:</p>
-            <Button asChild variant="outline" className="w-full">
-              <a href={`upi://pay?pa=drshalima@upi&pn=SHALIMA PINNAMANENI&cu=INR&am=300`}>
-                Complete Payment (₹300)
-              </a>
-            </Button>
-          </div>
-          <div className="space-y-2">
             <p>You can view your prescriptions here:</p>
             <Button 
               variant="outline" 
