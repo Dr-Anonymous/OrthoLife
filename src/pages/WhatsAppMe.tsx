@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Phone, MessageSquare, Home, Building, User, Clipboard } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, User, Users, Clipboard } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 const WhatsAppMe = () => {
@@ -179,14 +179,7 @@ const WhatsAppMe = () => {
               <Phone className="w-4 h-4" />
               <span>WhatsApp</span>
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => process(2)} 
-              className="h-auto py-2 flex-col gap-1"
-            >
-              <Building className="w-4 h-4" />
-              <span>Laxmi</span>
-            </Button>
+            
             <Button 
               variant="outline" 
               onClick={() => process(3)} 
@@ -195,6 +188,15 @@ const WhatsAppMe = () => {
               <Home className="w-4 h-4" />
               <span>Clinic</span>
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => process(2)} 
+              className="h-auto py-2 flex-col gap-1"
+            >
+              <Building className="w-4 h-4" />
+              <span>Laxmi</span>
+            </Button>
+            
           </div>
         </div>
 
@@ -208,7 +210,7 @@ const WhatsAppMe = () => {
               onClick={() => inform(1)} 
               className="h-auto py-2 flex-col gap-1"
             >
-              <User className="w-4 h-4" />
+              <Users className="w-4 h-4" />
               <span>Reception</span>
             </Button>
             <Button 
@@ -217,7 +219,7 @@ const WhatsAppMe = () => {
               className="h-auto py-2 flex-col gap-1"
             >
               <User className="w-4 h-4" />
-              <span>OP Desk</span>
+              <span>OP Room</span>
             </Button>
           </div>
         </div>
