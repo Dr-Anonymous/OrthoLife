@@ -112,7 +112,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
   const isWeekend = (date: Date) => {
     const day = date.getDay();
-    return day === 0 ;//|| day === 6;
+    return day === 0 || day === 6;
   };
 
   const isPastDate = (date: Date) => {
@@ -168,12 +168,11 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              disabled={(date) => isPastDate(date) || isWeekend(date)}
+              disabled={(date) => isPastDate(date)}
               className="rounded-md border"
             />
             <p className="text-sm text-gray-500 mt-2">
-              Appointments available Monday to Saturday only.
-              For Emergency/Sunday consultation contact through Whatsapp
+              For emergency consultation contact through Whatsapp
             </p>
           </div>
 
