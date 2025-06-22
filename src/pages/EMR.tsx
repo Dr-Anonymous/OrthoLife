@@ -18,6 +18,7 @@ interface FormData {
   phone: string;
 }
 
+
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
