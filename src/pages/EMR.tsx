@@ -18,7 +18,7 @@ interface FormData {
   phone: string;
 }
 
-const Emr = () => {
+const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     dob: undefined,
@@ -314,4 +314,4 @@ const Emr = () => {
   );
 };
 
-export default Emr;
+export default EMR;
