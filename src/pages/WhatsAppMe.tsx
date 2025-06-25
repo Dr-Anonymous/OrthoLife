@@ -336,10 +336,7 @@ const WhatsAppMe = () => {
           <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
             <Clipboard className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800">
-              <p className="font-medium">Offline Ready!</p>
-              <p className="mt-1 text-blue-700">
-                Click the clipboard icon to paste a phone number.
-              </p>
+              <p className="font-medium">Click the clipboard icon to paste a phone number.</p>
             </div>
           </div>
         </div>
