@@ -50,10 +50,10 @@ const Footer = () => {
                 <a href="/#contact" className="hover:text-primary transition-colors">Contact</a>
               </li>
                <li>
-                <a href="/legal" className="hover:text-primary transition-colors">Terms&Conditions</a>
+                <a href="/legal" className="hover:text-primary transition-colors">Terms & Conditions</a>
               </li>
               <li>
-                <a href="/legal" className="hover:text-primary transition-colors">Cancellation&Refund</a>
+                <a href="/legal" className="hover:text-primary transition-colors">Cancellation & Refund</a>
               </li>
             </ul>
           </div>
@@ -93,7 +93,7 @@ const Footer = () => {
               </li>
               <li onClick={(e) => {e.preventDefault();window.location.href='https://g.page/orthosam/';}} className="flex items-start gap-3">
                 <MapPin size={18} className="text-secondary mt-1" />
-                <span>70-17-18/2b, Road 3, R R Nagar, Kakinada- 03</span>
+                <span>Road 3, R R Nagar, Kakinada- 03</span>
               </li>
               <li onClick={(e) => {e.preventDefault();window.location.href='mailto:info@ortho.life';}} className="flex items-center gap-3">
                 <Mail size={18} className="text-secondary" />
