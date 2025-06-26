@@ -43,7 +43,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     //if (!formData.address.trim()) newErrors.address = 'Address is required';
     
-    if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+    if (formData.phone && !/^\d{10,12}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     } else {
       if (formData.phone.startsWith('91') && formData.phone.length === 12) {
