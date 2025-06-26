@@ -45,6 +45,13 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     
     if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
+    } else {
+      if (formData.phone.startsWith('91') && formData.phone.length === 12) {
+      formData.phone =  formData.phone.slice(2);
+      }
+      if (formData.phone.startsWith('0') && formData.phone.length === 11) {
+      formData.phone =  formData.phone.slice(1);
+      }
     }
 
     if (formData.dateOfBirth && formData.dateOfBirth > new Date()) {
@@ -54,7 +61,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete })
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
