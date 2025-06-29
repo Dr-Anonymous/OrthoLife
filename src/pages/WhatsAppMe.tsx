@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Phone, MessageSquare, Home, Building, User, Users, Clipboard } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+
 
 const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
@@ -19,6 +20,14 @@ const WhatsAppMe = () => {
     return digitsOnly;
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const numberFromURL = params.get('number');
+    if (numberFromURL) {
+      setPhone(formatPhoneNumber(numberFromURL));
+    }
+  }, []);
+  
   const process = (e: number) => {
     if (!phone) {
       showError('Please enter a phone number');
