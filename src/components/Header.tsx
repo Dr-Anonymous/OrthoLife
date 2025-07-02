@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Phone, Menu, X } from "lucide-react";
+import { Phone, Menu, X, MessageCircleCode } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Header = () => {
@@ -71,7 +71,7 @@ const Header = () => {
               <span>9866812555</span>
             </Button>
             <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}} className="bg-primary hover:bg-primary/90 transition-colors">
-              WhatsApp
+              <MessageCircleCode />
             </Button>
             
             {/* Mobile menu button */}
