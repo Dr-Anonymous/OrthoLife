@@ -10,6 +10,8 @@ import AppointmentPage from "./pages/AppointmentPage";
 import LegalPoliciesPage from "./pages/LegalPoliciesPage";
 import WhatsAppMe from "./pages/WhatsAppMe";
 import EMR from "./pages/EMR";
+import PharmacyPage from "./pages/PharmacyPage";
+import DiagnosticsPage from "./pages/DiagnosticsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
             <Route path="/legal" element={<LegalPoliciesPage />} />
             <Route path="/wa" element={<WhatsAppMe />} />
             <Route path="/emr" element={<EMR />} />
+            <Route path="/pharmacy" element={<PharmacyPage />} />
+            <Route path="/diagnostics" element={<DiagnosticsPage />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

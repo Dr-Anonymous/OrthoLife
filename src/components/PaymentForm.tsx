@@ -4,6 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
+declare global {
+  interface Window {
+    Cashfree?: any;
+  }
+}
 
 interface PaymentFormProps {
   appointmentData: any;
@@ -20,16 +25,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 }) => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-         
-  declare global {
-   interface Window {
-    Cashfree?: any;
-   }
-  }
 
   let cashfree;
   var initializeSDK = async function () {      
-  cashfree = await Cashfree({
+  cashfree = await window.Cashfree({
    mode: "production"
    });
   }
