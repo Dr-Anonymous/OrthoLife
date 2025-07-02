@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PatientDetailsForm from '@/components/PatientDetailsForm';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, TestTubes, Plus, Minus, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Test {
   id: string;
@@ -105,6 +107,12 @@ const tests: Test[] = [
 const DiagnosticsPage = () => {
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [showPatientForm, setShowPatientForm] = useState(false);
+  const [patientData, setPatientData] = useState({
+    name: '',
+    phone: '',
+    address: ''
+  });
   const { toast } = useToast();
 
   const filteredTests = tests.filter(test =>
@@ -152,11 +160,55 @@ const DiagnosticsPage = () => {
       return;
     }
 
-    toast({
-      title: "Tests booked successfully!",
-      description: "Our phlebotomist will visit you within 24 hours.",
-    });
-    setCart({});
+    setShowPatientForm(true);
+  };
+
+  const handlePatientFormSubmit = async () => {
+    try {
+      const items = Object.entries(cart).map(([testId, quantity]) => {
+        const test = tests.find(t => t.id === testId);
+        return {
+          name: test?.name || '',
+          quantity,
+          price: test?.price || 0
+        };
+      });
+
+      const { error } = await supabase.functions.invoke('send-order-email', {
+        body: {
+          orderType: 'diagnostics',
+          patientData,
+          items,
+          total: getCartTotal()
+        }
+      });
+
+      if (error) {
+        console.error('Error sending email:', error);
+        toast({
+          title: "Tests booked!",
+          description: "Your tests have been booked successfully. We'll contact you soon.",
+        });
+      } else {
+        toast({
+          title: "Tests booked successfully!",
+          description: "Our phlebotomist will visit you within 24 hours.",
+        });
+      }
+
+      setCart({});
+      setShowPatientForm(false);
+      setPatientData({ name: '', phone: '', address: '' });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Tests booked!",
+        description: "Your tests have been booked successfully. We'll contact you soon.",
+      });
+      setCart({});
+      setShowPatientForm(false);
+      setPatientData({ name: '', phone: '', address: '' });
+    }
   };
 
   return (
@@ -251,37 +303,48 @@ const DiagnosticsPage = () => {
               ))}
             </div>
 
-            {Object.keys(cart).length > 0 && (
-              <Card className="max-w-md mx-auto">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Your Tests
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4">
-                    {Object.entries(cart).map(([testId, quantity]) => {
-                      const test = tests.find(t => t.id === testId);
-                      if (!test) return null;
-                      return (
-                        <div key={testId} className="flex justify-between">
-                          <span>{test.name} x{quantity}</span>
-                          <span>₹{test.price * quantity}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="border-t pt-2 font-semibold">
-                    Total: ₹{getCartTotal()}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={handleBookTests} className="w-full">
-                    Book Tests
-                  </Button>
-                </CardFooter>
-              </Card>
+            {showPatientForm ? (
+              <div className="max-w-md mx-auto">
+                <PatientDetailsForm
+                  patientData={patientData}
+                  onPatientDataChange={setPatientData}
+                  onSubmit={handlePatientFormSubmit}
+                  onBack={() => setShowPatientForm(false)}
+                />
+              </div>
+            ) : (
+              Object.keys(cart).length > 0 && (
+                <Card className="max-w-md mx-auto">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      Your Tests
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 mb-4">
+                      {Object.entries(cart).map(([testId, quantity]) => {
+                        const test = tests.find(t => t.id === testId);
+                        if (!test) return null;
+                        return (
+                          <div key={testId} className="flex justify-between">
+                            <span>{test.name} x{quantity}</span>
+                            <span>₹{test.price * quantity}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t pt-2 font-semibold">
+                      Total: ₹{getCartTotal()}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={handleBookTests} className="w-full">
+                      Book Tests
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )
             )}
           </div>
         </section>
