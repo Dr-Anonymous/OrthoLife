@@ -34,7 +34,7 @@ function generatePotentialSlots(date) {
     // Skip lunch hour (12:30 PM to 1:30 PM IST)
     const hours = slotStart.getHours();
     const minutes = slotStart.getMinutes();
-    if (hours === 12 && minutes >= 30 || hours === 13 && minutes < 30 || hours === 17 || hours === 18 || hours === 19 && minutes < 30) {
+    if (hours === 12 && minutes >= 30 || hours === 13 && minutes < 30 || hours === 17 || hours === 18 || hours === 19 && minutes < 30 || startTime.getDay() === 0 && hours < 13) {
       continue;
     }
     // Convert to UTC for Google Calendar API comparison
