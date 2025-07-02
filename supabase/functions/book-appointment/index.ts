@@ -13,9 +13,16 @@ serve(async (req)=>{
   }
   try {
     const { patientData, appointmentData, paymentData } = await req.json();
-    console.log('Booking appointment for:', patientData.name, 'at', appointmentData.start);
+    //console.log('Booking appointment for:', patientData.name, 'at', appointmentData.start);
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
     const appointmentId = crypto.randomUUID();
+    const message = encodeURI(`Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${new Date(appointmentData.start).toLocaleTimeString('en-GB', {
+      timeZone: 'UTC',
+      hour12: true,
+      timeStyle: 'short'
+    })} on ${new Date(appointmentData.start).toLocaleDateString('en-GB', {
+      timeZone: 'UTC'
+    })}.`);
     const accessToken = await getGoogleAccessToken();
     if (accessToken) {
       const calendarId = Deno.env.get('GOOGLE_CALENDAR_ID');
@@ -31,31 +38,14 @@ Address: ${patientData.address}
 Service: ${appointmentData.serviceType}
 Amount: ₹${appointmentData.amount}
 Payment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}
-WhatsApp: <a href="https://wa.me/91${patientData.phone}?text=` + encodeURI(`Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${new Date(appointmentData.start).toLocaleTimeString('en-GB', {
-          timeZone: 'UTC',
-          hour12: true
-        })} on ${new Date(appointmentData.start).toLocaleDateString('en-GB', {
-          timeZone: 'UTC'
-        })}.`) + `">Send</a>
+WhatsApp: <a href="https://wa.me/91${patientData.phone}?text=` + message + `">Send</a>
+SMS: <a href="sms:${patientData.phone}?body=` + message + `">Send</a>
 Appointment ID: ${appointmentId}`,
         start: {
           dateTime: addMinutes(appointmentData.start)
         },
         end: {
           dateTime: addMinutes(appointmentData.end)
-        },
-        reminders: {
-          useDefault: false,
-          overrides: [
-            {
-              method: 'email',
-              minutes: 1440
-            },
-            {
-              method: 'popup',
-              minutes: 60
-            }
-          ]
         }
       };
       const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`, {
