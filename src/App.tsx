@@ -14,9 +14,13 @@ import PharmacyPage from "./pages/PharmacyPage";
 import DiagnosticsPage from "./pages/DiagnosticsPage";
 import NotFound from "./pages/NotFound";
 
+import { useScrollToHash } from './hooks/useScrollToHash';
+
 const queryClient = new QueryClient();
 
 const App = () => (
+  useScrollToHash(80); // 80px offset for fixed navbar
+
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <ErrorBoundary>
