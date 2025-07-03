@@ -21,9 +21,6 @@ const Header = () => {
         setIsScrolled(false);
       }
     };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
 
     if (window.location.hash) {
       const id = window.location.hash.replace('#', '');
@@ -34,6 +31,10 @@ const Header = () => {
         }, 100); // Delay to allow DOM to finish rendering
       }
     }
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+
   }, []);
 
   const handleLogoError = () => {
