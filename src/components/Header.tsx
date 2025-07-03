@@ -92,7 +92,7 @@ const Header = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t shadow-lg">
           <nav className="container mx-auto px-4 py-4 space-y-4">
-            <Link to="/" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+            <Link to="/#home" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
             <Link to="/pharmacy" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Pharmacy</Link>
             <Link to="/diagnostics" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Diagnostics</Link>
             <a href="/#services" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
