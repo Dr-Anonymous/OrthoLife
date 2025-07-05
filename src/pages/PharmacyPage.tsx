@@ -372,16 +372,9 @@ const PharmacyPage = () => {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button onClick={handleCheckout} className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Ordering...
-                      </>
-                    ) : (
-                      'Place Order'
-                    )}
-                  </Button>
+                    <Button onClick={handleCheckout} className="w-full">
+                      Continue to Confirm Order
+                    </Button>
                   </CardFooter>
                 </Card>
               )
