@@ -242,26 +242,30 @@ const PharmacyPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                 {filteredMedicines.map((medicine) => (
                   <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{medicine.name}</CardTitle>
-                        <Badge variant={medicine.inStock ? "default" : "secondary"}>
-                          {medicine.inStock ? "In Stock" : "Out of Stock"}
-                        </Badge>
-                      </div>
-                      <CardDescription>{medicine.description}</CardDescription>
-                      {(medicine.manufacturer || medicine.dosage || medicine.packSize) && (
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          {medicine.manufacturer && <div>Brand: {medicine.manufacturer}</div>}
-                          {medicine.dosage && <div>Dosage: {medicine.dosage}</div>}
-                          {medicine.packSize && <div>Pack Size: {medicine.packSize}</div>}
-                        </div>
-                      )}
-                    </CardHeader>
+                     <CardHeader>
+                       <div className="flex justify-between items-start">
+                         <div className="flex-1">
+                           <CardTitle className="text-lg">{medicine.name}</CardTitle>
+                           <div className="text-sm text-muted-foreground font-medium mt-1">
+                             {medicine.category}
+                           </div>
+                           <Badge variant={medicine.inStock ? "default" : "secondary"} className="w-fit mt-2">
+                             {medicine.inStock ? "In Stock" : "Out of Stock"}
+                           </Badge>
+                         </div>
+                       </div>
+                       <CardDescription className="mt-2">{medicine.description}</CardDescription>
+                       {(medicine.manufacturer || medicine.dosage || medicine.packSize) && (
+                         <div className="space-y-1 text-sm text-muted-foreground mt-2">
+                           {medicine.manufacturer && <div>Brand: {medicine.manufacturer}</div>}
+                           {medicine.dosage && <div>Dosage: {medicine.dosage}</div>}
+                           {medicine.packSize && <div>Pack Size: {medicine.packSize}</div>}
+                         </div>
+                       )}
+                     </CardHeader>
                      <CardContent>
                        <div className="flex justify-between items-center mb-4">
                          <div className="flex flex-col">
-                           <span className="text-sm text-muted-foreground">{medicine.category}</span>
                            {medicine.stockCount !== undefined && (
                              <span className="text-xs text-muted-foreground">
                                Stock: {medicine.stockCount} available
