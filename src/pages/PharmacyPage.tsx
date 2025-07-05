@@ -33,7 +33,6 @@ const PharmacyPage = () => {
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [patientData, setPatientData] = useState({
     name: '',
     phone: '',
