@@ -33,6 +33,7 @@ const PharmacyPage = () => {
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [patientData, setPatientData] = useState({
     name: '',
     phone: '',
@@ -68,7 +69,8 @@ const PharmacyPage = () => {
 
   const filteredMedicines = medicines.filter(medicine =>
     medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    medicine.category.toLowerCase().includes(searchTerm.toLowerCase())
+    medicine.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    medicine.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const addToCart = (medicineId: string) => {
@@ -182,7 +184,7 @@ const PharmacyPage = () => {
                 </Button>
               </div>
               <p className="text-xl text-muted-foreground">
-                Order medicines and get them delivered to your home
+                Get great discounts on medicines delivered to your home
               </p>
             </div>
 
@@ -204,7 +206,7 @@ const PharmacyPage = () => {
             <div className="max-w-md mx-auto mb-8">
               <Input
                 type="text"
-                placeholder="Search medicines or categories..."
+                placeholder="Search medicines or symptoms/complaints..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
@@ -245,10 +247,10 @@ const PharmacyPage = () => {
                      <CardHeader>
                        <div className="flex justify-between items-start">
                          <div className="flex-1">
-                           <CardTitle className="text-lg">{medicine.name}</CardTitle>
                            <div className="text-sm text-muted-foreground font-medium mt-1">
                              {medicine.category}
                            </div>
+                           <CardTitle className="text-lg">{medicine.name}</CardTitle>
                            <Badge variant={medicine.inStock ? "default" : "secondary"} className="w-fit mt-2">
                              {medicine.inStock ? "In Stock" : "Out of Stock"}
                            </Badge>
@@ -370,9 +372,16 @@ const PharmacyPage = () => {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button onClick={handleCheckout} className="w-full">
-                      Place Order
-                    </Button>
+                    <Button onClick={handleCheckout} className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Ordering...
+                      </>
+                    ) : (
+                      'Place Order'
+                    )}
+                  </Button>
                   </CardFooter>
                 </Card>
               )
