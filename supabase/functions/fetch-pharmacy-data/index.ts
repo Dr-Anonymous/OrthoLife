@@ -19,6 +19,9 @@ interface Medicine {
   dosage?: string;
   packSize?: string;
   prescriptionRequired?: boolean;
+  originalPrice?: number;
+  stockCount?: number;
+  discount?: number;
 }
 
 async function fetchSheetData(accessToken: string, sheetName: string) {
@@ -41,45 +44,69 @@ async function fetchSheetData(accessToken: string, sheetName: string) {
   return data.values || [];
 }
 
-function parseRowToMedicine(row: string[], headers: string[]): Medicine | null {
+function parseBaseSheetRow(row: string[], headers: string[]): Partial<Medicine> | null {
   if (!row || row.length === 0) return null;
   
-  const medicine: any = {
-    id: row[0] || Math.random().toString(36).substr(2, 9),
-    inStock: true, // default value
-  };
-
+  const medicine: any = {};
+  
   headers.forEach((header, index) => {
     const value = row[index] || '';
-    const lowerHeader = header.toLowerCase();
+    const lowerHeader = header.toLowerCase().trim();
     
-    if (lowerHeader.includes('name') || lowerHeader.includes('medicine')) {
-      medicine.name = value;
-    } else if (lowerHeader.includes('description') || lowerHeader.includes('details')) {
-      medicine.description = value;
-    } else if (lowerHeader.includes('price') || lowerHeader.includes('cost')) {
-      medicine.price = parseFloat(value.toString().replace(/[^\d.]/g, '')) || 0;
-    } else if (lowerHeader.includes('category') || lowerHeader.includes('type')) {
+    if (lowerHeader === 'item id') {
+      medicine.id = value;
+    } else if (lowerHeader === 'type') {
       medicine.category = value;
-    } else if (lowerHeader.includes('stock') || lowerHeader.includes('available')) {
-      medicine.inStock = value.toLowerCase() !== 'no' && value.toLowerCase() !== 'false' && value !== '0';
-    } else if (lowerHeader.includes('manufacturer') || lowerHeader.includes('brand')) {
-      medicine.manufacturer = value;
-    } else if (lowerHeader.includes('dosage') || lowerHeader.includes('strength')) {
-      medicine.dosage = value;
-    } else if (lowerHeader.includes('pack') || lowerHeader.includes('size') || lowerHeader.includes('quantity')) {
+    } else if (lowerHeader === 'name') {
+      medicine.name = value;
+    } else if (lowerHeader === 'qty/unit') {
       medicine.packSize = value;
-    } else if (lowerHeader.includes('prescription') || lowerHeader.includes('rx')) {
-      medicine.prescriptionRequired = value.toLowerCase() === 'yes' || value.toLowerCase() === 'true';
+    } else if (lowerHeader === 'control') {
+      medicine.prescriptionRequired = value.toLowerCase() === 'prescription';
+    } else if (lowerHeader === 'notes') {
+      medicine.description = value;
     }
   });
 
-  // Ensure required fields have values
   if (!medicine.name || medicine.name.trim() === '') return null;
-  if (!medicine.description) medicine.description = `${medicine.name} - ${medicine.dosage || 'Standard dosage'}`;
+  
+  // Set defaults
+  if (!medicine.id) medicine.id = Math.random().toString(36).substr(2, 9);
+  if (!medicine.description) medicine.description = medicine.name;
   if (!medicine.category) medicine.category = 'General';
-  if (medicine.price === 0) medicine.price = 100; // default price
+  
+  return medicine;
+}
 
+function parseSupplierSheetRow(row: string[], headers: string[]): Partial<Medicine> | null {
+  if (!row || row.length === 0) return null;
+  
+  const medicine: any = {};
+  
+  headers.forEach((header, index) => {
+    const value = row[index] || '';
+    const lowerHeader = header.toLowerCase().trim();
+    
+    if (lowerHeader === 'name') {
+      medicine.name = value;
+    } else if (lowerHeader === 'mrp') {
+      medicine.originalPrice = parseFloat(value.toString().replace(/[^\d.]/g, '')) || 0;
+    } else if (lowerHeader === 'final price') {
+      medicine.price = parseFloat(value.toString().replace(/[^\d.]/g, '')) || 0;
+    } else if (lowerHeader === 'available') {
+      // Checkbox values might be TRUE/FALSE or other formats
+      medicine.inStock = value.toLowerCase() === 'true' || value === '✓' || value === 'yes' || value === '1';
+    } else if (lowerHeader === 'stock') {
+      const stockCount = parseInt(value) || 0;
+      medicine.stockCount = stockCount;
+      medicine.inStock = stockCount > 0;
+    } else if (lowerHeader === 'discount %') {
+      medicine.discount = parseFloat(value) || 0;
+    }
+  });
+
+  if (!medicine.name || medicine.name.trim() === '') return null;
+  
   return medicine;
 }
 
@@ -120,9 +147,22 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('Base sheet headers:', headers);
       
       for (let i = 1; i < baseData.length; i++) {
-        const medicine = parseRowToMedicine(baseData[i], headers);
+        const medicine = parseBaseSheetRow(baseData[i], headers);
         if (medicine && medicine.name) {
-          medicineMap.set(medicine.name.toLowerCase(), medicine);
+          const completeMedicine: Medicine = {
+            id: medicine.id || Math.random().toString(36).substr(2, 9),
+            name: medicine.name,
+            description: medicine.description || medicine.name,
+            price: 0, // Will be set from supplier data
+            category: medicine.category || 'General',
+            inStock: false, // Will be set from supplier data
+            packSize: medicine.packSize,
+            prescriptionRequired: medicine.prescriptionRequired || false,
+            originalPrice: 0,
+            stockCount: 0,
+            discount: 0
+          };
+          medicineMap.set(medicine.name.toLowerCase(), completeMedicine);
         }
       }
     }
@@ -133,7 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('Supplier1 sheet headers:', headers);
       
       for (let i = 1; i < supplier1Data.length; i++) {
-        const supplierMedicine = parseRowToMedicine(supplier1Data[i], headers);
+        const supplierMedicine = parseSupplierSheetRow(supplier1Data[i], headers);
         if (supplierMedicine && supplierMedicine.name) {
           const key = supplierMedicine.name.toLowerCase();
           const existingMedicine = medicineMap.get(key);
@@ -142,20 +182,13 @@ const handler = async (req: Request): Promise<Response> => {
             // Merge supplier data with base data
             const mergedMedicine: Medicine = {
               ...existingMedicine,
-              // Override with supplier data if available
-              price: supplierMedicine.price > 0 ? supplierMedicine.price : existingMedicine.price,
-              inStock: supplierMedicine.inStock !== undefined ? supplierMedicine.inStock : existingMedicine.inStock,
-              manufacturer: supplierMedicine.manufacturer || existingMedicine.manufacturer,
-              dosage: supplierMedicine.dosage || existingMedicine.dosage,
-              packSize: supplierMedicine.packSize || existingMedicine.packSize,
-              prescriptionRequired: supplierMedicine.prescriptionRequired !== undefined ? supplierMedicine.prescriptionRequired : existingMedicine.prescriptionRequired,
-              description: supplierMedicine.description || existingMedicine.description,
-              category: supplierMedicine.category || existingMedicine.category,
+              price: supplierMedicine.price || 0,
+              inStock: supplierMedicine.inStock || false,
+              originalPrice: supplierMedicine.originalPrice || 0,
+              stockCount: supplierMedicine.stockCount || 0,
+              discount: supplierMedicine.discount || 0
             };
             medicineMap.set(key, mergedMedicine);
-          } else {
-            // Add new medicine from supplier
-            medicineMap.set(key, supplierMedicine);
           }
         }
       }

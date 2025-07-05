@@ -21,6 +21,9 @@ interface Medicine {
   dosage?: string;
   packSize?: string;
   prescriptionRequired?: boolean;
+  originalPrice?: number;
+  stockCount?: number;
+  discount?: number;
 }
 
 const PharmacyPage = () => {
@@ -255,19 +258,42 @@ const PharmacyPage = () => {
                         </div>
                       )}
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm text-muted-foreground">{medicine.category}</span>
-                          {medicine.prescriptionRequired && (
-                            <Badge variant="outline" className="w-fit mt-1">
-                              Prescription Required
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-lg font-semibold">₹{medicine.price}</span>
-                      </div>
-                    </CardContent>
+                     <CardContent>
+                       <div className="flex justify-between items-center mb-4">
+                         <div className="flex flex-col">
+                           <span className="text-sm text-muted-foreground">{medicine.category}</span>
+                           {medicine.stockCount !== undefined && (
+                             <span className="text-xs text-muted-foreground">
+                               Stock: {medicine.stockCount} available
+                             </span>
+                           )}
+                           {medicine.prescriptionRequired && (
+                             <Badge variant="outline" className="w-fit mt-1">
+                               Prescription Required
+                             </Badge>
+                           )}
+                         </div>
+                         <div className="text-right">
+                           {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
+                             <div className="flex flex-col">
+                               <span className="text-sm text-muted-foreground line-through">
+                                 ₹{medicine.originalPrice}
+                               </span>
+                               <span className="text-lg font-semibold text-green-600">
+                                 ₹{medicine.price}
+                               </span>
+                               {medicine.discount && medicine.discount > 0 && (
+                                 <Badge variant="destructive" className="text-xs w-fit ml-auto">
+                                   {medicine.discount}% OFF
+                                 </Badge>
+                               )}
+                             </div>
+                           ) : (
+                             <span className="text-lg font-semibold">₹{medicine.price}</span>
+                           )}
+                         </div>
+                       </div>
+                     </CardContent>
                     <CardFooter className="flex justify-between items-center">
                       {cart[medicine.id] ? (
                         <div className="flex items-center gap-3">
