@@ -111,8 +111,10 @@ const EMR = () => {
       
       toast({
         title: 'Registration Successful',
-        description: 'You can now view your prescriptions online',
+        description: 'You can now view your prescription online',
       });
+
+      window.location.href = result; //<------ directly load the prescription
     } catch (error) {
       console.error('Registration error:', error);
       toast({
