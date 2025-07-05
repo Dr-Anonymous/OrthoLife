@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { User, MapPin } from 'lucide-react';
+import { User, MapPin, Loader2 } from 'lucide-react';
 
 interface PatientDetailsFormProps {
   patientData: {
@@ -23,6 +23,8 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
   onSubmit,
   onBack
 }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleInputChange = (field: string, value: string) => {
     onPatientDataChange({
       ...patientData,
@@ -30,7 +32,18 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
     });
   };
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+      await onSubmit();
+    } catch (error) {
+      console.error('Submission error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   const isFormValid = patientData.name.trim() && patientData.phone.trim() && patientData.address.trim();
 
@@ -54,7 +67,6 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
             required
           />
         </div>
-
         <div className="space-y-2">
           <Label htmlFor="phone">Phone Number *</Label>
           <Input
@@ -66,7 +78,6 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
             required
           />
         </div>
-
         <div className="space-y-2">
           <Label htmlFor="address">Delivery Address *</Label>
           <Textarea
@@ -78,7 +89,6 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
             required
           />
         </div>
-
         <div className="p-4 bg-blue-50 rounded-lg">
           <div className="flex items-start gap-2">
             <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
@@ -88,19 +98,23 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
             </div>
           </div>
         </div>
-
         <div className="flex gap-3 pt-4">
-          <Button variant="outline" onClick={onBack} className="flex-1">
+          <Button 
+            variant="outline" 
+            onClick={onBack} 
+            className="flex-1"
+            disabled={isSubmitting}
+          >
             Back
           </Button>
           <Button 
-            onClick={onSubmit} 
-            disabled={!isFormValid}
+            onClick={handleSubmit} 
+            disabled={!isFormValid || isSubmitting}
             className="flex-1"
-            disabled={isSubmitting}>
+          >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Placing Order...
               </>
             ) : (
