@@ -106,38 +106,63 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Successfully obtained access token, fetching sheet data...');
 
     // Fetch data from both sheets
-    const [sheet1Data, sheet2Data] = await Promise.all([
-      fetchSheetData(accessToken, 'Sheet1'),
-      fetchSheetData(accessToken, 'Sheet2')
+    const [baseData, supplier1Data] = await Promise.all([
+      fetchSheetData(accessToken, 'Base'),
+      fetchSheetData(accessToken, 'Supplier1')
     ]);
 
     const medicines: Medicine[] = [];
+    const medicineMap = new Map<string, Medicine>();
 
-    // Process Sheet1
-    if (sheet1Data && sheet1Data.length > 1) {
-      const headers = sheet1Data[0];
-      console.log('Sheet1 headers:', headers);
+    // Process Base sheet first (primary data)
+    if (baseData && baseData.length > 1) {
+      const headers = baseData[0];
+      console.log('Base sheet headers:', headers);
       
-      for (let i = 1; i < sheet1Data.length; i++) {
-        const medicine = parseRowToMedicine(sheet1Data[i], headers);
-        if (medicine) {
-          medicines.push(medicine);
+      for (let i = 1; i < baseData.length; i++) {
+        const medicine = parseRowToMedicine(baseData[i], headers);
+        if (medicine && medicine.name) {
+          medicineMap.set(medicine.name.toLowerCase(), medicine);
         }
       }
     }
 
-    // Process Sheet2
-    if (sheet2Data && sheet2Data.length > 1) {
-      const headers = sheet2Data[0];
-      console.log('Sheet2 headers:', headers);
+    // Process Supplier1 sheet (merge with base data)
+    if (supplier1Data && supplier1Data.length > 1) {
+      const headers = supplier1Data[0];
+      console.log('Supplier1 sheet headers:', headers);
       
-      for (let i = 1; i < sheet2Data.length; i++) {
-        const medicine = parseRowToMedicine(sheet2Data[i], headers);
-        if (medicine) {
-          medicines.push(medicine);
+      for (let i = 1; i < supplier1Data.length; i++) {
+        const supplierMedicine = parseRowToMedicine(supplier1Data[i], headers);
+        if (supplierMedicine && supplierMedicine.name) {
+          const key = supplierMedicine.name.toLowerCase();
+          const existingMedicine = medicineMap.get(key);
+          
+          if (existingMedicine) {
+            // Merge supplier data with base data
+            const mergedMedicine: Medicine = {
+              ...existingMedicine,
+              // Override with supplier data if available
+              price: supplierMedicine.price > 0 ? supplierMedicine.price : existingMedicine.price,
+              inStock: supplierMedicine.inStock !== undefined ? supplierMedicine.inStock : existingMedicine.inStock,
+              manufacturer: supplierMedicine.manufacturer || existingMedicine.manufacturer,
+              dosage: supplierMedicine.dosage || existingMedicine.dosage,
+              packSize: supplierMedicine.packSize || existingMedicine.packSize,
+              prescriptionRequired: supplierMedicine.prescriptionRequired !== undefined ? supplierMedicine.prescriptionRequired : existingMedicine.prescriptionRequired,
+              description: supplierMedicine.description || existingMedicine.description,
+              category: supplierMedicine.category || existingMedicine.category,
+            };
+            medicineMap.set(key, mergedMedicine);
+          } else {
+            // Add new medicine from supplier
+            medicineMap.set(key, supplierMedicine);
+          }
         }
       }
     }
+
+    // Convert map to array
+    medicines.push(...medicineMap.values());
 
     console.log(`Successfully processed ${medicines.length} medicines`);
 
