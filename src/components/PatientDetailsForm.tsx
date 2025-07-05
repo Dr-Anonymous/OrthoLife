@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,8 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
     });
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const isFormValid = patientData.name.trim() && patientData.phone.trim() && patientData.address.trim();
 
   return (
@@ -82,7 +84,7 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
             <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
             <div className="text-sm text-blue-700">
               <p className="font-medium">Home Service</p>
-              <p>Our team will deliver to your provided address within the specified timeframe.</p>
+              <p>Our team will reach the above provided address within few hours.</p>
             </div>
           </div>
         </div>
@@ -95,8 +97,15 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
             onClick={onSubmit} 
             disabled={!isFormValid}
             className="flex-1"
-          >
-            Continue to Confirm Order
+            disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Placing Order...
+              </>
+            ) : (
+              'Order'
+            )}
           </Button>
         </div>
       </CardContent>
