@@ -33,7 +33,6 @@ const PharmacyPage = () => {
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [patientData, setPatientData] = useState({
     name: '',
@@ -118,9 +117,7 @@ const PharmacyPage = () => {
   };
 
   const handlePatientFormSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      
+    try {      
       const items = Object.entries(cart).map(([medicineId, quantity]) => {
         const medicine = medicines.find(m => m.id === medicineId);
         return {
@@ -164,8 +161,6 @@ const PharmacyPage = () => {
       setCart({});
       setShowPatientForm(false);
       setPatientData({ name: '', phone: '', address: '' });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
