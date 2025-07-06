@@ -180,8 +180,10 @@ const PharmacyPage = () => {
           title: "Order placed successfully!",
           description: "Your medicines will be delivered within 2-3 hours.",
         });
+        
+        fetchMedicines();
       }
-      fetchMedicines();
+
       setCart({});
       setShowPatientForm(false);
       setPatientData({ name: '', phone: '', address: '' });
