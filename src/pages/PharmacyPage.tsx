@@ -74,9 +74,24 @@ const PharmacyPage = () => {
   );
 
   const addToCart = (medicineId: string) => {
+    const medicine = medicines.find(m => m.id === medicineId);
+    if (!medicine) return;
+    
+    const currentCartQuantity = cart[medicineId] || 0;
+    const availableStock = medicine.stockCount || 0;
+    
+    if (currentCartQuantity >= availableStock) {
+      toast({
+        title: "Stock limit reached",
+        description: `Only ${availableStock} units available in stock.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCart(prev => ({
       ...prev,
-      [medicineId]: (prev[medicineId] || 0) + 1
+      [medicineId]: currentCartQuantity + 1
     }));
     toast({
       title: "Added to cart",
@@ -108,6 +123,24 @@ const PharmacyPage = () => {
       toast({
         title: "Cart is empty",
         description: "Please add medicines to your cart first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate stock availability before checkout
+    const stockErrors = [];
+    for (const [medicineId, quantity] of Object.entries(cart)) {
+      const medicine = medicines.find(m => m.id === medicineId);
+      if (medicine && quantity > (medicine.stockCount || 0)) {
+        stockErrors.push(`${medicine.name}: Only ${medicine.stockCount} available, but ${quantity} in cart`);
+      }
+    }
+
+    if (stockErrors.length > 0) {
+      toast({
+        title: "Stock availability issue",
+        description: stockErrors.join('. '),
         variant: "destructive",
       });
       return;
@@ -266,19 +299,26 @@ const PharmacyPage = () => {
                        )}
                      </CardHeader>
                      <CardContent>
-                       <div className="flex justify-between items-center mb-4">
-                         <div className="flex flex-col">
-                           {medicine.stockCount !== undefined && (
-                             <span className="text-xs text-muted-foreground">
-                               Stock: {medicine.stockCount} available
-                             </span>
-                           )}
-                           {medicine.prescriptionRequired && (
-                             <Badge variant="outline" className="w-fit mt-1">
-                               Prescription Required
-                             </Badge>
-                           )}
-                         </div>
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex flex-col">
+                            {medicine.stockCount !== undefined && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">
+                                  Stock: {medicine.stockCount} available
+                                </span>
+                                {cart[medicine.id] && (
+                                  <span className="text-xs text-orange-600">
+                                    {medicine.stockCount - cart[medicine.id]} remaining after cart
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {medicine.prescriptionRequired && (
+                              <Badge variant="outline" className="w-fit mt-1">
+                                Prescription Required
+                              </Badge>
+                            )}
+                          </div>
                          <div className="text-right">
                            {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
                              <div className="flex flex-col">
@@ -315,7 +355,7 @@ const PharmacyPage = () => {
                             variant="outline"
                             size="icon"
                             onClick={() => addToCart(medicine.id)}
-                            disabled={!medicine.inStock}
+                            disabled={!medicine.inStock || (cart[medicine.id] || 0) >= (medicine.stockCount || 0)}
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
@@ -323,11 +363,11 @@ const PharmacyPage = () => {
                       ) : (
                         <Button
                           onClick={() => addToCart(medicine.id)}
-                          disabled={!medicine.inStock}
+                          disabled={!medicine.inStock || (medicine.stockCount || 0) === 0}
                           className="flex items-center gap-2"
                         >
                           <Pill className="h-4 w-4" />
-                          Add to Cart
+                          {(medicine.stockCount || 0) === 0 ? 'Out of Stock' : 'Add to Cart'}
                         </Button>
                       )}
                     </CardFooter>
