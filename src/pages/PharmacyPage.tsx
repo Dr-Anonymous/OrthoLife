@@ -181,7 +181,7 @@ const PharmacyPage = () => {
           description: "Your medicines will be delivered within 2-3 hours.",
         });
       }
-
+      fetchMedicines();
       setCart({});
       setShowPatientForm(false);
       setPatientData({ name: '', phone: '', address: '' });
