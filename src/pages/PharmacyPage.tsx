@@ -307,8 +307,9 @@ const PharmacyPage = () => {
                                   Stock: {medicine.stockCount} available
                                 </span>
                                 {cart[medicine.id] && (
+                                  <br>
                                   <span className="text-xs text-orange-600">
-                                    {medicine.stockCount - cart[medicine.id]} remaining after cart
+                                    {medicine.stockCount - cart[medicine.id]} remaining
                                   </span>
                                 )}
                               </div>
