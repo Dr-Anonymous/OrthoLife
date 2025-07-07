@@ -99,8 +99,13 @@ const WhatsAppMe = () => {
 
   const handlePasteClick = async () => {
     setIsProcessing(true);
+    var text;
     try {
-      const text = await navigator.clipboard.readText();
+      if (window.AndroidClipboard && window.AndroidClipboard.getClipboardText) { 
+        text = window.AndroidClipboard.getClipboardText();
+      } else {
+        text = await navigator.clipboard.readText();
+      }
       const formattedNumber = formatPhoneNumber(text);
       setPhone(formattedNumber);
       showSuccess('Phone number pasted from clipboard');
