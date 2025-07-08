@@ -106,6 +106,8 @@ const EMR = () => {
       if (!response.ok) throw new Error('Registration failed');
       
       const result = await response.text();
+      window.location.href = result; //<------ directly load the prescription
+/*
       setPrescriptionLink(result);
       setRegistrationSuccess(true);
       
@@ -113,8 +115,7 @@ const EMR = () => {
         title: 'Registration Successful',
         description: 'You can now view your prescription online',
       });
-
-      window.location.href = result; //<------ directly load the prescription
+*/
     } catch (error) {
       console.error('Registration error:', error);
       toast({
