@@ -92,7 +92,7 @@ const EMR = () => {
     setIsSubmitting(true);
 
     try {
-      const url = 'https://script.google.com/macros/s/AKfycbxblAOrTl_e9awLUWeyEzzla9abdo2XOvAda1k6vz-pyShv0DeeeOk2uRwWA0RieVmB/exec';
+      const url = 'https://script.google.com/macros/s/AKfycbx0TxAioH-Luv-QxE7o7DC-6MJsJjhLQjgoc78eMUyimg7kpjFq9yMj9Q4nsEGnFkTr/exec';
 
       const queryParams = new URLSearchParams({
         name: formData.name,
