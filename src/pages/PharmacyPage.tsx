@@ -150,7 +150,8 @@ const PharmacyPage = () => {
 
   const getCartTotal = () => {
     return Object.entries(cart).reduce((total, [cartKey, quantity]) => {
-      const [medicineId] = cartKey.split('-');
+      const cartKeyParts = cartKey.split('-');
+      const medicineId = cartKeyParts[0];
       const medicine = medicines.find(m => m.id === medicineId);
       return total + (medicine ? medicine.price * quantity : 0);
     }, 0);
@@ -169,12 +170,14 @@ const PharmacyPage = () => {
     // Validate stock availability before checkout
     const stockErrors = [];
     for (const [cartKey, quantity] of Object.entries(cart)) {
-      const [medicineId, size] = cartKey.split('-');
+      const cartKeyParts = cartKey.split('-');
+      const medicineId = cartKeyParts[0];
+      const size = cartKeyParts.length > 1 ? cartKeyParts.slice(1).join('-') : undefined;
       const medicine = medicines.find(m => m.id === medicineId);
       if (medicine) {
         const availableStock = getAvailableStock(medicine, size);
         if (quantity > availableStock) {
-          const displayName = size ? `${medicine.name} (${size})` : medicine.name;
+          const displayName = medicine.isGrouped && size ? `${medicine.name} (${size})` : medicine.name;
           stockErrors.push(`${displayName}: Only ${availableStock} available, but ${quantity} in cart`);
         }
       }
@@ -195,9 +198,23 @@ const PharmacyPage = () => {
   const handlePatientFormSubmit = async () => {
     try {      
       const items = Object.entries(cart).map(([cartKey, quantity]) => {
-        const [medicineId, size] = cartKey.split('-');
+        console.log('Processing cart key for email:', cartKey);
+        const cartKeyParts = cartKey.split('-');
+        const medicineId = cartKeyParts[0];
+        const size = cartKeyParts.length > 1 ? cartKeyParts.slice(1).join('-') : undefined;
+        console.log('Email - Medicine ID:', medicineId, 'Size:', size);
+        
         const medicine = medicines.find(m => m.id === medicineId);
-        const displayName = size ? `${medicine?.name || ''} (Size: ${size})` : medicine?.name || '';
+        console.log('Email - Found medicine:', medicine?.name);
+        
+        let displayName;
+        if (medicine?.isGrouped && size) {
+          displayName = `${medicine.name} (Size: ${size})`;
+        } else {
+          displayName = medicine?.name || '';
+        }
+        console.log('Email - Display name:', displayName);
+        
         return {
           name: displayName,
           quantity,
@@ -493,10 +510,25 @@ const PharmacyPage = () => {
                   <CardContent>
                     <div className="space-y-2 mb-4">
                       {Object.entries(cart).map(([cartKey, quantity]) => {
-                        const [medicineId, size] = cartKey.split('-');
+                        console.log('Cart key:', cartKey);
+                        const cartKeyParts = cartKey.split('-');
+                        const medicineId = cartKeyParts[0];
+                        const size = cartKeyParts.length > 1 ? cartKeyParts.slice(1).join('-') : undefined;
+                        console.log('Medicine ID:', medicineId, 'Size:', size);
+                        
                         const medicine = medicines.find(m => m.id === medicineId);
+                        console.log('Found medicine:', medicine?.name);
+                        
                         if (!medicine) return null;
-                        const displayName = size ? `${medicine.name} (${size})` : medicine.name;
+                        
+                        let displayName;
+                        if (medicine.isGrouped && size) {
+                          displayName = `${medicine.name} (${size})`;
+                        } else {
+                          displayName = medicine.name;
+                        }
+                        console.log('Display name:', displayName);
+                        
                         return (
                           <div key={cartKey} className="flex justify-between">
                             <span>{displayName} x{quantity}</span>
