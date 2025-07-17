@@ -101,8 +101,8 @@ const WhatsAppMe = () => {
     setIsProcessing(true);
     var text;
     try {
-      if (window.AndroidClipboard && window.AndroidClipboard.getClipboardText) { 
-        text = window.AndroidClipboard.getClipboardText();
+      if ((window as any).AndroidClipboard && (window as any).AndroidClipboard.getClipboardText) { 
+        text = (window as any).AndroidClipboard.getClipboardText();
       } else {
         text = await navigator.clipboard.readText();
       }

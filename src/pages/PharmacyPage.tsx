@@ -6,9 +6,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShoppingCart, Pill, Plus, Minus, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+interface SizeVariant {
+  size: string;
+  stockCount: number;
+  inStock: boolean;
+  originalName: string;
+  id: string;
+}
 
 interface Medicine {
   id: string;
@@ -24,6 +33,8 @@ interface Medicine {
   originalPrice?: number;
   stockCount?: number;
   discount?: number;
+  isGrouped?: boolean;
+  sizes?: SizeVariant[];
 }
 
 const PharmacyPage = () => {
@@ -31,6 +42,7 @@ const PharmacyPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = useState<{ [key: string]: number }>({});
+  const [selectedSizes, setSelectedSizes] = useState<{ [key: string]: string }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
   
@@ -73,12 +85,37 @@ const PharmacyPage = () => {
     medicine.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addToCart = (medicineId: string) => {
+  const getCartKey = (medicine: Medicine, size?: string): string => {
+    if (medicine.isGrouped && size) {
+      return `${medicine.id}-${size}`;
+    }
+    return medicine.id;
+  };
+
+  const getAvailableStock = (medicine: Medicine, size?: string): number => {
+    if (medicine.isGrouped && size && medicine.sizes) {
+      const sizeVariant = medicine.sizes.find(s => s.size === size);
+      return sizeVariant?.stockCount || 0;
+    }
+    return medicine.stockCount || 0;
+  };
+
+  const addToCart = (medicineId: string, selectedSize?: string) => {
     const medicine = medicines.find(m => m.id === medicineId);
     if (!medicine) return;
     
-    const currentCartQuantity = cart[medicineId] || 0;
-    const availableStock = medicine.stockCount || 0;
+    if (medicine.isGrouped && !selectedSize) {
+      toast({
+        title: "Please select a size",
+        description: "Please choose a size before adding to cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const cartKey = getCartKey(medicine, selectedSize);
+    const currentCartQuantity = cart[cartKey] || 0;
+    const availableStock = getAvailableStock(medicine, selectedSize);
     
     if (currentCartQuantity >= availableStock) {
       toast({
@@ -91,7 +128,7 @@ const PharmacyPage = () => {
     
     setCart(prev => ({
       ...prev,
-      [medicineId]: currentCartQuantity + 1
+      [cartKey]: currentCartQuantity + 1
     }));
     toast({
       title: "Added to cart",
@@ -99,20 +136,21 @@ const PharmacyPage = () => {
     });
   };
 
-  const removeFromCart = (medicineId: string) => {
+  const removeFromCart = (cartKey: string) => {
     setCart(prev => {
       const newCart = { ...prev };
-      if (newCart[medicineId] > 1) {
-        newCart[medicineId] -= 1;
+      if (newCart[cartKey] > 1) {
+        newCart[cartKey] -= 1;
       } else {
-        delete newCart[medicineId];
+        delete newCart[cartKey];
       }
       return newCart;
     });
   };
 
   const getCartTotal = () => {
-    return Object.entries(cart).reduce((total, [medicineId, quantity]) => {
+    return Object.entries(cart).reduce((total, [cartKey, quantity]) => {
+      const [medicineId] = cartKey.split('-');
       const medicine = medicines.find(m => m.id === medicineId);
       return total + (medicine ? medicine.price * quantity : 0);
     }, 0);
@@ -130,10 +168,15 @@ const PharmacyPage = () => {
 
     // Validate stock availability before checkout
     const stockErrors = [];
-    for (const [medicineId, quantity] of Object.entries(cart)) {
+    for (const [cartKey, quantity] of Object.entries(cart)) {
+      const [medicineId, size] = cartKey.split('-');
       const medicine = medicines.find(m => m.id === medicineId);
-      if (medicine && quantity > (medicine.stockCount || 0)) {
-        stockErrors.push(`${medicine.name}: Only ${medicine.stockCount} available, but ${quantity} in cart`);
+      if (medicine) {
+        const availableStock = getAvailableStock(medicine, size);
+        if (quantity > availableStock) {
+          const displayName = size ? `${medicine.name} (${size})` : medicine.name;
+          stockErrors.push(`${displayName}: Only ${availableStock} available, but ${quantity} in cart`);
+        }
       }
     }
 
@@ -151,10 +194,12 @@ const PharmacyPage = () => {
 
   const handlePatientFormSubmit = async () => {
     try {      
-      const items = Object.entries(cart).map(([medicineId, quantity]) => {
+      const items = Object.entries(cart).map(([cartKey, quantity]) => {
+        const [medicineId, size] = cartKey.split('-');
         const medicine = medicines.find(m => m.id === medicineId);
+        const displayName = size ? `${medicine?.name || ''} (Size: ${size})` : medicine?.name || '';
         return {
-          name: medicine?.name || '',
+          name: displayName,
           quantity,
           price: medicine?.price || 0
         };
@@ -277,104 +322,153 @@ const PharmacyPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                {filteredMedicines.map((medicine) => (
-                  <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
-                     <CardHeader>
-                       <div className="flex justify-between items-start">
-                         <div className="flex-1">
-                           <div className="text-sm text-muted-foreground font-medium mt-1">
-                             {medicine.category}
-                           </div>
-                           <CardTitle className="text-lg">{medicine.name}</CardTitle>
-                           <Badge variant={medicine.inStock ? "default" : "secondary"} className="w-fit mt-2">
-                             {medicine.inStock ? "In Stock" : "Out of Stock"}
-                           </Badge>
-                         </div>
-                       </div>
-                       <CardDescription className="mt-2">{medicine.description}</CardDescription>
-                       {(medicine.manufacturer || medicine.dosage || medicine.packSize) && (
-                         <div className="space-y-1 text-sm text-muted-foreground mt-2">
-                           {medicine.manufacturer && <div>Brand: {medicine.manufacturer}</div>}
-                           {medicine.dosage && <div>Dosage: {medicine.dosage}</div>}
-                           {medicine.packSize && <div>Pack Size: {medicine.packSize}</div>}
-                         </div>
-                       )}
-                     </CardHeader>
-                     <CardContent>
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex flex-col">
-                            {medicine.stockCount !== undefined && (
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground">
-                                  Stock: {medicine.stockCount} available
-                                </span>
-                                {cart[medicine.id] && (
-                                  <span className="text-xs text-orange-600">
-                                    {" "}{medicine.stockCount - cart[medicine.id]} remaining
-                                  </span>
-                                )}
+                 {filteredMedicines.map((medicine) => {
+                   const selectedSize = selectedSizes[medicine.id];
+                   const cartKey = getCartKey(medicine, selectedSize);
+                   const currentStock = getAvailableStock(medicine, selectedSize);
+                   
+                   return (
+                     <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="text-sm text-muted-foreground font-medium mt-1">
+                                {medicine.category}
                               </div>
-                            )}
-                            {medicine.prescriptionRequired && (
-                              <Badge variant="outline" className="w-fit mt-1">
-                                Prescription Required
-                              </Badge>
-                            )}
+                              <CardTitle className="text-lg">{medicine.name}</CardTitle>
+                              {medicine.isGrouped && medicine.sizes ? (
+                                <div className="mt-2 space-y-2">
+                                  <Badge variant="outline" className="w-fit">
+                                    Available sizes: {medicine.sizes.map(s => s.size).join(', ')}
+                                  </Badge>
+                                  <Select
+                                    value={selectedSize || ''}
+                                    onValueChange={(value) => setSelectedSizes(prev => ({
+                                      ...prev,
+                                      [medicine.id]: value
+                                    }))}
+                                  >
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Select size" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {medicine.sizes.map((sizeVariant) => (
+                                        <SelectItem 
+                                          key={sizeVariant.size} 
+                                          value={sizeVariant.size}
+                                          disabled={!sizeVariant.inStock || sizeVariant.stockCount === 0}
+                                        >
+                                          {sizeVariant.size} {!sizeVariant.inStock || sizeVariant.stockCount === 0 ? '(Out of Stock)' : `(${sizeVariant.stockCount} available)`}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ) : (
+                                <Badge variant={medicine.inStock ? "default" : "secondary"} className="w-fit mt-2">
+                                  {medicine.inStock ? "In Stock" : "Out of Stock"}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                         <div className="text-right">
-                           {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
+                          <CardDescription className="mt-2">{medicine.description}</CardDescription>
+                          {(medicine.manufacturer || medicine.dosage || medicine.packSize) && (
+                            <div className="space-y-1 text-sm text-muted-foreground mt-2">
+                              {medicine.manufacturer && <div>Brand: {medicine.manufacturer}</div>}
+                              {medicine.dosage && <div>Dosage: {medicine.dosage}</div>}
+                              {medicine.packSize && <div>Pack Size: {medicine.packSize}</div>}
+                            </div>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                           <div className="flex justify-between items-center mb-4">
                              <div className="flex flex-col">
-                               <span className="text-sm text-muted-foreground line-through">
-                                 ₹{medicine.originalPrice}
-                               </span>
-                               <span className="text-lg font-semibold text-green-600">
-                                 ₹{medicine.price}
-                               </span>
-                               {medicine.discount && medicine.discount > 0 && (
-                                 <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                   {medicine.discount}% OFF
+                               {!medicine.isGrouped && medicine.stockCount !== undefined && (
+                                 <div className="space-y-1">
+                                   <span className="text-xs text-muted-foreground">
+                                     Stock: {medicine.stockCount} available
+                                   </span>
+                                   {cart[medicine.id] && (
+                                     <span className="text-xs text-orange-600">
+                                       {" "}{medicine.stockCount - cart[medicine.id]} remaining
+                                     </span>
+                                   )}
+                                 </div>
+                               )}
+                               {medicine.isGrouped && selectedSize && (
+                                 <div className="space-y-1">
+                                   <span className="text-xs text-muted-foreground">
+                                     Stock: {currentStock} available
+                                   </span>
+                                   {cart[cartKey] && (
+                                     <span className="text-xs text-orange-600">
+                                       {" "}{currentStock - cart[cartKey]} remaining
+                                     </span>
+                                   )}
+                                 </div>
+                               )}
+                               {medicine.prescriptionRequired && (
+                                 <Badge variant="outline" className="w-fit mt-1">
+                                   Prescription Required
                                  </Badge>
                                )}
                              </div>
-                           ) : (
-                             <span className="text-lg font-semibold">₹{medicine.price}</span>
-                           )}
-                         </div>
-                       </div>
-                     </CardContent>
-                    <CardFooter className="flex justify-between items-center">
-                      {cart[medicine.id] ? (
-                        <div className="flex items-center gap-3">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => removeFromCart(medicine.id)}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="font-medium">{cart[medicine.id]}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => addToCart(medicine.id)}
-                            disabled={!medicine.inStock || (cart[medicine.id] || 0) >= (medicine.stockCount || 0)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={() => addToCart(medicine.id)}
-                          disabled={!medicine.inStock || (medicine.stockCount || 0) === 0}
-                          className="flex items-center gap-2"
-                        >
-                          <Pill className="h-4 w-4" />
-                          {(medicine.stockCount || 0) === 0 ? 'Out of Stock' : 'Add to Cart'}
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                ))}
+                            <div className="text-right">
+                              {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-muted-foreground line-through">
+                                    ₹{medicine.originalPrice}
+                                  </span>
+                                  <span className="text-lg font-semibold text-green-600">
+                                    ₹{medicine.price}
+                                  </span>
+                                  {medicine.discount && medicine.discount > 0 && (
+                                    <Badge variant="destructive" className="text-xs w-fit ml-auto">
+                                      {medicine.discount}% OFF
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-lg font-semibold">₹{medicine.price}</span>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                       <CardFooter className="flex justify-between items-center">
+                         {cart[cartKey] ? (
+                           <div className="flex items-center gap-3">
+                             <Button
+                               variant="outline"
+                               size="icon"
+                               onClick={() => removeFromCart(cartKey)}
+                             >
+                               <Minus className="h-4 w-4" />
+                             </Button>
+                             <span className="font-medium">{cart[cartKey]}</span>
+                             <Button
+                               variant="outline"
+                               size="icon"
+                               onClick={() => addToCart(medicine.id, selectedSize)}
+                               disabled={!medicine.inStock || (cart[cartKey] || 0) >= currentStock}
+                             >
+                               <Plus className="h-4 w-4" />
+                             </Button>
+                           </div>
+                         ) : (
+                           <Button
+                             onClick={() => addToCart(medicine.id, selectedSize)}
+                             disabled={!medicine.inStock || currentStock === 0 || (medicine.isGrouped && !selectedSize)}
+                             className="flex items-center gap-2"
+                           >
+                             <Pill className="h-4 w-4" />
+                             {currentStock === 0 ? 'Out of Stock' : 
+                              medicine.isGrouped && !selectedSize ? 'Select Size First' : 'Add to Cart'}
+                           </Button>
+                         )}
+                       </CardFooter>
+                     </Card>
+                   );
+                 })}
               </div>
             )}
 
@@ -398,12 +492,14 @@ const PharmacyPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 mb-4">
-                      {Object.entries(cart).map(([medicineId, quantity]) => {
+                      {Object.entries(cart).map(([cartKey, quantity]) => {
+                        const [medicineId, size] = cartKey.split('-');
                         const medicine = medicines.find(m => m.id === medicineId);
                         if (!medicine) return null;
+                        const displayName = size ? `${medicine.name} (${size})` : medicine.name;
                         return (
-                          <div key={medicineId} className="flex justify-between">
-                            <span>{medicine.name} x{quantity}</span>
+                          <div key={cartKey} className="flex justify-between">
+                            <span>{displayName} x{quantity}</span>
                             <span>₹{medicine.price * quantity}</span>
                           </div>
                         );
