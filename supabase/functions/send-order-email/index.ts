@@ -25,7 +25,8 @@ const handler = async (req)=>{
     const emailResponse = await resend.emails.send({
       from: "OrthoLife <info@ortho.life>",
       to: [
-        "gangrenesoul@gmail.com"
+        "gangrenesoul@gmail.com",
+        "rsrkrishna.ray@gmail.com"
       ],
       subject: `${subject} - ${patientData.name}`,
       html: `
