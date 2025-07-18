@@ -26,7 +26,8 @@ const handler = async (req)=>{
       from: "OrthoLife <info@ortho.life>",
       to: [
         "gangrenesoul@gmail.com",
-        "rsrkrishna.ray@gmail.com"
+        ${orderType === 'pharmacy' ? 'rsrkrishna.ray@gmail.com' : 'shalima.pinnamaneni@gmail.com'}
+       
       ],
       subject: `${subject} - ${patientData.name}`,
       html: `
