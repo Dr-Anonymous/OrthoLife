@@ -27,27 +27,26 @@ function extractBaseNameAndSize(name) {
     /\s+(XS|S|M|L|XL|XXL|XXXL|EXTRA SMALL|SMALL|MEDIUM|LARGE|EXTRA LARGE)$/i,
     /\s+SIZE\s+(XS|S|M|L|XL|XXL|XXXL|\d+)$/i,
     /\s*-\s*(XS|S|M|L|XL|XXL|XXXL|SMALL|MEDIUM|LARGE)$/i,
-    /\s+\((XS|S|M|L|XL|XXL|XXXL|SMALL|MEDIUM|LARGE)\)$/i,
+    /\s+\((XS|S|M|L|XL|XXL|XXXL|SMALL|MEDIUM|LARGE)\)$/i
   ];
-  
-  for (const pattern of sizePatterns) {
+  for (const pattern of sizePatterns){
     const match = name.match(pattern);
     if (match) {
       const baseName = name.replace(pattern, '').trim();
       const size = match[1].toUpperCase();
       // Normalize size names
-      const normalizedSize = size === 'EXTRA SMALL' ? 'XS' : 
-                            size === 'SMALL' ? 'S' : 
-                            size === 'MEDIUM' ? 'M' : 
-                            size === 'LARGE' ? 'L' : 
-                            size === 'EXTRA LARGE' ? 'XL' : size;
-      return { baseName, size: normalizedSize };
+      const normalizedSize = size === 'EXTRA SMALL' ? 'XS' : size === 'SMALL' ? 'S' : size === 'MEDIUM' ? 'M' : size === 'LARGE' ? 'L' : size === 'EXTRA LARGE' ? 'XL' : size;
+      return {
+        baseName,
+        size: normalizedSize
+      };
     }
   }
-  
-  return { baseName: name, size: null };
+  return {
+    baseName: name,
+    size: null
+  };
 }
-
 function parseBaseSheetRow(row, headers) {
   if (!row || row.length === 0) return null;
   const medicine = {};
@@ -135,7 +134,7 @@ const handler = async (req)=>{
         const medicine = parseBaseSheetRow(baseData[i], headers);
         if (medicine && medicine.name) {
           const completeMedicine = {
-            id: medicine.id || Math.random().toString(36).substr(2, 9),
+            id: medicine.id,
             name: medicine.name,
             description: medicine.description || medicine.name,
             price: 0,
@@ -178,13 +177,10 @@ const handler = async (req)=>{
     // Group medicines by base name and price for size variants
     const groupedMedicines = new Map();
     const individualMedicines = [];
-    
-    for (const medicine of medicineMap.values()) {
+    for (const medicine of medicineMap.values()){
       const { baseName, size } = extractBaseNameAndSize(medicine.name);
-      
       if (size) {
         const groupKey = `${baseName}-${medicine.price}`;
-        
         if (groupedMedicines.has(groupKey)) {
           const existingGroup = groupedMedicines.get(groupKey);
           existingGroup.sizes.push({
@@ -196,7 +192,7 @@ const handler = async (req)=>{
           });
         } else {
           groupedMedicines.set(groupKey, {
-            id: `group-${Math.random().toString(36).substr(2, 9)}`,
+            id: medicine.id,
             name: baseName,
             description: medicine.description,
             price: medicine.price,
@@ -207,25 +203,34 @@ const handler = async (req)=>{
             originalPrice: medicine.originalPrice,
             discount: medicine.discount,
             isGrouped: true,
-            sizes: [{
-              size: size,
-              stockCount: medicine.stockCount || 0,
-              inStock: medicine.inStock || false,
-              originalName: medicine.name,
-              id: medicine.id
-            }]
+            sizes: [
+              {
+                size: size,
+                stockCount: medicine.stockCount || 0,
+                inStock: medicine.inStock || false,
+                originalName: medicine.name,
+                id: medicine.id
+              }
+            ]
           });
         }
       } else {
         individualMedicines.push(medicine);
       }
     }
-    
     // Convert grouped medicines and merge with individual medicines
-    const finalGroupedMedicines = Array.from(groupedMedicines.values()).map(group => {
+    const finalGroupedMedicines = Array.from(groupedMedicines.values()).map((group)=>{
       // Sort sizes in logical order
-      const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
-      group.sizes.sort((a, b) => {
+      const sizeOrder = [
+        'XS',
+        'S',
+        'M',
+        'L',
+        'XL',
+        'XXL',
+        'XXXL'
+      ];
+      group.sizes.sort((a, b)=>{
         const aIndex = sizeOrder.indexOf(a.size);
         const bIndex = sizeOrder.indexOf(b.size);
         if (aIndex === -1 && bIndex === -1) return a.size.localeCompare(b.size);
@@ -233,36 +238,30 @@ const handler = async (req)=>{
         if (bIndex === -1) return -1;
         return aIndex - bIndex;
       });
-      
       // Update group stock status based on all sizes
-      group.inStock = group.sizes.some(s => s.inStock);
-      group.stockCount = group.sizes.reduce((total, s) => total + s.stockCount, 0);
-      
+      group.inStock = group.sizes.some((s)=>s.inStock);
+      group.stockCount = group.sizes.reduce((total, s)=>total + s.stockCount, 0);
       return group;
     });
-    
     // Only create grouped items if they have multiple sizes
-    const filteredGroupedMedicines = finalGroupedMedicines.filter(group => group.sizes.length > 1);
-    const ungroupedSingleSizes = finalGroupedMedicines
-      .filter(group => group.sizes.length === 1)
-      .map(group => {
-        const sizeInfo = group.sizes[0];
-        return {
-          id: sizeInfo.id,
-          name: sizeInfo.originalName,
-          description: group.description,
-          price: group.price,
-          category: group.category,
-          inStock: sizeInfo.inStock,
-          packSize: group.packSize,
-          prescriptionRequired: group.prescriptionRequired,
-          originalPrice: group.originalPrice,
-          stockCount: sizeInfo.stockCount,
-          discount: group.discount
-        };
-      });
-    
-    medicines.push(...filteredGroupedMedicines, ...ungroupedSingleSizes, ...individualMedicines);
+    const filteredGroupedMedicines = finalGroupedMedicines.filter((group)=>group.sizes.length > 1);
+    const ungroupedSingleSizes = finalGroupedMedicines.filter((group)=>group.sizes.length === 1).map((group)=>{
+      const sizeInfo = group.sizes[0];
+      return {
+        id: sizeInfo.id,
+        name: sizeInfo.originalName,
+        description: group.description,
+        price: group.price,
+        category: group.category,
+        inStock: sizeInfo.inStock,
+        packSize: group.packSize,
+        prescriptionRequired: group.prescriptionRequired,
+        originalPrice: group.originalPrice,
+        stockCount: sizeInfo.stockCount,
+        discount: group.discount
+      };
+    });
+    medicines.push(...ungroupedSingleSizes, ...individualMedicines, ...filteredGroupedMedicines);
     console.log(`Successfully processed ${medicines.length} medicines (${filteredGroupedMedicines.length} grouped items)`);
     return new Response(JSON.stringify({
       medicines
