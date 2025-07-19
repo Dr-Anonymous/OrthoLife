@@ -218,7 +218,7 @@ const DiagnosticsPage = () => {
       } else {
         toast({
           title: "Tests booked successfully!",
-          description: `Our phlebotomist will visit you on ${timeSlotData ? new Date(timeSlotData.start).toLocaleDateString() + ' at ' + new Date(timeSlotData.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'the scheduled time'}.`,
+          description: `Our technician will visit you on ${timeSlotData ? new Date(timeSlotData.start).toLocaleDateString() + ' at ' + new Date(timeSlotData.start).toLocaleTimeString('en-US', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: true }) : 'the scheduled time'}.`,
         });
       }
 
