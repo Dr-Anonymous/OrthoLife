@@ -92,11 +92,11 @@ const Header = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t shadow-lg">
           <nav className="container mx-auto px-4 py-4 space-y-4">
-            <Link to="/#home" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
-            <Link to="/pharmacy" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Pharmacy</Link>
-            <Link to="/diagnostics" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Diagnostics</Link>
+            <a href="/#home" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</a>
             <a href="/#services" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
             <a href="/#about" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>About</a>
+            <Link to="/pharmacy" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Pharmacy</Link>
+            <Link to="/diagnostics" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Diagnostics</Link>
             <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
             <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';setIsMobileMenuOpen(false);}} variant="outline" className="w-full flex items-center justify-center gap-2">
               <Phone size={16} />
