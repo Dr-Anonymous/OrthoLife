@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
+import DiagnosticsTimeSlotSelection from '@/components/DiagnosticsTimeSlotSelection';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,7 +108,9 @@ const tests: Test[] = [
 const DiagnosticsPage = () => {
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [showTimeSlotSelection, setShowTimeSlotSelection] = useState(false);
   const [showPatientForm, setShowPatientForm] = useState(false);
+  const [timeSlotData, setTimeSlotData] = useState<{ start: string; end: string; date: string } | null>(null);
   const [patientData, setPatientData] = useState({
     name: '',
     phone: '',
@@ -160,6 +163,12 @@ const DiagnosticsPage = () => {
       return;
     }
 
+    setShowTimeSlotSelection(true);
+  };
+
+  const handleTimeSlotSelection = (timeSlotData: { start: string; end: string; date: string }) => {
+    setTimeSlotData(timeSlotData);
+    setShowTimeSlotSelection(false);
     setShowPatientForm(true);
   };
 
@@ -174,6 +183,23 @@ const DiagnosticsPage = () => {
         };
       });
 
+      // Book the time slot in Google Calendar
+      if (timeSlotData) {
+        const { error: bookingError } = await supabase.functions.invoke('book-diagnostics', {
+          body: {
+            patientData,
+            timeSlotData,
+            items,
+            total: getCartTotal()
+          }
+        });
+
+        if (bookingError) {
+          console.error('Error booking diagnostics:', bookingError);
+        }
+      }
+
+      // Send the email notification
       const { error } = await supabase.functions.invoke('send-order-email', {
         body: {
           orderType: 'diagnostics',
@@ -187,17 +213,20 @@ const DiagnosticsPage = () => {
         console.error('Error sending email:', error);
         toast({
           title: "Tests booked!",
-          description: "Your tests have been booked successfully. We'll contact you soon.",
+          description: `Your tests have been booked successfully.${timeSlotData ? ` Home collection scheduled for ${new Date(timeSlotData.start).toLocaleDateString()} at ${new Date(timeSlotData.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}.` : ' We\'ll contact you soon.'}`,
         });
       } else {
         toast({
           title: "Tests booked successfully!",
-          description: "Our phlebotomist will visit you within 24 hours.",
+          description: `Our phlebotomist will visit you on ${timeSlotData ? new Date(timeSlotData.start).toLocaleDateString() + ' at ' + new Date(timeSlotData.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'the scheduled time'}.`,
         });
       }
 
+      // Reset all form states
       setCart({});
       setShowPatientForm(false);
+      setShowTimeSlotSelection(false);
+      setTimeSlotData(null);
       setPatientData({ name: '', phone: '', address: '' });
     } catch (error) {
       console.error('Error:', error);
@@ -205,8 +234,11 @@ const DiagnosticsPage = () => {
         title: "Tests booked!",
         description: "Your tests have been booked successfully. We'll contact you soon.",
       });
+      // Reset all form states
       setCart({});
       setShowPatientForm(false);
+      setShowTimeSlotSelection(false);
+      setTimeSlotData(null);
       setPatientData({ name: '', phone: '', address: '' });
     }
   };
@@ -303,13 +335,23 @@ const DiagnosticsPage = () => {
               ))}
             </div>
 
-            {showPatientForm ? (
+            {showTimeSlotSelection ? (
+              <div className="max-w-md mx-auto">
+                <DiagnosticsTimeSlotSelection
+                  onComplete={handleTimeSlotSelection}
+                  onBack={() => setShowTimeSlotSelection(false)}
+                />
+              </div>
+            ) : showPatientForm ? (
               <div className="max-w-md mx-auto">
                 <PatientDetailsForm
                   patientData={patientData}
                   onPatientDataChange={setPatientData}
                   onSubmit={handlePatientFormSubmit}
-                  onBack={() => setShowPatientForm(false)}
+                  onBack={() => {
+                    setShowPatientForm(false);
+                    setShowTimeSlotSelection(true);
+                  }}
                 />
               </div>
             ) : (
