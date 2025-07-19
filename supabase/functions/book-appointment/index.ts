@@ -15,6 +15,9 @@ serve(async (req)=>{
     const { patientData, appointmentData, paymentData } = await req.json();
     //console.log('Booking appointment for:', patientData.name, 'at', appointmentData.start);
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
+    const dob = patientData.dateOfBirth ? new Date(patientData.dateOfBirth).toLocaleDateString('en-GB', {
+      timeZone: 'Asia/Kolkata'
+    }) : " ";
     const appointmentId = crypto.randomUUID();
     const message = encodeURI(`Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${new Date(appointmentData.start).toLocaleTimeString('en-GB', {
       timeZone: 'UTC',
@@ -29,9 +32,7 @@ serve(async (req)=>{
       const calendarEvent = {
         summary: patientData.name,
         description: `Patient: ${patientData.name}
-DOB: ${new Date(patientData.dateOfBirth).toLocaleDateString('en-GB', {
-          timeZone: 'Asia/Kolkata'
-        })}
+DOB: ${dob}
 Email: ${patientData.email}
 Phone: ${patientData.phone}
 Address: ${patientData.address}
