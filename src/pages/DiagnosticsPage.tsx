@@ -318,7 +318,6 @@ const DiagnosticsPage = () => {
                               ) : (
                                 <span className="text-lg font-semibold">₹{test.price}</span>
                               )}
-                            </div>
                         </div>
                       </div>
                     </CardContent>
