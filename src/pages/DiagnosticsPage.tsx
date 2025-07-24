@@ -66,9 +66,7 @@ const DiagnosticsPage = () => {
   try {
     setLoading(true);
     setError(null);
-    const { data, error } = await supabase.functions.invoke('fetch-lab-data', {
-      query: { refresh: 'true' }
-    });
+    const { data, error } = await supabase.functions.invoke('fetch-lab-data?refresh=true');
     if (error) {
       console.error('Error fetching tests:', error);
       setError('Failed to load tests. Please try again.');
