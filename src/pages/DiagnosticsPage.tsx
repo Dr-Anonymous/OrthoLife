@@ -61,7 +61,27 @@ const DiagnosticsPage = () => {
       setLoading(false);
     }
   };
-
+  
+  const fetchTestsWithRefresh = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    const { data, error } = await supabase.functions.invoke('fetch-lab-data', {
+      query: { refresh: 'true' }
+    });
+    if (error) {
+      console.error('Error fetching tests:', error);
+      setError('Failed to load tests. Please try again.');
+      return;
+    }
+    setTests(data?.medicines || []);
+  } catch (err) {
+    console.error('Error:', err);
+    setError('Failed to load tests. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     fetchTests();
   }, []);
@@ -207,7 +227,7 @@ const DiagnosticsPage = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={fetchTests}
+                  onClick={fetchTestsWithRefresh}
                   disabled={loading}
                   title="Refresh tests"
                 >
@@ -225,7 +245,7 @@ const DiagnosticsPage = () => {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-destructive mb-4">{error}</p>
-                      <Button onClick={fetchTests} disabled={loading}>
+                      <Button onClick={fetchTestsWithRefresh} disabled={loading}>
                         {loading ? 'Loading...' : 'Try Again'}
                       </Button>
                     </div>
