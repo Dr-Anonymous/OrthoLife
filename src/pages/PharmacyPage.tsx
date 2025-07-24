@@ -510,14 +510,14 @@ const PharmacyPage = () => {
                   <CardContent>
                     <div className="space-y-2 mb-4">
                       {Object.entries(cart).map(([cartKey, quantity]) => {
-                        console.log('Cart key:', cartKey);
+                        //console.log('Cart key:', cartKey);
                         const cartKeyParts = cartKey.split('-');
                         const medicineId = cartKeyParts[0];
                         const size = cartKeyParts.length > 1 ? cartKeyParts.slice(1).join('-') : undefined;
-                        console.log('Medicine ID:', medicineId, 'Size:', size);
+                        //console.log('Medicine ID:', medicineId, 'Size:', size);
                         
                         const medicine = medicines.find(m => m.id === medicineId);
-                        console.log('Found medicine:', medicine?.name);
+                        //console.log('Found medicine:', medicine?.name);
                         
                         if (!medicine) return null;
                         
@@ -527,7 +527,7 @@ const PharmacyPage = () => {
                         } else {
                           displayName = medicine.name;
                         }
-                        console.log('Display name:', displayName);
+                        //console.log('Display name:', displayName);
                         
                         return (
                           <div key={cartKey} className="flex justify-between">
