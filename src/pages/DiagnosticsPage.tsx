@@ -67,7 +67,7 @@ const DiagnosticsPage = () => {
   }, []);
 
   const filteredTests = tests.filter(test =>
-    test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    test.name.replace(/[.,;]/g, '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (test.category && test.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (test.description && test.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
