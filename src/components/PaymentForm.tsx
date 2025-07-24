@@ -155,6 +155,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               <span>
                 {new Date(appointmentData.start).toLocaleDateString()} at{' '}
                 {new Date(appointmentData.start).toLocaleTimeString('en-US', {
+                  timeZone: 'UTC',
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: true
