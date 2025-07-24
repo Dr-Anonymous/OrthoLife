@@ -22,7 +22,6 @@ interface Test {
   category?: string;
   fasting?: boolean;
   duration?: string;
-  available?: boolean;
 }
 
 const DiagnosticsPage = () => {
@@ -279,9 +278,6 @@ const DiagnosticsPage = () => {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{test.name}</CardTitle>
-                        <Badge variant={test.available !== false ? "default" : "secondary"}>
-                          {test.available !== false ? "Available" : "Not Available"}
-                        </Badge>
                       </div>
                       {test.description && (
                         <CardDescription>{test.description}</CardDescription>
@@ -295,12 +291,6 @@ const DiagnosticsPage = () => {
                             <span className="text-sm">{test.category}</span>
                           </div>
                         )}
-                        {test.fasting !== undefined && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Fasting:</span>
-                            <span className="text-sm">{test.fasting ? "Required" : "Not Required"}</span>
-                          </div>
-                        )}
                         {test.duration && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -310,26 +300,25 @@ const DiagnosticsPage = () => {
                             <span className="text-sm">{test.duration}</span>
                           </div>
                         )}
-                        <div className="flex justify-between items-center pt-2 border-t">
-                          <div className="text-right">
-                            {test.originalPrice && test.originalPrice > test.price ? (
-                              <div className="flex flex-col">
-                                <span className="text-sm text-muted-foreground line-through">
-                                  ₹{test.originalPrice}
-                                </span>
-                                <span className="text-lg font-semibold text-green-600">
-                                  ₹{test.price}
-                                </span>
-                                {test.discount && test.discount > 0 && (
-                                  <Badge variant="destructive" className="text-xs w-fit">
-                                    {test.discount}% OFF
-                                  </Badge>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-lg font-semibold">₹{test.price}</span>
-                            )}
-                          </div>
+                        <div className="text-right">
+                              {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-muted-foreground line-through">
+                                    ₹{test.marketPrice}
+                                  </span>
+                                  <span className="text-lg font-semibold text-green-600">
+                                    ₹{test.price}
+                                  </span>
+                                  {test.discount && test.discount > 0 && (
+                                    <Badge variant="destructive" className="text-xs w-fit ml-auto">
+                                      {test.discount}% OFF
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-lg font-semibold">₹{test.price}</span>
+                              )}
+                            </div>
                         </div>
                       </div>
                     </CardContent>
@@ -348,7 +337,6 @@ const DiagnosticsPage = () => {
                             variant="outline"
                             size="icon"
                             onClick={() => addToCart(test.id)}
-                            disabled={test.available === false}
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
@@ -356,7 +344,6 @@ const DiagnosticsPage = () => {
                       ) : (
                         <Button
                           onClick={() => addToCart(test.id)}
-                          disabled={test.available === false}
                           className="flex items-center gap-2"
                         >
                           <TestTubes className="h-4 w-4" />
