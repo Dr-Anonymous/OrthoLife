@@ -15,9 +15,10 @@ serve(async (req)=>{
     const { patientData, appointmentData, paymentData } = await req.json();
     //console.log('Booking appointment for:', patientData.name, 'at', appointmentData.start);
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
-    const dob = patientData.dateOfBirth ? new Date(patientData.dateOfBirth).toLocaleDateString('en-GB', {
+    const dob = patientData.dateOfBirth ? '\nDOB: ' + new Date(patientData.dateOfBirth).toLocaleDateString('en-GB', {
       timeZone: 'Asia/Kolkata'
-    }) : " ";
+    }) : "";
+    const myMail = patientData.email && patientData.email.trim() ? `\nEmail: ${patientData.email}` : "";
     const appointmentId = crypto.randomUUID();
     const message = encodeURI(`Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${new Date(appointmentData.start).toLocaleTimeString('en-GB', {
       timeZone: 'UTC',
@@ -31,17 +32,13 @@ serve(async (req)=>{
       const calendarId = Deno.env.get('GOOGLE_CALENDAR_ID');
       const calendarEvent = {
         summary: patientData.name,
-        description: `Patient: ${patientData.name}
-DOB: ${dob}
-Email: ${patientData.email}
-Phone: ${patientData.phone}
+        description: `Patient: ${patientData.name}` + dob + myMail + `\nPhone: ${patientData.phone}
 Address: ${patientData.address}
 Service: ${appointmentData.serviceType}
 Amount: ₹${appointmentData.amount}
 Payment: ${paymentData.paymentMethod === 'offline' ? 'Pay at clinic' : 'Paid online'}
 WhatsApp: <a href="https://wa.me/91${patientData.phone}?text=` + message + `">Send</a>
-SMS: <a href="sms:${patientData.phone}?body=` + message + `">Send</a>
-Appointment ID: ${appointmentId}`,
+SMS: <a href="sms:${patientData.phone}?body=` + message + `">Send</a>`,
         start: {
           dateTime: addMinutes(appointmentData.start)
         },
