@@ -301,7 +301,7 @@ const DiagnosticsPage = () => {
                           </div>
                         )}
                         <div className="text-right">
-                              {medicine.marketPrice && medicine.marketPrice > test.price ? (
+                              {test.marketPrice && test.marketPrice > test.price ? (
                                 <div className="flex flex-col">
                                   <span className="text-sm text-muted-foreground line-through">
                                     ₹{test.marketPrice}
