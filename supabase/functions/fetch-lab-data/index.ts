@@ -37,7 +37,7 @@ function parseBaseSheetRow(row, headers) {
     else if (key === "our cost") medicine.originalPrice = parseFloat(value) || 0;
     else if (key === "lab rate") medicine.price = parseFloat(value) || 0;
     else if (key === "mrp") medicine.marketPrice = parseFloat(value) || 0;
-    else if (key === "profit %") medicine.discount = parseFloat(value) || 0;
+    else if (key === "description") medicine.description = value;
   });
   return medicine.name ? medicine : null;
 }
