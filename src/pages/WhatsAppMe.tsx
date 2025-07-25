@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Phone, MessageSquare, Home, Building, User, Users, Clipboard } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 
@@ -43,10 +43,13 @@ const WhatsAppMe = () => {
     let address;
     switch (e) {
       case 2:
-        address = "_Dr%20Samuel%20Manoj%20Cherukuri_%0A%2A98668%2012555%2A%20%0A%0A9-5%20pm%20at%3A%0ALaxmi%20Hospital%2C%0AGudarigunta%2C%20Kakinada%0A%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F5Xkr4FU";
+        address = "Dr%20Samuel%20Manoj%20Cherukuri%0A_98668%2012555_%0A%0AAfter%20%2A_7%3A30%20pm_%2A%20at%20%20%2AOrthoLife%2A%20%3A%0ARoad%20number%203%2C%0AR%20R%20Nagar%2C%20near%20RTO%20office%2C%0AKakinada%0A%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F6ZEukv";
         break;
       case 3:
-        address = "Dr%20Samuel%20Manoj%20Cherukuri%0A_98668%2012555_%0A%0AAfter%20%2A_7%3A30%20pm_%2A%20at%20%20%2AOrthoLife%2A%20%3A%0ARoad%20number%203%2C%0AR%20R%20Nagar%2C%20near%20RTO%20office%2C%0AKakinada%0A%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F6ZEukv";
+        address = "_Dr%20Samuel%20Manoj%20Cherukuri_%0A%2A98668%2012555%2A%20%0A%0A9-5%20pm%20at%3A%0ALaxmi%20Hospital%2C%0AGudarigunta%2C%20Kakinada%0A%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F5Xkr4FU";
+        break;
+      case 4:
+        address = "_Dr%20Samuel%20Manoj%20Cherukuri_%20%0A9866812555%0A%0A%20%2A5-7%20pm%2A%20at%3A%0A%20_Badam%20clinical%20laboratory_%20%0Ahttps%3A%2F%2Fg.co%2Fkgs%2FeAgkp5S";
         break;
       default:
         address = "%2F";
@@ -196,7 +199,7 @@ const WhatsAppMe = () => {
             
             <Button 
               variant="outline" 
-              onClick={() => process(3)} 
+              onClick={() => process(2)} 
               className="h-auto py-2 flex-col gap-1"
             >
               <Home className="w-4 h-4" />
@@ -204,13 +207,20 @@ const WhatsAppMe = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => process(2)} 
+              onClick={() => process(3)}
               className="h-auto py-2 flex-col gap-1"
             >
               <Building className="w-4 h-4" />
               <span>Laxmi</span>
             </Button>
-            
+            <Button
+              variant="outline" 
+              onClick={() => process(4)}
+              className="h-auto py-2 flex-col gap-1"
+            >
+              <FlaskConical className="w-4 h-4" />
+              <span>Badam</span>
+            </Button>
           </div>
         </div>
 
