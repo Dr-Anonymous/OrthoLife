@@ -233,7 +233,7 @@ const DiagnosticsPage = () => {
                 </Button>
               </div>
               <p className="text-xl text-muted-foreground">
-                Book blood tests and get samples collected from your home
+                Convenient, accurate, and affordable blood tests—right from the comfort of your home.
               </p>
             </div>
 
@@ -255,7 +255,7 @@ const DiagnosticsPage = () => {
             <div className="max-w-md mx-auto mb-8">
               <Input
                 type="text"
-                placeholder="Search tests or categories..."
+                placeholder="Search by test name (creatinine) or by complaint/organ (kidney)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
@@ -327,11 +327,9 @@ const DiagnosticsPage = () => {
                                   <span className="text-lg font-semibold text-green-600">
                                     ₹{test.price}
                                   </span>
-                                  {test.discount && test.discount > 0 && (
                                     <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                      {test.discount}% OFF
+                                      {((test.marketPrice-test.price)/test.marketPrice)*100}% OFF
                                     </Badge>
-                                  )}
                                 </div>
                               ) : (
                                 <span className="text-lg font-semibold">₹{test.price}</span>
