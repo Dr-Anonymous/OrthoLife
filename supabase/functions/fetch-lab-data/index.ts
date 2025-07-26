@@ -14,7 +14,7 @@ const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABA
   }
 });
 async function fetchSheetData(accessToken, sheetName) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!A:G?fields=values`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!A:I?fields=values`;
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`
@@ -34,10 +34,11 @@ function parseBaseSheetRow(row, headers) {
     const value = row[i] || "";
     if (key === "id") medicine.id = value;
     else if (key === "test name") medicine.name = value;
-    else if (key === "our cost") medicine.originalPrice = parseFloat(value) || 0;
-    else if (key === "lab rate") medicine.price = parseFloat(value) || 0;
-    else if (key === "mrp") medicine.marketPrice = parseFloat(value) || 0;
     else if (key === "description") medicine.description = value;
+    else if (key === "category") medicine.category = value;
+    else if (key === "lab rate") medicine.price = parseFloat(value) || 0;
+    else if (key === "market rate") medicine.marketPrice = parseFloat(value) || 0;
+    else if (key === "duration") medicine.duration = value;
   });
   return medicine.name ? medicine : null;
 }
