@@ -194,9 +194,6 @@ const DiagnosticsPage = () => {
           title: "Tests booked successfully!",
           description: `Our technician will visit you on ${timeSlotData ? new Date(timeSlotData.start).toLocaleDateString() + ' at ' + new Date(timeSlotData.start).toLocaleTimeString('en-US', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: true }) : 'the scheduled time'}.`,
         });
-        
-        // Refresh tests data after successful booking
-        //fetchTests();
       }
 
       // Reset all form states
@@ -303,8 +300,8 @@ const DiagnosticsPage = () => {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{test.name}</CardTitle>
-                        <Badge variant={test.available ? "default" : "secondary"}>
-                          {test.available ? "Available" : "Not Available"}
+                        <Badge variant="default">
+                          {Math.ceil(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
                         </Badge>
                         <Badge variant="destructive" className="text-xs w-fit ml-auto">
                           {Math.ceil(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
