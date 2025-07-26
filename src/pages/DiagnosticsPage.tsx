@@ -189,7 +189,7 @@ const DiagnosticsPage = () => {
         });
         
         // Refresh tests data after successful booking
-        fetchTests();
+        //fetchTests();
       }
 
       // Reset all form states
@@ -328,7 +328,7 @@ const DiagnosticsPage = () => {
                                     ₹{test.price}
                                   </span>
                                     <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                      {((test.marketPrice-test.price)/test.marketPrice)*100}% OFF
+                                      {Math.round(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
                                     </Badge>
                                 </div>
                               ) : (
