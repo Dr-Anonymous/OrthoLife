@@ -300,9 +300,6 @@ const DiagnosticsPage = () => {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{test.name}</CardTitle>
-                        <Badge variant="default">
-                          {Math.ceil(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
-                        </Badge>
                         <Badge variant="destructive" className="text-xs w-fit ml-auto">
                           {Math.ceil(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
                         </Badge>
