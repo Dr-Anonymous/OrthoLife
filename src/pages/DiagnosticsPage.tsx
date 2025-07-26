@@ -16,11 +16,9 @@ interface Test {
   name: string;
   description?: string;
   price: number;
-  originalPrice?: number;
+  maxPrice?: number;
   marketPrice?: number;
-  discount?: number;
   category?: string;
-  fasting?: boolean;
   duration?: string;
 }
 
@@ -39,7 +37,16 @@ const DiagnosticsPage = () => {
     address: ''
   });
   const { toast } = useToast();
+  
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code == 'off') {
+    console.log('offer');
+  }
+  }, []);
 
+  
   const fetchTests = async () => {
     try {
       setLoading(true);
@@ -233,7 +240,7 @@ const DiagnosticsPage = () => {
                 </Button>
               </div>
               <p className="text-xl text-muted-foreground">
-                Convenient, accurate, and affordable blood tests—right from the comfort of your home.
+                Convenient, accurate, and affordable lab tests—right from the comfort of your home.
               </p>
             </div>
 
@@ -328,7 +335,7 @@ const DiagnosticsPage = () => {
                                     ₹{test.price}
                                   </span>
                                     <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                      {Math.round(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
+                                      {Math.ceil(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
                                     </Badge>
                                 </div>
                               ) : (
