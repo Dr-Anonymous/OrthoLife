@@ -320,8 +320,9 @@ const DiagnosticsPage = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              Results: {test.duration}
+                              Results:
                             </span>
+                            <span className="text-sm">{test.duration}</span>
                           </div>
                         )}
                         <div className="text-right">
