@@ -303,6 +303,12 @@ const DiagnosticsPage = () => {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{test.name}</CardTitle>
+                        <Badge variant={test.available ? "default" : "secondary"}>
+                          {test.available ? "Available" : "Not Available"}
+                        </Badge>
+                        <Badge variant="destructive" className="text-xs w-fit ml-auto">
+                          {Math.ceil(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
+                        </Badge>
                       </div>
                       {test.description && (
                         <CardDescription>{test.description}</CardDescription>
@@ -320,9 +326,8 @@ const DiagnosticsPage = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              Results:
+                              Results: {test.duration}
                             </span>
-                            <span className="text-sm">{test.duration}</span>
                           </div>
                         )}
                         <div className="text-right">
@@ -334,9 +339,6 @@ const DiagnosticsPage = () => {
                                   <span className="text-lg font-semibold text-green-600">
                                     ₹{test.price}
                                   </span>
-                                    <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                      {Math.ceil(((test.marketPrice-test.price)/test.marketPrice)*100)}% OFF
-                                    </Badge>
                                 </div>
                               ) : (
                                 <span className="text-lg font-semibold">₹{test.price}</span>
