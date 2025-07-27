@@ -27,7 +27,7 @@ interface Medication {
   instructions: string;
 }
 
-const myUrl = 'https://script.google.com/macros/s/AKfycbyu2oGAYyzqypqy2IpsSC9M9ccBgTey9WPVuo3b-T7m5pt9rHyO0WpDBjX5EtEG-LMqVw/exec';
+const myUrl = 'https://script.google.com/macros/s/AKfycbxew7rltS4gx4VeXs8Rc0ONs0lcEvxiACvwba7fBacd9RHtZz2KFHtH2GUZy-fq8B37wA/exec';
 
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
