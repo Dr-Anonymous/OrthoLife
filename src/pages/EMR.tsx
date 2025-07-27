@@ -27,6 +27,8 @@ interface Medication {
   instructions: string;
 }
 
+const myUrl = 'https://script.google.com/macros/s/AKfycbw6e8GRRijCP_2dA1G9W7Uu1pAXfxzKMl64gPYE02wJWCzn5SVeaYxvqvBeu1s4XOQ0/exec';
+
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -123,7 +125,6 @@ const EMR = () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      const url = 'https://script.google.com/macros/s/AKfycbxkpjjjUGbFTNkMPhec3eGubdpEOcgEdt6TA9WrrlxDEaxiz8x7Z8mJFl3qJH0lGwJT-g/exec';
       const payload = {
         name: formData.name,
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
@@ -136,7 +137,7 @@ const EMR = () => {
         advice: extraData.advice,
         medications: extraData.medications
       };
-      const response = await fetch(url, {
+      const response = await fetch(myUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
