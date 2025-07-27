@@ -121,40 +121,37 @@ const EMR = () => {
   };
 
   const submitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        name: formData.name,
-        dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
-        sex: formData.sex,
-        phone: formData.phone,
-        complaints: extraData.complaints,
-        findings: extraData.findings,
-        investigations: extraData.investigations,
-        diagnosis: extraData.diagnosis,
-        advice: extraData.advice,
-        medications: extraData.medications
-      };
-      const response = await fetch(myUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
-      if (result.url) {
-        window.location.href = result.url;
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
+  e.preventDefault();
+  if (!validateForm()) return;
+  setIsSubmitting(true);
+  try {
+    const payload = {
+      name: formData.name,
+      dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
+      sex: formData.sex,
+      phone: formData.phone,
+      complaints: extraData.complaints,
+      findings: extraData.findings,
+      investigations: extraData.investigations,
+      diagnosis: extraData.diagnosis,
+      advice: extraData.advice,
+      medications: JSON.stringify(extraData.medications)
+    };
+    const query = new URLSearchParams(payload).toString();
+    const response = await fetch(`${myUrl}?${query}`);
+    const result = await response.json();
+    if (result.url) {
+      window.location.href = result.url;
+    } else {
+      throw new Error(result.error || 'Unknown error');
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i);
