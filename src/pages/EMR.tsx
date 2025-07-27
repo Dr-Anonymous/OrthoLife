@@ -29,7 +29,7 @@ interface Medication {
   instructions: string;
 }
 
-const myUrl = 'https://script.google.com/macros/s/AKfycbyJkfMnTDeZMLyFEkeBt3XA50WB1ZgDdVh3E9OvccZOMEgGKZfOWg8Y5l7EDdn6NutwLg/exec';
+const myUrl = 'https://script.google.com/macros/s/AKfycbzWqSvU_5i-OU3OcPBnRxWNY9tV1oAsftNYgh-hoG2Rc6U-_c8pKoJXfaQ2bgLCvxkt7Q/exec';
 
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
@@ -77,7 +77,18 @@ const EMR = () => {
     if (errors.dob) setErrors(prev => ({ ...prev, dob: undefined }));
     if (date) setIsDatePickerOpen(false);
   };
+  const handleYearChange = (year: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setFullYear(parseInt(year));
+    setCalendarDate(newDate);
+  };
 
+  const handleMonthChange = (month: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setMonth(parseInt(month));
+    setCalendarDate(newDate);
+  };
+  
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
   };
@@ -163,24 +174,71 @@ const EMR = () => {
             {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
           </div>
           <div>
-            <Label>Date of Birth</Label>
+            <Label htmlFor="dob">Date of Birth</Label>
             <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal",
-                          !formData.dob && "text-muted-foreground", errors.dob && "border-red-500")}>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !formData.dob && "text-muted-foreground",
+                    errors.dob && "border-red-500"
+                  )}
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.dob ? format(formData.dob, "PPP") : <span>Select date of birth</span>}
+                  {formData.dob ? (
+                    format(formData.dob, "PPP")
+                  ) : (
+                    <span>Select your date of birth</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={formData.dob} onSelect={handleDateChange}
-                          month={calendarDate} onMonthChange={setCalendarDate}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus className="p-3 pointer-events-auto" />
+                <div className="p-3 border-b space-y-2">
+                  <div className="flex gap-2">
+                    <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-48">
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Calendar
+                  mode="single"
+                  selected={formData.dob}
+                  onSelect={handleDateChange}
+                  month={calendarDate}
+                  onMonthChange={setCalendarDate}
+                  disabled={(date) =>
+                    date > new Date() || date < new Date("1900-01-01")
+                  }
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
               </PopoverContent>
             </Popover>
             {errors.dob && <p className="text-sm text-red-500 mt-1">{errors.dob}</p>}
           </div>
+          
           <div>
             <Label>Sex</Label>
             <Select value={formData.sex} onValueChange={handleSexChange}>
