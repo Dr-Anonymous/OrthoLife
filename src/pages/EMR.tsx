@@ -123,7 +123,7 @@ const EMR = () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      const url = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // replace with your script URL
+      const url = 'https://script.google.com/macros/s/AKfycbzf50UF0hgg3_qhQ4aI05JqFyPEQn79lUxph7RPGgYInlH9iJcr0bJ29bygJu-87xy1zA/exec';
       const payload = {
         name: formData.name,
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
