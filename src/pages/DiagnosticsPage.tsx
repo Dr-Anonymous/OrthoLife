@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
 import DiagnosticsTimeSlotSelection from '@/components/DiagnosticsTimeSlotSelection';
+import FloatingCart from '@/components/FloatingCart';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -431,6 +432,12 @@ const DiagnosticsPage = () => {
           </div>
         </section>
       </main>
+      <FloatingCart
+        itemCount={Object.values(cart).reduce((sum, qty) => sum + qty, 0)}
+        total={getCartTotal()}
+        onCheckout={handleBookTests}
+        type="diagnostics"
+      />
       <Footer />
     </div>
   );

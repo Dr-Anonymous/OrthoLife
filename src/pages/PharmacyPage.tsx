@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
+import FloatingCart from '@/components/FloatingCart';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -552,6 +553,12 @@ const PharmacyPage = () => {
           </div>
         </section>
       </main>
+      <FloatingCart
+        itemCount={Object.values(cart).reduce((sum, qty) => sum + qty, 0)}
+        total={getCartTotal()}
+        onCheckout={handleCheckout}
+        type="pharmacy"
+      />
       <Footer />
     </div>
   );
