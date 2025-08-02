@@ -158,6 +158,13 @@ const PharmacyPage = () => {
     }, 0);
   };
 
+  const scrollToCart = () => {
+    const cartSection = document.querySelector('[data-cart-section]');
+    if (cartSection) {
+      cartSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   const handleCheckout = () => {
     if (Object.keys(cart).length === 0) {
       toast({
@@ -501,7 +508,7 @@ const PharmacyPage = () => {
               </div>
             ) : (
               Object.keys(cart).length > 0 && (
-                <Card className="max-w-md mx-auto">
+                <Card className="max-w-md mx-auto" data-cart-section>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5" />
@@ -556,7 +563,7 @@ const PharmacyPage = () => {
       <FloatingCart
         itemCount={Object.values(cart).reduce((sum, qty) => sum + qty, 0)}
         total={getCartTotal()}
-        onCheckout={handleCheckout}
+        onViewCart={scrollToCart}
         type="pharmacy"
       />
       <Footer />

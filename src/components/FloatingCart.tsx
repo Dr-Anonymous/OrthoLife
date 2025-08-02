@@ -6,20 +6,20 @@ import { ShoppingCart, Calendar } from 'lucide-react';
 interface FloatingCartProps {
   itemCount: number;
   total: number;
-  onCheckout: () => void;
+  onViewCart: () => void;
   type: 'pharmacy' | 'diagnostics';
 }
 
-const FloatingCart: React.FC<FloatingCartProps> = ({ itemCount, total, onCheckout, type }) => {
+const FloatingCart: React.FC<FloatingCartProps> = ({ itemCount, total, onViewCart, type }) => {
   if (itemCount === 0) return null;
 
   const icon = type === 'pharmacy' ? ShoppingCart : Calendar;
-  const text = type === 'pharmacy' ? 'Checkout' : 'Book Tests';
+  const text = type === 'pharmacy' ? 'View Cart' : 'View Cart';
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-[100]">
       <Button
-        onClick={onCheckout}
+        onClick={onViewCart}
         size="lg"
         className="relative shadow-lg hover:shadow-xl transition-all duration-200 min-w-[140px]"
       >
