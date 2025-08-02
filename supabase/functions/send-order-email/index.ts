@@ -21,13 +21,13 @@ const handler = async (req)=>{
       "pharmacy@orthosam.com"
     ] : [
       "gangrenesoul@gmail.com",
-      "diagnostics@orthosa.com"
+      "diagnostics@orthosam.com"
     ];
     // Send email first
     const emailResponse = await resend.emails.send({
-      from: "OrthoLife <info@ortho.life>",
+      from: "OrthoLife <info@updates.ortho.life>",
       to: toEmails,
-      reply_to: "mail@orthosam.com",
+      reply_to: "info@ortho.life",
       subject: `${subject} - ${patientData.name}`,
       html: `
         <h2>${subject}</h2>
