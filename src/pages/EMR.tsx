@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, Calendar as CalendarIcon, FileText, Stethoscope } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -146,7 +146,10 @@ const EMR = () => {
           findings: patientData.findings || prev.findings,
           investigations: patientData.investigations || prev.investigations,
           diagnosis: patientData.diagnosis || prev.diagnosis,
-          advice: patientData.advice || prev.advice
+          advice: patientData.advice || prev.advice,
+          medications: patientData.medications && patientData.medications.length > 0 
+            ? patientData.medications 
+            : prev.medications
         }));
 
         toast({

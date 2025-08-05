@@ -304,41 +304,108 @@ function extractTextFromDocument(document: any): string {
 }
 
 function parsePatientData(documentText: string): any {
-  console.log('Parsing document text:', documentText.substring(0, 200) + '...')
+  console.log('Parsing document text:', documentText.substring(0, 500) + '...')
   
-  // This is a basic parser - you may need to adjust based on your document format
   const data: any = {}
   
-  // Extract basic patient info using regex patterns
-  const nameMatch = documentText.match(/Name[:\s]*([^\n\r]+)/i)
-  if (nameMatch) data.name = nameMatch[1].trim()
+  // Extract basic patient info using more flexible regex patterns
+  // Handle template variables like {{name}} and actual data
+  const nameMatch = documentText.match(/Name:\s*(?:{{name}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:D\.O\.B|DOB|Date of Birth)/i)
+  if (nameMatch && nameMatch[1] && !nameMatch[1].includes('{{')) {
+    data.name = nameMatch[1].trim()
+  }
   
-  const dobMatch = documentText.match(/Date of Birth[:\s]*([^\n\r]+)/i) || 
-                   documentText.match(/DOB[:\s]*([^\n\r]+)/i)
-  if (dobMatch) data.dob = dobMatch[1].trim()
+  // DOB patterns
+  const dobMatch = documentText.match(/(?:D\.O\.B|DOB|Date of Birth)[:\s]*(?:{{dob}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:Phone|Sex|Age)/i)
+  if (dobMatch && dobMatch[1] && !dobMatch[1].includes('{{')) {
+    data.dob = dobMatch[1].trim()
+  }
   
-  const sexMatch = documentText.match(/Sex[:\s]*([^\n\r]+)/i) ||
-                   documentText.match(/Gender[:\s]*([^\n\r]+)/i)
-  if (sexMatch) data.sex = sexMatch[1].trim()
+  // Phone patterns
+  const phoneMatch = documentText.match(/Phone[:\s]*(?:{{phone}}|([^\s\n\r{]+))\s*(?:Sex|Age|ID)/i)
+  if (phoneMatch && phoneMatch[1] && !phoneMatch[1].includes('{{')) {
+    data.phone = phoneMatch[1].trim()
+  }
   
-  const phoneMatch = documentText.match(/Phone[:\s]*([^\n\r]+)/i) ||
-                     documentText.match(/Mobile[:\s]*([^\n\r]+)/i)
-  if (phoneMatch) data.phone = phoneMatch[1].trim()
+  // Sex patterns
+  const sexMatch = documentText.match(/Sex[:\s]*(?:{{sex}}|([^\s\n\r{]+))\s*(?:Age|ID|Date|\n)/i)
+  if (sexMatch && sexMatch[1] && !sexMatch[1].includes('{{')) {
+    data.sex = sexMatch[1].trim()
+  }
   
-  const complaintsMatch = documentText.match(/Complaints[:\s]*([^\n\r]+)/i)
-  if (complaintsMatch) data.complaints = complaintsMatch[1].trim()
+  // Medical information - more flexible patterns
+  const complaintsMatch = documentText.match(/Complaints[:\s]*(?:{{complaints}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Findings|Clinical|$)/i)
+  if (complaintsMatch && complaintsMatch[1] && !complaintsMatch[1].includes('{{')) {
+    data.complaints = complaintsMatch[1].trim()
+  }
   
-  const findingsMatch = documentText.match(/Findings[:\s]*([^\n\r]+)/i)
-  if (findingsMatch) data.findings = findingsMatch[1].trim()
+  const findingsMatch = documentText.match(/Findings[:\s]*(?:{{findings}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Investigations|Diagnosis|$)/i)
+  if (findingsMatch && findingsMatch[1] && !findingsMatch[1].includes('{{')) {
+    data.findings = findingsMatch[1].trim()
+  }
   
-  const investigationsMatch = documentText.match(/Investigations[:\s]*([^\n\r]+)/i)
-  if (investigationsMatch) data.investigations = investigationsMatch[1].trim()
+  const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Diagnosis|Advice|$)/i)
+  if (investigationsMatch && investigationsMatch[1] && !investigationsMatch[1].includes('{{')) {
+    data.investigations = investigationsMatch[1].trim()
+  }
   
-  const diagnosisMatch = documentText.match(/Diagnosis[:\s]*([^\n\r]+)/i)
-  if (diagnosisMatch) data.diagnosis = diagnosisMatch[1].trim()
+  const diagnosisMatch = documentText.match(/Diagnosis[:\s]*(?:{{diagnosis}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Advice|Medication|$)/i)
+  if (diagnosisMatch && diagnosisMatch[1] && !diagnosisMatch[1].includes('{{')) {
+    data.diagnosis = diagnosMatch[1].trim()
+  }
   
-  const adviceMatch = documentText.match(/Advice[:\s]*([^\n\r]+)/i)
-  if (adviceMatch) data.advice = adviceMatch[1].trim()
+  const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Medication|Get free|$)/i)
+  if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
+    data.advice = adviceMatch[1].trim()
+  }
+
+  // Parse medications from table format
+  try {
+    const medications = []
+    const medicationTableMatch = documentText.match(/Medication:(.*?)(?:Get free|Followup|Dear)/s)
+    
+    if (medicationTableMatch && medicationTableMatch[1]) {
+      const tableContent = medicationTableMatch[1]
+      
+      // Look for rows that contain medication data (ignore header rows)
+      const medicationRows = tableContent.split('\n').filter(line => {
+        const trimmed = line.trim()
+        return trimmed.length > 0 && 
+               !trimmed.match(/^\|\s*[-\s|]*\s*\|/) && // table separators
+               !trimmed.match(/^\|\s*N\s*\|/) && // header row
+               !trimmed.match(/^\|\s*Morning\s*\|/) && // frequency header
+               trimmed.includes('|') &&
+               !trimmed.includes('{{') // skip template variables
+      })
+
+      for (const row of medicationRows) {
+        const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0)
+        
+        if (cells.length >= 6) {
+          // Expected format: | N | Name | Dose | Morning | Noon | Night | Duration | Instructions |
+          const medication = {
+            name: cells[1] || '',
+            dose: cells[2] || '',
+            freqMorning: cells[3] && cells[3].toLowerCase().includes('✓'),
+            freqNoon: cells[4] && cells[4].toLowerCase().includes('✓'),
+            freqNight: cells[5] && cells[5].toLowerCase().includes('✓'),
+            duration: cells[6] || '',
+            instructions: cells[7] || ''
+          }
+          
+          if (medication.name && medication.name.length > 2) {
+            medications.push(medication)
+          }
+        }
+      }
+    }
+    
+    if (medications.length > 0) {
+      data.medications = medications
+    }
+  } catch (error) {
+    console.error('Error parsing medications:', error)
+  }
   
   console.log('Parsed data:', data)
   return data
