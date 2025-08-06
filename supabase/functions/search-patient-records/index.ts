@@ -1,17 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-
-interface SearchResult {
-  patientFolders: string[];
-  patientData?: any;
-}
-
-
 serve(async (req)=>{
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -36,17 +28,16 @@ serve(async (req)=>{
         }
       });
     }
-    const folderId = '1RKNkJtjfmEd3c044xdpXCFpVDXEi4eBb';
     const accessToken = await getGoogleAccessToken();
     let result = {
       patientFolders: []
     };
     if (phoneNumber && !selectedFolder) {
       // Search for phone number and return folder names
-      result.patientFolders = await searchPhoneNumber(accessToken, folderId, phoneNumber);
+      result.patientFolders = await searchPhoneNumber(accessToken, phoneNumber);
     } else if (selectedFolder) {
       // Get latest prescription data from selected folder
-      result.patientData = await getLatestPrescriptionData(accessToken, folderId, selectedFolder);
+      result.patientData = await getLatestPrescriptionData(accessToken, selectedFolder);
     }
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -68,50 +59,37 @@ serve(async (req)=>{
     });
   }
 });
-async function searchPhoneNumber(accessToken, folderId, phoneNumber) {
+async function searchPhoneNumber(accessToken, phoneNumber) {
   console.log('Searching for phone number using optimized fullText search:', phoneNumber);
-  
   try {
-    // Use Google Drive's fullText search to find documents containing the phone number
-    // Search within the specific parent folder and get parent information
-    const searchQuery = `fullText contains '${phoneNumber}' and '${folderId}' in parents and mimeType='application/vnd.google-apps.document'`;
-    const searchResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(searchQuery)}&fields=files(id,name,parents)`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
+    const searchQuery = encodeURIComponent(`fullText contains '${phoneNumber}' and mimeType='application/vnd.google-apps.document'`);
+    const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&fields=files(id,name,parents)`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
       }
-    );
-    
+    });
     const searchData = await searchResponse.json();
     const matchingDocs = searchData.files || [];
-    
     if (matchingDocs.length === 0) {
       console.log('No documents found containing phone number');
       return [];
     }
-    
     // Extract unique parent folder IDs from matching documents
     const parentFolderIds = new Set();
-    matchingDocs.forEach(doc => {
+    matchingDocs.forEach((doc)=>{
       if (doc.parents && doc.parents.length > 0) {
         // Get the first parent (immediate parent folder)
         parentFolderIds.add(doc.parents[0]);
       }
     });
-    
     // Fetch folder names for all unique parent IDs in a single batch
-    const folderPromises = Array.from(parentFolderIds).map(async (folderId) => {
+    const folderPromises = Array.from(parentFolderIds).map(async (folderId)=>{
       try {
-        const folderResponse = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${folderId}?fields=name`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`
-            }
+        const folderResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=name`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
           }
-        );
+        });
         const folderData = await folderResponse.json();
         return folderData.name;
       } catch (error) {
@@ -119,23 +97,44 @@ async function searchPhoneNumber(accessToken, folderId, phoneNumber) {
         return null;
       }
     });
-    
     const folderNames = await Promise.all(folderPromises);
-    const validFolderNames = folderNames.filter(name => name !== null);
-    
+    const validFolderNames = folderNames.filter((name)=>name !== null);
     console.log('Matching folders found:', validFolderNames);
     return validFolderNames;
-    
   } catch (error) {
     console.error('Error in optimized phone number search:', error);
     // Fallback to empty array instead of throwing
     return [];
   }
 }
-async function getLatestPrescriptionData(accessToken, folderId, folderName) {
+async function getLatestPrescriptionData(accessToken, folderName) {
   console.log('Getting latest prescription data from folder:', folderName);
-  // Find the folder by name
-  const foldersResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.folder'+and+name='${folderName}'&fields=files(id,name)`, {
+  // 1. Get folder ID only if needed
+  const folderId = await getFolderIdByName(accessToken, folderName);
+  // 2. Fetch the latest modified Google Doc (LIMIT 1)
+  const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  const docsData = await docsResponse.json();
+  const latestDoc = docsData.files?.[0];
+  if (!latestDoc) {
+    throw new Error(`No documents found in folder ${folderName}`);
+  }
+  // 3. Fetch content of the latest doc
+  const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  const contentData = await contentResponse.json();
+  // 4. Extract & parse
+  const documentText = extractTextFromDocument(contentData);
+  return parsePatientData(documentText);
+}
+async function getFolderIdByName(accessToken, folderName) {
+  const foldersResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder'+and+name='${folderName}'&fields=files(id)&pageSize=1`, {
     headers: {
       'Authorization': `Bearer ${accessToken}`
     }
@@ -145,28 +144,7 @@ async function getLatestPrescriptionData(accessToken, folderId, folderName) {
   if (!folder) {
     throw new Error(`Folder ${folderName} not found`);
   }
-  // Get all documents in the folder, sorted by modified time (newest first)
-  const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&fields=files(id,name,modifiedTime)`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
-  const docsData = await docsResponse.json();
-  const docs = docsData.files || [];
-  if (docs.length === 0) {
-    throw new Error(`No documents found in folder ${folderName}`);
-  }
-  // Get the latest document
-  const latestDoc = docs[0];
-  const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
-  const contentData = await contentResponse.json();
-  const documentText = extractTextFromDocument(contentData);
-  // Parse the document content to extract patient data
-  return parsePatientData(documentText);
+  return folder.id;
 }
 function extractTextFromDocument(document) {
   let text = '';
@@ -222,7 +200,7 @@ function parsePatientData(documentText) {
   }
   const diagnosisMatch = documentText.match(/Diagnosis[:\s]*(?:{{diagnosis}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Advice|Medication|$)/i);
   if (diagnosisMatch && diagnosisMatch[1] && !diagnosisMatch[1].includes('{{')) {
-    data.diagnosis = diagnosMatch[1].trim();
+    data.diagnosis = diagnosisMatch[1].trim();
   }
   const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Medication|Get free|$)/i);
   if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
