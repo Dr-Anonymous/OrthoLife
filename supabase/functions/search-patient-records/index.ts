@@ -69,48 +69,68 @@ serve(async (req)=>{
   }
 });
 async function searchPhoneNumber(accessToken, folderId, phoneNumber) {
-  console.log('Searching for phone number:', phoneNumber);
-  // Get all folders in the parent folder
-  const foldersResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.folder'&fields=files(id,name)`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
+  console.log('Searching for phone number using optimized fullText search:', phoneNumber);
+  
+  try {
+    // Use Google Drive's fullText search to find documents containing the phone number
+    // Search within the specific parent folder and get parent information
+    const searchQuery = `fullText contains '${phoneNumber}' and '${folderId}' in parents and mimeType='application/vnd.google-apps.document'`;
+    const searchResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(searchQuery)}&fields=files(id,name,parents)`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+    
+    const searchData = await searchResponse.json();
+    const matchingDocs = searchData.files || [];
+    
+    if (matchingDocs.length === 0) {
+      console.log('No documents found containing phone number');
+      return [];
     }
-  });
-  const foldersData = await foldersResponse.json();
-  const folders = foldersData.files || [];
-  const matchingFolders = [];
-  // Search each folder for documents containing the phone number
-  for (const folder of folders){
-    const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents+and+mimeType='application/vnd.google-apps.document'&fields=files(id,name)`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
+    
+    // Extract unique parent folder IDs from matching documents
+    const parentFolderIds = new Set();
+    matchingDocs.forEach(doc => {
+      if (doc.parents && doc.parents.length > 0) {
+        // Get the first parent (immediate parent folder)
+        parentFolderIds.add(doc.parents[0]);
       }
     });
-    const docsData = await docsResponse.json();
-    const docs = docsData.files || [];
-    // Search content of each document for phone number
-    for (const doc of docs){
+    
+    // Fetch folder names for all unique parent IDs in a single batch
+    const folderPromises = Array.from(parentFolderIds).map(async (folderId) => {
       try {
-        const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${doc.id}`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
+        const folderResponse = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${folderId}?fields=name`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
           }
-        });
-        const contentData = await contentResponse.json();
-        const documentText = extractTextFromDocument(contentData);
-        if (documentText.includes(phoneNumber)) {
-          if (!matchingFolders.includes(folder.name)) {
-            matchingFolders.push(folder.name);
-          }
-          break; // Found in this folder, no need to check more docs
-        }
+        );
+        const folderData = await folderResponse.json();
+        return folderData.name;
       } catch (error) {
-        console.error(`Error reading document ${doc.name}:`, error);
+        console.error(`Error fetching folder name for ID ${folderId}:`, error);
+        return null;
       }
-    }
+    });
+    
+    const folderNames = await Promise.all(folderPromises);
+    const validFolderNames = folderNames.filter(name => name !== null);
+    
+    console.log('Matching folders found:', validFolderNames);
+    return validFolderNames;
+    
+  } catch (error) {
+    console.error('Error in optimized phone number search:', error);
+    // Fallback to empty array instead of throwing
+    return [];
   }
-  console.log('Matching folders:', matchingFolders);
-  return matchingFolders;
 }
 async function getLatestPrescriptionData(accessToken, folderId, folderName) {
   console.log('Getting latest prescription data from folder:', folderName);
