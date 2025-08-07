@@ -151,18 +151,52 @@ function extractTextFromDocument(document) {
   if (document.body && document.body.content) {
     for (const element of document.body.content){
       if (element.paragraph) {
+        // Handle paragraphs (your existing code)
         for (const textElement of element.paragraph.elements || []){
           if (textElement.textRun) {
             text += textElement.textRun.content;
           }
         }
+      } else if (element.table) {
+        // Handle tables
+        text += extractTextFromTable(element.table);
       }
     }
   }
   return text;
 }
+function extractTextFromTable(table) {
+  let tableText = '';
+  if (table.tableRows) {
+    for (const row of table.tableRows){
+      let rowText = '';
+      if (row.tableCells) {
+        for (const cell of row.tableCells){
+          let cellText = '';
+          // Extract text from cell content
+          if (cell.content) {
+            for (const cellElement of cell.content){
+              if (cellElement.paragraph) {
+                for (const textElement of cellElement.paragraph.elements || []){
+                  if (textElement.textRun) {
+                    cellText += textElement.textRun.content;
+                  }
+                }
+              }
+            }
+          }
+          // Add cell separator (tab or pipe)
+          rowText += cellText + '\t';
+        }
+      }
+      // Add row separator (newline) and trim trailing tab
+      tableText += rowText.replace(/\t$/, '') + '\n';
+    }
+  }
+  return tableText;
+}
 function parsePatientData(documentText) {
-  console.log('Parsing document text:', documentText.substring(0, 500) + '...');
+  //console.log('Parsing document text:', documentText);
   const data = {};
   // Extract basic patient info using more flexible regex patterns
   // Handle template variables like {{name}} and actual data
@@ -206,37 +240,72 @@ function parsePatientData(documentText) {
   if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
     data.advice = adviceMatch[1].trim();
   }
-  // Parse medications from table format
+  // Parse medications from tab-delimited table format
   try {
     const medications = [];
     const medicationTableMatch = documentText.match(/Medication:(.*?)(?:Get free|Followup|Dear)/s);
     if (medicationTableMatch && medicationTableMatch[1]) {
       const tableContent = medicationTableMatch[1];
-      // Look for rows that contain medication data (ignore header rows)
-      const medicationRows = tableContent.split('\n').filter((line)=>{
-        const trimmed = line.trim();
-        return trimmed.length > 0 && !trimmed.match(/^\|\s*[-\s|]*\s*\|/) && // table separators
-        !trimmed.match(/^\|\s*N\s*\|/) && // header row
-        !trimmed.match(/^\|\s*Morning\s*\|/) && // frequency header
-        trimmed.includes('|') && !trimmed.includes('{{') // skip template variables
-        ;
-      });
-      for (const row of medicationRows){
-        const cells = row.split('|').map((cell)=>cell.trim()).filter((cell)=>cell.length > 0);
-        if (cells.length >= 6) {
-          // Expected format: | N | Name | Dose | Morning | Noon | Night | Duration | Instructions |
-          const medication = {
-            name: cells[1] || '',
-            dose: cells[2] || '',
-            freqMorning: cells[3] && cells[3].toLowerCase().includes('✓'),
-            freqNoon: cells[4] && cells[4].toLowerCase().includes('✓'),
-            freqNight: cells[5] && cells[5].toLowerCase().includes('✓'),
-            duration: cells[6] || '',
-            instructions: cells[7] || ''
-          };
-          if (medication.name && medication.name.length > 2) {
-            medications.push(medication);
+      const lines = tableContent.split('\n').map((line)=>line.trim());
+      // Find medication rows (they start with a number)
+      for(let i = 0; i < lines.length; i++){
+        const line = lines[i];
+        // Skip empty lines, headers, and template variables
+        if (!line || line.includes('{{') || line.match(/^[A-Za-z\s]+$/)) {
+          continue;
+        }
+        // Look for lines that start with a number (medication entries)
+        if (line.match(/^\d+$/)) {
+          // This is a medication number, collect the next several lines
+          const medicationData = [];
+          let j = i;
+          // Collect up to 8 fields (number, name, dose, morning, noon, night, duration, instructions)
+          while(j < lines.length && medicationData.length < 8){
+            const currentLine = lines[j].trim();
+            if (currentLine && !currentLine.includes('{{')) {
+              medicationData.push(currentLine);
+            }
+            j++;
+            // Stop if we hit another number (next medication) or end section
+            if (j < lines.length && lines[j].trim().match(/^\d+$/) && medicationData.length > 1) {
+              break;
+            }
+            // Stop if we hit the end section
+            if (j < lines.length && lines[j].includes('Get free')) {
+              break;
+            }
           }
+          // Parse the collected data
+          if (medicationData.length >= 4) {
+            const medication = {
+              name: medicationData[1] || '',
+              dose: medicationData[2] || '',
+              freqMorning: false,
+              freqNoon: false,
+              freqNight: false,
+              duration: '',
+              instructions: ''
+            };
+            // Parse frequency markers (✔ symbols) and other fields
+            for(let k = 3; k < medicationData.length; k++){
+              const field = medicationData[k];
+              if (field === '✔') {
+                // Determine which frequency this belongs to based on position
+                const freqIndex = k - 3; // 0=morning, 1=noon, 2=night
+                if (freqIndex === 0) medication.freqMorning = true;
+                else if (freqIndex === 1) medication.freqNoon = true;
+                else if (freqIndex === 2) medication.freqNight = true;
+              } else if (field.includes('week') || field.includes('day') || field.includes('month')) {
+                medication.duration = field;
+              } else if (field.includes('meal') || field.includes('breakfast') || field.toLowerCase().includes('bef') || field.toLowerCase().includes('aft')) {
+                medication.instructions = field;
+              }
+            }
+            if (medication.name && medication.name.length > 2) {
+              medications.push(medication);
+            }
+          }
+          i = j - 1; // Move to the last processed line
         }
       }
     }
@@ -246,6 +315,6 @@ function parsePatientData(documentText) {
   } catch (error) {
     console.error('Error parsing medications:', error);
   }
-  console.log('Parsed data:', data);
+  //console.log('Parsed data:', data);
   return data;
 }
