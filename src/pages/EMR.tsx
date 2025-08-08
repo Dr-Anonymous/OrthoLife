@@ -31,7 +31,7 @@ interface Medication {
 }
 
 let patientId, folderId = '';
-const myUrl = 'https://script.google.com/macros/s/AKfycbxp3GTyamhjIfF3AMzHtD7-NkxMH3Ui4HQ29dR0KRpJbo3BeJgrj_IV_WCV4eP30nrdcQ/exec';
+const myUrl = 'https://script.google.com/macros/s/AKfycbzQzc3c8rY8tR7qruTAqG-SMQzyja2T93NgjgOkrEUxFrv000CWYLZJR64ByBclVJvH8A/exec';
 
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
