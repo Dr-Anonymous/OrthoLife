@@ -4,6 +4,9 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
+let result = {
+  patientFolders: []
+};
 serve(async (req)=>{
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -29,9 +32,6 @@ serve(async (req)=>{
       });
     }
     const accessToken = await getGoogleAccessToken();
-    let result = {
-      patientFolders: []
-    };
     if (phoneNumber && !selectedFolder) {
       // Search for phone number and return folder names
       result.patientFolders = await searchPhoneNumber(accessToken, phoneNumber);
@@ -111,6 +111,7 @@ async function getLatestPrescriptionData(accessToken, folderName) {
   console.log('Getting latest prescription data from folder:', folderName);
   // 1. Get folder ID only if needed
   const folderId = await getFolderIdByName(accessToken, folderName);
+  result.folderId = folderId;
   // 2. Fetch the latest modified Google Doc (LIMIT 1)
   const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
     headers: {
@@ -205,7 +206,7 @@ function parsePatientData(documentText) {
     data.name = nameMatch[1].trim();
   }
   // DOB patterns
-  const dobMatch = documentText.match(/(?:D\.O\.B|DOB|Date of Birth)[:\s]*(?:{{dob}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:Phone|Sex|Age)/i);
+  const dobMatch = documentText.match(/(?:D\.O\.B)[:\s]*(?:{{dob}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:Phone|Sex|Age)/i);
   if (dobMatch && dobMatch[1] && !dobMatch[1].includes('{{')) {
     data.dob = dobMatch[1].trim();
   }
@@ -220,30 +221,30 @@ function parsePatientData(documentText) {
     data.sex = sexMatch[1].trim();
   }
   // Medical information - more flexible patterns
-  const complaintsMatch = documentText.match(/Complaints[:\s]*(?:{{complaints}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Findings|Clinical|$)/i);
+  const complaintsMatch = documentText.match(/Complaints[:\s]*(?:{{complaints}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Findings|Clinical|$)/i);
   if (complaintsMatch && complaintsMatch[1] && !complaintsMatch[1].includes('{{')) {
     data.complaints = complaintsMatch[1].trim();
   }
-  const findingsMatch = documentText.match(/Findings[:\s]*(?:{{findings}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Investigations|Diagnosis|$)/i);
+  const findingsMatch = documentText.match(/Findings[:\s]*(?:{{findings}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Investigations|Diagnosis|$)/i);
   if (findingsMatch && findingsMatch[1] && !findingsMatch[1].includes('{{')) {
     data.findings = findingsMatch[1].trim();
   }
-  const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Diagnosis|Advice|$)/i);
+  const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Diagnosis|Advice|$)/i);
   if (investigationsMatch && investigationsMatch[1] && !investigationsMatch[1].includes('{{')) {
     data.investigations = investigationsMatch[1].trim();
   }
-  const diagnosisMatch = documentText.match(/Diagnosis[:\s]*(?:{{diagnosis}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Advice|Medication|$)/i);
+  const diagnosisMatch = documentText.match(/Diagnosis[:\s]*(?:{{diagnosis}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Advice|Medication|$)/i);
   if (diagnosisMatch && diagnosisMatch[1] && !diagnosisMatch[1].includes('{{')) {
     data.diagnosis = diagnosisMatch[1].trim();
   }
-  const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:Medication|Get free|$)/i);
+  const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Medication|Get free|Followup|$)/i);
   if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
     data.advice = adviceMatch[1].trim();
   }
   // Parse medications from tab-delimited table format
   try {
     const medications = [];
-    const medicationTableMatch = documentText.match(/Medication:(.*?)(?:Get free|Followup|Dear)/s);
+    const medicationTableMatch = documentText.match(/Medication:(.*?)(?:→|Get free|Followup|Dear)/s);
     if (medicationTableMatch && medicationTableMatch[1]) {
       const tableContent = medicationTableMatch[1];
       const lines = tableContent.split('\n').map((line)=>line.trim());
