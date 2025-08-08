@@ -18,6 +18,7 @@ interface FormData {
   dob: Date | undefined;
   sex: string;
   phone: string;
+  folderId: undefined;
 }
 
 interface Medication {
@@ -130,6 +131,8 @@ const EMR = () => {
 
       if (data?.patientData) {
         const patientData = data.patientData;
+        folderId = data.folderId;
+        console.log(folderId);
         
         // Auto-fill form with patient data
         setFormData(prev => ({
