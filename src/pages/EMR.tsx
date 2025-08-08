@@ -30,7 +30,7 @@ interface Medication {
   instructions: string;
 }
 
-let folderId = '';
+let patientId, folderId = '';
 const myUrl = 'https://script.google.com/macros/s/AKfycbxp3GTyamhjIfF3AMzHtD7-NkxMH3Ui4HQ29dR0KRpJbo3BeJgrj_IV_WCV4eP30nrdcQ/exec';
 
 const EMR = () => {
@@ -132,7 +132,7 @@ const EMR = () => {
       if (data?.patientData) {
         const patientData = data.patientData;
         folderId = data.folderId;
-        console.log(folderId);
+        patientId = data.id;
         
         // Auto-fill form with patient data
         setFormData(prev => ({
@@ -224,6 +224,7 @@ const EMR = () => {
     try {
       const payload = {
         folderId: folderId,
+        patientId: patientId,
         name: formData.name,
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
         sex: formData.sex,
