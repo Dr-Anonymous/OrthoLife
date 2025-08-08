@@ -18,7 +18,6 @@ interface FormData {
   dob: Date | undefined;
   sex: string;
   phone: string;
-  folderId: undefined;
 }
 
 interface Medication {
@@ -31,6 +30,7 @@ interface Medication {
   instructions: string;
 }
 
+let folderId = '';
 const myUrl = 'https://script.google.com/macros/s/AKfycbx48rO6urA7pEf1c2j-53yeNgBnSK0OBbJ9bEnb73l05JyemiksathpqSE-Ebeye8e88A/exec';
 
 const EMR = () => {
