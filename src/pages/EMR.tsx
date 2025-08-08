@@ -31,7 +31,7 @@ interface Medication {
 }
 
 let folderId = '';
-const myUrl = 'https://script.google.com/macros/s/AKfycbx48rO6urA7pEf1c2j-53yeNgBnSK0OBbJ9bEnb73l05JyemiksathpqSE-Ebeye8e88A/exec';
+const myUrl = 'https://script.google.com/macros/s/AKfycbxp3GTyamhjIfF3AMzHtD7-NkxMH3Ui4HQ29dR0KRpJbo3BeJgrj_IV_WCV4eP30nrdcQ/exec';
 
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
@@ -223,6 +223,7 @@ const EMR = () => {
     setIsSubmitting(true);
     try {
       const payload = {
+        folderId: folderId,
         name: formData.name,
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
         sex: formData.sex,
