@@ -237,24 +237,23 @@ const EMR = () => {
         medications: JSON.stringify(extraData.medications)
       };
     
-      const response = await supabase.functions.invoke('create-docs-prescription', {
-        method: 'POST',
-        body: JSON.stringify(payload)
+      const { data, error } = await supabase.functions.invoke('create-docs-prescription', {
+        body: payload,
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+      if (error) {
+        throw new Error(error.message || 'Failed to create prescription');
       }
-    
-      const result = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error);
-      } else {
-        window.location.href = result.url;
-        // Handle success - result.url contains the Google Docs link
-        // result.patientId contains the generated or provided patient ID
+
+      if (data?.error) {
+        throw new Error(data.error);
       }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+      // Handle success - data.url contains the Google Docs link
+      // data.patientId may contain the generated or provided patient ID
       /*
       const payload = {
         folderId: folderId,
