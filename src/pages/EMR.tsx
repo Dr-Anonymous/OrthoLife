@@ -31,7 +31,7 @@ interface Medication {
 }
 
 let patientId, folderId;
-const myUrl = 'https://script.google.com/macros/s/AKfycbzQzc3c8rY8tR7qruTAqG-SMQzyja2T93NgjgOkrEUxFrv000CWYLZJR64ByBclVJvH8A/exec';
+//const myUrl = 'https://script.google.com/macros/s/AKfycbzQzc3c8rY8tR7qruTAqG-SMQzyja2T93NgjgOkrEUxFrv000CWYLZJR64ByBclVJvH8A/exec';
 
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
@@ -236,6 +236,40 @@ const EMR = () => {
         advice: extraData.advice,
         medications: JSON.stringify(extraData.medications)
       };
+    
+      const response = await supabase.functions.invoke('create-docs-prescription', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      } else {
+        window.location.href = result.url;
+        // Handle success - result.url contains the Google Docs link
+        // result.patientId contains the generated or provided patient ID
+      }
+      /*
+      const payload = {
+        folderId: folderId,
+        patientId: patientId,
+        name: formData.name,
+        dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
+        sex: formData.sex,
+        phone: formData.phone,
+        complaints: extraData.complaints,
+        findings: extraData.findings,
+        investigations: extraData.investigations,
+        diagnosis: extraData.diagnosis,
+        advice: extraData.advice,
+        medications: JSON.stringify(extraData.medications)
+      };
       const query = new URLSearchParams(payload).toString();
       const response = await fetch(`${myUrl}?${query}`);
       const result = await response.json();
@@ -244,6 +278,8 @@ const EMR = () => {
       } else {
         throw new Error(result.error || 'Unknown error');
       }
+      */
+      
     } catch (error) {
       console.error('Error:', error);
       toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
