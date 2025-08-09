@@ -30,7 +30,7 @@ interface Medication {
   instructions: string;
 }
 
-let patientId, folderId = '';
+let patientId, folderId;
 const myUrl = 'https://script.google.com/macros/s/AKfycbzQzc3c8rY8tR7qruTAqG-SMQzyja2T93NgjgOkrEUxFrv000CWYLZJR64ByBclVJvH8A/exec';
 
 const EMR = () => {
@@ -132,7 +132,7 @@ const EMR = () => {
       if (data?.patientData) {
         const patientData = data.patientData;
         folderId = data.folderId;
-        patientId = data.id;
+        patientId = patientData.id;
         
         // Auto-fill form with patient data
         setFormData(prev => ({
