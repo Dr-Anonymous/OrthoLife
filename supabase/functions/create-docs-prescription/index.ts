@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
 const templateId = '1AT025Qq_HbkSEWYHE1okVSG_Fu7qGwzP00HuNHypiNs';
 
 interface MedicationData {
@@ -29,19 +35,25 @@ interface RequestData {
 }
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Only POST allowed' }),
-      { 
-        status: 405, 
-        headers: { 'Content-Type': 'application/json' } 
-      }
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
   try {
     const data: RequestData = await req.json();
     const accessToken = await getGoogleAccessToken();
+    if (!accessToken) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Google access token' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -553,16 +565,4 @@ serve(async (req) => {
   }
 });
 
-// Handle preflight requests
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
-      }
-    });
-  }
-});
+// CORS preflight is handled in the main handler above.

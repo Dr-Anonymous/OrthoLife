@@ -4,9 +4,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-let result = {
-  patientFolders: []
-};
+// Removed global mutable result; using per-request response objects
 serve(async (req)=>{
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -31,19 +29,25 @@ serve(async (req)=>{
       });
     }
     const accessToken = await getGoogleAccessToken();
-    if (phoneNumber && !selectedFolder) {
-      // Search for phone number and return folder names
-      result.patientFolders = await searchPhoneNumber(accessToken, phoneNumber);
-    } else if (selectedFolder) {
-      // Get latest prescription data from selected folder
-      result.patientData = await getLatestPrescriptionData(accessToken, selectedFolder);
+    if (!accessToken) {
+      return new Response(JSON.stringify({ error: 'Missing Google access token' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
-    return new Response(JSON.stringify(result), {
+
+    let responseBody: Record<string, unknown> = {};
+
+    if (phoneNumber && !selectedFolder) {
+      responseBody.patientFolders = await searchPhoneNumber(accessToken, phoneNumber);
+    } else if (selectedFolder) {
+      const { folderId, patientData } = await getLatestPrescriptionData(accessToken, selectedFolder);
+      responseBody = { folderId, patientData };
+    }
+
+    return new Response(JSON.stringify(responseBody), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error in search patient records:', error);
@@ -108,30 +112,23 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
 }
 async function getLatestPrescriptionData(accessToken, folderName) {
   console.log('Getting latest prescription data from folder:', folderName);
-  // 1. Get folder ID only if needed
   const folderId = await getFolderIdByName(accessToken, folderName);
-  result.folderId = folderId;
-  // 2. Fetch the latest modified Google Doc (LIMIT 1)
+
   const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
+    headers: { 'Authorization': `Bearer ${accessToken}` }
   });
   const docsData = await docsResponse.json();
   const latestDoc = docsData.files?.[0];
   if (!latestDoc) {
     throw new Error(`No documents found in folder ${folderName}`);
   }
-  // 3. Fetch content of the latest doc
   const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
+    headers: { 'Authorization': `Bearer ${accessToken}` }
   });
   const contentData = await contentResponse.json();
-  // 4. Extract & parse
   const documentText = extractTextFromDocument(contentData);
-  return parsePatientData(documentText);
+  const patientData = parsePatientData(documentText);
+  return { folderId, patientData };
 }
 async function getFolderIdByName(accessToken, folderName) {
   const foldersResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder'+and+name='${folderName}'&fields=files(id)&pageSize=1`, {
