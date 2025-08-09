@@ -30,24 +30,32 @@ serve(async (req)=>{
     }
     const accessToken = await getGoogleAccessToken();
     if (!accessToken) {
-      return new Response(JSON.stringify({ error: 'Missing Google access token' }), {
+      return new Response(JSON.stringify({
+        error: 'Missing Google access token'
+      }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       });
     }
-
-    let responseBody: Record<string, unknown> = {};
-
+    let responseBody = {};
     if (phoneNumber && !selectedFolder) {
       responseBody.patientFolders = await searchPhoneNumber(accessToken, phoneNumber);
     } else if (selectedFolder) {
       const { folderId, patientData } = await getLatestPrescriptionData(accessToken, selectedFolder);
-      responseBody = { folderId, patientData };
+      responseBody = {
+        folderId,
+        patientData
+      };
     }
-
     return new Response(JSON.stringify(responseBody), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
     });
   } catch (error) {
     console.error('Error in search patient records:', error);
@@ -113,9 +121,10 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
 async function getLatestPrescriptionData(accessToken, folderName) {
   console.log('Getting latest prescription data from folder:', folderName);
   const folderId = await getFolderIdByName(accessToken, folderName);
-
   const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
-    headers: { 'Authorization': `Bearer ${accessToken}` }
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
   });
   const docsData = await docsResponse.json();
   const latestDoc = docsData.files?.[0];
@@ -123,12 +132,17 @@ async function getLatestPrescriptionData(accessToken, folderName) {
     throw new Error(`No documents found in folder ${folderName}`);
   }
   const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
-    headers: { 'Authorization': `Bearer ${accessToken}` }
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
   });
   const contentData = await contentResponse.json();
   const documentText = extractTextFromDocument(contentData);
   const patientData = parsePatientData(documentText);
-  return { folderId, patientData };
+  return {
+    folderId,
+    patientData
+  };
 }
 async function getFolderIdByName(accessToken, folderName) {
   const foldersResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder'+and+name='${folderName}'&fields=files(id)&pageSize=1`, {
@@ -195,9 +209,8 @@ function extractTextFromTable(table) {
 function parsePatientData(documentText) {
   //console.log('Parsing document text:', documentText);
   const data = {};
-  // Extract basic patient info using more flexible regex patterns
-  // Handle template variables like {{name}} and actual data
-  const nameMatch = documentText.match(/Name:\s*(?:{{name}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:D\.O\.B|DOB|Date of Birth)/i);
+  
+  const nameMatch = documentText.match(/Name:\s*(?:{{name}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:D\.O\.B)/i);
   if (nameMatch && nameMatch[1] && !nameMatch[1].includes('{{')) {
     data.name = nameMatch[1].trim();
   }
@@ -215,6 +228,11 @@ function parsePatientData(documentText) {
   const sexMatch = documentText.match(/Sex[:\s]*(?:{{sex}}|([^\s\n\r{]+))\s*(?:Age|ID|Date|\n)/i);
   if (sexMatch && sexMatch[1] && !sexMatch[1].includes('{{')) {
     data.sex = sexMatch[1].trim();
+  }
+  // id patterns
+  const idMatch = documentText.match(/ID No: *(?:{{id}}|([^\s\n\r{]+))(?:\n)/);
+  if (idMatch && idMatch[1] && !idMatch[1].includes('{{')) {
+    data.id = idMatch[1].trim();
   }
   // Medical information - more flexible patterns
   const complaintsMatch = documentText.match(/Complaints[:\s]*(?:{{complaints}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Findings|Clinical|$)/i);
