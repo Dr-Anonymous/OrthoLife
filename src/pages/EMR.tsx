@@ -31,7 +31,7 @@ interface Medication {
 }
 
 let patientId, folderId;
-//const myUrl = 'https://script.google.com/macros/s/AKfycbzQzc3c8rY8tR7qruTAqG-SMQzyja2T93NgjgOkrEUxFrv000CWYLZJR64ByBclVJvH8A/exec';
+const myUrl = 'https://script.google.com/macros/s/AKfycbzQzc3c8rY8tR7qruTAqG-SMQzyja2T93NgjgOkrEUxFrv000CWYLZJR64ByBclVJvH8A/exec';
 
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
@@ -222,6 +222,7 @@ const EMR = () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
+      /*
       const payload = {
         folderId: folderId,
         patientId: patientId,
@@ -251,10 +252,10 @@ const EMR = () => {
 
       if (data?.url) {
         window.location.href = data.url;
-      }
+      }*/
       // Handle success - data.url contains the Google Docs link
       // data.patientId may contain the generated or provided patient ID
-      /*
+      
       const payload = {
         folderId: folderId,
         patientId: patientId,
@@ -277,7 +278,7 @@ const EMR = () => {
       } else {
         throw new Error(result.error || 'Unknown error');
       }
-      */
+      
       
     } catch (error) {
       console.error('Error:', error);
