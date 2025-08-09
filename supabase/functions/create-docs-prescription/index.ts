@@ -31,7 +31,7 @@ interface RequestData {
 serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
+      JSON.stringify({ error: 'Only POST allowed' }),
       { 
         status: 405, 
         headers: { 'Content-Type': 'application/json' } 
