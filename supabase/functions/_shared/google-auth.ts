@@ -70,7 +70,7 @@ export async function getGoogleAccessToken(): Promise<string | null> {
     }
 
     const serviceAccount = JSON.parse(serviceAccountKey);
-    const scopes = ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/documents.readonly'];
+    const scopes = ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents'];
     const jwt = await createJWT(serviceAccount, scopes);
 
     const response = await fetch('https://oauth2.googleapis.com/token', {
