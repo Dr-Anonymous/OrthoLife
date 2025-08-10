@@ -70,7 +70,6 @@ serve(async (req)=>{
   }
 });
 async function searchPhoneNumber(accessToken, phoneNumber) {
-  console.log('Searching for phone number using optimized fullText search:', phoneNumber);
   try {
     const searchQuery = encodeURIComponent(`fullText contains '${phoneNumber}' and mimeType='application/vnd.google-apps.document'`);
     const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&fields=files(id,name,parents)`, {
@@ -81,7 +80,7 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
     const searchData = await searchResponse.json();
     const matchingDocs = searchData.files || [];
     if (matchingDocs.length === 0) {
-      console.log('No documents found containing phone number');
+      //console.log('No documents found containing phone number');
       return [];
     }
     // Extract unique parent folder IDs from matching documents
@@ -109,7 +108,6 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
     });
     const folderNames = await Promise.all(folderPromises);
     const validFolderNames = folderNames.filter((name)=>name !== null);
-    console.log('Matching folders found:', validFolderNames);
     return validFolderNames;
   } catch (error) {
     console.error('Error in optimized phone number search:', error);
@@ -118,7 +116,6 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
   }
 }
 async function getLatestPrescriptionData(accessToken, folderName) {
-  console.log('Getting latest prescription data from folder:', folderName);
   const folderId = await getFolderIdByName(accessToken, folderName);
   const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
     headers: {
@@ -237,34 +234,34 @@ function parsePatientData(documentText) {
     data.id = idMatch[1].trim();
   }
   // Medical information - more flexible patterns
-  const complaintsMatch = documentText.match(/Complaints[:\s]*(?:{{complaints}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Findings|Clinical|$)/i);
+  const complaintsMatch = documentText.match(/Complaints[:\s]*(?:{{complaints}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Findings|Clinical|$)/i);
   if (complaintsMatch && complaintsMatch[1] && !complaintsMatch[1].includes('{{')) {
     data.complaints = complaintsMatch[1].trim();
   }
-  const findingsMatch = documentText.match(/Findings[:\s]*(?:{{findings}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Investigations|Diagnosis|$)/i);
+  const findingsMatch = documentText.match(/Findings[:\s]*(?:{{findings}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Investigations|Diagnosis|$)/i);
   if (findingsMatch && findingsMatch[1] && !findingsMatch[1].includes('{{')) {
     data.findings = findingsMatch[1].trim();
   }
-  const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Diagnosis|Advice|$)/i);
+  const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([\s\S]*?))(?=\s*(?:→|Diagnosis:|Advice:|[A-Z][A-Za-z\s]+:|$))/i);
   if (investigationsMatch && investigationsMatch[1] && !investigationsMatch[1].includes('{{')) {
     data.investigations = investigationsMatch[1].trim();
   }
-  const diagnosisMatch = documentText.match(/Diagnosis[:\s]*(?:{{diagnosis}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Advice|Medication|$)/i);
+  const diagnosisMatch = documentText.match(/Diagnosis[:\s]*(?:{{diagnosis}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Advice|Medication|$)/i);
   if (diagnosisMatch && diagnosisMatch[1] && !diagnosisMatch[1].includes('{{')) {
     data.diagnosis = diagnosisMatch[1].trim();
   }
-  const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^\n\r{}]+(?:\n[^\n\r{}]*)*?))\s*(?:→|Medication|Get free|Followup|$)/i);
+  const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Medication|Get free|Followup|$)/i);
   if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
     data.advice = adviceMatch[1].trim();
   }
   // Parse medications from tab-delimited table format (robust parser)
   try {
     const medications = [];
-    const medicationTableMatch = documentText.match(/Medication:(.*?)(?:→|Get free|Followup|Dear)/s);
+    const medicationTableMatch = documentText.match(/Medication:(.*?)(?:→|Get free|Followup)/s);
     if (medicationTableMatch && medicationTableMatch[1]) {
       const tableContent = medicationTableMatch[1];
       const lines = tableContent.split('\n').map((line)=>line.trim()).filter((line)=>line.length > 0);
-      console.log('Table lines found:', lines.length);
+      //console.log('Table lines found:', lines.length);
       const isTruthyMarker = (val)=>{
         if (!val) return false;
         const v = val.trim().toLowerCase();
@@ -273,7 +270,7 @@ function parsePatientData(documentText) {
       for(let i = 0; i < lines.length; i++){
         const line = lines[i];
         // Skip header rows and template markers
-        if (line.includes('{{') || line.includes('Name') && line.includes('Dose') || line.includes('Morning') || line.includes('ఉదయం') || line.includes('Frequency')) {
+        if (line.includes('Name') && line.includes('Dose') || line.includes('Morning') || line.includes('ఉదయం') || line.includes('Frequency')) {
           continue;
         }
         // Split by tab first (most reliable for table data), then fallback to multiple spaces
@@ -285,7 +282,7 @@ function parsePatientData(documentText) {
           // Space-delimited fallback (less reliable)
           cols = line.split(/\s{2,}/).map((c)=>c.trim()).filter((c)=>c.length > 0);
         }
-        console.log(`Line ${i}: "${line}" -> ${cols.length} columns:`, cols);
+        //console.log(`Line ${i}: "${line}" -> ${cols.length} columns:`, cols);
         // Must have at least 3 columns (index, name, dose)
         if (cols.length < 3) continue;
         // First column should be a number (medication index)
@@ -303,7 +300,7 @@ function parsePatientData(documentText) {
         // Extract duration and instructions (handle missing columns gracefully)
         const duration = cols[6] || '';
         const instructions = cols[7] || '';
-        console.log(`Parsed medication: ${name}, Morning: "${morningMark}", Noon: "${noonMark}", Night: "${nightMark}"`);
+        //console.log(`Parsed medication: ${name}, Morning: "${morningMark}", Noon: "${noonMark}", Night: "${nightMark}"`);
         medications.push({
           name: name,
           dose: dose,
@@ -314,7 +311,6 @@ function parsePatientData(documentText) {
           instructions: instructions
         });
       }
-      console.log(`Total medications parsed: ${medications.length}`);
     }
     if (medications.length > 0) {
       data.medications = medications;
