@@ -54,8 +54,10 @@ const WhatsAppMe = () => {
       default:
         address = "%2F";
     }
-
-    window.location.href = `https://wa.me/91${formattedPhone}?text=${address}`;
+    let finalUrl;
+    if ((window as any).AndroidClipboard) finalUrl = `whatsapp://send?phone=91${formattedPhone}&text=${address}`;
+    else finalUrl = `https://wa.me/91${formattedPhone}?text=${address}`;
+    window.location.href = finalUrl;
   };
 
   const inform = (e: number) => {
