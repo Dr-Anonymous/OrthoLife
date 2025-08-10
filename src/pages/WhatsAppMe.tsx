@@ -54,9 +54,8 @@ const WhatsAppMe = () => {
       default:
         address = "%2F";
     }
-    let finalUrl;
-    if ((window as any).AndroidClipboard) finalUrl = `whatsapp://send?phone=91${formattedPhone}&text=${address}`;
-    else finalUrl = `https://wa.me/91${formattedPhone}?text=${address}`;
+    
+    const finalUrl = (window as any).AndroidClipboard ? `whatsapp://send?phone=91${formattedPhone}&text=${address}` : `https://wa.me/91${formattedPhone}?text=${address}`;
     window.location.href = finalUrl;
   };
 
@@ -75,10 +74,10 @@ const WhatsAppMe = () => {
     let address;
     switch (e) {
       case 1:
-        address = `https://wa.me/917093551714?text=${formattedPhone}`;
+        address = (window as any).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedPhone}` : `https://wa.me/917093551714?text=${formattedPhone}`;
         break;
       case 2:
-        address = `https://wa.me/919652377616?text=${formattedPhone}`;
+        address = (window as any).AndroidClipboard ? `whatsapp://send?phone=919652377616&text=${formattedPhone}` : `https://wa.me/919652377616?text=${formattedPhone}`;        
         break;
       default:
         address = "%2F";
