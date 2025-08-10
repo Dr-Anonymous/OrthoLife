@@ -25,6 +25,7 @@ serve(async (req)=>{
   }
   try {
     const data = await req.json();
+    console.log(data);
     const accessToken = await getGoogleAccessToken();
     if (!accessToken) {
       return new Response(JSON.stringify({
@@ -186,7 +187,7 @@ serve(async (req)=>{
     if (!batchUpdateResponse.ok) {
       throw new Error(`Failed to update document: ${batchUpdateResponse.statusText}`);
     }
-    // Handle medications table
+    
     if (data.medications) {
       try {
         const medsRaw = data.medications;
@@ -198,6 +199,9 @@ serve(async (req)=>{
               'Authorization': `Bearer ${accessToken}`
             }
           });
+          if (!updatedDocResponse.ok) {
+            throw new Error(`Failed to fetch document: ${updatedDocResponse.statusText}`);
+          }
           const updatedDoc = await updatedDocResponse.json();
           // Find the first table in the document
           let table = null;
@@ -210,172 +214,234 @@ serve(async (req)=>{
             }
           }
           if (table && tableStartIndex !== -1) {
-            const tableRequests = [];
-            // Insert rows for each medication
+            console.log(`Found table with ${table.tableRows.length} rows at index ${tableStartIndex}`);
+            // Insert rows one by one to avoid batch issues
+            let currentRowCount = table.tableRows.length;
             for(let i = 0; i < meds.length; i++){
-              tableRequests.push({
+              const insertRowRequest = {
                 insertTableRow: {
                   tableCellLocation: {
                     tableStartLocation: {
                       index: tableStartIndex
                     },
-                    rowIndex: table.tableRows.length,
+                    rowIndex: currentRowCount - 1,
                     columnIndex: 0
                   },
-                  insertBelow: false
+                  insertBelow: true
                 }
-              });
-            }
-            // Execute row insertions first
-            if (tableRequests.length > 0) {
-              await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+              };
+              console.log(`Inserting row ${i + 1} of ${meds.length}`);
+              const insertResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${accessToken}`,
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                  requests: tableRequests
+                  requests: [
+                    insertRowRequest
+                  ]
                 })
               });
-              // Get the document again to get updated table structure with new rows
-              const finalDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
-                headers: {
-                  'Authorization': `Bearer ${accessToken}`
-                }
-              });
-              const finalDoc = await finalDocResponse.json();
-              let updatedTable = null;
-              for (const element of finalDoc.body.content){
-                if (element.table) {
-                  updatedTable = element.table;
-                  break;
+              if (!insertResponse.ok) {
+                const errorText = await insertResponse.text();
+                console.error(`Failed to insert row ${i + 1}: ${insertResponse.status} ${insertResponse.statusText}`, errorText);
+                throw new Error(`Failed to insert table row ${i + 1}: ${insertResponse.statusText}`);
+              }
+              currentRowCount++; // Increment for next iteration
+              // Small delay to avoid rate limiting
+              await new Promise((resolve)=>setTimeout(resolve, 100));
+            }
+            // Now get the updated document to populate cells
+            const finalDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`
+              }
+            });
+            if (!finalDocResponse.ok) {
+              throw new Error(`Failed to fetch updated document: ${finalDocResponse.statusText}`);
+            }
+            const finalDoc = await finalDocResponse.json();
+            // Find the updated table
+            let updatedTable = null;
+            for (const element of finalDoc.body.content){
+              if (element.table) {
+                updatedTable = element.table;
+                break;
+              }
+            }
+            if (updatedTable) {
+              console.log(`Updated table now has ${updatedTable.tableRows.length} rows`);
+              // Populate cells for each medication
+              const cellRequests = [];
+              // Calculate starting row index (skip header rows)
+              const startingRowIndex = updatedTable.tableRows.length - meds.length;
+              for(let medIndex = 0; medIndex < meds.length; medIndex++){
+                const med = meds[medIndex];
+                const rowIndex = startingRowIndex + medIndex;
+                const row = updatedTable.tableRows[rowIndex];
+                console.log(`Processing medication ${medIndex + 1}: ${med.name} in row ${rowIndex}`);
+                if (row && row.tableCells && row.tableCells.length >= 8) {
+                  // Helper function to get valid insertion index for a cell
+                  const getCellInsertionIndex = (cell)=>{
+                    if (!cell || !cell.content || !cell.content[0] || !cell.content[0].paragraph) {
+                      return null;
+                    }
+                    const paragraph = cell.content[0].paragraph;
+                    // Check if paragraph has elements with text
+                    if (paragraph.elements && paragraph.elements.length > 0) {
+                      // Find the first text run or use the paragraph's start index + 1
+                      for (const element of paragraph.elements){
+                        if (element.textRun) {
+                          return element.startIndex;
+                        }
+                      }
+                    }
+                    // Fallback: use paragraph start index + 1 if it exists
+                    if (paragraph.elements && paragraph.elements[0] && paragraph.elements[0].startIndex !== undefined) {
+                      return paragraph.elements[0].startIndex;
+                    }
+                    return null;
+                  };
+                  // Column 0: Serial number (starting from 3 as per template)
+                  const col0Index = getCellInsertionIndex(row.tableCells[0]);
+                  if (col0Index !== null) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col0Index
+                        },
+                        text: (medIndex + 3).toString()
+                      }
+                    });
+                  }
+                  // Column 1: Medicine Name
+                  const col1Index = getCellInsertionIndex(row.tableCells[1]);
+                  if (col1Index !== null && med.name) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col1Index
+                        },
+                        text: med.name
+                      }
+                    });
+                  }
+                  // Column 2: Dose
+                  const col2Index = getCellInsertionIndex(row.tableCells[2]);
+                  if (col2Index !== null && med.dose) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col2Index
+                        },
+                        text: med.dose
+                      }
+                    });
+                  }
+                  // Column 3: Morning frequency
+                  const col3Index = getCellInsertionIndex(row.tableCells[3]);
+                  if (col3Index !== null && (med.freqMorning === true || med.freqMorning === 'true')) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col3Index
+                        },
+                        text: '✔'
+                      }
+                    });
+                  }
+                  // Column 4: Noon frequency  
+                  const col4Index = getCellInsertionIndex(row.tableCells[4]);
+                  if (col4Index !== null && (med.freqNoon === true || med.freqNoon === 'true')) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col4Index
+                        },
+                        text: '✔'
+                      }
+                    });
+                  }
+                  // Column 5: Night frequency
+                  const col5Index = getCellInsertionIndex(row.tableCells[5]);
+                  if (col5Index !== null && (med.freqNight === true || med.freqNight === 'true')) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col5Index
+                        },
+                        text: '✔'
+                      }
+                    });
+                  }
+                  // Column 6: Duration
+                  const col6Index = getCellInsertionIndex(row.tableCells[6]);
+                  if (col6Index !== null && med.duration) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col6Index
+                        },
+                        text: med.duration
+                      }
+                    });
+                  }
+                  // Column 7: Instructions
+                  const col7Index = getCellInsertionIndex(row.tableCells[7]);
+                  if (col7Index !== null && med.instructions) {
+                    cellRequests.push({
+                      insertText: {
+                        location: {
+                          index: col7Index
+                        },
+                        text: med.instructions
+                      }
+                    });
+                  }
+                } else {
+                  console.error(`Row ${rowIndex} does not have enough cells or is malformed`);
                 }
               }
-              if (updatedTable) {
-                const cellRequests = [];
-                // Populate cells for each medication
-                meds.forEach((med, medIndex)=>{
-                  const rowIndex = updatedTable.tableRows.length - meds.length + medIndex;
-                  const row = updatedTable.tableRows[rowIndex];
-                  if (row && row.tableCells) {
-                    // Column 0: Serial number (N)
-                    if (row.tableCells[0]?.content?.[0]?.paragraph) {
-                      const cellStart = row.tableCells[0].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: (medIndex + 3).toString() // Starting from 3 as per original code
-                        }
-                      });
-                    }
-                    // Column 1: Medicine Name
-                    if (row.tableCells[1]?.content?.[0]?.paragraph && med.name) {
-                      const cellStart = row.tableCells[1].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: med.name
-                        }
-                      });
-                    }
-                    // Column 2: Dose
-                    if (row.tableCells[2]?.content?.[0]?.paragraph && med.dose) {
-                      const cellStart = row.tableCells[2].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: med.dose
-                        }
-                      });
-                    }
-                    // Column 3: Morning frequency
-                    if (row.tableCells[3]?.content?.[0]?.paragraph && (med.freqMorning === true || med.freqMorning === 'true')) {
-                      const cellStart = row.tableCells[3].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: '✔'
-                        }
-                      });
-                    }
-                    // Column 4: Noon frequency  
-                    if (row.tableCells[4]?.content?.[0]?.paragraph && (med.freqNoon === true || med.freqNoon === 'true')) {
-                      const cellStart = row.tableCells[4].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: '✔'
-                        }
-                      });
-                    }
-                    // Column 5: Night frequency
-                    if (row.tableCells[5]?.content?.[0]?.paragraph && (med.freqNight === true || med.freqNight === 'true')) {
-                      const cellStart = row.tableCells[5].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: '✔'
-                        }
-                      });
-                    }
-                    // Column 6: Duration
-                    if (row.tableCells[6]?.content?.[0]?.paragraph && med.duration) {
-                      const cellStart = row.tableCells[6].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: med.duration
-                        }
-                      });
-                    }
-                    // Column 7: Instructions
-                    if (row.tableCells[7]?.content?.[0]?.paragraph && med.instructions) {
-                      const cellStart = row.tableCells[7].content[0].startIndex + 1;
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: cellStart
-                          },
-                          text: med.instructions
-                        }
-                      });
-                    }
-                  }
-                });
-                // Execute cell population
-                if (cellRequests.length > 0) {
-                  await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+              // Execute cell population in reverse order to maintain correct indices
+              if (cellRequests.length > 0) {
+                console.log(`Populating ${cellRequests.length} cells`);
+                // Process in reverse order and in smaller batches
+                const batchSize = 20;
+                const reversedRequests = cellRequests.reverse();
+                for(let i = 0; i < reversedRequests.length; i += batchSize){
+                  const batch = reversedRequests.slice(i, i + batchSize);
+                  const populateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${accessToken}`,
                       'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                      requests: cellRequests.reverse() // Reverse to maintain correct indices
+                      requests: batch
                     })
                   });
+                  if (!populateResponse.ok) {
+                    const errorText = await populateResponse.text();
+                    console.error(`Failed to populate cells batch ${Math.floor(i / batchSize) + 1}: ${populateResponse.status} ${populateResponse.statusText}`, errorText);
+                  // Don't throw error, just log and continue with next batch
+                  } else {
+                    console.log(`Successfully populated batch ${Math.floor(i / batchSize) + 1}`);
+                  }
+                  // Add delay between batches
+                  await new Promise((resolve)=>setTimeout(resolve, 200));
                 }
               }
+            } else {
+              console.error('Could not find updated table after row insertion');
             }
+          } else {
+            console.error('No table found in document');
           }
         }
       } catch (error) {
         console.error('Error processing medications:', error);
+      // Don't throw error, just log and continue - the rest of the prescription will still be created
       }
     }
     // Handle QR code and WhatsApp link
@@ -395,16 +461,18 @@ serve(async (req)=>{
         });
         const qrDoc = await qrDocResponse.json();
         // Find the QR placeholder text and the 'WhatsApp' text, then perform a single batch update
-        function findTextInContent(content: any[], searchText: string) {
-          for (let i = 0; i < content.length; i++) {
+        function findTextInContent(content, searchText) {
+          for(let i = 0; i < content.length; i++){
             const element = content[i];
             if (element.paragraph?.elements) {
-              for (const textElement of element.paragraph.elements) {
+              for (const textElement of element.paragraph.elements){
                 if (textElement.textRun?.content?.includes(searchText)) {
-                  const textContent = textElement.textRun.content as string;
-                  const textStartIndex = textElement.startIndex as number;
+                  const textContent = textElement.textRun.content;
+                  const textStartIndex = textElement.startIndex;
                   const placeholderStart = textContent.indexOf(searchText);
-                  return { index: textStartIndex + placeholderStart };
+                  return {
+                    index: textStartIndex + placeholderStart
+                  };
                 }
               }
             }
@@ -415,11 +483,13 @@ serve(async (req)=>{
         const whatsappLoc = findTextInContent(qrDoc.body.content, 'WhatsApp');
         if (qrLoc) {
           const qrPlaceholderIndex = qrLoc.index;
-          const requests: any[] = [];
+          const requests = [];
           // Insert the image at the placeholder
           requests.push({
             insertInlineImage: {
-              location: { index: qrPlaceholderIndex },
+              location: {
+                index: qrPlaceholderIndex
+              },
               uri: `data:image/png;base64,${qrBase64}`
             }
           });
@@ -436,8 +506,15 @@ serve(async (req)=>{
           if (whatsappLoc) {
             requests.push({
               updateTextStyle: {
-                range: { startIndex: whatsappLoc.index, endIndex: whatsappLoc.index + 8 },
-                textStyle: { link: { url: waData } },
+                range: {
+                  startIndex: whatsappLoc.index,
+                  endIndex: whatsappLoc.index + 8
+                },
+                textStyle: {
+                  link: {
+                    url: waData
+                  }
+                },
                 fields: 'link'
               }
             });
@@ -448,11 +525,13 @@ serve(async (req)=>{
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ requests })
+            body: JSON.stringify({
+              requests
+            })
           });
         }
       }
-      // WhatsApp link update handled in the same batchUpdate as QR insertion for performance
+    // WhatsApp link update handled in the same batchUpdate as QR insertion for performance
     } catch (qrError) {
       console.error('Error handling QR code:', qrError);
       // Fallback: just remove the placeholder text
