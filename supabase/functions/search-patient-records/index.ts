@@ -255,72 +255,54 @@ function parsePatientData(documentText) {
   if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
     data.advice = adviceMatch[1].trim();
   }
-  // Parse medications from tab-delimited table format
+  // Parse medications from tab-delimited table format (robust parser)
   try {
-    const medications = [];
+    const medications = [] as Array<{
+      name: string;
+      dose: string;
+      freqMorning: boolean;
+      freqNoon: boolean;
+      freqNight: boolean;
+      duration: string;
+      instructions: string;
+    }>;
     const medicationTableMatch = documentText.match(/Medication:(.*?)(?:→|Get free|Followup|Dear)/s);
     if (medicationTableMatch && medicationTableMatch[1]) {
       const tableContent = medicationTableMatch[1];
-      const lines = tableContent.split('\n').map((line)=>line.trim());
-      // Find medication rows (they start with a number)
-      for(let i = 0; i < lines.length; i++){
-        const line = lines[i];
-        // Skip empty lines, headers, and template variables
-        if (!line || line.includes('{{') || line.match(/^[A-Za-z\s]+$/)) {
-          continue;
-        }
-        // Look for lines that start with a number (medication entries)
-        if (line.match(/^\d+$/)) {
-          // This is a medication number, collect the next several lines
-          const medicationData = [];
-          let j = i;
-          // Collect up to 8 fields (number, name, dose, morning, noon, night, duration, instructions)
-          while(j < lines.length && medicationData.length < 8){
-            const currentLine = lines[j].trim();
-            if (currentLine && !currentLine.includes('{{')) {
-              medicationData.push(currentLine);
-            }
-            j++;
-            // Stop if we hit another number (next medication) or end section
-            if (j < lines.length && lines[j].trim().match(/^\d+$/) && medicationData.length > 1) {
-              break;
-            }
-            // Stop if we hit the end section
-            if (j < lines.length && lines[j].includes('Get free')) {
-              break;
-            }
-          }
-          // Parse the collected data
-          if (medicationData.length >= 4) {
-            const medication = {
-              name: medicationData[1] || '',
-              dose: medicationData[2] || '',
-              freqMorning: false,
-              freqNoon: false,
-              freqNight: false,
-              duration: '',
-              instructions: ''
-            };
-            // Parse frequency markers (✔ symbols) and other fields
-            for(let k = 3; k < medicationData.length; k++){
-              const field = medicationData[k];
-              if (field === '✔') {
-                // Determine which frequency this belongs to based on position
-                const freqIndex = k - 3; // 0=morning, 1=noon, 2=night
-                if (freqIndex === 0) medication.freqMorning = true;
-                else if (freqIndex === 1) medication.freqNoon = true;
-                else if (freqIndex === 2) medication.freqNight = true;
-              } else if (field.includes('week') || field.includes('day') || field.includes('month')) {
-                medication.duration = field;
-              } else if (field.includes('meal') || field.includes('breakfast') || field.toLowerCase().includes('bef') || field.toLowerCase().includes('aft')) {
-                medication.instructions = field;
-              }
-            }
-            if (medication.name && medication.name.length > 2) {
-              medications.push(medication);
-            }
-          }
-          i = j - 1; // Move to the last processed line
+      const lines = tableContent.split('\n');
+
+      const isTruthyMarker = (val: string | undefined) => {
+        if (!val) return false;
+        const v = val.trim().toLowerCase();
+        return v === '✔' || v === '✓' || v === 'true' || v === '1' || v === 'yes' || v === 'y';
+      };
+
+      for (const rawLine of lines) {
+        if (!rawLine || rawLine.includes('{{')) continue; // skip template markers
+        // Expect tab-delimited columns
+        const cols = rawLine.split('\t').map(c => c.trim());
+        if (cols.length < 3) continue;
+        // First column should be a number (row index)
+        if (!/^\d+$/.test(cols[0])) continue;
+
+        const name = cols[1] || '';
+        const dose = cols[2] || '';
+        const morningMark = cols[3];
+        const noonMark = cols[4];
+        const nightMark = cols[5];
+        const duration = cols[6] || '';
+        const instructions = cols[7] || '';
+
+        if (name && name.length > 1) {
+          medications.push({
+            name,
+            dose,
+            freqMorning: isTruthyMarker(morningMark),
+            freqNoon: isTruthyMarker(noonMark),
+            freqNight: isTruthyMarker(nightMark),
+            duration,
+            instructions,
+          });
         }
       }
     }
