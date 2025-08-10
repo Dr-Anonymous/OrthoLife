@@ -65,15 +65,7 @@ serve(async (req)=>{
     }
     const copyData = await copyResponse.json();
     const docId = copyData.id;
-    // Get the document content
-    const docResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-    if (!docResponse.ok) {
-      throw new Error(`Failed to get document: ${docResponse.statusText}`);
-    }
+    // Removed redundant document fetch for performance
     // Calculate age
     let age = '';
     if (data.dob) {
@@ -197,7 +189,8 @@ serve(async (req)=>{
     // Handle medications table
     if (data.medications) {
       try {
-        const meds = JSON.parse(data.medications);
+        const medsRaw = data.medications;
+        const meds = Array.isArray(medsRaw) ? medsRaw : JSON.parse(medsRaw);
         if (meds.length > 0) {
           // Get updated document to find table
           const updatedDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
@@ -303,7 +296,7 @@ serve(async (req)=>{
                       });
                     }
                     // Column 3: Morning frequency
-                    if (row.tableCells[3]?.content?.[0]?.paragraph && med.freqMorning === 'true') {
+                    if (row.tableCells[3]?.content?.[0]?.paragraph && (med.freqMorning === true || med.freqMorning === 'true')) {
                       const cellStart = row.tableCells[3].content[0].startIndex + 1;
                       cellRequests.push({
                         insertText: {
@@ -315,7 +308,7 @@ serve(async (req)=>{
                       });
                     }
                     // Column 4: Noon frequency  
-                    if (row.tableCells[4]?.content?.[0]?.paragraph && med.freqNoon === 'true') {
+                    if (row.tableCells[4]?.content?.[0]?.paragraph && (med.freqNoon === true || med.freqNoon === 'true')) {
                       const cellStart = row.tableCells[4].content[0].startIndex + 1;
                       cellRequests.push({
                         insertText: {
@@ -327,7 +320,7 @@ serve(async (req)=>{
                       });
                     }
                     // Column 5: Night frequency
-                    if (row.tableCells[5]?.content?.[0]?.paragraph && med.freqNight === 'true') {
+                    if (row.tableCells[5]?.content?.[0]?.paragraph && (med.freqNight === true || med.freqNight === 'true')) {
                       const cellStart = row.tableCells[5].content[0].startIndex + 1;
                       cellRequests.push({
                         insertText: {
@@ -401,122 +394,65 @@ serve(async (req)=>{
           }
         });
         const qrDoc = await qrDocResponse.json();
-        // Find the QR placeholder text
-        let qrPlaceholderIndex = -1;
-        let qrElementIndex = -1;
-        function findTextInContent(content, searchText) {
-          for(let i = 0; i < content.length; i++){
+        // Find the QR placeholder text and the 'WhatsApp' text, then perform a single batch update
+        function findTextInContent(content: any[], searchText: string) {
+          for (let i = 0; i < content.length; i++) {
             const element = content[i];
             if (element.paragraph?.elements) {
-              for (const textElement of element.paragraph.elements){
+              for (const textElement of element.paragraph.elements) {
                 if (textElement.textRun?.content?.includes(searchText)) {
-                  const textContent = textElement.textRun.content;
-                  const textStartIndex = textElement.startIndex;
+                  const textContent = textElement.textRun.content as string;
+                  const textStartIndex = textElement.startIndex as number;
                   const placeholderStart = textContent.indexOf(searchText);
-                  return {
-                    index: textStartIndex + placeholderStart,
-                    elementIndex: textStartIndex
-                  };
+                  return { index: textStartIndex + placeholderStart };
                 }
               }
             }
           }
           return null;
         }
-        const qrLocation = findTextInContent(qrDoc.body.content, '{{waqr}}');
-        if (qrLocation) {
-          qrPlaceholderIndex = qrLocation.index;
-          qrElementIndex = qrLocation.elementIndex;
-          // First, insert the image
-          const insertImageRequest = {
+        const qrLoc = findTextInContent(qrDoc.body.content, '{{waqr}}');
+        const whatsappLoc = findTextInContent(qrDoc.body.content, 'WhatsApp');
+        if (qrLoc) {
+          const qrPlaceholderIndex = qrLoc.index;
+          const requests: any[] = [];
+          // Insert the image at the placeholder
+          requests.push({
             insertInlineImage: {
-              location: {
-                index: qrPlaceholderIndex
-              },
+              location: { index: qrPlaceholderIndex },
               uri: `data:image/png;base64,${qrBase64}`
             }
-          };
-          // Then delete the placeholder text
-          const deleteTextRequest = {
+          });
+          // Delete the placeholder text '{{waqr}}'
+          requests.push({
             deleteContentRange: {
               range: {
                 startIndex: qrPlaceholderIndex + 1,
-                endIndex: qrPlaceholderIndex + 1 + 8 // Length of '{{waqr}}'
+                endIndex: qrPlaceholderIndex + 1 + 8
               }
             }
-          };
-          // Execute both requests
+          });
+          // Update the WhatsApp link if present
+          if (whatsappLoc) {
+            requests.push({
+              updateTextStyle: {
+                range: { startIndex: whatsappLoc.index, endIndex: whatsappLoc.index + 8 },
+                textStyle: { link: { url: waData } },
+                fields: 'link'
+              }
+            });
+          }
           await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              requests: [
-                insertImageRequest,
-                deleteTextRequest
-              ]
-            })
+            body: JSON.stringify({ requests })
           });
         }
       }
-      // Update WhatsApp link
-      // Get document again to find WhatsApp text after QR insertion
-      const whatsappDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      const whatsappDoc = await whatsappDocResponse.json();
-      function findWhatsAppText(content) {
-        for (const element of content){
-          if (element.paragraph?.elements) {
-            for (const textElement of element.paragraph.elements){
-              if (textElement.textRun?.content?.includes('WhatsApp')) {
-                const textContent = textElement.textRun.content;
-                const textStartIndex = textElement.startIndex;
-                const whatsappStart = textContent.indexOf('WhatsApp');
-                return {
-                  startIndex: textStartIndex + whatsappStart,
-                  endIndex: textStartIndex + whatsappStart + 8 // Length of 'WhatsApp'
-                };
-              }
-            }
-          }
-        }
-        return null;
-      }
-      const whatsappLocation = findWhatsAppText(whatsappDoc.body.content);
-      if (whatsappLocation) {
-        // Update the link
-        const updateLinkRequest = {
-          updateTextStyle: {
-            range: {
-              startIndex: whatsappLocation.startIndex,
-              endIndex: whatsappLocation.endIndex
-            },
-            textStyle: {
-              link: {
-                url: waData
-              }
-            },
-            fields: 'link'
-          }
-        };
-        await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            requests: [
-              updateLinkRequest
-            ]
-          })
-        });
-      }
+      // WhatsApp link update handled in the same batchUpdate as QR insertion for performance
     } catch (qrError) {
       console.error('Error handling QR code:', qrError);
       // Fallback: just remove the placeholder text
