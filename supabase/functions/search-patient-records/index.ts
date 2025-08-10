@@ -4,7 +4,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-// Removed global mutable result; using per-request response objects
 serve(async (req)=>{
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -162,7 +161,7 @@ function extractTextFromDocument(document) {
   if (document.body && document.body.content) {
     for (const element of document.body.content){
       if (element.paragraph) {
-        // Handle paragraphs (your existing code)
+        // Handle paragraphs
         for (const textElement of element.paragraph.elements || []){
           if (textElement.textRun) {
             text += textElement.textRun.content;
@@ -180,12 +179,13 @@ function extractTextFromTable(table) {
   let tableText = '';
   if (table.tableRows) {
     for (const row of table.tableRows){
-      let rowText = '';
+      const cellTexts = [];
       if (row.tableCells) {
-        for (const cell of row.tableCells){
+        // Process each cell, ensuring we maintain the column structure
+        for(let cellIndex = 0; cellIndex < row.tableCells.length; cellIndex++){
+          const cell = row.tableCells[cellIndex];
           let cellText = '';
-          // Extract text from cell content
-          if (cell.content) {
+          if (cell && cell.content) {
             for (const cellElement of cell.content){
               if (cellElement.paragraph) {
                 for (const textElement of cellElement.paragraph.elements || []){
@@ -196,20 +196,22 @@ function extractTextFromTable(table) {
               }
             }
           }
-          // Add cell separator (tab or pipe)
-          rowText += cellText + '\t';
+          // Clean up cell text (remove newlines, extra spaces)
+          cellText = cellText.replace(/\n/g, ' ').trim();
+          // IMPORTANT: Always add the cell text, even if it's empty
+          // This maintains the column structure for parsing
+          cellTexts.push(cellText);
         }
       }
-      // Add row separator (newline) and trim trailing tab
-      tableText += rowText.replace(/\t$/, '') + '\n';
+      // Join cells with tabs and add row separator
+      // This ensures every row has the same number of tab-separated columns
+      tableText += cellTexts.join('\t') + '\n';
     }
   }
   return tableText;
 }
 function parsePatientData(documentText) {
-  //console.log('Parsing document text:', documentText);
   const data = {};
-  
   const nameMatch = documentText.match(/Name:\s*(?:{{name}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:D\.O\.B)/i);
   if (nameMatch && nameMatch[1] && !nameMatch[1].includes('{{')) {
     data.name = nameMatch[1].trim();
@@ -229,7 +231,7 @@ function parsePatientData(documentText) {
   if (sexMatch && sexMatch[1] && !sexMatch[1].includes('{{')) {
     data.sex = sexMatch[1].trim();
   }
-  // id patterns
+  // ID patterns
   const idMatch = documentText.match(/ID No: *(?:{{id}}|([^\s\n\r{]+))(?:\n)/);
   if (idMatch && idMatch[1] && !idMatch[1].includes('{{')) {
     data.id = idMatch[1].trim();
@@ -257,61 +259,70 @@ function parsePatientData(documentText) {
   }
   // Parse medications from tab-delimited table format (robust parser)
   try {
-    const medications = [] as Array<{
-      name: string;
-      dose: string;
-      freqMorning: boolean;
-      freqNoon: boolean;
-      freqNight: boolean;
-      duration: string;
-      instructions: string;
-    }>;
+    const medications = [];
     const medicationTableMatch = documentText.match(/Medication:(.*?)(?:→|Get free|Followup|Dear)/s);
     if (medicationTableMatch && medicationTableMatch[1]) {
       const tableContent = medicationTableMatch[1];
-      const lines = tableContent.split('\n');
-
-      const isTruthyMarker = (val: string | undefined) => {
+      const lines = tableContent.split('\n').map((line)=>line.trim()).filter((line)=>line.length > 0);
+      console.log('Table lines found:', lines.length);
+      const isTruthyMarker = (val)=>{
         if (!val) return false;
         const v = val.trim().toLowerCase();
-        return v === '✔' || v === '✓' || v === 'true' || v === '1' || v === 'yes' || v === 'y';
+        return v === '✔' || v === '✓' || v === 'true' || v === '1' || v === 'yes' || v === 'y' || v.includes('✔');
       };
-
-      for (const rawLine of lines) {
-        if (!rawLine || rawLine.includes('{{')) continue; // skip template markers
-        // Expect tab-delimited columns
-        const cols = rawLine.split('\t').map(c => c.trim());
+      for(let i = 0; i < lines.length; i++){
+        const line = lines[i];
+        // Skip header rows and template markers
+        if (line.includes('{{') || line.includes('Name') && line.includes('Dose') || line.includes('Morning') || line.includes('ఉదయం') || line.includes('Frequency')) {
+          continue;
+        }
+        // Split by tab first (most reliable for table data), then fallback to multiple spaces
+        let cols;
+        if (line.includes('\t')) {
+          // Tab-delimited data from table - preserves empty columns
+          cols = line.split('\t').map((c)=>c.trim());
+        } else {
+          // Space-delimited fallback (less reliable)
+          cols = line.split(/\s{2,}/).map((c)=>c.trim()).filter((c)=>c.length > 0);
+        }
+        console.log(`Line ${i}: "${line}" -> ${cols.length} columns:`, cols);
+        // Must have at least 3 columns (index, name, dose)
         if (cols.length < 3) continue;
-        // First column should be a number (row index)
-        if (!/^\d+$/.test(cols[0])) continue;
-
+        // First column should be a number (medication index)
+        const indexCol = cols[0];
+        if (!/^\d+\.?$/.test(indexCol)) continue;
         const name = cols[1] || '';
         const dose = cols[2] || '';
-        const morningMark = cols[3];
-        const noonMark = cols[4];
-        const nightMark = cols[5];
+        // Skip if name is too short or looks like a header
+        if (!name || name.length < 2 || name.toLowerCase().includes('name')) continue;
+        // Extract frequency markers (columns 3, 4, 5)
+        // Handle cases where columns might be empty (empty strings)
+        const morningMark = cols[3] || '';
+        const noonMark = cols[4] || '';
+        const nightMark = cols[5] || '';
+        // Extract duration and instructions (handle missing columns gracefully)
         const duration = cols[6] || '';
         const instructions = cols[7] || '';
-
-        if (name && name.length > 1) {
-          medications.push({
-            name,
-            dose,
-            freqMorning: isTruthyMarker(morningMark),
-            freqNoon: isTruthyMarker(noonMark),
-            freqNight: isTruthyMarker(nightMark),
-            duration,
-            instructions,
-          });
-        }
+        console.log(`Parsed medication: ${name}, Morning: "${morningMark}", Noon: "${noonMark}", Night: "${nightMark}"`);
+        medications.push({
+          name: name,
+          dose: dose,
+          freqMorning: isTruthyMarker(morningMark),
+          freqNoon: isTruthyMarker(noonMark),
+          freqNight: isTruthyMarker(nightMark),
+          duration: duration,
+          instructions: instructions
+        });
       }
+      console.log(`Total medications parsed: ${medications.length}`);
     }
     if (medications.length > 0) {
       data.medications = medications;
+    } else {
+      console.log('No medications found in document');
     }
   } catch (error) {
     console.error('Error parsing medications:', error);
   }
-  //console.log('Parsed data:', data);
   return data;
 }
