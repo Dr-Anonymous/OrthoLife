@@ -586,6 +586,18 @@ const EMR = () => {
                             />
                           </div>
                         </div>
+                      {extraData.medications.length > 0 && (
+                        <div className="flex justify-end">
+                          <Button 
+                            type="button" 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => removeMedication(index)}
+                          >
+                            Remove Medication
+                          </Button>
+                        </div>
+                      )}
                       </div>
                     </Card>
                   ))}
@@ -594,16 +606,6 @@ const EMR = () => {
                   <Button type="button" onClick={addMedication} variant="outline" size="sm">
                     Add Medication
                   </Button>
-                  {extraData.medications.length > 0 && (
-                  <Button 
-                    type="button" 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => removeMedication(index)}
-                  >
-                    Remove Medication
-                  </Button>
-                   )}
                 </div>
               </div>
 
