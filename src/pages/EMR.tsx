@@ -529,9 +529,6 @@ const EMR = () => {
                     <Stethoscope className="w-5 h-5 text-primary" />
                     <h3 className="text-lg font-semibold text-foreground">Medications</h3>
                   </div>
-                  <Button type="button" onClick={addMedication} variant="outline" size="sm">
-                    Add Medication
-                  </Button>
                 </div>
                 
                 <div className="space-y-4">
@@ -567,6 +564,7 @@ const EMR = () => {
                                 type="checkbox" 
                                 checked={med.freqMorning} 
                                 onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)} 
+                                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                 className="rounded border-border"
                               />
                               <span className="text-sm">Morning</span>
@@ -576,6 +574,7 @@ const EMR = () => {
                                 type="checkbox" 
                                 checked={med.freqNoon} 
                                 onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)} 
+                                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                 className="rounded border-border"
                               />
                               <span className="text-sm">Noon</span>
@@ -585,6 +584,7 @@ const EMR = () => {
                                 type="checkbox" 
                                 checked={med.freqNight} 
                                 onChange={e => handleMedChange(index, 'freqNight', e.target.checked)} 
+                                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                 className="rounded border-border"
                               />
                               <span className="text-sm">Night</span>
@@ -613,18 +613,22 @@ const EMR = () => {
                           </div>
                         </div>
 
-                        {extraData.medications.length > 1 && (
-                          <div className="flex justify-end">
-                            <Button 
-                              type="button" 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => removeMedication(index)}
-                            >
-                              Remove Medication
-                            </Button>
-                          </div>
-                        )}
+                        
+                        <div className="flex justify-end">
+                          <Button type="button" onClick={addMedication} variant="outline" size="sm">
+                            Add Medication
+                          </Button>
+                          {extraData.medications.length > 0 && (
+                          <Button 
+                            type="button" 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => removeMedication(index)}
+                          >
+                            Remove Medication
+                          </Button>
+                           )}
+                        </div>
                       </div>
                     </Card>
                   ))}
