@@ -252,32 +252,6 @@ const EMR = () => {
       if (data?.url) {
         window.location.href = data.url;
       }
-     
-/*
-      const myUrl = 'https://script.google.com/macros/s/AKfycbzQzc3c8rY8tR7qruTAqG-SMQzyja2T93NgjgOkrEUxFrv000CWYLZJR64ByBclVJvH8A/exec';    
-      const payload = {
-        folderId: folderId,
-        patientId: patientId,
-        name: formData.name,
-        dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
-        sex: formData.sex,
-        phone: formData.phone,
-        complaints: extraData.complaints,
-        findings: extraData.findings,
-        investigations: extraData.investigations,
-        diagnosis: extraData.diagnosis,
-        advice: extraData.advice,
-        medications: JSON.stringify(extraData.medications)
-      };
-      const query = new URLSearchParams(payload).toString();
-      const response = await fetch(`${myUrl}?${query}`);
-      const result = await response.json();
-      if (result.url) {
-        window.location.href = result.url;
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-      */
       
     } catch (error) {
       console.error('Error:', error);
@@ -612,26 +586,24 @@ const EMR = () => {
                             />
                           </div>
                         </div>
-
-                        
-                        <div className="flex justify-end">
-                          <Button type="button" onClick={addMedication} variant="outline" size="sm">
-                            Add Medication
-                          </Button>
-                          {extraData.medications.length > 0 && (
-                          <Button 
-                            type="button" 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => removeMedication(index)}
-                          >
-                            Remove Medication
-                          </Button>
-                           )}
-                        </div>
                       </div>
                     </Card>
                   ))}
+                </div>
+                <div className="flex justify-end">
+                  <Button type="button" onClick={addMedication} variant="outline" size="sm">
+                    Add Medication
+                  </Button>
+                  {extraData.medications.length > 0 && (
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => removeMedication(index)}
+                  >
+                    Remove Medication
+                  </Button>
+                   )}
                 </div>
               </div>
 
