@@ -74,11 +74,6 @@ const EMR = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
     
-    // Search for patient when phone number changes
-    if (field === 'phone' && value.length === 10) {
-      searchPatientRecords(value);
-    }
-    
     // Clear patient selection when phone changes
     if (field === 'phone') {
       setPatientFolders([]);
@@ -394,8 +389,8 @@ const EMR = () => {
                       <Input 
                         id="phone"
                         value={formData.phone} 
-                        onChange={ }
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleInputChange('phone', e.target.value))}
+                        onChange={e => handleInputChange('phone', e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatientRecords(e.target.value))}
                         className={cn("pl-10", errors.phone && "border-destructive")} 
                         placeholder="1234567890" 
                       />
@@ -540,7 +535,7 @@ const EMR = () => {
                                 type="checkbox" 
                                 checked={med.freqMorning} 
                                 onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)} 
-                                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
                                 className="rounded border-border"
                               />
                               <span className="text-sm">Morning</span>
@@ -550,7 +545,7 @@ const EMR = () => {
                                 type="checkbox" 
                                 checked={med.freqNoon} 
                                 onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)} 
-                                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
                                 className="rounded border-border"
                               />
                               <span className="text-sm">Noon</span>
@@ -560,7 +555,7 @@ const EMR = () => {
                                 type="checkbox" 
                                 checked={med.freqNight} 
                                 onChange={e => handleMedChange(index, 'freqNight', e.target.checked)} 
-                                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
                                 className="rounded border-border"
                               />
                               <span className="text-sm">Night</span>
