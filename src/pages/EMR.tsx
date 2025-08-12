@@ -95,12 +95,14 @@ const EMR = () => {
 
       if (error) throw error;
 
-      if (data?.patientFolders?.length > 0) {
+      if (data?.patientFolders?.length > 1) {
         setPatientFolders(data.patientFolders);
         toast({
           title: "Patient Records Found",
           description: `Found ${data.patientFolders.length} patient record(s). Please select a patient.`
         });
+      } else if (data?.patientFolders?.length == 1) {
+        handlePatientSelection(data.patientFolders[0]);
       } else {
         setPatientFolders([]);
         setSelectedPatient('');
@@ -392,8 +394,8 @@ const EMR = () => {
                       <Input 
                         id="phone"
                         value={formData.phone} 
-                        onChange={e => handleInputChange('phone', e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                        onChange={ }
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleInputChange('phone', e.target.value))}
                         className={cn("pl-10", errors.phone && "border-destructive")} 
                         placeholder="1234567890" 
                       />
