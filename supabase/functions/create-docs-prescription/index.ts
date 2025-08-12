@@ -1,11 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
+const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
-const templateId = '1AT025Qq_HbkSEWYHE1okVSG_Fu7qGwzP00HuNHypiNs';
+const templateId = '1AT025Qq_HbkSEWYHE1okVSG_Fu7qGwzP00HuNHypiNs', today = new Date();
 serve(async (req)=>{
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -25,7 +27,6 @@ serve(async (req)=>{
   }
   try {
     const data = await req.json();
-    console.log(data);
     const accessToken = await getGoogleAccessToken();
     if (!accessToken) {
       return new Response(JSON.stringify({
@@ -38,17 +39,11 @@ serve(async (req)=>{
         }
       });
     }
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    // Generate unique ID for new patient
     let myId = '';
     if (data.patientId) {
       myId = data.patientId;
     } else {
-      const randomId = Math.floor(Math.random() * 1000) + 1;
-      myId = `${yyyy}${mm}${dd}${randomId}`;
+      myId = await generateIncrementalId(supabaseClient);
     }
     // Copy the template file
     const copyResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${templateId}/copy`, {
@@ -187,7 +182,6 @@ serve(async (req)=>{
     if (!batchUpdateResponse.ok) {
       throw new Error(`Failed to update document: ${batchUpdateResponse.statusText}`);
     }
-    
     if (data.medications) {
       try {
         const medsRaw = data.medications;
@@ -214,7 +208,7 @@ serve(async (req)=>{
             }
           }
           if (table && tableStartIndex !== -1) {
-            console.log(`Found table with ${table.tableRows.length} rows at index ${tableStartIndex}`);
+            //console.log(`Found table with ${table.tableRows.length} rows at index ${tableStartIndex}`);
             // Insert rows one by one to avoid batch issues
             let currentRowCount = table.tableRows.length;
             for(let i = 0; i < meds.length; i++){
@@ -230,7 +224,7 @@ serve(async (req)=>{
                   insertBelow: true
                 }
               };
-              console.log(`Inserting row ${i + 1} of ${meds.length}`);
+              //console.log(`Inserting row ${i + 1} of ${meds.length}`);
               const insertResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
                 method: 'POST',
                 headers: {
@@ -271,7 +265,7 @@ serve(async (req)=>{
               }
             }
             if (updatedTable) {
-              console.log(`Updated table now has ${updatedTable.tableRows.length} rows`);
+              //console.log(`Updated table now has ${updatedTable.tableRows.length} rows`);
               // Populate cells for each medication
               const cellRequests = [];
               // Calculate starting row index (skip header rows)
@@ -280,7 +274,7 @@ serve(async (req)=>{
                 const med = meds[medIndex];
                 const rowIndex = startingRowIndex + medIndex;
                 const row = updatedTable.tableRows[rowIndex];
-                console.log(`Processing medication ${medIndex + 1}: ${med.name} in row ${rowIndex}`);
+                //console.log(`Processing medication ${medIndex + 1}: ${med.name} in row ${rowIndex}`);
                 if (row && row.tableCells && row.tableCells.length >= 8) {
                   // Helper function to get valid insertion index for a cell
                   const getCellInsertionIndex = (cell)=>{
@@ -403,10 +397,10 @@ serve(async (req)=>{
                   console.error(`Row ${rowIndex} does not have enough cells or is malformed`);
                 }
               }
-              // Execute cell population in reverse order to maintain correct indices
+
               if (cellRequests.length > 0) {
-                console.log(`Populating ${cellRequests.length} cells`);
-                // Process in reverse order and in smaller batches
+                //console.log(`Populating ${cellRequests.length} cells`);
+                // Process in reverse order to maintain correct indices and in smaller batches
                 const batchSize = 20;
                 const reversedRequests = cellRequests.reverse();
                 for(let i = 0; i < reversedRequests.length; i += batchSize){
@@ -426,7 +420,7 @@ serve(async (req)=>{
                     console.error(`Failed to populate cells batch ${Math.floor(i / batchSize) + 1}: ${populateResponse.status} ${populateResponse.statusText}`, errorText);
                   // Don't throw error, just log and continue with next batch
                   } else {
-                    console.log(`Successfully populated batch ${Math.floor(i / batchSize) + 1}`);
+                    //console.log(`Successfully populated batch ${Math.floor(i / batchSize) + 1}`);
                   }
                   // Add delay between batches
                   await new Promise((resolve)=>setTimeout(resolve, 200));
@@ -664,3 +658,22 @@ serve(async (req)=>{
     });
   }
 });
+async function generateIncrementalId(supabaseClient) {
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const dateKey = `${yyyy}${mm}${dd}`;
+  try {
+    const { data, error } = await supabaseClient.rpc('increment_patient_counter', {
+      input_date_key: dateKey
+    });
+    if (error) throw error;
+    const counter = data || 1;
+    return `${dateKey}${counter}`;
+  } catch (error) {
+    console.error('Error generating incremental ID:', error);
+    // Fallback to timestamp-based ID
+    const timestamp = Date.now().toString().slice(-3);
+    return `${dateKey}${timestamp}`;
+  }
+}
