@@ -100,23 +100,31 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
           }
         });
         const folderData = await folderResponse.json();
-        return folderData.name;
+        return { id: folderId, name: folderData.name };
       } catch (error) {
         console.error(`Error fetching folder name for ID ${folderId}:`, error);
         return null;
       }
     });
-    const folderNames = await Promise.all(folderPromises);
-    const validFolderNames = folderNames.filter((name)=>name !== null);
-    return validFolderNames;
+    const folderObjects = await Promise.all(folderPromises);
+    const validFolders = folderObjects.filter((folder)=>folder !== null && folder.name);
+    return validFolders;
   } catch (error) {
     console.error('Error in optimized phone number search:', error);
     // Fallback to empty array instead of throwing
     return [];
   }
 }
-async function getLatestPrescriptionData(accessToken, folderName) {
-  const folderId = await getFolderIdByName(accessToken, folderName);
+async function getLatestPrescriptionData(accessToken, folderNameOrId) {
+  // Check if folderNameOrId is already a folder ID (if it doesn't contain spaces and special chars, likely an ID)
+  let folderId;
+  if (folderNameOrId && folderNameOrId.length > 20 && !folderNameOrId.includes(' ')) {
+    // Looks like a folder ID, use it directly
+    folderId = folderNameOrId;
+  } else {
+    // It's a folder name, get the ID
+    folderId = await getFolderIdByName(accessToken, folderNameOrId);
+  }
   const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
     headers: {
       'Authorization': `Bearer ${accessToken}`
@@ -125,7 +133,7 @@ async function getLatestPrescriptionData(accessToken, folderName) {
   const docsData = await docsResponse.json();
   const latestDoc = docsData.files?.[0];
   if (!latestDoc) {
-    throw new Error(`No documents found in folder ${folderName}`);
+    throw new Error(`No documents found in folder ${folderNameOrId}`);
   }
   const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
     headers: {

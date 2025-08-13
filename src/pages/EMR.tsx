@@ -20,6 +20,11 @@ interface FormData {
   phone: string;
 }
 
+interface PatientFolder {
+  id: string;
+  name: string;
+}
+
 interface Medication {
   name: string;
   dose: string;
@@ -30,7 +35,12 @@ interface Medication {
   instructions: string;
 }
 
-let patientId, folderId;
+let patientId;
+declare global {
+  interface Window {
+    folderId?: string;
+  }
+}
 
 const EMR = () => {
   const [formData, setFormData] = useState<FormData>({
@@ -40,7 +50,7 @@ const EMR = () => {
     phone: ''
   });
 
-  const [patientFolders, setPatientFolders] = useState<string[]>([]);
+  const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -97,7 +107,7 @@ const EMR = () => {
           description: `Found ${data.patientFolders.length} patient record(s). Please select a patient.`
         });
       } else if (data?.patientFolders?.length == 1) {
-        handlePatientSelection(data.patientFolders[0]);
+        handlePatientSelection(data.patientFolders[0].id);
       } else {
         setPatientFolders([]);
         setSelectedPatient('');
@@ -114,20 +124,22 @@ const EMR = () => {
     }
   };
 
-  const handlePatientSelection = async (patientFolder: string) => {
-    setSelectedPatient(patientFolder);
+  const handlePatientSelection = async (folderId: string) => {
+    const selectedFolder = patientFolders.find(folder => folder.id === folderId);
+    setSelectedPatient(selectedFolder?.name || folderId);
     setIsSearching(true);
     
     try {
       const { data, error } = await supabase.functions.invoke('search-patient-records', {
-        body: { selectedFolder: patientFolder }
+        body: { selectedFolder: folderId }
       });
 
       if (error) throw error;
 
       if (data?.patientData) {
         const patientData = data.patientData;
-        folderId = data.folderId;
+        // Store the folder ID globally for submission
+        window.folderId = data.folderId;
         patientId = patientData.id;
         
         // Auto-fill form with patient data
@@ -219,7 +231,7 @@ const EMR = () => {
     setIsSubmitting(true);
     try {
       const payload = {
-        folderId: folderId,
+        folderId: window.folderId,
         patientId: patientId,
         name: formData.name,
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
@@ -390,7 +402,7 @@ const EMR = () => {
                         id="phone"
                         value={formData.phone} 
                         onChange={e => handleInputChange('phone', e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatientRecords(e.target.value))}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatientRecords((e.target as HTMLInputElement).value))}
                         className={cn("pl-10", errors.phone && "border-destructive")} 
                         placeholder="1234567890" 
                       />
@@ -412,8 +424,8 @@ const EMR = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {patientFolders.map((folder) => (
-                          <SelectItem key={folder} value={folder}>
-                            {folder}
+                          <SelectItem key={folder.id} value={folder.id}>
+                            {folder.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
