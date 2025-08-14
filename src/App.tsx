@@ -16,6 +16,7 @@ import DiagnosticsPage from "./pages/DiagnosticsPage";
 import UploadPrescriptionPage from "./pages/UploadPrescriptionPage";
 import TrackTestResultsPage from "./pages/TrackTestResultsPage";
 import BlogPage from "./pages/BlogPage";
+import BlogPostPage from "./pages/BlogPostPage";
 import PatientGuidesPage from "./pages/PatientGuidesPage";
 import FAQPage from "./pages/FAQPage";
 import ResourcesPage from "./pages/ResourcesPage";
@@ -47,6 +48,7 @@ const App = () => (
               
               {/* Learn Routes */}
               <Route path="/blog" element={<BlogPage />} />
+              <Route path="/blog/:postId" element={<BlogPostPage />} />
               <Route path="/patient-guides" element={<PatientGuidesPage />} />
               <Route path="/faqs" element={<FAQPage />} />
               <Route path="/resources" element={<ResourcesPage />} />
