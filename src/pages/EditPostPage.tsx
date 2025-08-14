@@ -22,15 +22,18 @@ const EditPostPage = () => {
       try {
         const { data, error } = await supabase
           .from('posts')
-          .select('*')
+          .select('*, categories(name)')
           .eq('id', postId)
           .single();
 
         if (error) throw error;
         
         if (data) {
-          // The form expects category_id, so we just pass the data as is.
-          setInitialData(data);
+          const { categories, ...rest } = data;
+          setInitialData({
+            ...rest,
+            category_name: categories?.name || '',
+          });
         } else {
             toast({ title: "Error", description: "Post not found.", variant: "destructive" });
             navigate('/blog');
@@ -49,9 +52,40 @@ const EditPostPage = () => {
   const handleSubmit = async (values: PostFormValues) => {
     setIsSubmitting(true);
     try {
+      const { category_name, ...postData } = values;
+
+      // Find or create category
+      let { data: category, error: categoryError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', category_name)
+        .single();
+
+      if (categoryError && categoryError.code !== 'PGRST116') {
+        throw categoryError;
+      }
+
+      let categoryId: number;
+      if (category) {
+        categoryId = category.id;
+      } else {
+        const { data: newCategory, error: newCategoryError } = await supabase
+          .from('categories')
+          .insert({ name: category_name })
+          .select('id')
+          .single();
+        if (newCategoryError) throw newCategoryError;
+        categoryId = newCategory.id;
+      }
+
+      const postToUpdate = {
+        ...postData,
+        category_id: categoryId,
+      };
+
       const { error } = await supabase
         .from('posts')
-        .update(values)
+        .update(postToUpdate)
         .eq('id', postId);
 
       if (error) {
