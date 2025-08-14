@@ -57,17 +57,31 @@ const DiagnosticsPage = () => {
       const response = await fetch(url);
       
       if (!response.ok) {
-        console.error('Error fetching tests:', await response.text());
-        setError('Failed to load tests. Please try again.');
+        if (response.status === 404) {
+          // File doesn't exist, which is a valid state before the first refresh.
+          setTests([]);
+          setError("Lab data has not been generated yet. Please click the refresh button to fetch it.");
+        } else {
+          console.error('Error fetching tests:', await response.text());
+          setError('Failed to load tests. Please try again.');
+        }
         return;
       }
       
-      const data = await response.json();
-      
+      const responseText = await response.text();
+      if (!responseText) {
+        // The file is empty, treat it as if it's not there.
+        setTests([]);
+        setError("Lab data is empty. Please click the refresh button to fetch it.");
+        return;
+      }
+
+      const data = JSON.parse(responseText);
       setTests(data?.medicines || []);
+
     } catch (err) {
-      console.error('Error:', err);
-      setError('Failed to load tests. Please try again.');
+      console.error('Error parsing lab data:', err);
+      setError('Failed to load tests. The data file might be corrupted or in an invalid format.');
     } finally {
       setLoading(false);
     }
