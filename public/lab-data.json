@@ -1,1 +1,967 @@
-
+{
+  "medicines": [
+    {
+      "id": "1",
+      "name": "F.B.S (Fasting Blood Sugar)",
+      "description": "Measures blood sugar after overnight fasting; helps diagnose and monitor diabetes. Fasting required: 8–12 hours.",
+      "category": "🍭 Diabetes & Blood Sugar Tests",
+      "price": 20,
+      "marketPrice": 60,
+      "duration": "3 hours"
+    },
+    {
+      "id": "2",
+      "name": "P.P.B.S (Post Prandial Blood Sugar)",
+      "description": "Measures blood sugar 2 hours after a meal; helps assess how the body handles glucose.",
+      "category": "🍭 Diabetes & Blood Sugar Tests",
+      "price": 20,
+      "marketPrice": 60,
+      "duration": "3 hours"
+    },
+    {
+      "id": "3",
+      "name": "R.B.S (Random Blood Sugar)",
+      "description": "Checks current blood sugar anytime; useful for quick diabetes screening or monitoring.",
+      "category": "🍭 Diabetes & Blood Sugar Tests",
+      "price": 20,
+      "marketPrice": 60,
+      "duration": "3 hours"
+    },
+    {
+      "id": "4",
+      "name": "Urea",
+      "description": "Measures urea level in blood; helps assess kidney function and detect kidney disease.",
+      "category": "🧪 Kidney Function & Electrolytes",
+      "price": 40,
+      "marketPrice": 120,
+      "duration": "3 hours"
+    },
+    {
+      "id": "5",
+      "name": "Creatinine",
+      "description": "Measures creatinine in blood; helps evaluate kidney health and function.",
+      "category": "🧪 Kidney Function & Electrolytes",
+      "price": 40,
+      "marketPrice": 120,
+      "duration": "3 hours"
+    },
+    {
+      "id": "6",
+      "name": "C.B.C (Complete Blood Count)",
+      "description": "Complete blood count; detects anemia, infections, and general blood health.",
+      "category": "🩺 General Health & Complete Check‑ups",
+      "price": 75,
+      "marketPrice": 225,
+      "duration": "3 hours"
+    },
+    {
+      "id": "7",
+      "name": "Lipid Profile",
+      "description": "Measures cholesterol and triglycerides; helps assess risk of heart disease. Fasting required: 9–12 hours.",
+      "category": "❤️ Heart & Cholesterol Health",
+      "price": 150,
+      "marketPrice": 450,
+      "duration": "3 hours"
+    },
+    {
+      "id": "8",
+      "name": "Thyroid Profile (T3,T4,TSH)",
+      "description": "Measures thyroid hormones (T3, T4, TSH); helps diagnose thyroid disorders.",
+      "category": "🧬 Thyroid & Hormone Tests",
+      "price": 150,
+      "marketPrice": 450,
+      "duration": "3 hours"
+    },
+    {
+      "id": "9",
+      "name": "TSH",
+      "description": "Measures TSH hormone; screens for thyroid overactivity or underactivity.",
+      "category": "🧬 Thyroid & Hormone Tests",
+      "price": 80,
+      "marketPrice": 240,
+      "duration": "3 hours"
+    },
+    {
+      "id": "10",
+      "name": "HbA1C",
+      "description": "Checks average blood sugar over 2–3 months; helps monitor diabetes control.",
+      "category": "🍭 Diabetes & Blood Sugar Tests",
+      "price": 250,
+      "marketPrice": 750,
+      "duration": "3 hours"
+    },
+    {
+      "id": "11",
+      "name": "Liver Function Test (LFT)",
+      "description": "Evaluates liver enzymes and proteins; helps detect liver damage or disease.",
+      "category": "🩸 Liver Function Tests",
+      "price": 150,
+      "marketPrice": 450,
+      "duration": "3 hours"
+    },
+    {
+      "id": "12",
+      "name": "Uric Acid",
+      "description": "Measures uric acid in blood; helps diagnose or monitor gout.",
+      "category": "🧪 Kidney Function & Electrolytes",
+      "price": 40,
+      "marketPrice": 120,
+      "duration": "3 hours"
+    },
+    {
+      "id": "13",
+      "name": "Complete Urine Examination (CUE)",
+      "description": "Tests urine for infections, kidney issues, or diabetes complications.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 50,
+      "marketPrice": 150,
+      "duration": "3 hours"
+    },
+    {
+      "id": "14",
+      "name": "Urine For Ketone Bodies",
+      "description": "Detects ketones in urine; helps monitor uncontrolled diabetes or fasting state. Best done on fresh urine sample.",
+      "category": "🍭 Diabetes & Blood Sugar Tests",
+      "price": 50,
+      "marketPrice": 150,
+      "duration": "3 hours"
+    },
+    {
+      "id": "15",
+      "name": "Urine for Culture",
+      "description": "Checks urine for bacterial infection; identifies the organism and guides antibiotic choice. Midstream clean catch sample needed.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "16",
+      "name": "Dengue Serology",
+      "description": "Detects antibodies to dengue virus; helps confirm dengue fever infection.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "17",
+      "name": "QBC for M.P",
+      "description": "Detects malaria parasites quickly; helps diagnose malaria infection.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 100,
+      "marketPrice": 300,
+      "duration": "3 hours"
+    },
+    {
+      "id": "18",
+      "name": "Widal (Typhoid)",
+      "description": "Detects antibodies against typhoid bacteria; helps diagnose typhoid fever.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 70,
+      "marketPrice": 210,
+      "duration": "3 hours"
+    },
+    {
+      "id": "19",
+      "name": "H.I.V",
+      "description": "Screening test for HIV infection; detects antibodies to HIV-1 and HIV-2.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 100,
+      "marketPrice": 300,
+      "duration": "3 hours"
+    },
+    {
+      "id": "20",
+      "name": "HBSAG",
+      "description": "Screens for hepatitis B infection; detects hepatitis B surface antigen.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 60,
+      "marketPrice": 180,
+      "duration": "3 hours"
+    },
+    {
+      "id": "21",
+      "name": "HCV",
+      "description": "Screens for hepatitis C infection; detects HCV antibodies.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 100,
+      "marketPrice": 300,
+      "duration": "3 hours"
+    },
+    {
+      "id": "22",
+      "name": "VDRL",
+      "description": "Screening test for syphilis infection.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 50,
+      "marketPrice": 150,
+      "duration": "3 hours"
+    },
+    {
+      "id": "23",
+      "name": "G.T.T. (Glucose Tolerance Test)",
+      "description": "Measures body’s response to glucose load; helps diagnose diabetes. Fasting required; patient drinks glucose solution; multiple samples collected over 2–3 hours.",
+      "category": "🍭 Diabetes & Blood Sugar Tests",
+      "price": 120,
+      "marketPrice": 360,
+      "duration": "3 hours"
+    },
+    {
+      "id": "24",
+      "name": "E.S.R",
+      "description": "Measures rate of red blood cell settling; helps detect inflammation or infection.",
+      "category": "🩺 General Health & Complete Check‑ups",
+      "price": 10,
+      "marketPrice": 30,
+      "duration": "3 hours"
+    },
+    {
+      "id": "25",
+      "name": "Blood Group",
+      "description": "Determines blood group (A, B, AB, O) and Rh factor.",
+      "category": "🩺 General Health & Complete Check‑ups",
+      "price": 30,
+      "marketPrice": 90,
+      "duration": "3 hours"
+    },
+    {
+      "id": "26",
+      "name": "TC, DC",
+      "description": "Counts total and differential white blood cells; helps detect infection or allergies.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 40,
+      "marketPrice": 120,
+      "duration": "3 hours"
+    },
+    {
+      "id": "27",
+      "name": "BT CT",
+      "description": "Bleeding time and clotting time; assess how quickly blood clots.",
+      "category": "🩺 Clotting & Bleeding Tests",
+      "price": 20,
+      "marketPrice": 60,
+      "duration": "3 hours"
+    },
+    {
+      "id": "28",
+      "name": "Haemogram",
+      "description": "Detailed blood test; includes CBC and other parameters to assess overall health.",
+      "category": "🩺 General Health & Complete Check‑ups",
+      "price": 250,
+      "marketPrice": 750,
+      "duration": "3 hours"
+    },
+    {
+      "id": "29",
+      "name": "S.Electrolytes (Na+, K+, Cl)",
+      "description": "Measures sodium, potassium, and chloride levels; helps detect electrolyte imbalances.",
+      "category": "🧪 Kidney Function & Electrolytes",
+      "price": 200,
+      "marketPrice": 600,
+      "duration": "3 hours"
+    },
+    {
+      "id": "30",
+      "name": "SGOT",
+      "description": "Measures SGOT enzyme; helps detect liver or heart damage.",
+      "category": "🩸 Liver Function Tests",
+      "price": 50,
+      "marketPrice": 150,
+      "duration": "3 hours"
+    },
+    {
+      "id": "31",
+      "name": "SGPT",
+      "description": "Measures SGPT enzyme; helps assess liver health.",
+      "category": "🩸 Liver Function Tests",
+      "price": 50,
+      "marketPrice": 150,
+      "duration": "3 hours"
+    },
+    {
+      "id": "32",
+      "name": "Alkaline Phosphatase (ALP)",
+      "description": "Measures ALP enzyme; helps detect liver, bile duct, or bone disorders.",
+      "category": "🩸 Liver Function Tests",
+      "price": 50,
+      "marketPrice": 150,
+      "duration": "3 hours"
+    },
+    {
+      "id": "33",
+      "name": "Vitamin D (25 Hydroxy)",
+      "description": "Measures vitamin D (25 hydroxy); helps diagnose deficiency affecting bones and immunity.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 500,
+      "marketPrice": 1500,
+      "duration": "3 hours"
+    },
+    {
+      "id": "34",
+      "name": "Vitamin B12",
+      "description": "Measures vitamin B12; helps detect deficiency linked to anemia or nerve problems.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "35",
+      "name": "Vitamin B6",
+      "description": "Measures vitamin B6; helps detect deficiency affecting nerves and metabolism.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 2500,
+      "marketPrice": 3750,
+      "duration": "3 hours"
+    },
+    {
+      "id": "36",
+      "name": "FSH",
+      "description": "Measures FSH hormone; helps assess fertility and ovarian/testicular function.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "37",
+      "name": "LH",
+      "description": "Measures LH hormone; helps assess fertility and hormonal balance.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "38",
+      "name": "Prolactin",
+      "description": "Measures prolactin hormone; helps detect causes of infertility or abnormal lactation.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "39",
+      "name": "H.C.G (Urine Pregnancy Test)",
+      "description": "Detects pregnancy hormone in urine; confirms pregnancy.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 50,
+      "marketPrice": 150,
+      "duration": "3 hours"
+    },
+    {
+      "id": "40",
+      "name": "BETA HCG",
+      "description": "Measures beta‑hCG hormone in blood; used to confirm and monitor pregnancy.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "41",
+      "name": "Insulin (Fasting)",
+      "description": "Measures fasting insulin; helps assess insulin resistance. Fasting required: 8–12 hours.",
+      "category": "🧬 Thyroid & Hormone Tests",
+      "price": 450,
+      "marketPrice": 1350,
+      "duration": "3 hours"
+    },
+    {
+      "id": "42",
+      "name": "Prothrombin Time (PT/INR)",
+      "description": "Measures clotting time (PT/INR); helps monitor blood thinning therapy.",
+      "category": "🩺 Clotting & Bleeding Tests",
+      "price": 220,
+      "marketPrice": 660,
+      "duration": "3 hours"
+    },
+    {
+      "id": "43",
+      "name": "APTT",
+      "description": "Measures blood clotting time (APTT); helps detect bleeding disorders.",
+      "category": "🩺 Clotting & Bleeding Tests",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "44",
+      "name": "Stool (Occult Blood)",
+      "description": "Detects hidden blood in stool; screens for colon disorders or bleeding.",
+      "category": "💩 Stool & Urine Tests",
+      "price": 250,
+      "marketPrice": 750,
+      "duration": "3 hours"
+    },
+    {
+      "id": "45",
+      "name": "FT3",
+      "description": "Measures free triiodothyronine hormone; helps assess thyroid function.",
+      "category": "🧬 Thyroid & Hormone Tests",
+      "price": 200,
+      "marketPrice": 600,
+      "duration": "3 hours"
+    },
+    {
+      "id": "46",
+      "name": "FT4",
+      "description": "Measures free thyroxine hormone; helps assess thyroid function.",
+      "category": "🧬 Thyroid & Hormone Tests",
+      "price": 200,
+      "marketPrice": 600,
+      "duration": "3 hours"
+    },
+    {
+      "id": "47",
+      "name": "CA 125",
+      "description": "Tumor marker; helps detect ovarian cancer and monitor treatment.",
+      "category": "🧪 Tumor Markers & Cancer Screening",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "48",
+      "name": "CA 15.3",
+      "description": "Tumor marker; helps detect breast cancer and monitor treatment.",
+      "category": "🧪 Tumor Markers & Cancer Screening",
+      "price": 1200,
+      "marketPrice": 1800,
+      "duration": "3 hours"
+    },
+    {
+      "id": "49",
+      "name": "CA 19.9",
+      "description": "Tumor marker; helps detect pancreatic, stomach, or colon cancer.",
+      "category": "🧪 Tumor Markers & Cancer Screening",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "50",
+      "name": "CEA",
+      "description": "Tumor marker; helps detect colon cancer and monitor treatment.",
+      "category": "🧪 Tumor Markers & Cancer Screening",
+      "price": 500,
+      "marketPrice": 1500,
+      "duration": "3 hours"
+    },
+    {
+      "id": "51",
+      "name": "PSA (Prostate Specific Antigen)",
+      "description": "Prostate cancer screening; measures total PSA level in men.",
+      "category": "🧪 Tumor Markers & Cancer Screening",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "52",
+      "name": "PSA Free",
+      "description": "Prostate cancer test; measures free PSA to help differentiate cancer from benign enlargement.",
+      "category": "🧪 Tumor Markers & Cancer Screening",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "53",
+      "name": "Testosterone Total",
+      "description": "Measures total testosterone; helps assess male fertility and hormonal balance.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 350,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "54",
+      "name": "Micro Albumin Ratio",
+      "description": "Detects small amounts of albumin in urine; early kidney damage test.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "55",
+      "name": "Micro Albumin / Creatinine Ratio",
+      "description": "Calculates ratio of microalbumin to creatinine; helps detect early kidney disease.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "56",
+      "name": "Triple Marker",
+      "description": "Prenatal screening test; checks risk of chromosomal abnormalities in pregnancy.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 1500,
+      "marketPrice": 2250,
+      "duration": "3 hours"
+    },
+    {
+      "id": "57",
+      "name": "Dual Marker",
+      "description": "Prenatal screening test; measures two markers to assess risk of Down syndrome.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 1700,
+      "marketPrice": 2550,
+      "duration": "3 hours"
+    },
+    {
+      "id": "58",
+      "name": "Quadruple Marker",
+      "description": "Prenatal screening test; measures four markers for risk of genetic conditions.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 2000,
+      "marketPrice": 3000,
+      "duration": "3 hours"
+    },
+    {
+      "id": "59",
+      "name": "Homocysteine",
+      "description": "Measures homocysteine; high levels may increase heart disease risk.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 800,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "60",
+      "name": "Sputum for AFB",
+      "description": "Detects tuberculosis bacteria in sputum sample.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 150,
+      "marketPrice": 450,
+      "duration": "3 hours"
+    },
+    {
+      "id": "61",
+      "name": "Pus Culture",
+      "description": "Tests pus sample for bacterial infection; helps guide antibiotic choice.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "62",
+      "name": "Stool For Culture",
+      "description": "Tests stool for bacterial infection.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "63",
+      "name": "Blood for Culture",
+      "description": "Tests blood sample for bacterial infection; guides treatment.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 550,
+      "marketPrice": 825,
+      "duration": "3 hours"
+    },
+    {
+      "id": "64",
+      "name": "24 Hours Urine for Protein",
+      "description": "Collects all urine over 24 hours; measures total protein loss.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "65",
+      "name": "24 Hrs Urine for Sodium",
+      "description": "Collects 24‑hour urine to measure sodium excretion.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "66",
+      "name": "Spot Urine Albumin",
+      "description": "Spot urine test for albumin; screens for kidney disease.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 120,
+      "marketPrice": 360,
+      "duration": "3 hours"
+    },
+    {
+      "id": "67",
+      "name": "Spot Urine Protein",
+      "description": "Spot urine test for total protein; helps assess kidney health.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 150,
+      "marketPrice": 450,
+      "duration": "3 hours"
+    },
+    {
+      "id": "68",
+      "name": "Spot Urine Creatinine",
+      "description": "Spot urine test for creatinine; part of kidney function tests.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 150,
+      "marketPrice": 450,
+      "duration": "3 hours"
+    },
+    {
+      "id": "69",
+      "name": "Spot Urine Sodium",
+      "description": "Spot urine test for sodium level; helps assess electrolyte balance.",
+      "category": "🧪 Kidney & Urine Tests",
+      "price": 200,
+      "marketPrice": 600,
+      "duration": "3 hours"
+    },
+    {
+      "id": "70",
+      "name": "AMH",
+      "description": "Measures anti‑Müllerian hormone; assesses ovarian reserve.",
+      "category": "🧬 Thyroid & Hormone Tests",
+      "price": 800,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "71",
+      "name": "ANA (Anti Nuclear Antibodies)",
+      "description": "Detects antinuclear antibodies; helps diagnose autoimmune disorders like lupus.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "72",
+      "name": "HLAB27",
+      "description": "Genetic test linked to arthritis risk (ankylosing spondylitis).",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 1200,
+      "marketPrice": 1800,
+      "duration": "3 hours"
+    },
+    {
+      "id": "73",
+      "name": "Chicken Gunya (IgG, IgM)",
+      "description": "Detects past or current chikungunya infection (IgM, IgG).",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "74",
+      "name": "ANA (IFA Method)",
+      "description": "Detailed ANA test by immunofluorescence; helps diagnose autoimmune disease.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 800,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "75",
+      "name": "Anti CCP Anti Bodies",
+      "description": "Detects anti‑CCP antibodies; helps diagnose rheumatoid arthritis.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "76",
+      "name": "Anti TPO Anti Bodies",
+      "description": "Detects anti‑TPO antibodies; helps diagnose thyroid autoimmune disease.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "77",
+      "name": "Coombs (Direct)",
+      "description": "Detects antibodies bound directly to red cells; helps diagnose hemolytic anemia.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 250,
+      "marketPrice": 750,
+      "duration": "3 hours"
+    },
+    {
+      "id": "78",
+      "name": "Coombs (Indirect)",
+      "description": "Detects free antibodies in plasma; used in blood transfusion work.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "79",
+      "name": "CPK",
+      "description": "Measures creatine phosphokinase enzyme; helps detect muscle injury or heart disease.",
+      "category": "🧬 Special Tests & Enzymes",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "80",
+      "name": "Estradiol (E2)",
+      "description": "Measures estradiol hormone; helps assess ovarian function and fertility.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "81",
+      "name": "Serum Iron",
+      "description": "Measures iron level in blood; helps detect deficiency or overload.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "82",
+      "name": "Serum Magnesium",
+      "description": "Measures blood magnesium level; helps detect electrolyte imbalance.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 350,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "83",
+      "name": "Serum Phosphorus",
+      "description": "Measures blood phosphorus; important for bone and kidney health.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "84",
+      "name": "Serum Copper",
+      "description": "Measures copper in blood; helps diagnose Wilson’s disease or deficiency.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "85",
+      "name": "Serum Ferritin",
+      "description": "Measures stored iron (ferritin); low in iron deficiency, high in inflammation.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "86",
+      "name": "Serum Lipase",
+      "description": "Measures lipase enzyme; helps diagnose pancreatitis.",
+      "category": "🧬 Special Tests & Enzymes",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "87",
+      "name": "Serum Amylase",
+      "description": "Measures amylase enzyme; helps diagnose pancreatitis.",
+      "category": "🧬 Special Tests & Enzymes",
+      "price": 200,
+      "marketPrice": 600,
+      "duration": "3 hours"
+    },
+    {
+      "id": "88",
+      "name": "Progesterone",
+      "description": "Measures progesterone; helps assess ovulation and pregnancy.",
+      "category": "🧬 Pregnancy & Fertility Screening",
+      "price": 400,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "89",
+      "name": "Total Iron Binding Capacity (TIBC)",
+      "description": "Measures iron‑binding capacity; helps evaluate iron deficiency or overload.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 300,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "90",
+      "name": "Troponin-I",
+      "description": "Heart attack marker; detects troponin‑I in blood.",
+      "category": "❤️ Heart & Cholesterol Health",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "91",
+      "name": "Troponin-T",
+      "description": "Heart attack marker; detects troponin‑T in blood.",
+      "category": "❤️ Heart & Cholesterol Health",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "92",
+      "name": "Parathyroid Hormone (PTH)",
+      "description": "Measures parathyroid hormone; helps detect calcium metabolism disorders.",
+      "category": "🧬 Thyroid & Hormone Tests",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "93",
+      "name": "Torch Profile",
+      "description": "Screening test for infections in pregnancy (toxoplasmosis, rubella, CMV, herpes).",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 1500,
+      "marketPrice": 2250,
+      "duration": "3 hours"
+    },
+    {
+      "id": "94",
+      "name": "P ANCA",
+      "description": "Autoimmune test; helps diagnose vasculitis.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "95",
+      "name": "C ANCA",
+      "description": "Autoimmune test; helps diagnose vasculitis.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "96",
+      "name": "Complement - 3",
+      "description": "Complement protein C3; helps assess immune function.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "97",
+      "name": "Complement - 4",
+      "description": "Complement protein C4; helps assess immune disorders.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "98",
+      "name": "D - Dimer",
+      "description": "Measures clot breakdown product; helps detect blood clots (DVT, PE).",
+      "category": "❤️ Heart & Cholesterol Health",
+      "price": 800,
+      "marketPrice": 1200,
+      "duration": "3 hours"
+    },
+    {
+      "id": "99",
+      "name": "CD3, CD4 & CD8 Profile",
+      "description": "Measures T‑cell subsets (CD3, CD4, CD8); helps monitor immune status (e.g., HIV).",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 1100,
+      "marketPrice": 1650,
+      "duration": "3 hours"
+    },
+    {
+      "id": "100",
+      "name": "Anti DS-DNA",
+      "description": "Detects anti‑dsDNA antibodies; helps diagnose lupus.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 700,
+      "marketPrice": 1050,
+      "duration": "3 hours"
+    },
+    {
+      "id": "101",
+      "name": "Serum Total IGE",
+      "description": "Measures total IgE; high in allergies and asthma.",
+      "category": "🌿 Autoimmune & Allergy Tests",
+      "price": 500,
+      "marketPrice": 1500,
+      "duration": "3 hours"
+    },
+    {
+      "id": "102",
+      "name": "QuantiFerron Gold TB",
+      "description": "Blood test to detect latent tuberculosis infection.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 1800,
+      "marketPrice": 2700,
+      "duration": "3 hours"
+    },
+    {
+      "id": "103",
+      "name": "FNAC",
+      "description": "Cytology test; examines cells from lumps or swellings.",
+      "category": "Pathology",
+      "price": 600,
+      "marketPrice": 900,
+      "duration": "3 hours"
+    },
+    {
+      "id": "104",
+      "name": "Mantoux",
+      "description": "Tuberculin skin test; screens for TB infection.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 100,
+      "marketPrice": 300,
+      "duration": "3 hours"
+    },
+    {
+      "id": "105",
+      "name": "NT-PRO BNP",
+      "description": "Measures heart failure marker; high in heart failure.",
+      "category": "❤️ Heart & Cholesterol Health",
+      "price": 1300,
+      "marketPrice": 1950,
+      "duration": "3 hours"
+    },
+    {
+      "id": "106",
+      "name": "CRP",
+      "description": "Measures C‑reactive protein; helps detect inflammation or infection.",
+      "category": "🧫 Infection & Fever Tests",
+      "price": 200,
+      "marketPrice": 600,
+      "duration": "3 hours"
+    },
+    {
+      "id": "107",
+      "name": "Serum Calcium",
+      "description": "Measures total calcium; important for bone and heart health.",
+      "category": "🍎 Vitamins & Minerals",
+      "price": 150,
+      "marketPrice": 450,
+      "duration": "3 hours"
+    }
+  ]
+}
