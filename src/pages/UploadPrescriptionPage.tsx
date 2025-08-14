@@ -95,9 +95,9 @@ const UploadPrescriptionPage = () => {
                         className="hidden"
                       />
                       <Label htmlFor="prescription" className="cursor-pointer">
-                        <Button type="button" variant="outline" className="mb-2">
+                        <div className="mb-2 inline-block rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
                           Choose Files
-                        </Button>
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           Upload images or PDF files (Max 5MB each)
                         </p>
@@ -204,7 +204,7 @@ const UploadPrescriptionPage = () => {
                     <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                       <CheckCircle className="text-primary" size={20} />
                     </div>
-                    <h3 className="font-semibold mb-2">3. Delivery</h3>
+                    <h3 className="font-semibold mb-2">3. Deliver</h3>
                     <p className="text-sm text-muted-foreground">
                       Medicines delivered to your doorstep
                     </p>
