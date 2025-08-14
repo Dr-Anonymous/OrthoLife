@@ -48,18 +48,21 @@ const DiagnosticsPage = () => {
   }, []);
 
   
-  const fetchTests = async () => {
+  const fetchTests = async (bustCache = false) => {
     try {
       setLoading(true);
       setError(null);
       
-      const { data, error } = await supabase.functions.invoke('fetch-lab-data');
+      const url = bustCache ? `/lab-data.json?v=${new Date().getTime()}` : '/lab-data.json';
+      const response = await fetch(url);
       
-      if (error) {
-        console.error('Error fetching tests:', error);
+      if (!response.ok) {
+        console.error('Error fetching tests:', await response.text());
         setError('Failed to load tests. Please try again.');
         return;
       }
+      
+      const data = await response.json();
       
       setTests(data?.medicines || []);
     } catch (err) {
@@ -69,25 +72,48 @@ const DiagnosticsPage = () => {
       setLoading(false);
     }
   };
-  
+
   const fetchTestsWithRefresh = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    const { data, error } = await supabase.functions.invoke('fetch-lab-data?refresh=true');
-    if (error) {
-      console.error('Error fetching tests:', error);
-      setError('Failed to load tests. Please try again.');
-      return;
+    try {
+      setLoading(true);
+      setError(null);
+      toast({
+        title: "Refreshing...",
+        description: "Fetching the latest test data.",
+      });
+
+      const { error } = await supabase.functions.invoke('fetch-lab-data?refresh=true');
+      
+      if (error) {
+        console.error('Error refreshing tests:', error);
+        setError('Failed to refresh tests. Please try again.');
+        toast({
+          title: "Refresh failed",
+          description: "Could not fetch the latest data.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Data has been refreshed, now fetch it from the static file, busting the cache.
+      await fetchTests(true);
+      toast({
+        title: "Refresh complete",
+        description: "You are viewing the latest test data.",
+      });
+
+    } catch (err) {
+      console.error('Error during refresh:', err);
+      setError('An unexpected error occurred during refresh.');
+      toast({
+        title: "Refresh failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      setLoading(false);
     }
-    setTests(data?.medicines || []);
-  } catch (err) {
-    console.error('Error:', err);
-    setError('Failed to load tests. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   useEffect(() => {
     fetchTests();
   }, []);
