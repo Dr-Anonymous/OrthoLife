@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
 
 const UploadPrescriptionPage = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -31,8 +33,7 @@ const UploadPrescriptionPage = () => {
     });
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-prescription-email`, {
+      const response = await supabase.functions.invoke(`send-prescription-email`, {
         method: 'POST',
         body: formData,
       });
