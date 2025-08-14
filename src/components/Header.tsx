@@ -1,7 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Phone, Menu, X, MessageCircleCode } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Phone, Menu, X, MessageCircleCode, ChevronDown, Globe } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
+import { useLanguage } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
+
+const LanguageSwitcher = () => {
+  const { currentLanguage, setLanguage } = useLanguage();
+  const location = useLocation();
+  
+  // Only show language switcher on Learn pages
+  const isLearnPage = location.pathname.startsWith('/blog') || 
+                     location.pathname.startsWith('/patient-guides') ||
+                     location.pathname.startsWith('/faqs') ||
+                     location.pathname.startsWith('/resources');
+
+  if (!isLearnPage) return null;
+
+  return (
+    <div className="flex items-center gap-1">
+      <Globe size={16} className="text-muted-foreground" />
+      <div className="flex bg-muted rounded-md p-1">
+        {[
+          { code: 'en', label: 'EN' },
+          { code: 'te', label: 'తె' },
+          { code: 'hi', label: 'हि' }
+        ].map(({ code, label }) => (
+          <Button
+            key={code}
+            size="sm"
+            variant={currentLanguage === code ? "default" : "ghost"}
+            className="h-6 px-2 text-xs"
+            onClick={() => setLanguage(code as any)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -57,13 +96,174 @@ const Header = () => {
             )}
           </div>
           
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="/#home" className="font-medium hover:text-primary transition-colors">Home</a>
-            <a href="/#services" className="font-medium hover:text-primary transition-colors">Services</a>
-            <a href="/#about" className="font-medium hover:text-primary transition-colors">About</a>
-            <Link to="/pharmacy" className="font-medium hover:text-primary transition-colors">Pharmacy</Link>
-            <Link to="/diagnostics" className="font-medium hover:text-primary transition-colors">Diagnostics</Link>
-            <a href="/#contact" className="font-medium hover:text-primary transition-colors">Contact</a>
+          <nav className="hidden md:flex items-center">
+            <NavigationMenu>
+              <NavigationMenuList className="space-x-6">
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <a href="/#home" className="font-medium hover:text-primary transition-colors px-3 py-2">
+                      Home
+                    </a>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <a href="/#services" className="font-medium hover:text-primary transition-colors px-3 py-2">
+                      Services
+                    </a>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <a href="/#about" className="font-medium hover:text-primary transition-colors px-3 py-2">
+                      About
+                    </a>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="font-medium">Pharmacy</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[400px] gap-3 p-4 bg-popover">
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/pharmacy"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">Order Medicines</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Browse and order medicines online with home delivery
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/upload-prescription"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">Upload Prescription</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Upload your prescription for quick medicine ordering
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="font-medium">Diagnostics</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[400px] gap-3 p-4 bg-popover">
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/diagnostics"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">Book Lab Tests</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Book diagnostic tests with home sample collection
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/track-test-results"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">Track Test Results</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Check the status and download your test results
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="font-medium">Learn</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[500px] grid-cols-2 gap-3 p-4 bg-popover">
+                      <div className="col-span-2 mb-2 flex items-center justify-between">
+                        <span className="text-sm font-medium">Health Education</span>
+                        <LanguageSwitcher />
+                      </div>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/blog"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">Blog</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Latest health tips and medical insights
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/patient-guides"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">Patient Guides</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Comprehensive guides for health management
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/faqs"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">FAQs</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Quick answers to common health questions
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          to="/resources"
+                          className={cn(
+                            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          )}
+                        >
+                          <div className="text-sm font-medium leading-none">Resources</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Useful tools and resources for your health
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <a href="/#contact" className="font-medium hover:text-primary transition-colors px-3 py-2">
+                      Contact
+                    </a>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
           </nav>
           
           <div className="flex items-center space-x-2">
@@ -90,13 +290,38 @@ const Header = () => {
       
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t shadow-lg">
+        <div className="md:hidden bg-popover border-t shadow-lg">
           <nav className="container mx-auto px-4 py-4 space-y-4">
             <a href="/#home" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</a>
             <a href="/#services" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
             <a href="/#about" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>About</a>
-            <Link to="/pharmacy" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Pharmacy</Link>
-            <Link to="/diagnostics" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Diagnostics</Link>
+            
+            {/* Pharmacy Dropdown */}
+            <div className="space-y-2">
+              <span className="block font-medium text-primary">Pharmacy</span>
+              <Link to="/pharmacy" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Order Medicines</Link>
+              <Link to="/upload-prescription" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Upload Prescription</Link>
+            </div>
+
+            {/* Diagnostics Dropdown */}
+            <div className="space-y-2">
+              <span className="block font-medium text-primary">Diagnostics</span>
+              <Link to="/diagnostics" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Book Lab Tests</Link>
+              <Link to="/track-test-results" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Track Test Results</Link>
+            </div>
+
+            {/* Learn Dropdown */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="block font-medium text-primary">Learn</span>
+                <LanguageSwitcher />
+              </div>
+              <Link to="/blog" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
+              <Link to="/patient-guides" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Patient Guides</Link>
+              <Link to="/faqs" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>FAQs</Link>
+              <Link to="/resources" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Resources</Link>
+            </div>
+
             <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
             <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';setIsMobileMenuOpen(false);}} variant="outline" className="w-full flex items-center justify-center gap-2">
               <Phone size={16} />
