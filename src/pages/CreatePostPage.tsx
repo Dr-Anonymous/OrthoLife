@@ -14,9 +14,42 @@ const CreatePostPage = () => {
   const handleSubmit = async (values: PostFormValues) => {
     setIsSubmitting(true);
     try {
+      const { category_name, ...postData } = values;
+
+      // Check if category exists
+      let { data: category, error: categoryError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', category_name)
+        .single();
+
+      if (categoryError && categoryError.code !== 'PGRST116') { // PGRST116: no rows found
+        throw categoryError;
+      }
+      
+      let categoryId: number;
+      if (category) {
+        categoryId = category.id;
+      } else {
+        // Create new category
+        const { data: newCategory, error: newCategoryError } = await supabase
+          .from('categories')
+          .insert({ name: category_name })
+          .select('id')
+          .single();
+        
+        if (newCategoryError) throw newCategoryError;
+        categoryId = newCategory.id;
+      }
+
+      const postToInsert = {
+        ...postData,
+        category_id: categoryId,
+      };
+
       const { data, error } = await supabase
         .from('posts')
-        .insert([values])
+        .insert([postToInsert])
         .select()
         .single();
 
