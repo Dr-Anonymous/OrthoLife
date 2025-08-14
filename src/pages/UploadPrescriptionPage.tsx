@@ -20,21 +20,42 @@ const UploadPrescriptionPage = () => {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsUploading(true);
-    
-    // Simulate upload process
-    setTimeout(() => {
+    setUploadStatus('idle');
+
+    const formData = new FormData(event.currentTarget);
+    files.forEach((file) => {
+      formData.append(`files`, file);
+    });
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-prescription-email`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        setUploadStatus('success');
+        setFiles([]);
+        (event.target as HTMLFormElement).reset();
+      } else {
+        setUploadStatus('error');
+      }
+    } catch (error) {
+      console.error('Error uploading prescription:', error);
+      setUploadStatus('error');
+    } finally {
       setIsUploading(false);
-      setUploadStatus('success');
-    }, 2000);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
@@ -57,7 +78,7 @@ const UploadPrescriptionPage = () => {
                   Please upload clear images of your prescription and provide your contact details
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* File Upload */}
@@ -101,24 +122,25 @@ const UploadPrescriptionPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Patient Name *</Label>
-                      <Input id="name" required />
+                      <Input id="name" name="name" required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number *</Label>
-                      <Input id="phone" type="tel" required />
+                      <Input id="phone" name="phone" type="tel" required />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="address">Delivery Address *</Label>
-                    <Textarea id="address" rows={3} required />
+                    <Textarea id="address" name="address" rows={3} required />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="notes">Additional Notes</Label>
-                    <Textarea 
-                      id="notes" 
-                      rows={2} 
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      rows={2}
                       placeholder="Any specific instructions or queries"
                     />
                   </div>
@@ -142,9 +164,9 @@ const UploadPrescriptionPage = () => {
                     </div>
                   )}
 
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    className="w-full"
                     disabled={isUploading || files.length === 0}
                   >
                     {isUploading ? 'Uploading...' : 'Upload Prescription'}
@@ -175,14 +197,14 @@ const UploadPrescriptionPage = () => {
                     </div>
                     <h3 className="font-semibold mb-2">2. Review</h3>
                     <p className="text-sm text-muted-foreground">
-                      Our pharmacist will review your prescription
+                      Our pharmacist will review your prescription and contact you to confirm the order
                     </p>
                   </div>
                   <div className="text-center">
                     <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                       <CheckCircle className="text-primary" size={20} />
                     </div>
-                    <h3 className="font-semibold mb-2">3. Deliver</h3>
+                    <h3 className="font-semibold mb-2">3. Delivery</h3>
                     <p className="text-sm text-muted-foreground">
                       Medicines delivered to your doorstep
                     </p>
@@ -193,7 +215,7 @@ const UploadPrescriptionPage = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
