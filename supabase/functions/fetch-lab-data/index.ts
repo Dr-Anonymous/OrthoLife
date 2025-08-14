@@ -42,46 +42,88 @@ function parseBaseSheetRow(row, headers) {
   });
   return medicine.name ? medicine : null;
 }
+// Helper function to update a file on GitHub
+async function updateGitHubFile(content: string, token: string) {
+  const owner = 'Dr-Anonymous';
+  const repo = 'OrthoLife';
+  const path = 'public/lab-data.json';
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+
+  const headers = {
+    'Authorization': `token ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  let sha;
+  try {
+    const response = await fetch(apiUrl, { headers });
+    if (response.ok) {
+      const fileData = await response.json();
+      sha = fileData.sha;
+    } else if (response.status !== 404) {
+      const errorBody = await response.text();
+      throw new Error(`Failed to get file SHA: ${response.statusText}. Body: ${errorBody}`);
+    }
+  } catch (error) {
+    console.error('Error getting file SHA:', error);
+    // Don't throw, we can still try to create the file if it doesn't exist
+  }
+
+  // Deno's btoa is a web standard API. The unescape/encodeURIComponent is to handle unicode characters.
+  const contentBase64 = btoa(unescape(encodeURIComponent(content)));
+
+  const body = JSON.stringify({
+    message: 'Update lab data',
+    content: contentBase64,
+    sha: sha, // if sha is undefined, GitHub API will create a new file
+  });
+
+  const updateResponse = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body,
+  });
+
+  if (!updateResponse.ok) {
+    const errorBody = await updateResponse.text();
+    throw new Error(`Failed to update file on GitHub: ${updateResponse.statusText}. Body: ${errorBody}`);
+  }
+
+  console.log('✅ File updated on GitHub successfully');
+}
+
+
 serve(async (req)=>{
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders
     });
   }
-  const { searchParams } = new URL(req.url);
-  const forceRefresh = searchParams.get("refresh") === "true";
-  console.log("forceRefresh:", forceRefresh);
+
+  // This function is now only for refreshing the data file.
+  // The `refresh=true` query param is implicitly handled by the fact that this function is called.
+  
   try {
-    if (!forceRefresh) {
-      // Try serving from DB cache
-      const { data: cached, error } = await supabase.from("pharmacy_cache").select("data").eq("key", "medicines").single();
-      if (cached?.data && !error) {
-        console.log("✅ Serving from DB cache");
-        return new Response(JSON.stringify({
-          medicines: cached.data
-        }), {
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders
-          }
-        });
-      }
-      console.log("ℹ️ Cache miss or error, fetching fresh");
-    } else {
-      console.log("🔄 Force refresh requested, fetching fresh");
-    }
+    console.log("🔄 Refresh requested, fetching fresh data from Google Sheets");
+    
     // Fetch fresh data from Google Sheets
     const accessToken = await getGoogleAccessToken();
     const sheetData = await fetchSheetData(accessToken, "tests");
     const headersRow = sheetData[0] || [];
     const medicines = sheetData.slice(1).map((row)=>parseBaseSheetRow(row, headersRow)).filter(Boolean);
-    // Update cache in background
-    supabase.from("pharmacy_cache").upsert({
-      key: "medicines",
-      data: medicines
-    }).then(()=>console.log("✅ Cache updated")).catch((e)=>console.error("❌ Cache update failed:", e));
+    
+    const fileContent = JSON.stringify({ medicines }, null, 2);
+
+    // Update file on GitHub
+    const githubToken = Deno.env.get("GITHUB_TOKEN");
+    if (!githubToken) {
+      console.error("❌ GITHUB_TOKEN environment variable not set");
+      throw new Error("GITHUB_TOKEN environment variable not set");
+    }
+    await updateGitHubFile(fileContent, githubToken);
+
     return new Response(JSON.stringify({
-      medicines
+      message: "Lab data refreshed successfully."
     }), {
       headers: {
         "Content-Type": "application/json",
@@ -89,9 +131,10 @@ serve(async (req)=>{
       }
     });
   } catch (err) {
-    console.error("❌ Error:", err);
+    console.error("❌ Error:", err.message);
     return new Response(JSON.stringify({
-      error: "Failed to fetch pharmacy data"
+      error: "Failed to fetch and update lab data",
+      details: err.message,
     }), {
       status: 500,
       headers: {
