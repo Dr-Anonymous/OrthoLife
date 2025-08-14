@@ -13,13 +13,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import RichTextEditor from './RichTextEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { Category } from '@/pages/BlogPage';
 
@@ -30,7 +24,7 @@ const postFormSchema = z.object({
   author: z.string().min(1, "Author is required"),
   image_url: z.string().url("Please enter a valid URL"),
   read_time_minutes: z.coerce.number().int().positive("Must be a positive number"),
-  category_id: z.coerce.number().int().positive("Please select a category"),
+  category_name: z.string().min(1, "Category is required"),
 });
 
 export type PostFormValues = z.infer<typeof postFormSchema>;
@@ -103,7 +97,10 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, onSubmit, isSu
             <FormItem>
               <FormLabel>Content</FormLabel>
               <FormControl>
-                <Textarea placeholder="Enter the full post content" {...field} rows={10} />
+                <RichTextEditor
+                  content={field.value || ''}
+                  onChange={field.onChange}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -150,24 +147,20 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, onSubmit, isSu
         />
         <FormField
           control={form.control}
-          name="category_id"
+          name="category_name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={String(category.id)}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <>
+                  <Input list="category-suggestions" placeholder="Select or create a category" {...field} />
+                  <datalist id="category-suggestions">
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name} />
+                    ))}
+                  </datalist>
+                </>
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
