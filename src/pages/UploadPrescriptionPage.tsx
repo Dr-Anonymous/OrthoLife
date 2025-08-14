@@ -38,12 +38,12 @@ const UploadPrescriptionPage = () => {
         body: formData,
       });
 
-      if (response.ok) {
+      if (response.error) {
+        setUploadStatus('error');
+      } else {
         setUploadStatus('success');
         setFiles([]);
         (event.target as HTMLFormElement).reset();
-      } else {
-        setUploadStatus('error');
       }
     } catch (error) {
       console.error('Error uploading prescription:', error);
