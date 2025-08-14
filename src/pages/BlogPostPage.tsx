@@ -95,9 +95,7 @@ const BlogPostPage = () => {
                 
                 <img src={post.image_url} alt={post.title} className="w-full h-auto rounded-lg mb-8" />
 
-                <div className="prose prose-lg max-w-none">
-                  <p>{post.content}</p>
-                </div>
+                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
               </article>
             )}
 
