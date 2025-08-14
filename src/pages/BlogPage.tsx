@@ -11,12 +11,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Define types for our data
-interface Category {
+export interface Category {
   id: number;
   name: string;
 }
 
-interface Post {
+export interface Post {
   id: number;
   title: string;
   excerpt: string;
