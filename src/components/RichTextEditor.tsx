@@ -3,7 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2 } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface RichTextEditorProps {
@@ -89,6 +89,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         </Button>
         <Button onClick={setLink} variant={editor.isActive('link') ? 'secondary' : 'ghost'} size="sm" type="button" title="Link">
             <LinkIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          variant={'ghost'}
+          size="sm"
+          type="button"
+          title="Horizontal Rule"
+        >
+          <Minus className="h-4 w-4" />
         </Button>
       </div>
       <EditorContent editor={editor} />
