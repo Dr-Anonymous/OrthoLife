@@ -1,11 +1,12 @@
 import React, { useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import { CustomImage } from './CustomImage';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           levels: [2, 3],
         },
       }),
+      BubbleMenuExtension,
       Underline,
       CustomImage,
       TextStyle,
