@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon } from 'lucide-react';
+import { CustomImage } from './CustomImage';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,7 +26,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         },
       }),
       Underline,
-      Image,
+      CustomImage,
+      TextStyle,
+      Color,
       Link.configure({
         openOnClick: false,
         autolink: true,
@@ -88,6 +92,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
 
   return (
     <div className="border rounded-md">
+      {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}
+        shouldShow={({ editor }) => editor.isActive('custom-image')}
+      >
+        <div className="p-2 bg-background border rounded-md flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={() => editor.chain().focus().setImage({ align: 'left' }).run()}>
+                <AlignLeft className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => editor.chain().focus().setImage({ align: 'center' }).run()}>
+                <AlignCenter className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => editor.chain().focus().setImage({ align: 'right' }).run()}>
+                <AlignRight className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => editor.chain().focus().setImage({ width: '25%' }).run()}>25%</Button>
+            <Button size="sm" variant="ghost" onClick={() => editor.chain().focus().setImage({ width: '50%' }).run()}>50%</Button>
+            <Button size="sm" variant="ghost" onClick={() => editor.chain().focus().setImage({ width: '75%' }).run()}>75%</Button>
+            <Button size="sm" variant="ghost" onClick={() => editor.chain().focus().setImage({ width: '100%' }).run()}>100%</Button>
+        </div>
+      </BubbleMenu>}
+
       <div className="p-2 border-b flex items-center flex-wrap gap-1">
         <Button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -164,6 +188,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
+        <input
+            type="color"
+            onInput={(event: React.ChangeEvent<HTMLInputElement>) => editor.chain().focus().setColor(event.target.value).run()}
+            value={editor.getAttributes('textStyle').color || '#000000'}
+            className="w-8 h-8 p-1 border rounded"
+            title="Text Color"
+        />
       </div>
       <EditorContent editor={editor} />
       <input
