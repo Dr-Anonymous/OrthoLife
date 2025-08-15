@@ -52,14 +52,14 @@ const translations = {
     'nav.contact': 'సంప్రదించండి',
     'nav.learn': 'నేర్చుకోండి',
     'nav.blog': 'బ్లాగ్',
-    'nav.patient-guides': 'రోగుల గైడ్‌లు',
+    'nav.patient-guides': 'రోగులకు సూచనలు',
     'nav.faqs': 'తరచుగా అడిగే ప్రశ్నలు',
     'nav.resources': 'వనరులు',
     
     // Learn pages
     'learn.blog.title': 'ఆరోగ్య బ్లాగ్',
-    'learn.blog.subtitle': 'తాజా ఆరోగ్య చిట్కాలు మరియు వైద్య సమాచారం',
-    'learn.guides.title': 'రోగుల గైడ్‌లు',
+    'learn.blog.subtitle': 'ఆరోగ్య చిట్కాలు మరియు వైద్య సమాచారం',
+    'learn.guides.title': 'రోగులకు సూచనలు',
     'learn.guides.subtitle': 'మెరుగైన ఆరోగ్య నిర్వహణ కోసం సమగ్ర గైడ్‌లు',
     'learn.faqs.title': 'తరచుగా అడిగే ప్రశ్నలు',
     'learn.faqs.subtitle': 'సాధారణ ఆరోగ్య ప్రశ్నలకు త్వరిత సమాధానాలు',
@@ -100,7 +100,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
   // Translation cache with expiration
   const translationCache = React.useRef<Map<string, { text: string; timestamp: number }>>(new Map());
-  const CACHE_DURATION = 3600000; // 1 hour in milliseconds
+  const CACHE_DURATION = 24*3600000; // 24*1 hour in milliseconds
 
   useEffect(() => {
     // Get language from URL parameter
