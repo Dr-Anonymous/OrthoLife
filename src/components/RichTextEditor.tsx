@@ -17,7 +17,6 @@ interface RichTextEditorProps {
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
