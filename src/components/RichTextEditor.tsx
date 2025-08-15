@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
-import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
@@ -33,7 +32,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         openOnClick: false,
         autolink: true,
       }),
-      BubbleMenuExtension,
     ],
     content: content,
     onUpdate: ({ editor }) => {
