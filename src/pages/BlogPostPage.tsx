@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, User, Clock } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import { TranslatedText } from '@/components/TranslatedText';
+import { useTranslatedContent } from '@/hooks/useTranslatedContent';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Post {
@@ -19,6 +21,22 @@ interface Post {
   image_url: string;
   categories: { name: string };
 }
+
+const TranslatedContent = ({ htmlContent }: { htmlContent: string }) => {
+  const { text: translatedHtml, isLoading } = useTranslatedContent(htmlContent);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+    );
+  }
+
+  return <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedHtml }} />;
+};
 
 const BlogPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -73,9 +91,9 @@ const BlogPostPage = () => {
             {!loading && post && (
               <article>
                 <header className="mb-8">
-                  <Badge className="mb-4">{post.categories.name}</Badge>
+                  <Badge className="mb-4"><TranslatedText>{post.categories.name}</TranslatedText></Badge>
                   <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                    {post.title}
+                    <TranslatedText>{post.title}</TranslatedText>
                   </h1>
                   <div className="flex items-center text-muted-foreground flex-wrap">
                     <div className="flex items-center mr-6 mb-2">
@@ -95,7 +113,7 @@ const BlogPostPage = () => {
                 
                 <img src={post.image_url} alt={post.title} className="w-full h-auto rounded-lg mb-8" />
 
-                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
+                <TranslatedContent htmlContent={post.content} />
               </article>
             )}
 
