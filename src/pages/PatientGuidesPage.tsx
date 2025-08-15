@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Download, Eye, Clock } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { TranslatedText } from '@/components/TranslatedText';
 
 const PatientGuidesPage = () => {
   const { t } = useLanguage();
@@ -141,17 +142,17 @@ const PatientGuidesPage = () => {
                 </div>
                 <div className="md:w-2/3 p-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge>{guides[0].category}</Badge>
+                    <Badge><TranslatedText>{guides[0].category}</TranslatedText></Badge>
                     <Badge className={getDifficultyColor(guides[0].difficulty)}>
-                      {guides[0].difficulty}
+                      <TranslatedText>{guides[0].difficulty}</TranslatedText>
                     </Badge>
-                    <span className="text-sm text-muted-foreground">Featured</span>
+                    <span className="text-sm text-muted-foreground"><TranslatedText>Featured</TranslatedText></span>
                   </div>
                   <h2 className="text-2xl font-heading font-bold mb-3">
-                    {guides[0].title}
+                    <TranslatedText>{guides[0].title}</TranslatedText>
                   </h2>
                   <p className="text-muted-foreground mb-4">
-                    {guides[0].description}
+                    <TranslatedText>{guides[0].description}</TranslatedText>
                   </p>
                   <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
                     <div className="flex items-center">
@@ -170,11 +171,11 @@ const PatientGuidesPage = () => {
                   <div className="flex gap-3">
                     <Button className="flex items-center gap-2">
                       <Eye size={16} />
-                      Read Online
+                      <TranslatedText>Read Online</TranslatedText>
                     </Button>
                     <Button variant="outline" className="flex items-center gap-2">
                       <Download size={16} />
-                      Download PDF
+                      <TranslatedText>Download PDF</TranslatedText>
                     </Button>
                   </div>
                 </div>
@@ -200,10 +201,10 @@ const PatientGuidesPage = () => {
                       </Badge>
                     </div>
                     <CardTitle className="text-lg leading-tight">
-                      {guide.title}
+                      <TranslatedText>{guide.title}</TranslatedText>
                     </CardTitle>
                     <CardDescription className="line-clamp-2">
-                      {guide.description}
+                      <TranslatedText>{guide.description}</TranslatedText>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -226,11 +227,11 @@ const PatientGuidesPage = () => {
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1">
                         <Eye size={14} className="mr-1" />
-                        Read
+                        <TranslatedText>Read</TranslatedText>
                       </Button>
                       <Button size="sm" variant="outline" className="flex-1">
                         <Download size={14} className="mr-1" />
-                        PDF
+                        <TranslatedText>PDF</TranslatedText>
                       </Button>
                     </div>
                   </CardContent>
@@ -243,13 +244,13 @@ const PatientGuidesPage = () => {
               <CardContent className="text-center py-8">
                 <BookOpen className="mx-auto mb-4 text-primary" size={48} />
                 <h3 className="text-2xl font-heading font-bold mb-2">
-                  Need a Custom Guide?
+                  <TranslatedText>Need a Custom Guide?</TranslatedText>
                 </h3>
                 <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  Our medical team can create personalized guides based on your specific condition and treatment plan.
+                  <TranslatedText>Our medical team can create personalized guides based on your specific condition and treatment plan.</TranslatedText>
                 </p>
                 <Button size="lg">
-                  Request Custom Guide
+                  <TranslatedText>Request Custom Guide</TranslatedText>
                 </Button>
               </CardContent>
             </Card>
