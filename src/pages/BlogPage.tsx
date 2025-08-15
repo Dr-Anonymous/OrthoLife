@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, User, Clock, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import { TranslatedText } from '@/components/TranslatedText';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Define types for our data
@@ -202,12 +203,12 @@ const BlogPage = () => {
                       />
                     </div>
                     <div className="md:w-1/2 p-6 flex flex-col justify-center">
-                      <Badge className="mb-3 w-fit">{featuredPost.categories.name}</Badge>
+                      <Badge className="mb-3 w-fit"><TranslatedText>{featuredPost.categories.name}</TranslatedText></Badge>
                       <h2 className="text-2xl font-heading font-bold mb-3">
-                        {featuredPost.title}
+                        <TranslatedText>{featuredPost.title}</TranslatedText>
                       </h2>
                       <p className="text-muted-foreground mb-4">
-                        {featuredPost.excerpt}
+                        <TranslatedText>{featuredPost.excerpt}</TranslatedText>
                       </p>
                       <div className="flex items-center text-sm text-muted-foreground mb-4 flex-wrap">
                         <User size={16} className="mr-1" />
@@ -245,10 +246,10 @@ const BlogPage = () => {
                             <span className="text-xs text-muted-foreground">{post.read_time_minutes} min read</span>
                           </div>
                           <CardTitle className="text-lg leading-tight">
-                            {post.title}
+                            <TranslatedText>{post.title}</TranslatedText>
                           </CardTitle>
                           <CardDescription>
-                            {post.excerpt}
+                            <TranslatedText>{post.excerpt}</TranslatedText>
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="mt-auto">
