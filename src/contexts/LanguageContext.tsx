@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 type Language = 'en' | 'te' | 'hi';
 
@@ -7,6 +8,8 @@ interface LanguageContextType {
   currentLanguage: Language;
   setLanguage: (language: Language) => void;
   t: (key: string, fallback?: string) => string;
+  translateText: (text: string, targetLang?: Language) => Promise<string>;
+  isTranslating: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -93,6 +96,11 @@ interface LanguageProviderProps {
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  // Translation cache with expiration
+  const translationCache = React.useRef<Map<string, { text: string; timestamp: number }>>(new Map());
+  const CACHE_DURATION = 3600000; // 1 hour in milliseconds
 
   useEffect(() => {
     // Get language from URL parameter
@@ -115,10 +123,60 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     return translation || fallback || key;
   };
 
+  const translateText = useCallback(async (text: string, targetLang: Language = currentLanguage): Promise<string> => {
+    // Return original text if target language is English
+    if (targetLang === 'en') {
+      return text;
+    }
+
+    // Create cache key
+    const cacheKey = `${text}_${targetLang}`;
+    const cached = translationCache.current.get(cacheKey);
+    
+    // Return cached translation if valid
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.text;
+    }
+
+    setIsTranslating(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-content', {
+        body: {
+          text,
+          targetLanguage: targetLang,
+          sourceLanguage: 'en'
+        }
+      });
+
+      if (error) {
+        console.error('Translation error:', error);
+        return text; // Return original text on error
+      }
+
+      const translatedText = data.translatedText || text;
+      
+      // Cache the translation
+      translationCache.current.set(cacheKey, {
+        text: translatedText,
+        timestamp: Date.now()
+      });
+
+      return translatedText;
+    } catch (error) {
+      console.error('Translation failed:', error);
+      return text; // Return original text on error
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [currentLanguage]);
+
   const value = {
     currentLanguage,
     setLanguage,
-    t
+    t,
+    translateText,
+    isTranslating
   };
 
   return (

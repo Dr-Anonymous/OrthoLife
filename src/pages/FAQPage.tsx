@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Search, HelpCircle, Phone, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { TranslatedText } from '@/components/TranslatedText';
 
 const FAQPage = () => {
   const { t } = useLanguage();
@@ -161,11 +162,11 @@ const FAQPage = () => {
                       <AccordionTrigger className="hover:no-underline text-left">
                         <div className="flex items-start gap-3">
                           <HelpCircle className="text-primary mt-1 shrink-0" size={20} />
-                          <span className="font-medium">{faq.question}</span>
+                          <TranslatedText className="font-medium">{faq.question}</TranslatedText>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="ml-8 pt-2 pb-4 text-muted-foreground leading-relaxed">
-                        {faq.answer}
+                        <TranslatedText>{faq.answer}</TranslatedText>
                       </AccordionContent>
                     </AccordionItem>
                   ))}
