@@ -15,6 +15,7 @@ interface Post {
   id: number;
   title: string;
   content: string;
+  excerpt?: string;
   author: string;
   created_at: string;
   read_time_minutes: number;
@@ -44,13 +45,43 @@ const BlogPostPage = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to strip HTML tags and truncate text
+  const createExcerpt = (content: string, maxLength: number = 160): string => {
+    const stripped = content.replace(/<[^>]*>/g, '');
+    return stripped.length > maxLength 
+      ? stripped.substring(0, maxLength).trim() + '...' 
+      : stripped;
+  };
+
+  // Function to set meta tag
+  const setMetaTag = (name: string, content: string) => {
+    let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = name;
+      document.head.appendChild(meta);
+    }
+    meta.content = content;
+  };
+
+  // Function to set Open Graph meta tag
+  const setOGMetaTag = (property: string, content: string) => {
+    let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('property', property);
+      document.head.appendChild(meta);
+    }
+    meta.content = content;
+  };
+
   useEffect(() => {
     const fetchPost = async () => {
       if (!postId) return;
       setLoading(true);
       const { data, error } = await supabase
         .from('posts')
-        .select('*, categories(name)')
+        .select('*, categories(name)') 
         .eq('id', postId)
         .single();
 
@@ -65,6 +96,45 @@ const BlogPostPage = () => {
 
     fetchPost();
   }, [postId]);
+
+  // Effect to update document title and meta tags when post loads
+  useEffect(() => {
+    if (post) {
+      // Set page title
+      document.title = `${post.title} | OrthoLife`;
+      
+      // Generate meta description
+      const metaDescription = post.excerpt || createExcerpt(post.content);
+      
+      // Set basic meta tags
+      setMetaTag('description', metaDescription);
+      
+      // Set Open Graph tags
+      setOGMetaTag('og:title', post.title);
+      setOGMetaTag('og:description', metaDescription);
+      setOGMetaTag('og:image', post.image_url);
+      setOGMetaTag('og:type', 'article');
+      
+      // Set Twitter Card tags
+      setMetaTag('twitter:card', 'summary_large_image');
+      setMetaTag('twitter:title', post.title);
+      setMetaTag('twitter:description', metaDescription);
+      setMetaTag('twitter:image', post.image_url);
+      
+      // Set article-specific meta tags
+      setOGMetaTag('article:author', post.author);
+      setOGMetaTag('article:published_time', post.created_at);
+    } else if (!loading) {
+      // Reset title when post not found
+      document.title = 'Post Not Found | OrthoLife';
+      setMetaTag('description', 'The requested blog post could not be found.');
+    }
+
+    // Cleanup function to reset title when component unmounts
+    return () => {
+      document.title = 'OrthoLife';
+    };
+  }, [post, loading]);
 
   return (
     <div className="min-h-screen flex flex-col">
