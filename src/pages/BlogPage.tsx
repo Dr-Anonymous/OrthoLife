@@ -88,9 +88,12 @@ const BlogPage = () => {
   }, [selectedCategory, page]);
 
   const handleCategoryClick = (categoryId: number | null) => {
-    setSelectedCategory(categoryId);
-    setPage(1); // Reset page when category changes
-    setPosts([]); // Clear posts to show loading state
+    // If the clicked category is the same as the active one, toggle it off (show all).
+    // Otherwise, switch to the new category.
+    const newCategory = categoryId === selectedCategory ? null : categoryId;
+    setSelectedCategory(newCategory);
+    setPage(1);
+    setPosts([]);
     setHasMore(true);
   };
 
