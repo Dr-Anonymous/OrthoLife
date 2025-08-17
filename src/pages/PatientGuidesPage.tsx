@@ -142,6 +142,7 @@ const PatientGuidesPage = () => {
                     src={guides[0].coverImage}
                     alt={guides[0].title}
                     className="w-full h-64 md:h-full object-cover"
+                    loading="lazy"
                   />
                 </div>
                 <div className="md:w-2/3 p-6">
@@ -195,6 +196,7 @@ const PatientGuidesPage = () => {
                       src={guide.coverImage}
                       alt={guide.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
                     />
                   </div>
                   <CardHeader>

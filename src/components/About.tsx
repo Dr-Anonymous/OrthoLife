@@ -15,6 +15,7 @@ const About = () => {
                   src="https://images.unsplash.com/photo-1579154491781-5e199df316aa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1964&q=80" 
                   alt="Medical team at OrthoLife clinic" 
                   className="w-full h-auto object-cover aspect-[4/3]"
+                  loading="lazy"
                 />
               </div>
             </div>

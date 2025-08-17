@@ -51,6 +51,7 @@ const Header = () => {
                 className="h-12"
                 onError={handleLogoError}
                 onLoad={handleLogoLoad}
+                loading="lazy"
               />
             ) : (
               <h1 className="text-primary font-heading font-bold text-2xl">
