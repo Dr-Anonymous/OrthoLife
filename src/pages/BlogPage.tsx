@@ -61,24 +61,29 @@ const BlogPage = () => {
       
       let query = supabase
         .from('posts')
-        .select('*, categories(name)')
-        .order('created_at', { ascending: false });
+        .select('*, categories(name)', { count: 'exact' });
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
       }
 
-      const { data, error, count } = await query.range(0, page * POSTS_PER_PAGE -1) as { data: Post[], error: any, count: number | null };
+      const from = (page - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+      query = query.range(from, to).order('created_at', { ascending: false });
+
+      const { data, error, count } = await query as { data: Post[], error: any, count: number | null };
 
       if (error) {
         console.error('Error fetching posts:', error);
         setPosts([]);
       } else {
         setPosts(prevPosts => page === 1 ? (data || []) : [...prevPosts, ...(data || [])]);
-        if (!data || data.length < POSTS_PER_PAGE) {
-          setHasMore(false);
+        if (count !== null) {
+          const loadedPostsCount = page === 1 ? (data?.length || 0) : posts.length + (data?.length || 0);
+          setHasMore(loadedPostsCount < count);
         } else {
-          setHasMore(true);
+          // Fallback if count is not supported
+          setHasMore(!(!data || data.length < POSTS_PER_PAGE));
         }
       }
       setLoading(false);
