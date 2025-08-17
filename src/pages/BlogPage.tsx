@@ -10,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TranslatedText } from '@/components/TranslatedText';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 // Define types for our data
 export interface Category {
@@ -60,24 +61,29 @@ const BlogPage = () => {
       
       let query = supabase
         .from('posts')
-        .select('*, categories(name)')
-        .order('created_at', { ascending: false });
+        .select('*, categories(name)', { count: 'exact' });
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
       }
 
-      const { data, error, count } = await query.range(0, page * POSTS_PER_PAGE -1) as { data: Post[], error: any, count: number | null };
+      const from = (page - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+      query = query.range(from, to).order('created_at', { ascending: false });
+
+      const { data, error, count } = await query as { data: Post[], error: any, count: number | null };
 
       if (error) {
         console.error('Error fetching posts:', error);
         setPosts([]);
       } else {
         setPosts(prevPosts => page === 1 ? (data || []) : [...prevPosts, ...(data || [])]);
-        if (!data || data.length < POSTS_PER_PAGE) {
-          setHasMore(false);
+        if (count !== null) {
+          const loadedPostsCount = page === 1 ? (data?.length || 0) : posts.length + (data?.length || 0);
+          setHasMore(loadedPostsCount < count);
         } else {
-          setHasMore(true);
+          // Fallback if count is not supported
+          setHasMore(!(!data || data.length < POSTS_PER_PAGE));
         }
       }
       setLoading(false);
@@ -87,9 +93,12 @@ const BlogPage = () => {
   }, [selectedCategory, page]);
 
   const handleCategoryClick = (categoryId: number | null) => {
-    setSelectedCategory(categoryId);
-    setPage(1); // Reset page when category changes
-    setPosts([]); // Clear posts to show loading state
+    // If the clicked category is the same as the active one, toggle it off (show all).
+    // Otherwise, switch to the new category.
+    const newCategory = categoryId === selectedCategory ? null : categoryId;
+    setSelectedCategory(newCategory);
+    setPage(1);
+    setPosts([]);
     setHasMore(true);
   };
 
@@ -110,9 +119,12 @@ const BlogPage = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                {t('learn.blog.title', 'Health Blog')}
-              </h1>
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <h1 className="text-4xl font-heading font-bold text-primary">
+                  {t('learn.blog.title', 'Health Blog')}
+                </h1>
+                <LanguageSwitcher />
+              </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {t('learn.blog.subtitle', 'Latest health tips and medical insights')}
               </p>
@@ -200,6 +212,7 @@ const BlogPage = () => {
                         src={featuredPost.image_url}
                         alt={featuredPost.title}
                         className="w-full h-64 md:h-full object-cover"
+                        loading="lazy"
                       />
                     </div>
                     <div className="md:w-1/2 p-6 flex flex-col justify-center">
@@ -238,6 +251,7 @@ const BlogPage = () => {
                             src={post.image_url}
                             alt={post.title}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
                           />
                         </div>
                         <CardHeader>

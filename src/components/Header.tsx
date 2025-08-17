@@ -1,46 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Phone, Menu, X, MessageCircleCode, ChevronDown, Globe } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Phone, Menu, X, MessageCircleCode, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
-import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
-
-const LanguageSwitcher = () => {
-  const { currentLanguage, setLanguage } = useLanguage();
-  const location = useLocation();
-  
-  // Only show language switcher on Learn pages
-  const isLearnPage = location.pathname.startsWith('/blog') || 
-                     location.pathname.startsWith('/patient-guides') ||
-                     location.pathname.startsWith('/faqs') ||
-                     location.pathname.startsWith('/resources');
-
-  if (!isLearnPage) return null;
-
-  return (
-    <div className="flex items-center gap-1">
-      <Globe size={16} className="text-muted-foreground" />
-      <div className="flex bg-muted rounded-md p-1">
-        {[
-          { code: 'en', label: 'EN' },
-          { code: 'te', label: 'తె' },
-          { code: 'hi', label: 'हि' }
-        ].map(({ code, label }) => (
-          <Button
-            key={code}
-            size="sm"
-            variant={currentLanguage === code ? "default" : "ghost"}
-            className="h-6 px-2 text-xs"
-            onClick={() => setLanguage(code as any)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -88,6 +51,7 @@ const Header = () => {
                 className="h-12"
                 onError={handleLogoError}
                 onLoad={handleLogoLoad}
+                loading="lazy"
               />
             ) : (
               <h1 className="text-primary font-heading font-bold text-2xl">
@@ -197,7 +161,6 @@ const Header = () => {
                     <div className="grid w-[500px] grid-cols-2 gap-3 p-4 bg-popover">
                       <div className="col-span-2 mb-2 flex items-center justify-between">
                         <span className="text-sm font-medium">Health Education</span>
-                        <LanguageSwitcher />
                       </div>
                       <NavigationMenuLink asChild>
                         <Link
@@ -314,7 +277,6 @@ const Header = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="block font-medium text-primary">Learn</span>
-                <LanguageSwitcher />
               </div>
               <Link to="/blog" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
               <Link to="/patient-guides" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Patient Guides</Link>
