@@ -10,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TranslatedText } from '@/components/TranslatedText';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 // Define types for our data
 export interface Category {
@@ -110,9 +111,12 @@ const BlogPage = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                {t('learn.blog.title', 'Health Blog')}
-              </h1>
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <h1 className="text-4xl font-heading font-bold text-primary">
+                  {t('learn.blog.title', 'Health Blog')}
+                </h1>
+                <LanguageSwitcher />
+              </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {t('learn.blog.subtitle', 'Latest health tips and medical insights')}
               </p>

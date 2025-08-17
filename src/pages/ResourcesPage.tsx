@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe, BookOpen } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const ResourcesPage = () => {
   const { t } = useLanguage();
@@ -125,9 +126,12 @@ const ResourcesPage = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                {t('learn.resources.title', 'Health Resources')}
-              </h1>
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <h1 className="text-4xl font-heading font-bold text-primary">
+                  {t('learn.resources.title', 'Health Resources')}
+                </h1>
+                <LanguageSwitcher />
+              </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {t('learn.resources.subtitle', 'Useful tools and resources for your health journey')}
               </p>
