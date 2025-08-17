@@ -44,20 +44,16 @@ const TranslatedContent = ({ htmlContent }: { htmlContent: string }) => {
 
 const BlogPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
-  const { language } = useLanguage();
+  const { currentLanguage } = useLanguage();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const handleShare = async () => {
-  const currentUrl = new URL(window.location.href);
-  if (language && language !== 'en') {
-    currentUrl.searchParams.set('lang', language);
-  } else {
-    currentUrl.searchParams.delete('lang'); // Remove if default language
-  }
-  
-  const shareUrl = currentUrl.toString();
+  const baseUrl = `${window.location.origin}${window.location.pathname}`;
+  const shareUrl = currentLanguage && currentLanguage !== 'en' 
+    ? `${baseUrl}?lang=${currentLanguage}` 
+    : baseUrl;
     
     const shareData = {
       title: post.title,
