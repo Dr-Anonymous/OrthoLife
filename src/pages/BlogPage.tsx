@@ -204,6 +204,7 @@ const BlogPage = () => {
                         src={featuredPost.image_url}
                         alt={featuredPost.title}
                         className="w-full h-64 md:h-full object-cover"
+                        loading="lazy"
                       />
                     </div>
                     <div className="md:w-1/2 p-6 flex flex-col justify-center">
@@ -242,6 +243,7 @@ const BlogPage = () => {
                             src={post.image_url}
                             alt={post.title}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
                           />
                         </div>
                         <CardHeader>

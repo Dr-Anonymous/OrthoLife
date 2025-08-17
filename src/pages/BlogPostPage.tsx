@@ -214,7 +214,7 @@ const BlogPostPage = () => {
                   </div>
                 </header>
                 
-                <img src={post.image_url} alt={post.title} className="w-full h-auto rounded-lg mb-8" />
+                <img src={post.image_url} alt={post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
                 <TranslatedContent htmlContent={post.content} />
 

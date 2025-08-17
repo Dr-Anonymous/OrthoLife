@@ -48,6 +48,7 @@ const Hero = () => {
                   src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80" 
                   alt="Medical professional with patient" 
                   className="w-full h-auto object-cover aspect-[4/3]"
+                  loading="lazy"
                 />
               </div>
             </div>
