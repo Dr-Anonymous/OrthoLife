@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, User, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, User, Clock, Share2, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TranslatedText } from '@/components/TranslatedText';
 import { useTranslatedContent } from '@/hooks/useTranslatedContent';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface Post {
   id: number;
@@ -44,6 +47,33 @@ const BlogPostPage = () => {
   const { t } = useLanguage();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const handleShare = async () => {
+    const shareData = {
+      title: post.title,
+      text: `Check out this article from OrthoLife: ${post.title}`,
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share && post) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link Copied!",
+          description: "The article link has been copied to your clipboard.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to share:", error);
+      toast({
+        title: "Error",
+        description: "Could not share the article.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Helper function to strip HTML tags and truncate text
   const createExcerpt = (content: string, maxLength: number = 160): string => {
@@ -161,7 +191,10 @@ const BlogPostPage = () => {
             {!loading && post && (
               <article>
                 <header className="mb-8">
-                  <Badge className="mb-4"><TranslatedText>{post.categories.name}</TranslatedText></Badge>
+                  <div className="flex justify-between items-center mb-4">
+                    <Badge><TranslatedText>{post.categories.name}</TranslatedText></Badge>
+                    <LanguageSwitcher />
+                  </div>
                   <h1 className="text-4xl font-heading font-bold text-primary mb-4">
                     <TranslatedText>{post.title}</TranslatedText>
                   </h1>
@@ -184,6 +217,21 @@ const BlogPostPage = () => {
                 <img src={post.image_url} alt={post.title} className="w-full h-auto rounded-lg mb-8" />
 
                 <TranslatedContent htmlContent={post.content} />
+
+                <div className="mt-8 pt-8 border-t">
+                  <div className="flex justify-between items-center">
+                    <Button asChild variant="outline">
+                      <Link to="/blog">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Blog
+                      </Link>
+                    </Button>
+                    <Button onClick={handleShare}>
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Share Article
+                    </Button>
+                  </div>
+                </div>
               </article>
             )}
 

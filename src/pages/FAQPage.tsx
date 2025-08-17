@@ -9,6 +9,7 @@ import { Search, HelpCircle, Phone, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { TranslatedText } from '@/components/TranslatedText';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const FAQPage = () => {
   const { t } = useLanguage();
@@ -116,9 +117,12 @@ const FAQPage = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                {t('learn.faqs.title', 'Frequently Asked Questions')}
-              </h1>
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <h1 className="text-4xl font-heading font-bold text-primary">
+                  {t('learn.faqs.title', 'Frequently Asked Questions')}
+                </h1>
+                <LanguageSwitcher />
+              </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {t('learn.faqs.subtitle', 'Quick answers to common health questions')}
               </p>

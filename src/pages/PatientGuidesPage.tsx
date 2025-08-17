@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Download, Eye, Clock } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { TranslatedText } from '@/components/TranslatedText';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const PatientGuidesPage = () => {
   const { t } = useLanguage();
@@ -109,9 +110,12 @@ const PatientGuidesPage = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                {t('learn.guides.title', 'Patient Guides')}
-              </h1>
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <h1 className="text-4xl font-heading font-bold text-primary">
+                  {t('learn.guides.title', 'Patient Guides')}
+                </h1>
+                <LanguageSwitcher />
+              </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {t('learn.guides.subtitle', 'Comprehensive guides for better health management')}
               </p>
