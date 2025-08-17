@@ -55,7 +55,7 @@ const EditPostPage = () => {
           const { data: translationData, error: translationError } = await supabase
             .from('translation_cache')
             .select('*')
-            .in('source_text', [postData.title, postData.content]);
+            .in('source_text', [postData.title, postData.content, postData.excerpt]);
 
           if (translationError) throw translationError;
 
@@ -68,6 +68,8 @@ const EditPostPage = () => {
                   newTranslations[trans.target_language].title = trans.translated_text;
               } else if (trans.source_text === postData.content) {
                   newTranslations[trans.target_language].content = trans.translated_text;
+              } else if (trans.source_text === postData.excerpt) {
+                  newTranslations[trans.target_language].excerpt = trans.translated_text;
               }
           }
           setTranslations(newTranslations);
@@ -122,6 +124,14 @@ const EditPostPage = () => {
             source_language: 'en',
             target_language: lang,
             translated_text: translations[lang].title,
+          });
+        }
+        if (translations[lang].excerpt) {
+          translationUpserts.push({
+            source_text: values.excerpt,
+            source_language: 'en',
+            target_language: lang,
+            translated_text: translations[lang].excerpt,
           });
         }
         if (translations[lang].content) {
