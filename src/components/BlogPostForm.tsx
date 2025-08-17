@@ -67,7 +67,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
     }
   }, [initialData, translations, form]);
 
-  const handleTranslationChange = (lang: string, field: 'title' | 'content', value: string) => {
+  const handleTranslationChange = (lang: string, field: 'title' | 'content' | 'excerpt', value: string) => {
     setTranslationValues(prev => ({
       ...prev,
       [lang]: {
@@ -146,6 +146,16 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
               </FormControl>
             </FormItem>
             <FormItem>
+              <FormLabel>Translated Excerpt (Telugu)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter Telugu excerpt"
+                  value={translationValues.te?.excerpt || ''}
+                  onChange={(e) => handleTranslationChange('te', 'excerpt', e.target.value)}
+                />
+              </FormControl>
+            </FormItem>
+            <FormItem>
               <FormLabel>Translated Content (Telugu)</FormLabel>
               <FormControl>
                 <RichTextEditor
@@ -163,6 +173,16 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
                   placeholder="Enter Hindi title"
                   value={translationValues.hi?.title || ''}
                   onChange={(e) => handleTranslationChange('hi', 'title', e.target.value)}
+                />
+              </FormControl>
+            </FormItem>
+            <FormItem>
+              <FormLabel>Translated Excerpt (Hindi)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter Hindi excerpt"
+                  value={translationValues.hi?.excerpt || ''}
+                  onChange={(e) => handleTranslationChange('hi', 'excerpt', e.target.value)}
                 />
               </FormControl>
             </FormItem>
