@@ -25,89 +25,124 @@ const EditPostPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [initialData, setInitialData] = useState<Partial<PostFormValues> | null>(null);
+  const [translations, setTranslations] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchPost = async () => {
+    const fetchPostAndTranslations = async () => {
       if (!postId) return;
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        // Fetch original post
+        const { data: postData, error: postError } = await supabase
           .from('posts')
           .select('*, categories(name)')
           .eq('id', postId)
           .single();
 
-        if (error) throw error;
+        if (postError) throw postError;
         
-        if (data) {
-          const { categories, ...rest } = data;
+        if (postData) {
+          const { categories, ...rest } = postData;
           setInitialData({
             ...rest,
             category_name: categories?.name || '',
           });
+
+          // Fetch translations
+          const { data: translationData, error: translationError } = await supabase
+            .from('translation_cache')
+            .select('*')
+            .in('source_text', [postData.title, postData.content]);
+
+          if (translationError) throw translationError;
+
+          const newTranslations: any = {};
+          for (const trans of translationData) {
+              if (!newTranslations[trans.target_language]) {
+                  newTranslations[trans.target_language] = {};
+              }
+              if (trans.source_text === postData.title) {
+                  newTranslations[trans.target_language].title = trans.translated_text;
+              } else if (trans.source_text === postData.content) {
+                  newTranslations[trans.target_language].content = trans.translated_text;
+              }
+          }
+          setTranslations(newTranslations);
+
         } else {
             toast({ title: "Error", description: "Post not found.", variant: "destructive" });
             navigate('/blog');
         }
       } catch (error) {
-        console.error('Error fetching post:', error);
+        console.error('Error fetching post data:', error);
         toast({ title: "Error", description: "Could not fetch post data.", variant: "destructive" });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPost();
+    fetchPostAndTranslations();
   }, [postId, navigate, toast]);
 
-  const handleSubmit = async (values: PostFormValues) => {
+  const handleSubmit = async (values: PostFormValues, translations: any) => {
     setIsSubmitting(true);
     try {
+      // 1. Update the main post
       const { category_name, ...postData } = values;
-
-      // Find or create category
       let { data: category, error: categoryError } = await supabase
         .from('categories')
         .select('id')
         .eq('name', category_name)
         .single();
-
-      if (categoryError && categoryError.code !== 'PGRST116') {
-        throw categoryError;
-      }
-
-      let categoryId: number;
-      if (category) {
-        categoryId = category.id;
-      } else {
+      if (categoryError && categoryError.code !== 'PGRST116') throw categoryError;
+      let categoryId = category?.id;
+      if (!categoryId) {
         const { data: newCategory, error: newCategoryError } = await supabase
           .from('categories')
-          .insert({ name: category_name })
-          .select('id')
-          .single();
+          .insert({ name: category_name }).select('id').single();
         if (newCategoryError) throw newCategoryError;
         categoryId = newCategory.id;
       }
-
-      const postToUpdate = {
-        ...postData,
-        category_id: categoryId,
-      };
-
-      const { error } = await supabase
+      const postToUpdate = { ...postData, category_id: categoryId };
+      const { error: postUpdateError } = await supabase
         .from('posts')
         .update(postToUpdate)
         .eq('id', postId);
+      if (postUpdateError) throw postUpdateError;
 
-      if (error) {
-        throw error;
+      // 2. Upsert translations
+      const translationUpserts = [];
+      for (const lang in translations) {
+        if (translations[lang].title) {
+          translationUpserts.push({
+            source_text: values.title,
+            source_language: 'en',
+            target_language: lang,
+            translated_text: translations[lang].title,
+          });
+        }
+        if (translations[lang].content) {
+          translationUpserts.push({
+            source_text: values.content,
+            source_language: 'en',
+            target_language: lang,
+            translated_text: translations[lang].content,
+          });
+        }
+      }
+
+      if (translationUpserts.length > 0) {
+        const { error: translationError } = await supabase
+          .from('translation_cache')
+          .upsert(translationUpserts, { onConflict: 'source_text,source_language,target_language' });
+        if (translationError) throw translationError;
       }
 
       toast({
-        title: "Post updated!",
+        title: "Post and translations updated!",
         description: "Your blog post has been successfully updated.",
       });
 
@@ -212,6 +247,7 @@ const EditPostPage = () => {
             {initialData ? (
               <BlogPostForm
                 initialData={initialData}
+                translations={translations}
                 onSubmit={handleSubmit}
                 isSubmitting={isSubmitting}
               />

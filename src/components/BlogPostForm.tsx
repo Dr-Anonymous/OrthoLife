@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import RichTextEditor from './RichTextEditor';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from '@/integrations/supabase/client';
 import { Category } from '@/pages/BlogPage';
 
@@ -31,12 +32,14 @@ export type PostFormValues = z.infer<typeof postFormSchema>;
 
 interface BlogPostFormProps {
   initialData?: Partial<PostFormValues>;
-  onSubmit: (values: PostFormValues) => void;
+  translations?: any;
+  onSubmit: (values: PostFormValues, translations: any) => void;
   isSubmitting: boolean;
 }
 
-const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, onSubmit, isSubmitting }) => {
+const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, onSubmit, isSubmitting }) => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [translationValues, setTranslationValues] = useState<any>({});
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postFormSchema),
@@ -59,112 +62,183 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, onSubmit, isSu
     if (initialData) {
       form.reset(initialData);
     }
-  }, [initialData, form]);
+    if (translations) {
+      setTranslationValues(translations);
+    }
+  }, [initialData, translations, form]);
+
+  const handleTranslationChange = (lang: string, field: 'title' | 'content', value: string) => {
+    setTranslationValues(prev => ({
+      ...prev,
+      [lang]: {
+        ...prev[lang],
+        [field]: value,
+      }
+    }));
+  };
+
+  const handleFormSubmit = (values: PostFormValues) => {
+    onSubmit(values, translationValues);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+        <Tabs defaultValue="english" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="english">English</TabsTrigger>
+            <TabsTrigger value="telugu">Telugu</TabsTrigger>
+            <TabsTrigger value="hindi">Hindi</TabsTrigger>
+          </TabsList>
+          <TabsContent value="english" className="space-y-8 pt-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter post title" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="excerpt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Excerpt</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Enter a short excerpt" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Content</FormLabel>
+                  <FormControl>
+                    <RichTextEditor
+                      content={field.value || ''}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+          <TabsContent value="telugu" className="space-y-8 pt-4">
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Translated Title (Telugu)</FormLabel>
               <FormControl>
-                <Input placeholder="Enter post title" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="excerpt"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Excerpt</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Enter a short excerpt" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Content</FormLabel>
-              <FormControl>
-                <RichTextEditor
-                  content={field.value || ''}
-                  onChange={field.onChange}
+                <Input
+                  placeholder="Enter Telugu title"
+                  value={translationValues.te?.title || ''}
+                  onChange={(e) => handleTranslationChange('te', 'title', e.target.value)}
                 />
               </FormControl>
-              <FormMessage />
             </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="author"
-          render={({ field }) => (
             <FormItem>
-              <FormLabel>Author</FormLabel>
+              <FormLabel>Translated Content (Telugu)</FormLabel>
               <FormControl>
-                <Input placeholder="Enter author's name" {...field} />
+                <RichTextEditor
+                  content={translationValues.te?.content || ''}
+                  onChange={(value) => handleTranslationChange('te', 'content', value)}
+                />
               </FormControl>
-              <FormMessage />
             </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="image_url"
-          render={({ field }) => (
+          </TabsContent>
+          <TabsContent value="hindi" className="space-y-8 pt-4">
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Translated Title (Hindi)</FormLabel>
               <FormControl>
-                <Input placeholder="https://example.com/image.jpg" {...field} />
+                <Input
+                  placeholder="Enter Hindi title"
+                  value={translationValues.hi?.title || ''}
+                  onChange={(e) => handleTranslationChange('hi', 'title', e.target.value)}
+                />
               </FormControl>
-              <FormMessage />
             </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="read_time_minutes"
-          render={({ field }) => (
             <FormItem>
-              <FormLabel>Read Time (minutes)</FormLabel>
+              <FormLabel>Translated Content (Hindi)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 5" {...field} />
+                <RichTextEditor
+                  content={translationValues.hi?.content || ''}
+                  onChange={(value) => handleTranslationChange('hi', 'content', value)}
+                />
               </FormControl>
-              <FormMessage />
             </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="category_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Category</FormLabel>
-              <FormControl>
-                <>
-                  <Input list="category-suggestions" placeholder="Select or create a category" {...field} />
-                  <datalist id="category-suggestions">
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.name} />
-                    ))}
-                  </datalist>
-                </>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          </TabsContent>
+        </Tabs>
+
+        <div className="space-y-8 pt-8 border-t">
+          <FormField
+            control={form.control}
+            name="author"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Author</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter author's name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="image_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Image URL</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://example.com/image.jpg" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="read_time_minutes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Read Time (minutes)</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="e.g., 5" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="category_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <FormControl>
+                  <>
+                    <Input list="category-suggestions" placeholder="Select or create a category" {...field} />
+                    <datalist id="category-suggestions">
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name} />
+                      ))}
+                    </datalist>
+                  </>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Submitting...' : 'Submit Post'}
         </Button>
