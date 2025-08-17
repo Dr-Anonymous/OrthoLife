@@ -44,14 +44,13 @@ const TranslatedContent = ({ htmlContent }: { htmlContent: string }) => {
 
 const BlogPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
-  const { t } = useLanguage();
+  const { language } = useLanguage();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const handleShare = async () => {
   const currentUrl = new URL(window.location.href);
-  const { language } = useLanguage();
   if (language && language !== 'en') {
     currentUrl.searchParams.set('lang', language);
   } else {
