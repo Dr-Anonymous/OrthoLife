@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Phone, Menu, X, MessageCircleCode, ChevronDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,12 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const lang = searchParams.get('lang');
+
+  const withLang = (path: string) => {
+    return lang ? `${path}?lang=${lang}` : path;
+  };
   
   // Use absolute path from public directory
   const logoUrl = "/logo.png";
@@ -93,7 +99,7 @@ const Header = () => {
                     <div className="grid w-[400px] gap-3 p-4 bg-popover">
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/pharmacy"
+                          to={withLang("/pharmacy")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -106,7 +112,7 @@ const Header = () => {
                       </NavigationMenuLink>
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/upload-prescription"
+                          to={withLang("/upload-prescription")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -127,7 +133,7 @@ const Header = () => {
                     <div className="grid w-[400px] gap-3 p-4 bg-popover">
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/diagnostics"
+                          to={withLang("/diagnostics")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -140,7 +146,7 @@ const Header = () => {
                       </NavigationMenuLink>
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/track-test-results"
+                          to={withLang("/track-test-results")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -164,7 +170,7 @@ const Header = () => {
                       </div>
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/blog"
+                          to={withLang("/blog")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -177,7 +183,7 @@ const Header = () => {
                       </NavigationMenuLink>
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/patient-guides"
+                          to={withLang("/patient-guides")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -190,7 +196,7 @@ const Header = () => {
                       </NavigationMenuLink>
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/faqs"
+                          to={withLang("/faqs")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -203,7 +209,7 @@ const Header = () => {
                       </NavigationMenuLink>
                       <NavigationMenuLink asChild>
                         <Link
-                          to="/resources"
+                          to={withLang("/resources")}
                           className={cn(
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
@@ -262,15 +268,15 @@ const Header = () => {
             {/* Pharmacy Dropdown */}
             <div className="space-y-2">
               <span className="block font-medium text-primary">Pharmacy</span>
-              <Link to="/pharmacy" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Order Medicines</Link>
-              <Link to="/upload-prescription" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Upload Prescription</Link>
+              <Link to={withLang("/pharmacy")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Order Medicines</Link>
+              <Link to={withLang("/upload-prescription")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Upload Prescription</Link>
             </div>
 
             {/* Diagnostics Dropdown */}
             <div className="space-y-2">
               <span className="block font-medium text-primary">Diagnostics</span>
-              <Link to="/diagnostics" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Book Lab Tests</Link>
-              <Link to="/track-test-results" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Track Test Results</Link>
+              <Link to={withLang("/diagnostics")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Book Lab Tests</Link>
+              <Link to={withLang("/track-test-results")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Track Test Results</Link>
             </div>
 
             {/* Learn Dropdown */}
@@ -278,10 +284,10 @@ const Header = () => {
               <div className="flex items-center justify-between">
                 <span className="block font-medium text-primary">Learn</span>
               </div>
-              <Link to="/blog" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
-              <Link to="/patient-guides" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Patient Guides</Link>
-              <Link to="/faqs" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>FAQs</Link>
-              <Link to="/resources" className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Resources</Link>
+              <Link to={withLang("/blog")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
+              <Link to={withLang("/patient-guides")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Patient Guides</Link>
+              <Link to={withLang("/faqs")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>FAQs</Link>
+              <Link to={withLang("/resources")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Resources</Link>
             </div>
 
             <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
