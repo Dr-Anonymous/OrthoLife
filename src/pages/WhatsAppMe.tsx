@@ -240,7 +240,7 @@ const WhatsAppMe = () => {
                 <li key={event.id}>
                   {event.summary} ({new Date(event.start).toLocaleString()})
                   {event.description}
-                  {event.attachments}
+                  {event?.attachments}
                 </li>
               ))}
             </ul>
