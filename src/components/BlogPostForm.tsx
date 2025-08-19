@@ -85,10 +85,9 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
         <Tabs defaultValue="english" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="english">English</TabsTrigger>
             <TabsTrigger value="telugu">Telugu</TabsTrigger>
-            <TabsTrigger value="hindi">Hindi</TabsTrigger>
           </TabsList>
           <TabsContent value="english" className="space-y-8 pt-4">
             <FormField
@@ -161,37 +160,6 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
                 <RichTextEditor
                   content={translationValues.te?.content || ''}
                   onChange={(value) => handleTranslationChange('te', 'content', value)}
-                />
-              </FormControl>
-            </FormItem>
-          </TabsContent>
-          <TabsContent value="hindi" className="space-y-8 pt-4">
-            <FormItem>
-              <FormLabel>Translated Title (Hindi)</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Enter Hindi title"
-                  value={translationValues.hi?.title || ''}
-                  onChange={(e) => handleTranslationChange('hi', 'title', e.target.value)}
-                />
-              </FormControl>
-            </FormItem>
-            <FormItem>
-              <FormLabel>Translated Excerpt (Hindi)</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Enter Hindi excerpt"
-                  value={translationValues.hi?.excerpt || ''}
-                  onChange={(e) => handleTranslationChange('hi', 'excerpt', e.target.value)}
-                />
-              </FormControl>
-            </FormItem>
-            <FormItem>
-              <FormLabel>Translated Content (Hindi)</FormLabel>
-              <FormControl>
-                <RichTextEditor
-                  content={translationValues.hi?.content || ''}
-                  onChange={(value) => handleTranslationChange('hi', 'content', value)}
                 />
               </FormControl>
             </FormItem>
