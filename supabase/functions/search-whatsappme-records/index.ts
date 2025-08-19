@@ -94,7 +94,7 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
 
 async function searchCalendarEvents(accessToken, phoneNumber) {
   try {
-    const calendarId = 'bookings';
+    const calendarId = Deno.env.get('GOOGLE_CALENDAR_ID');
     const now = new Date().toISOString();
 
     const searchResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?q=${encodeURIComponent(phoneNumber)}&timeMin=${now}`, {
