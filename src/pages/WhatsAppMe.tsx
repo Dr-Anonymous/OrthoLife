@@ -220,7 +220,6 @@ const WhatsAppMe = () => {
                   key={folder.id}
                   href={`https://drive.google.com/drive/folders/${folder.id}`}
                   target="_blank"
-                  rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
                 >
                   {folder.name}
