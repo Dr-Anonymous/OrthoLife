@@ -12,110 +12,27 @@ const ResourcesPage = () => {
   const { t } = useTranslation();
 
   const toolsAndCalculators = [
-    {
-      id: 1,
-      title: 'BMI Calculator',
-      description: 'Calculate your Body Mass Index and understand your health status.',
-      icon: Calculator,
-      type: 'Interactive Tool',
-      link: '#'
-    },
-    {
-      id: 2,
-      title: 'Pain Tracker',
-      description: 'Track your pain levels and patterns to share with your doctor.',
-      icon: Calendar,
-      type: 'Interactive Tool',
-      link: '#'
-    },
-    {
-      id: 3,
-      title: 'Recovery Progress Tracker',
-      description: 'Monitor your post-surgery recovery milestones and exercises.',
-      icon: FileText,
-      type: 'Interactive Tool',
-      link: '#'
-    }
+    { id: 1, titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', link: '#' },
+    { id: 2, titleKey: 'resources.tool2.title', descriptionKey: 'resources.tool2.description', icon: Calendar, type: 'Interactive Tool', link: '#' },
+    { id: 3, titleKey: 'resources.tool3.title', descriptionKey: 'resources.tool3.description', icon: FileText, type: 'Interactive Tool', link: '#' }
   ];
 
   const mobileApps = [
-    {
-      id: 1,
-      title: 'OrthoLife Patient App',
-      description: 'Book appointments, view reports, and access your medical records.',
-      platforms: ['iOS', 'Android'],
-      rating: 4.8,
-      downloads: '10K+',
-      icon: Smartphone
-    },
-    {
-      id: 2,
-      title: 'Exercise & Recovery',
-      description: 'Guided exercises and rehabilitation programs for faster recovery.',
-      platforms: ['iOS', 'Android'],
-      rating: 4.6,
-      downloads: '5K+',
-      icon: Smartphone
-    }
+    { id: 1, titleKey: 'resources.app1.title', descriptionKey: 'resources.app1.description', platforms: ['iOS', 'Android'], rating: 4.8, downloads: '10K+', icon: Smartphone },
+    { id: 2, titleKey: 'resources.app2.title', descriptionKey: 'resources.app2.description', platforms: ['iOS', 'Android'], rating: 4.6, downloads: '5K+', icon: Smartphone }
   ];
 
   const externalResources = [
-    {
-      id: 1,
-      title: 'American Academy of Orthopedic Surgeons',
-      description: 'Comprehensive orthopedic information and patient education materials.',
-      url: 'https://www.aaos.org',
-      type: 'Medical Organization'
-    },
-    {
-      id: 2,
-      title: 'Bone Health & Osteoporosis Foundation',
-      description: 'Resources for bone health, osteoporosis prevention and treatment.',
-      url: 'https://www.bonehealthandosteoporosis.org',
-      type: 'Health Foundation'
-    },
-    {
-      id: 3,
-      title: 'Physical Therapy Guidelines',
-      description: 'Evidence-based physical therapy practices and exercises.',
-      url: 'https://www.apta.org',
-      type: 'Professional Resource'
-    }
+    { id: 1, titleKey: 'resources.external1.title', descriptionKey: 'resources.external1.description', url: 'https://www.aaos.org', type: 'Medical Organization' },
+    { id: 2, titleKey: 'resources.external2.title', descriptionKey: 'resources.external2.description', url: 'https://www.bonehealthandosteoporosis.org', type: 'Health Foundation' },
+    { id: 3, titleKey: 'resources.external3.title', descriptionKey: 'resources.external3.description', url: 'https://www.apta.org', type: 'Professional Resource' }
   ];
 
   const downloadableResources = [
-    {
-      id: 1,
-      title: 'Pre-Surgery Checklist',
-      description: 'Complete checklist to prepare for your orthopedic surgery.',
-      format: 'PDF',
-      size: '2.1 MB',
-      downloads: 1250
-    },
-    {
-      id: 2,
-      title: 'Exercise Instruction Sheets',
-      description: 'Printable exercise guides for common orthopedic conditions.',
-      format: 'PDF',
-      size: '5.8 MB',
-      downloads: 2100
-    },
-    {
-      id: 3,
-      title: 'Pain Management Diary',
-      description: 'Track your pain levels, triggers, and medication effectiveness.',
-      format: 'PDF',
-      size: '1.5 MB',
-      downloads: 890
-    },
-    {
-      id: 4,
-      title: 'Insurance Claims Guide',
-      description: 'Step-by-step guide for filing and managing insurance claims.',
-      format: 'PDF',
-      size: '3.2 MB',
-      downloads: 650
-    }
+    { id: 1, titleKey: 'resources.download1.title', descriptionKey: 'resources.download1.description', format: 'PDF', size: '2.1 MB', downloads: 1250 },
+    { id: 2, titleKey: 'resources.download2.title', descriptionKey: 'resources.download2.description', format: 'PDF', size: '5.8 MB', downloads: 2100 },
+    { id: 3, titleKey: 'resources.download3.title', descriptionKey: 'resources.download3.description', format: 'PDF', size: '1.5 MB', downloads: 890 },
+    { id: 4, titleKey: 'resources.download4.title', descriptionKey: 'resources.download4.description', format: 'PDF', size: '3.2 MB', downloads: 650 }
   ];
 
   return (
@@ -141,7 +58,7 @@ const ResourcesPage = () => {
             <section className="mb-12">
               <h2 className="text-2xl font-heading font-bold mb-6 flex items-center gap-2">
                 <Calculator className="text-primary" />
-                Interactive Tools & Calculators
+                {t('resources.tools.title')}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {toolsAndCalculators.map((tool) => (
@@ -151,12 +68,12 @@ const ResourcesPage = () => {
                         <tool.icon className="text-primary" size={32} />
                         <Badge variant="secondary">{tool.type}</Badge>
                       </div>
-                      <CardTitle className="text-lg">{tool.title}</CardTitle>
-                      <CardDescription>{tool.description}</CardDescription>
+                      <CardTitle className="text-lg">{t(tool.titleKey)}</CardTitle>
+                      <CardDescription>{t(tool.descriptionKey)}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Button className="w-full group-hover:bg-primary/90 transition-colors">
-                        Launch Tool
+                        {t('resources.tools.launch')}
                         <ExternalLink size={16} className="ml-2" />
                       </Button>
                     </CardContent>
@@ -169,7 +86,7 @@ const ResourcesPage = () => {
             <section className="mb-12">
               <h2 className="text-2xl font-heading font-bold mb-6 flex items-center gap-2">
                 <Smartphone className="text-primary" />
-                Mobile Apps
+                {t('resources.apps.title')}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {mobileApps.map((app) => (
@@ -181,7 +98,7 @@ const ResourcesPage = () => {
                             <app.icon className="text-primary" size={24} />
                           </div>
                           <div>
-                            <CardTitle className="text-lg">{app.title}</CardTitle>
+                            <CardTitle className="text-lg">{t(app.titleKey)}</CardTitle>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-yellow-500">★</span>
                               <span className="text-sm text-muted-foreground">
@@ -191,7 +108,7 @@ const ResourcesPage = () => {
                           </div>
                         </div>
                       </div>
-                      <CardDescription className="mt-3">{app.description}</CardDescription>
+                      <CardDescription className="mt-3">{t(app.descriptionKey)}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-between">
@@ -215,7 +132,7 @@ const ResourcesPage = () => {
             <section className="mb-12">
               <h2 className="text-2xl font-heading font-bold mb-6 flex items-center gap-2">
                 <Download className="text-primary" />
-                Downloadable Resources
+                {t('resources.downloads.title')}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {downloadableResources.map((resource) => (
@@ -223,8 +140,8 @@ const ResourcesPage = () => {
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-2">{resource.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-3">{resource.description}</p>
+                          <h3 className="font-semibold mb-2">{t(resource.titleKey)}</h3>
+                          <p className="text-sm text-muted-foreground mb-3">{t(resource.descriptionKey)}</p>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span>{resource.format}</span>
                             <span>{resource.size}</span>
@@ -245,7 +162,7 @@ const ResourcesPage = () => {
             <section className="mb-12">
               <h2 className="text-2xl font-heading font-bold mb-6 flex items-center gap-2">
                 <Globe className="text-primary" />
-                External Resources
+                {t('resources.external.title')}
               </h2>
               <div className="grid grid-cols-1 gap-4">
                 {externalResources.map((resource) => (
@@ -254,13 +171,13 @@ const ResourcesPage = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold">{resource.title}</h3>
+                            <h3 className="font-semibold">{t(resource.titleKey)}</h3>
                             <Badge variant="outline">{resource.type}</Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">{resource.description}</p>
+                          <p className="text-sm text-muted-foreground">{t(resource.descriptionKey)}</p>
                         </div>
                         <Button variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
-                          Visit Site
+                          {t('resources.external.visit')}
                           <ExternalLink size={16} className="ml-2" />
                         </Button>
                       </div>
@@ -275,26 +192,26 @@ const ResourcesPage = () => {
               <CardHeader>
                 <CardTitle className="text-red-800 flex items-center gap-2">
                   <FileText className="text-red-600" />
-                  Emergency Contacts & Resources
+                  {t('resources.emergency.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="font-semibold text-red-800 mb-3">Emergency Numbers</h3>
+                    <h3 className="font-semibold text-red-800 mb-3">{t('resources.emergency.numbersTitle')}</h3>
                     <div className="space-y-2 text-sm">
-                      <div>Emergency Services: <strong>108</strong></div>
-                      <div>Hospital Emergency: <strong>9866812555</strong></div>
-                      <div>Poison Control: <strong>1066</strong></div>
+                      <div dangerouslySetInnerHTML={{ __html: t('resources.emergency.services') }} />
+                      <div dangerouslySetInnerHTML={{ __html: t('resources.emergency.hospital') }} />
+                      <div dangerouslySetInnerHTML={{ __html: t('resources.emergency.poison') }} />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-red-800 mb-3">When to Seek Emergency Care</h3>
+                    <h3 className="font-semibold text-red-800 mb-3">{t('resources.emergency.whenToSeekCare')}</h3>
                     <ul className="text-sm space-y-1 text-red-700">
-                      <li>• Severe bleeding or trauma</li>
-                      <li>• Loss of consciousness</li>
-                      <li>• Severe difficulty breathing</li>
-                      <li>• Signs of stroke or heart attack</li>
+                      <li>{t('resources.emergency.careItem1')}</li>
+                      <li>{t('resources.emergency.careItem2')}</li>
+                      <li>{t('resources.emergency.careItem3')}</li>
+                      <li>{t('resources.emergency.careItem4')}</li>
                     </ul>
                   </div>
                 </div>
