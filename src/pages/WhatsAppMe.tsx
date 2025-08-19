@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '../../integrations/supabase/client';
 
 
 const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [patientFolders, setPatientFolders] = useState<any[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const formatPhoneNumber = (input: string) => {
     // Remove all non-digit characters
@@ -27,6 +31,33 @@ const WhatsAppMe = () => {
       setPhone(formatPhoneNumber(numberFromURL));
     }
   }, []);
+
+  useEffect(() => {
+    const searchRecords = async () => {
+      if (phone.length === 10) {
+        setIsLoading(true);
+        setPatientFolders([]);
+        setCalendarEvents([]);
+        try {
+          const { data, error } = await supabase.functions.invoke('search-whatsappme-records', {
+            body: { phoneNumber: phone },
+          });
+          if (error) throw error;
+          setPatientFolders(data.patientFolders || []);
+          setCalendarEvents(data.calendarEvents || []);
+        } catch (error) {
+          console.error('Error searching records:', error);
+          showError('Failed to search for records.');
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setPatientFolders([]);
+        setCalendarEvents([]);
+      }
+    };
+    searchRecords();
+  }, [phone]);
   
   const process = (e: number) => {
     if (!phone) {
@@ -175,6 +206,44 @@ const WhatsAppMe = () => {
             </Button>
           </div>
         </div>
+
+        {isLoading && <p>Loading...</p>}
+
+        {patientFolders.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Link className="w-4 h-4" /> Patient Records
+            </h3>
+            <div className="space-y-1">
+              {patientFolders.map(folder => (
+                <a
+                  key={folder.id}
+                  href={`https://docs.google.com/document/d/${folder.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  {folder.name}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {calendarEvents.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Calendar className="w-4 h-4" /> Calendar Events
+            </h3>
+            <ul className="space-y-1 list-disc list-inside">
+              {calendarEvents.map(event => (
+                <li key={event.id}>
+                  {event.summary} ({new Date(event.start).toLocaleString()})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-gray-700">
