@@ -297,7 +297,7 @@ serve(async (req)=>{
                     }
                     return null;
                   };
-                  // Column 0: Serial number (starting from 3 as per template)
+                  // Column 0: Serial number
                   const col0Index = getCellInsertionIndex(row.tableCells[0]);
                   if (col0Index !== null) {
                     cellRequests.push({
@@ -305,7 +305,7 @@ serve(async (req)=>{
                         location: {
                           index: col0Index
                         },
-                        text: (medIndex + 3).toString()
+                        text: (medIndex + 1).toString()
                       }
                     });
                   }
@@ -397,7 +397,6 @@ serve(async (req)=>{
                   console.error(`Row ${rowIndex} does not have enough cells or is malformed`);
                 }
               }
-
               if (cellRequests.length > 0) {
                 //console.log(`Populating ${cellRequests.length} cells`);
                 // Process in reverse order to maintain correct indices and in smaller batches
@@ -420,7 +419,7 @@ serve(async (req)=>{
                     console.error(`Failed to populate cells batch ${Math.floor(i / batchSize) + 1}: ${populateResponse.status} ${populateResponse.statusText}`, errorText);
                   // Don't throw error, just log and continue with next batch
                   } else {
-                    //console.log(`Successfully populated batch ${Math.floor(i / batchSize) + 1}`);
+                  //console.log(`Successfully populated batch ${Math.floor(i / batchSize) + 1}`);
                   }
                   // Add delay between batches
                   await new Promise((resolve)=>setTimeout(resolve, 200));
