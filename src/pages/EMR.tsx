@@ -61,7 +61,8 @@ const EMR = () => {
     diagnosis: '',
     advice: '',
     medications: [
-      { name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, duration: '', instructions: '' }
+      { name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
+      { name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
     ] as Medication[]
   });
 
