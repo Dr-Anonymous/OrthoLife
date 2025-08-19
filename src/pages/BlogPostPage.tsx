@@ -6,11 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, Clock, Share2, ArrowLeft } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { TranslatedText } from '@/components/TranslatedText';
-import { useTranslatedContent } from '@/hooks/useTranslatedContent';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -26,33 +24,24 @@ interface Post {
   categories: { name: string };
 }
 
-const TranslatedContent = ({ htmlContent }: { htmlContent: string }) => {
-  const { text: translatedHtml, isLoading } = useTranslatedContent(htmlContent);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-      </div>
-    );
-  }
-
-  return <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedHtml }} />;
-};
+interface TranslatedPost {
+    title: string;
+    content: string;
+    excerpt: string;
+}
 
 const BlogPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
-  const { currentLanguage } = useLanguage();
+  const { i18n } = useTranslation();
   const [post, setPost] = useState<Post | null>(null);
+  const [translatedPost, setTranslatedPost] = useState<TranslatedPost | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const handleShare = async () => {
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
-  const shareUrl = currentLanguage && currentLanguage !== 'en' 
-    ? `${baseUrl}?lang=${currentLanguage}` 
+  const shareUrl = i18n.language && i18n.language !== 'en'
+    ? `${baseUrl}?lang=${i18n.language}`
     : baseUrl;
     
     const shareData = {
@@ -111,26 +100,46 @@ const BlogPostPage = () => {
   };
 
   useEffect(() => {
-    const fetchPost = async () => {
+    const fetchPostAndTranslations = async () => {
       if (!postId) return;
       setLoading(true);
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*, categories(name)') 
-        .eq('id', postId)
-        .single();
+      setTranslatedPost(null); // Reset translations when post or language changes
 
-      if (error) {
-        console.error('Error fetching post:', error);
+      try {
+        const { data: postData, error: postError } = await supabase
+          .from('posts')
+          .select('*, categories(name)')
+          .eq('id', postId)
+          .single();
+
+        if (postError) throw postError;
+        setPost(postData);
+
+        if (i18n.language !== 'en') {
+          const { data: translationData, error: translationError } = await supabase
+            .from('post_translations')
+            .select('*')
+            .eq('post_id', postId)
+            .eq('language', i18n.language)
+            .single();
+
+          if (translationError && translationError.code !== 'PGRST116') {
+            throw translationError;
+          }
+          if (translationData) {
+            setTranslatedPost(translationData);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching post data:', error);
         setPost(null);
-      } else {
-        setPost(data);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchPost();
-  }, [postId]);
+    fetchPostAndTranslations();
+  }, [postId, i18n.language]);
 
   // Effect to update document title and meta tags when post loads
   useEffect(() => {
@@ -197,11 +206,11 @@ const BlogPostPage = () => {
               <article>
                 <header className="mb-8">
                   <div className="flex justify-between items-center mb-4">
-                    <Badge><TranslatedText>{post.categories.name}</TranslatedText></Badge>
+                    <Badge>{post.categories.name}</Badge>
                     <LanguageSwitcher />
                   </div>
                   <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                    <TranslatedText>{post.title}</TranslatedText>
+                    {translatedPost?.title || post.title}
                   </h1>
                   <div className="flex items-center text-muted-foreground flex-wrap">
                     <div className="flex items-center mr-6 mb-2">
@@ -219,9 +228,9 @@ const BlogPostPage = () => {
                   </div>
                 </header>
                 
-                <img src={post.image_url} alt={post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+                <img src={post.image_url} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
-                <TranslatedContent htmlContent={post.content} />
+                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedPost?.content || post.content }} />
 
                 <div className="mt-8 pt-8 border-t">
                   <div className="flex justify-between items-center">

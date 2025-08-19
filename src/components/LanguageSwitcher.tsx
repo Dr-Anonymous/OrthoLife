@@ -1,10 +1,14 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export const LanguageSwitcher = () => {
-  const { currentLanguage, setLanguage } = useLanguage();
+  const { i18n } = useTranslation();
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
 
   return (
     <div className="flex items-center gap-1">
@@ -17,9 +21,9 @@ export const LanguageSwitcher = () => {
           <Button
             key={code}
             size="sm"
-            variant={currentLanguage === code ? "default" : "ghost"}
+            variant={i18n.language === code ? "default" : "ghost"}
             className="h-6 px-2 text-xs"
-            onClick={() => setLanguage(code as any)}
+            onClick={() => changeLanguage(code)}
           >
             {label}
           </Button>

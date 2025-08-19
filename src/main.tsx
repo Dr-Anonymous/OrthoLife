@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import './i18n'; // import i18next configuration
 import { handleSPARedirect } from './utils/spa-redirect'
 // Handle SPA redirect for GitHub Pages
 handleSPARedirect()

@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Search, HelpCircle, Phone, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { TranslatedText } from '@/components/TranslatedText';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const FAQPage = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
