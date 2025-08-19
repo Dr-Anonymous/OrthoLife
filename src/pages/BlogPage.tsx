@@ -6,9 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, Clock, ArrowRight } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
-import { TranslatedText } from '@/components/TranslatedText';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -28,10 +27,11 @@ export interface Post {
   category_id: number;
   image_url: string;
   categories: { name: string };
+  post_translations: { title: string; excerpt: string; }[];
 }
 
 const BlogPage = () => {
-  const { t } = useLanguage();
+  const { t, i18n } = useTranslation();
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -61,7 +61,11 @@ const BlogPage = () => {
       
       let query = supabase
         .from('posts')
-        .select('*, categories(name)', { count: 'exact' });
+        .select('*, categories(name), post_translations(*)', { count: 'exact' });
+
+      if (i18n.language !== 'en') {
+        query = query.filter('post_translations.language', 'eq', i18n.language);
+      }
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
@@ -71,7 +75,7 @@ const BlogPage = () => {
       const to = from + POSTS_PER_PAGE - 1;
       query = query.range(from, to).order('created_at', { ascending: false });
 
-      const { data, error, count } = await query as { data: Post[], error: any, count: number | null };
+      const { data, error, count } = await query;
 
       if (error) {
         console.error('Error fetching posts:', error);
@@ -90,7 +94,7 @@ const BlogPage = () => {
     };
 
     fetchPosts();
-  }, [selectedCategory, page]);
+  }, [selectedCategory, page, i18n.language, posts.length]);
 
   const handleCategoryClick = (categoryId: number | null) => {
     // If the clicked category is the same as the active one, toggle it off (show all).
@@ -216,12 +220,12 @@ const BlogPage = () => {
                       />
                     </div>
                     <div className="md:w-1/2 p-6 flex flex-col justify-center">
-                      <Badge className="mb-3 w-fit"><TranslatedText>{featuredPost.categories.name}</TranslatedText></Badge>
+                      <Badge className="mb-3 w-fit">{featuredPost.categories.name}</Badge>
                       <h2 className="text-2xl font-heading font-bold mb-3">
-                        <TranslatedText>{featuredPost.title}</TranslatedText>
+                        {featuredPost.post_translations[0]?.title || featuredPost.title}
                       </h2>
                       <p className="text-muted-foreground mb-4">
-                        <TranslatedText>{featuredPost.excerpt}</TranslatedText>
+                        {featuredPost.post_translations[0]?.excerpt || featuredPost.excerpt}
                       </p>
                       <div className="flex items-center text-sm text-muted-foreground mb-4 flex-wrap">
                         <User size={16} className="mr-1" />
@@ -260,10 +264,10 @@ const BlogPage = () => {
                             <span className="text-xs text-muted-foreground">{post.read_time_minutes} min read</span>
                           </div>
                           <CardTitle className="text-lg leading-tight">
-                            <TranslatedText>{post.title}</TranslatedText>
+                            {post.post_translations[0]?.title || post.title}
                           </CardTitle>
                           <CardDescription>
-                            <TranslatedText>{post.excerpt}</TranslatedText>
+                            {post.post_translations[0]?.excerpt || post.excerpt}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="mt-auto">

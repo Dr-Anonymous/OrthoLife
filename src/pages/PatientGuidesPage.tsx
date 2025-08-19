@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Download, Eye, Clock } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { TranslatedText } from '@/components/TranslatedText';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const PatientGuidesPage = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const guides = [
     {

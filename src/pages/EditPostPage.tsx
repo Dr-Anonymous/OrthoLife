@@ -20,12 +20,20 @@ import {
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 
+interface TranslationValues {
+  [lang: string]: {
+    title?: string;
+    excerpt?: string;
+    content?: string;
+  };
+}
+
 const EditPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [initialData, setInitialData] = useState<Partial<PostFormValues> | null>(null);
-  const [translations, setTranslations] = useState<any>({});
+  const [translations, setTranslations] = useState<TranslationValues>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -48,29 +56,24 @@ const EditPostPage = () => {
           const { categories, ...rest } = postData;
           setInitialData({
             ...rest,
-            category_name: categories?.name || '',
+            category_name: (categories as { name: string })?.name || '',
           });
 
-          // Fetch translations
+          // Fetch translations from the new table
           const { data: translationData, error: translationError } = await supabase
-            .from('translation_cache')
+            .from('post_translations')
             .select('*')
-            .in('source_text', [postData.title, postData.content, postData.excerpt]);
+            .eq('post_id', postId);
 
           if (translationError) throw translationError;
 
           const newTranslations: any = {};
           for (const trans of translationData) {
-              if (!newTranslations[trans.target_language]) {
-                  newTranslations[trans.target_language] = {};
-              }
-              if (trans.source_text === postData.title) {
-                  newTranslations[trans.target_language].title = trans.translated_text;
-              } else if (trans.source_text === postData.content) {
-                  newTranslations[trans.target_language].content = trans.translated_text;
-              } else if (trans.source_text === postData.excerpt) {
-                  newTranslations[trans.target_language].excerpt = trans.translated_text;
-              }
+            newTranslations[trans.language] = {
+              title: trans.title,
+              excerpt: trans.excerpt,
+              content: trans.content,
+            };
           }
           setTranslations(newTranslations);
 
@@ -89,12 +92,12 @@ const EditPostPage = () => {
     fetchPostAndTranslations();
   }, [postId, navigate, toast]);
 
-  const handleSubmit = async (values: PostFormValues, translations: any) => {
+  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; } }) => {
     setIsSubmitting(true);
     try {
       // 1. Update the main post
       const { category_name, ...postData } = values;
-      let { data: category, error: categoryError } = await supabase
+      const { data: category, error: categoryError } = await supabase
         .from('categories')
         .select('id')
         .eq('name', category_name)
@@ -115,39 +118,25 @@ const EditPostPage = () => {
         .eq('id', postId);
       if (postUpdateError) throw postUpdateError;
 
-      // 2. Upsert translations
+      // 2. Upsert translations into the new table
       const translationUpserts = [];
       for (const lang in translations) {
-        if (translations[lang].title) {
+        // Ensure that we only upsert if there is some translated content
+        if (translations[lang].title || translations[lang].excerpt || translations[lang].content) {
           translationUpserts.push({
-            source_text: values.title,
-            source_language: 'en',
-            target_language: lang,
-            translated_text: translations[lang].title,
-          });
-        }
-        if (translations[lang].excerpt) {
-          translationUpserts.push({
-            source_text: values.excerpt,
-            source_language: 'en',
-            target_language: lang,
-            translated_text: translations[lang].excerpt,
-          });
-        }
-        if (translations[lang].content) {
-          translationUpserts.push({
-            source_text: values.content,
-            source_language: 'en',
-            target_language: lang,
-            translated_text: translations[lang].content,
+            post_id: postId,
+            language: lang,
+            title: translations[lang].title,
+            excerpt: translations[lang].excerpt,
+            content: translations[lang].content,
           });
         }
       }
 
       if (translationUpserts.length > 0) {
         const { error: translationError } = await supabase
-          .from('translation_cache')
-          .upsert(translationUpserts, { onConflict: 'source_text,source_language,target_language' });
+          .from('post_translations')
+          .upsert(translationUpserts, { onConflict: 'post_id,language' });
         if (translationError) throw translationError;
       }
 

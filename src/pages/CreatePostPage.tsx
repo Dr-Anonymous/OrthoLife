@@ -11,13 +11,13 @@ const CreatePostPage = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: PostFormValues) => {
+  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; } }) => {
     setIsSubmitting(true);
     try {
       const { category_name, ...postData } = values;
 
       // Check if category exists
-      let { data: category, error: categoryError } = await supabase
+      const { data: category, error: categoryError } = await supabase
         .from('categories')
         .select('id')
         .eq('name', category_name)
@@ -47,14 +47,32 @@ const CreatePostPage = () => {
         category_id: categoryId,
       };
 
-      const { data, error } = await supabase
+      const { data: newPost, error } = await supabase
         .from('posts')
         .insert([postToInsert])
         .select()
         .single();
 
-      if (error) {
-        throw error;
+      if (error) throw error;
+      if (!newPost) throw new Error("Failed to create post.");
+
+      // Insert translations
+      const translationUpserts = [];
+      for (const lang in translations) {
+        translationUpserts.push({
+          post_id: newPost.id,
+          language: lang,
+          title: translations[lang].title,
+          excerpt: translations[lang].excerpt,
+          content: translations[lang].content,
+        });
+      }
+
+      if (translationUpserts.length > 0) {
+        const { error: translationError } = await supabase
+          .from('post_translations')
+          .insert(translationUpserts);
+        if (translationError) throw translationError;
       }
 
       toast({
@@ -62,12 +80,7 @@ const CreatePostPage = () => {
         description: "Your new blog post has been successfully created.",
       });
 
-      // Redirect to the new post's page
-      if (data) {
-        navigate(`/blog/${data.id}`);
-      } else {
-        navigate('/blog');
-      }
+      navigate(`/blog/${newPost.id}`);
 
     } catch (error) {
       console.error('Error creating post:', error);

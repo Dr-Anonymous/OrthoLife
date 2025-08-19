@@ -30,16 +30,24 @@ const postFormSchema = z.object({
 
 export type PostFormValues = z.infer<typeof postFormSchema>;
 
+interface TranslationValues {
+  [lang: string]: {
+    title?: string;
+    excerpt?: string;
+    content?: string;
+  };
+}
+
 interface BlogPostFormProps {
   initialData?: Partial<PostFormValues>;
-  translations?: any;
-  onSubmit: (values: PostFormValues, translations: any) => void;
+  translations?: TranslationValues;
+  onSubmit: (values: PostFormValues, translations: TranslationValues) => void;
   isSubmitting: boolean;
 }
 
 const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, onSubmit, isSubmitting }) => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [translationValues, setTranslationValues] = useState<any>({});
+  const [translationValues, setTranslationValues] = useState<TranslationValues>({});
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postFormSchema),

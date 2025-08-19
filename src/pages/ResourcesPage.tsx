@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe, BookOpen } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const ResourcesPage = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const toolsAndCalculators = [
     {
