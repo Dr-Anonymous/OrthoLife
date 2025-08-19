@@ -123,11 +123,10 @@ async function searchCalendarEvents(accessToken, phoneNumber) {
     const searchData = await searchResponse.json();
     const matchingEvents = searchData.items || [];
     return matchingEvents.map((event)=>({
-        id: event.id,
         summary: event.summary,
         start: event.start?.dateTime || event.start?.date,
-        end: event.end?.dateTime || event.end?.date,
-        description: event.description
+        description: event.description,
+        attachments: event.attachments?.[0]?.fileUrl
       }));
   } catch (error) {
     console.error('Error in calendar event search:', error);
