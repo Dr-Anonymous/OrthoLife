@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '../../integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 
 const WhatsAppMe = () => {
