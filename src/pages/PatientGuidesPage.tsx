@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Download, Eye, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { TranslatedText } from '@/components/TranslatedText';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const PatientGuidesPage = () => {
@@ -15,8 +14,8 @@ const PatientGuidesPage = () => {
   const guides = [
     {
       id: 1,
-      title: 'Pre-Surgery Preparation Guide',
-      description: 'Complete guide on how to prepare for orthopedic surgery, including diet, medications, and what to expect.',
+      titleKey: 'guides.guide1.title',
+      descriptionKey: 'guides.guide1.description',
       category: 'Surgery',
       pages: 12,
       downloadCount: 1250,
@@ -27,8 +26,8 @@ const PatientGuidesPage = () => {
     },
     {
       id: 2,
-      title: 'Post-Operative Recovery Manual',
-      description: 'Comprehensive recovery guide including exercises, pain management, and milestone tracking.',
+      titleKey: 'guides.guide2.title',
+      descriptionKey: 'guides.guide2.description',
       category: 'Recovery',
       pages: 24,
       downloadCount: 980,
@@ -39,8 +38,8 @@ const PatientGuidesPage = () => {
     },
     {
       id: 3,
-      title: 'Managing Chronic Pain',
-      description: 'Practical strategies for living with chronic orthopedic pain and improving quality of life.',
+      titleKey: 'guides.guide3.title',
+      descriptionKey: 'guides.guide3.description',
       category: 'Pain Management',
       pages: 18,
       downloadCount: 2100,
@@ -51,8 +50,8 @@ const PatientGuidesPage = () => {
     },
     {
       id: 4,
-      title: 'Physical Therapy Exercise Guide',
-      description: 'Step-by-step exercises for rehabilitation with detailed instructions and safety tips.',
+      titleKey: 'guides.guide4.title',
+      descriptionKey: 'guides.guide4.description',
       category: 'Physical Therapy',
       pages: 32,
       downloadCount: 1800,
@@ -63,8 +62,8 @@ const PatientGuidesPage = () => {
     },
     {
       id: 5,
-      title: 'Bone Health and Nutrition',
-      description: 'Essential nutrients, foods, and lifestyle changes to maintain strong and healthy bones.',
+      titleKey: 'guides.guide5.title',
+      descriptionKey: 'guides.guide5.description',
       category: 'Prevention',
       pages: 16,
       downloadCount: 1500,
@@ -75,8 +74,8 @@ const PatientGuidesPage = () => {
     },
     {
       id: 6,
-      title: 'Understanding Joint Replacement',
-      description: 'Complete guide to joint replacement surgery, from decision-making to long-term care.',
+      titleKey: 'guides.guide6.title',
+      descriptionKey: 'guides.guide6.description',
       category: 'Surgery',
       pages: 28,
       downloadCount: 950,
@@ -140,24 +139,24 @@ const PatientGuidesPage = () => {
                 <div className="md:w-1/3">
                   <img
                     src={guides[0].coverImage}
-                    alt={guides[0].title}
+                    alt={t(guides[0].titleKey)}
                     className="w-full h-64 md:h-full object-cover"
                     loading="lazy"
                   />
                 </div>
                 <div className="md:w-2/3 p-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge><TranslatedText>{guides[0].category}</TranslatedText></Badge>
+                    <Badge>{guides[0].category}</Badge>
                     <Badge className={getDifficultyColor(guides[0].difficulty)}>
-                      <TranslatedText>{guides[0].difficulty}</TranslatedText>
+                      {guides[0].difficulty}
                     </Badge>
-                    <span className="text-sm text-muted-foreground"><TranslatedText>Featured</TranslatedText></span>
+                    <span className="text-sm text-muted-foreground">{t('guides.featured')}</span>
                   </div>
                   <h2 className="text-2xl font-heading font-bold mb-3">
-                    <TranslatedText>{guides[0].title}</TranslatedText>
+                    {t(guides[0].titleKey)}
                   </h2>
                   <p className="text-muted-foreground mb-4">
-                    <TranslatedText>{guides[0].description}</TranslatedText>
+                    {t(guides[0].descriptionKey)}
                   </p>
                   <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
                     <div className="flex items-center">
@@ -176,11 +175,11 @@ const PatientGuidesPage = () => {
                   <div className="flex gap-3">
                     <Button className="flex items-center gap-2">
                       <Eye size={16} />
-                      <TranslatedText>Read Online</TranslatedText>
+                      {t('guides.readOnline')}
                     </Button>
                     <Button variant="outline" className="flex items-center gap-2">
                       <Download size={16} />
-                      <TranslatedText>Download PDF</TranslatedText>
+                      {t('guides.downloadPdf')}
                     </Button>
                   </div>
                 </div>
@@ -194,7 +193,7 @@ const PatientGuidesPage = () => {
                   <div className="aspect-video overflow-hidden">
                     <img
                       src={guide.coverImage}
-                      alt={guide.title}
+                      alt={t(guide.titleKey)}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                     />
@@ -207,10 +206,10 @@ const PatientGuidesPage = () => {
                       </Badge>
                     </div>
                     <CardTitle className="text-lg leading-tight">
-                      <TranslatedText>{guide.title}</TranslatedText>
+                      {t(guide.titleKey)}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">
-                      <TranslatedText>{guide.description}</TranslatedText>
+                      {t(guide.descriptionKey)}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -233,11 +232,11 @@ const PatientGuidesPage = () => {
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1">
                         <Eye size={14} className="mr-1" />
-                        <TranslatedText>Read</TranslatedText>
+                        {t('guides.read')}
                       </Button>
                       <Button size="sm" variant="outline" className="flex-1">
                         <Download size={14} className="mr-1" />
-                        <TranslatedText>PDF</TranslatedText>
+                        {t('guides.pdf')}
                       </Button>
                     </div>
                   </CardContent>
@@ -250,13 +249,13 @@ const PatientGuidesPage = () => {
               <CardContent className="text-center py-8">
                 <BookOpen className="mx-auto mb-4 text-primary" size={48} />
                 <h3 className="text-2xl font-heading font-bold mb-2">
-                  <TranslatedText>Need a Custom Guide?</TranslatedText>
+                  {t('guides.customGuide.title')}
                 </h3>
                 <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  <TranslatedText>Our medical team can create personalized guides based on your specific condition and treatment plan.</TranslatedText>
+                  {t('guides.customGuide.description')}
                 </p>
                 <Button size="lg">
-                  <TranslatedText>Request Custom Guide</TranslatedText>
+                  {t('guides.customGuide.button')}
                 </Button>
               </CardContent>
             </Card>
