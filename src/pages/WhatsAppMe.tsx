@@ -45,6 +45,8 @@ const WhatsAppMe = () => {
           if (error) throw error;
           setPatientFolders(data.patientFolders || []);
           setCalendarEvents(data.calendarEvents || []);
+          console.log(data.calendarEvents);
+          
         } catch (error) {
           console.error('Error searching records:', error);
           showError('Failed to search for records.');
