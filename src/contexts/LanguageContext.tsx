@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
-type Language = 'en' | 'te' | 'hi';
+type Language = 'en' | 'te';
 
 interface LanguageContextType {
   currentLanguage: Language;
@@ -65,27 +65,6 @@ const translations = {
     'learn.faqs.subtitle': 'సాధారణ ఆరోగ్య ప్రశ్నలకు త్వరిత సమాధానాలు',
     'learn.resources.title': 'ఆరోగ్య వనరులు',
     'learn.resources.subtitle': 'మీ ఆరోగ్య ప్రయాణం కోసం ఉపయోగకరమైన సాధనాలు మరియు వనరులు',
-  },
-  hi: {
-    // Common - Hindi
-    'nav.home': 'होम',
-    'nav.about': 'हमारे बारे में',
-    'nav.contact': 'संपर्क करें',
-    'nav.learn': 'सीखें',
-    'nav.blog': 'ब्लॉग',
-    'nav.patient-guides': 'मरीज़ गाइड',
-    'nav.faqs': 'अक्सर पूछे जाने वाले प्रश्न',
-    'nav.resources': 'संसाधन',
-    
-    // Learn pages
-    'learn.blog.title': 'स्वास्थ्य ब्लॉग',
-    'learn.blog.subtitle': 'नवीनतम स्वास्थ्य सुझाव और चिकित्सा अंतर्दृष्टि',
-    'learn.guides.title': 'मरीज़ गाइड',
-    'learn.guides.subtitle': 'बेहतर स्वास्थ्य प्रबंधन के लिए व्यापक गाइड',
-    'learn.faqs.title': 'अक्सर पूछे जाने वाले प्रश्न',
-    'learn.faqs.subtitle': 'सामान्य स्वास्थ्य प्रश्नों के त्वरित उत्तर',
-    'learn.resources.title': 'स्वास्थ्य संसाधन',
-    'learn.resources.subtitle': 'आपकी स्वास्थ्य यात्रा के लिए उपयोगी उपकरण और संसाधन',
   }
 };
 
@@ -95,23 +74,28 @@ interface LanguageProviderProps {
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
+  const [currentLanguage, setCurrentLanguage] = useState<Language>(() => {
+    const storedLang = localStorage.getItem('language') as Language;
+    return storedLang && ['en', 'te'].includes(storedLang) ? storedLang : 'en';
+  });
   const [isTranslating, setIsTranslating] = useState(false);
 
   // Translation cache with expiration
   const translationCache = React.useRef<Map<string, { text: string; timestamp: number }>>(new Map());
-  const CACHE_DURATION = 24*3600000; // 24*1 hour in milliseconds
+  const CACHE_DURATION = 24 * 3600000; // 24*1 hour in milliseconds
 
   useEffect(() => {
     // Get language from URL parameter
     const langParam = searchParams.get('lang') as Language;
-    if (langParam && ['en', 'te', 'hi'].includes(langParam)) {
+    if (langParam && ['en', 'te'].includes(langParam)) {
       setCurrentLanguage(langParam);
+      localStorage.setItem('language', langParam);
     }
   }, [searchParams]);
 
   const setLanguage = (language: Language) => {
     setCurrentLanguage(language);
+    localStorage.setItem('language', language);
     // Update URL parameter
     const newParams = new URLSearchParams(searchParams);
     newParams.set('lang', language);

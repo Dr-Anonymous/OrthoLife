@@ -12,8 +12,7 @@ export const LanguageSwitcher = () => {
       <div className="flex bg-muted rounded-md p-1">
         {[
           { code: 'en', label: 'EN' },
-          { code: 'te', label: 'తె' },
-          { code: 'hi', label: 'हि' }
+          { code: 'te', label: 'తె' }
         ].map(({ code, label }) => (
           <Button
             key={code}
