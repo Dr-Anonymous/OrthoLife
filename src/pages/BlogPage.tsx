@@ -61,8 +61,7 @@ const BlogPage = () => {
       
       let query = supabase
         .from('posts')
-        .select('*, categories(name), post_translations!inner(*)', { count: 'exact' })
-        .filter('post_translations.language', 'eq', i18n.language);
+        .select('*, categories(name), post_translations(*)', { count: 'exact' });
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
@@ -111,6 +110,17 @@ const BlogPage = () => {
     if (!loading) {
       setPage(prevPage => prevPage + 1);
     }
+  };
+
+  const getTranslatedPost = (post: Post, lang: string) => {
+    if (lang === 'en') {
+      return { title: post.title, excerpt: post.excerpt };
+    }
+    const translation = post.post_translations.find((t: any) => t.language === lang);
+    return {
+      title: translation?.title || post.title,
+      excerpt: translation?.excerpt || post.excerpt,
+    };
   };
   
   const featuredPost = posts[0];
@@ -223,10 +233,10 @@ const BlogPage = () => {
                     <div className="md:w-1/2 p-6 flex flex-col justify-center">
                       <Badge className="mb-3 w-fit">{featuredPost.categories.name}</Badge>
                       <h2 className="text-2xl font-heading font-bold mb-3">
-                        {featuredPost.post_translations[0]?.title || featuredPost.title}
+                        {getTranslatedPost(featuredPost, i18n.language).title}
                       </h2>
                       <p className="text-muted-foreground mb-4">
-                        {featuredPost.post_translations[0]?.excerpt || featuredPost.excerpt}
+                        {getTranslatedPost(featuredPost, i18n.language).excerpt}
                       </p>
                       <div className="flex items-center text-sm text-muted-foreground mb-4 flex-wrap">
                         <User size={16} className="mr-1" />
@@ -265,10 +275,10 @@ const BlogPage = () => {
                             <span className="text-xs text-muted-foreground">{post.read_time_minutes} min read</span>
                           </div>
                           <CardTitle className="text-lg leading-tight">
-                            {post.post_translations[0]?.title || post.title}
+                            {getTranslatedPost(post, i18n.language).title}
                           </CardTitle>
                           <CardDescription>
-                            {post.post_translations[0]?.excerpt || post.excerpt}
+                            {getTranslatedPost(post, i18n.language).excerpt}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="mt-auto">
