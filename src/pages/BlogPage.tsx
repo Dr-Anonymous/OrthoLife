@@ -97,10 +97,14 @@ const BlogPage = () => {
   }, [selectedCategory, page, i18n.language]);
 
   const handleCategoryClick = (categoryId: number | null) => {
-    // If the clicked category is the same as the active one, toggle it off (show all).
-    // Otherwise, switch to the new category.
-    const newCategory = categoryId === selectedCategory ? null : categoryId;
-    setSelectedCategory(newCategory);
+    if (categoryId === selectedCategory) {
+      // If the same category is clicked again → reset to "All"
+      setSelectedCategory(null);
+    } else {
+      // Otherwise switch to the clicked category
+      setSelectedCategory(categoryId);
+    }
+    
     setPage(1);
     setPosts([]);
     setHasMore(true);
