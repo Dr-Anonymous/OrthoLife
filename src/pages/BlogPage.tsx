@@ -61,11 +61,8 @@ const BlogPage = () => {
       
       let query = supabase
         .from('posts')
-        .select('*, categories(name), post_translations(*)', { count: 'exact' });
-
-      if (i18n.language !== 'en') {
-        query = query.filter('post_translations.language', 'eq', i18n.language);
-      }
+        .select('*, categories(name), post_translations!inner(*)', { count: 'exact' })
+        .filter('post_translations.language', 'eq', i18n.language);
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
@@ -80,21 +77,25 @@ const BlogPage = () => {
       if (error) {
         console.error('Error fetching posts:', error);
         setPosts([]);
+        setHasMore(false);
       } else {
-        setPosts(prevPosts => page === 1 ? (data || []) : [...prevPosts, ...(data || [])]);
+        const newPosts = data || [];
+        const currentPostCount = posts.length;
+        setPosts(prevPosts => page === 1 ? newPosts : [...prevPosts, ...newPosts]);
+
         if (count !== null) {
-          const loadedPostsCount = page === 1 ? (data?.length || 0) : posts.length + (data?.length || 0);
+          const loadedPostsCount = currentPostCount + newPosts.length;
           setHasMore(loadedPostsCount < count);
         } else {
-          // Fallback if count is not supported
-          setHasMore(!(!data || data.length < POSTS_PER_PAGE));
+          // Fallback if count is not available
+          setHasMore(newPosts.length === POSTS_PER_PAGE);
         }
       }
       setLoading(false);
     };
 
     fetchPosts();
-  }, [selectedCategory, page, i18n.language, posts.length]);
+  }, [selectedCategory, page, i18n.language]);
 
   const handleCategoryClick = (categoryId: number | null) => {
     // If the clicked category is the same as the active one, toggle it off (show all).
