@@ -101,14 +101,12 @@ const EMR = () => {
 
       if (error) throw error;
 
-      if (data?.patientFolders?.length > 1) {
+      if (data?.patientFolders?.length > 0) {
         setPatientFolders(data.patientFolders);
         toast({
           title: "Patient Records Found",
           description: `Found ${data.patientFolders.length} patient record(s). Please select a patient.`
         });
-      } else if (data?.patientFolders?.length == 1) {
-        handlePatientSelection(data.patientFolders[0].id);
       } else {
         setPatientFolders([]);
         setSelectedPatient('');
