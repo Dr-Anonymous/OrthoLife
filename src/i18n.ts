@@ -13,7 +13,7 @@ i18n
   // init i18next
   .init({
     fallbackLng: 'en',
-    debug: true, // Set to false in production
+    debug: import.meta.env.DEV, // Set to false in production
     supportedLngs: ['en', 'te'],
 
     detection: {
