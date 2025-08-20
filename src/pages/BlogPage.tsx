@@ -97,13 +97,19 @@ const BlogPage = () => {
   }, [selectedCategory, page, i18n.language]);
 
   const handleCategoryClick = (categoryId: number | null) => {
-    if (categoryId === selectedCategory) {
-      // If the same category is clicked again → reset to "All"
+    if (categoryId === null) {
+    // Already on "All" → do nothing
+    if (selectedCategory === null) return;
+    // Switching from a category → reset to All
+    setSelectedCategory(null);
+    } else if (categoryId === selectedCategory) {
+      // Clicking the same category again → reset to All
       setSelectedCategory(null);
     } else {
-      // Otherwise switch to the clicked category
+      // Switching to a new category
       setSelectedCategory(categoryId);
     }
+
     
     setPage(1);
     setPosts([]);
