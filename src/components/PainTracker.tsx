@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -14,7 +14,24 @@ interface PainEntry {
 const PainTracker: React.FC = () => {
   const { t } = useTranslation();
   const [painLevel, setPainLevel] = useState<number>(5);
-  const [painHistory, setPainHistory] = useState<PainEntry[]>([]);
+  const [painHistory, setPainHistory] = useState<PainEntry[]>(() => {
+    try {
+      const savedHistory = localStorage.getItem('painHistory');
+      if (savedHistory) {
+        return JSON.parse(savedHistory).map((entry: any) => ({
+          ...entry,
+          timestamp: new Date(entry.timestamp),
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to parse pain history from localStorage", error);
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('painHistory', JSON.stringify(painHistory));
+  }, [painHistory]);
 
   const logPain = () => {
     const newEntry: PainEntry = {
@@ -22,6 +39,11 @@ const PainTracker: React.FC = () => {
       timestamp: new Date(),
     };
     setPainHistory([newEntry, ...painHistory]);
+  };
+
+  const resetHistory = () => {
+    setPainHistory([]);
+    localStorage.removeItem('painHistory');
   };
 
   const getPainLevelLabel = (level: number) => {
@@ -53,7 +75,14 @@ const PainTracker: React.FC = () => {
           </Button>
           <Separator />
           <div className="space-y-2">
-            <h4 className="text-sm font-medium">{t('pain.history')}</h4>
+            <div className="flex justify-between items-center">
+              <h4 className="text-sm font-medium">{t('pain.history')}</h4>
+              {painHistory.length > 0 && (
+                <Button variant="outline" size="sm" onClick={resetHistory}>
+                  {t('common.reset')}
+                </Button>
+              )}
+            </div>
             <ScrollArea className="h-40 w-full rounded-md border p-4">
               {painHistory.length > 0 ? (
                 painHistory.map((entry, index) => (
