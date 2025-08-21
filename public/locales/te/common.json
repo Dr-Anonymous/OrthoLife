@@ -115,5 +115,33 @@
   "resources.emergency.careItem1": "• తీవ్రమైన రక్తస్రావం లేదా గాయం",
   "resources.emergency.careItem2": "• స్పృహ కోల్పోవడం",
   "resources.emergency.careItem3": "• శ్వాస తీసుకోవడంలో తీవ్రమైన ఇబ్బంది", 
-  "resources.emergency.careItem4": "• స్ట్రోక్ లేదా గుండెపోటు సంకేతాలు"
+  "resources.emergency.careItem4": "• స్ట్రోక్ లేదా గుండెపోటు సంకేతాలు",
+
+  "bmi.height": "ఎత్తు (cm)",
+  "bmi.weight": "బరువు (kg)",
+  "bmi.height_placeholder": "మీ ఎత్తును సెంటీమీటర్లలో నమోదు చేయండి",
+  "bmi.weight_placeholder": "మీ బరువును కిలోగ్రాములలో నమోదు చేయండి",
+  "bmi.calculate": "BMI లెక్కించు",
+  "bmi.your_bmi": "మీ BMI",
+  "bmi.underweight": "తక్కువ బరువు",
+  "bmi.normal": "సాధారణ బరువు",
+  "bmi.overweight": "అధిక బరువు",
+  "bmi.obese": "ఊబకాయం",
+
+  "pain.current_level": "ప్రస్తుత నొప్పి స్థాయి",
+  "pain.log_pain": "నొప్పి స్థాయి నమోదు చేయండి",
+  "pain.history": "నొప్పి చరిత్ర",
+  "pain.level": "స్థాయి",
+  "pain.no_entries": "ఇంకా ఎంట్రీలు లేవు.",
+  "pain.mild": "తేలికపాటి",
+  "pain.moderate": "మధ్యస్థం",
+  "pain.severe": "తీవ్రమైన",
+
+  "recovery.progress": "పురోగతి",
+  "recovery.milestone1": "మొదటి ఫాలో-అప్ అపాయింట్‌మెంట్‌కు హాజరయ్యారు",
+  "recovery.milestone2": "మొదటి వారంలో ఫిజికల్ థెరపీ పూర్తి చేసారు",
+  "recovery.milestone3": "నొప్పి మందులు తగ్గించారు",
+  "recovery.milestone4": "90 డిగ్రీల కదలికను సాధించారు",
+  "recovery.milestone5": "సహాయం లేకుండా 1 మైలు నడిచారు",
+  "common.reset": "రీసెట్"
 }
