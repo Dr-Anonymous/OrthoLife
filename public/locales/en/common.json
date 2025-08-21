@@ -83,7 +83,7 @@
   "resources.apps.title": "Mobile Apps",
   "resources.apps.install": "Install App",
   "resources.app1.title": "OrthoLife Patient App",
-  "resources.app1.description": "Book appointments, view reports, and access your medical records.",
+  "resources.app1.description": "Book appointments, order medication and view your medical records.",
   "resources.app2.title": "Exercise & Recovery",
   "resources.app2.description": "Guided exercises and rehabilitation programs for faster recovery.",
 
@@ -99,12 +99,12 @@
 
   "resources.external.title": "External Resources",
   "resources.external.visit": "Visit Site",
-  "resources.external1.title": "American Academy of Orthopedic Surgeons",
-  "resources.external1.description": "Comprehensive orthopedic information and patient education materials.",
-  "resources.external2.title": "Bone Health & Osteoporosis Foundation",
-  "resources.external2.description": "Resources for bone health, osteoporosis prevention and treatment.",
-  "resources.external3.title": "Physical Therapy Guidelines",
-  "resources.external3.description": "Evidence-based physical therapy practices and exercises.",
+  "resources.external1.title": "OrthoSam.com",
+  "resources.external1.description": "Professional portfolio of Dr Samuel Manoj Cherukuri.",
+  "resources.external2.title": "OrthoLife on Google",
+  "resources.external2.description": "OrthoLife google business profile for address directions and patient reviews.",
+  "resources.external3.title": "Dr Samuel Manoj Cherukuri on Google",
+  "resources.external3.description": "Dr Samuel Manoj Cherukuri's google business profile for address directions and patient reviews.",
 
   "resources.emergency.title": "Emergency Contacts & Resources",
   "resources.emergency.numbersTitle": "Emergency Numbers",
