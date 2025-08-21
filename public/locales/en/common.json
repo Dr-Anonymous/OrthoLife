@@ -141,5 +141,6 @@
   "recovery.milestone2": "Completed first week of physical therapy",
   "recovery.milestone3": "Reduced pain medication",
   "recovery.milestone4": "Achieved 90 degrees of motion",
-  "recovery.milestone5": "Walked 1 mile without assistance"
+  "recovery.milestone5": "Walked 1 mile without assistance",
+  "common.reset": "Reset"
 }

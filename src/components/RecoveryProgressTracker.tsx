@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import { Button } from './ui/button';
 
 const RecoveryProgressTracker: React.FC = () => {
   const { t } = useTranslation();
@@ -15,10 +16,27 @@ const RecoveryProgressTracker: React.FC = () => {
     { id: 'milestone5', labelKey: 'recovery.milestone5' },
   ], []);
 
-  const [completedMilestones, setCompletedMilestones] = useState<Record<string, boolean>>({});
+  const [completedMilestones, setCompletedMilestones] = useState<Record<string, boolean>>(() => {
+    try {
+      const savedMilestones = localStorage.getItem('recoveryProgress');
+      return savedMilestones ? JSON.parse(savedMilestones) : {};
+    } catch (error) {
+      console.error("Failed to parse recovery progress from localStorage", error);
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('recoveryProgress', JSON.stringify(completedMilestones));
+  }, [completedMilestones]);
 
   const handleMilestoneChange = (id: string, checked: boolean) => {
     setCompletedMilestones(prev => ({ ...prev, [id]: checked }));
+  };
+
+  const resetProgress = () => {
+    setCompletedMilestones({});
+    localStorage.removeItem('recoveryProgress');
   };
 
   const completedCount = Object.values(completedMilestones).filter(Boolean).length;
@@ -55,6 +73,11 @@ const RecoveryProgressTracker: React.FC = () => {
               </div>
             ))}
           </div>
+          {completedCount > 0 && (
+            <Button variant="outline" size="sm" onClick={resetProgress} className="w-full mt-4">
+              {t('common.reset')}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
