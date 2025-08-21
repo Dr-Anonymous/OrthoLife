@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,34 @@ import RecoveryProgressTracker from '@/components/RecoveryProgressTracker';
 
 const ResourcesPage = () => {
   const { t } = useTranslation();
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (installPrompt) {
+      (installPrompt as any).prompt();
+      (installPrompt as any).userChoice.then((choiceResult: { outcome: string }) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        } else {
+          console.log('User dismissed the install prompt');
+        }
+        setInstallPrompt(null);
+      });
+    }
+  };
 
   const toolsAndCalculators = [
     { id: 1, titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
@@ -137,10 +165,16 @@ const ResourcesPage = () => {
                             <Badge key={platform} variant="outline">{platform}</Badge>
                           ))}
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm">App Store</Button>
-                          <Button size="sm" variant="outline">Play Store</Button>
-                        </div>
+                        {app.id === 1 && installPrompt ? (
+                          <Button size="sm" onClick={handleInstallClick}>
+                            {t('resources.apps.install')}
+                          </Button>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button size="sm" disabled={app.id === 1}>App Store</Button>
+                            <Button size="sm" variant="outline" disabled={app.id === 1}>Play Store</Button>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

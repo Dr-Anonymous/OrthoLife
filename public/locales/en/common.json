@@ -81,6 +81,7 @@
   "resources.tool3.description": "Monitor your post-surgery recovery milestones and exercises.",
 
   "resources.apps.title": "Mobile Apps",
+  "resources.apps.install": "Install App",
   "resources.app1.title": "OrthoLife Patient App",
   "resources.app1.description": "Book appointments, view reports, and access your medical records.",
   "resources.app2.title": "Exercise & Recovery",
