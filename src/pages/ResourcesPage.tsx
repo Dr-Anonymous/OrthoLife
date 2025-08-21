@@ -1,20 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe, BookOpen } from 'lucide-react';
+import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import BMICalculator from '@/components/BMICalculator';
+import PainTracker from '@/components/PainTracker';
+import RecoveryProgressTracker from '@/components/RecoveryProgressTracker';
 
 const ResourcesPage = () => {
   const { t } = useTranslation();
 
   const toolsAndCalculators = [
-    { id: 1, titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', link: '#' },
-    { id: 2, titleKey: 'resources.tool2.title', descriptionKey: 'resources.tool2.description', icon: Calendar, type: 'Interactive Tool', link: '#' },
-    { id: 3, titleKey: 'resources.tool3.title', descriptionKey: 'resources.tool3.description', icon: FileText, type: 'Interactive Tool', link: '#' }
+    { id: 1, titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
+    { id: 2, titleKey: 'resources.tool2.title', descriptionKey: 'resources.tool2.description', icon: Calendar, type: 'Interactive Tool', component: <PainTracker /> },
+    { id: 3, titleKey: 'resources.tool3.title', descriptionKey: 'resources.tool3.description', icon: FileText, type: 'Interactive Tool', component: <RecoveryProgressTracker /> }
   ];
 
   const mobileApps = [
@@ -62,22 +72,32 @@ const ResourcesPage = () => {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {toolsAndCalculators.map((tool) => (
-                  <Card key={tool.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <tool.icon className="text-primary" size={32} />
-                        <Badge variant="secondary">{tool.type}</Badge>
-                      </div>
-                      <CardTitle className="text-lg">{t(tool.titleKey)}</CardTitle>
-                      <CardDescription>{t(tool.descriptionKey)}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button className="w-full group-hover:bg-primary/90 transition-colors">
-                        {t('resources.tools.launch')}
-                        <ExternalLink size={16} className="ml-2" />
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <Dialog key={tool.id}>
+                    <Card className="hover:shadow-lg transition-shadow group flex flex-col">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <tool.icon className="text-primary" size={32} />
+                          <Badge variant="secondary">{tool.type}</Badge>
+                        </div>
+                        <CardTitle className="text-lg">{t(tool.titleKey)}</CardTitle>
+                        <CardDescription>{t(tool.descriptionKey)}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="mt-auto">
+                        <DialogTrigger asChild>
+                          <Button className="w-full group-hover:bg-primary/90 transition-colors">
+                            {t('resources.tools.launch')}
+                            <ExternalLink size={16} className="ml-2" />
+                          </Button>
+                        </DialogTrigger>
+                      </CardContent>
+                    </Card>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{t(tool.titleKey)}</DialogTitle>
+                      </DialogHeader>
+                      {tool.component}
+                    </DialogContent>
+                  </Dialog>
                 ))}
               </div>
             </section>
