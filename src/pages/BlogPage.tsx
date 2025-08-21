@@ -94,7 +94,7 @@ const BlogPage = () => {
     };
 
     fetchPosts();
-  }, [selectedCategory, page, i18n.language]);
+  }, [selectedCategory, page]);
 
   const handleCategoryClick = (categoryId: number | null) => {
     if (categoryId === null) {
