@@ -17,6 +17,7 @@ import RichTextEditor from './RichTextEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { GuideCategory } from '@/pages/PatientGuidesPage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const guideFormSchema = z.object({
@@ -32,14 +33,24 @@ const guideFormSchema = z.object({
 
 export type GuideFormValues = z.infer<typeof guideFormSchema>;
 
+interface TranslationValues {
+  [lang: string]: {
+    title?: string;
+    description?: string;
+    content?: string;
+  };
+}
+
 interface GuidePostFormProps {
   initialData?: Partial<GuideFormValues>;
-  onSubmit: (values: GuideFormValues) => void;
+  translations?: TranslationValues;
+  onSubmit: (values: GuideFormValues, translations: TranslationValues) => void;
   isSubmitting: boolean;
 }
 
-const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, onSubmit, isSubmitting }) => {
+const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations, onSubmit, isSubmitting }) => {
   const [categories, setCategories] = useState<GuideCategory[]>([]);
+  const [translationValues, setTranslationValues] = useState<TranslationValues>({});
 
   const form = useForm<GuideFormValues>({
     resolver: zodResolver(guideFormSchema),
@@ -62,53 +73,109 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, onSubmit, is
     if (initialData) {
       form.reset(initialData);
     }
-  }, [initialData, form]);
+    if (translations) {
+      setTranslationValues(translations);
+    }
+  }, [initialData, translations, form]);
+
+  const handleTranslationChange = (lang: string, field: 'title' | 'description' | 'content', value: string) => {
+    setTranslationValues(prev => ({
+      ...prev,
+      [lang]: {
+        ...prev[lang],
+        [field]: value,
+      }
+    }));
+  };
+
+  const handleFormSubmit = (values: GuideFormValues) => {
+    onSubmit(values, translationValues);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+        <Tabs defaultValue="english" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="english">English</TabsTrigger>
+            <TabsTrigger value="telugu">Telugu</TabsTrigger>
+          </TabsList>
+          <TabsContent value="english" className="space-y-8 pt-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter guide title" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Enter a short description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Content</FormLabel>
+                  <FormControl>
+                    <RichTextEditor
+                      content={field.value || ''}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+          <TabsContent value="telugu" className="space-y-8 pt-4">
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Translated Title (Telugu)</FormLabel>
               <FormControl>
-                <Input placeholder="Enter guide title" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Enter a short description" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Content</FormLabel>
-              <FormControl>
-                <RichTextEditor
-                  content={field.value || ''}
-                  onChange={field.onChange}
+                <Input
+                  placeholder="Enter Telugu title"
+                  value={translationValues.te?.title || ''}
+                  onChange={(e) => handleTranslationChange('te', 'title', e.target.value)}
                 />
               </FormControl>
-              <FormMessage />
             </FormItem>
-          )}
-        />
+            <FormItem>
+              <FormLabel>Translated Description (Telugu)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter Telugu description"
+                  value={translationValues.te?.description || ''}
+                  onChange={(e) => handleTranslationChange('te', 'description', e.target.value)}
+                />
+              </FormControl>
+            </FormItem>
+            <FormItem>
+              <FormLabel>Translated Content (Telugu)</FormLabel>
+              <FormControl>
+                <RichTextEditor
+                  content={translationValues.te?.content || ''}
+                  onChange={(value) => handleTranslationChange('te', 'content', value)}
+                />
+              </FormControl>
+            </FormItem>
+          </TabsContent>
+        </Tabs>
 
         <div className="space-y-8 pt-8 border-t">
           <FormField

@@ -120,11 +120,6 @@ const PatientGuidesPage = () => {
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {t('learn.guides.subtitle', 'Comprehensive guides for better health management')}
               </p>
-              <div className="mt-4">
-                <Button asChild>
-                  <Link to="/patient-guides/new">Create New Guide</Link>
-                </Button>
-              </div>
             </div>
 
             {/* Categories */}

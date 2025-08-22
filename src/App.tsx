@@ -23,6 +23,7 @@ const EditPostPage = lazy(() => import("./pages/EditPostPage"));
 const PatientGuidesPage = lazy(() => import("./pages/PatientGuidesPage"));
 const PatientGuidePage = lazy(() => import("./pages/PatientGuidePage"));
 const CreateGuidePage = lazy(() => import("./pages/CreateGuidePage"));
+const EditGuidePage = lazy(() => import("./pages/EditGuidePage"));
 const FAQPage = lazy(() => import("./pages/FAQPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/patient-guides" element={<PatientGuidesPage />} />
               <Route path="/patient-guides/new" element={<CreateGuidePage />} />
               <Route path="/patient-guides/:guideId" element={<PatientGuidePage />} />
+              <Route path="/patient-guides/:guideId/edit" element={<EditGuidePage />} />
               <Route path="/faqs" element={<FAQPage />} />
               <Route path="/resources" element={<ResourcesPage />} />
 
