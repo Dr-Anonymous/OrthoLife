@@ -19,8 +19,8 @@ interface Category {
 
 interface FAQ {
   id: number;
-  question: string;
-  answer: string;
+  question_key: string;
+  answer_key: string;
   categories: { name: string };
 }
 
@@ -68,8 +68,8 @@ const FAQPage = () => {
 
   const filteredFAQs = faqs.filter(faq =>
     searchQuery === '' ||
-    faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+    t(faq.question_key).toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t(faq.answer_key).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -144,11 +144,11 @@ const FAQPage = () => {
                         <AccordionTrigger className="hover:no-underline text-left">
                           <div className="flex items-start gap-3">
                             <HelpCircle className="text-primary mt-1 shrink-0" size={20} />
-                            <span className="font-medium">{faq.question}</span>
+                            <span className="font-medium">{t(faq.question_key)}</span>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="ml-8 pt-2 pb-4 text-muted-foreground leading-relaxed">
-                          {faq.answer}
+                          {t(faq.answer_key)}
                         </AccordionContent>
                       </AccordionItem>
                     ))}
