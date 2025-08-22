@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,44 +9,68 @@ import { Search, HelpCircle, Phone, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+  categories: { name: string };
+}
 
 const FAQPage = () => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const faqCategories = [
-    'All',
-    'Appointments',
-    'Surgery',
-    'Recovery',
-    'Insurance',
-    'Pain Management',
-    'Physical Therapy'
-  ];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase.from('categories').select('*');
+      if (error) console.error('Error fetching categories:', error);
+      else setCategories(data || []);
+    };
+    fetchCategories();
+  }, []);
 
-  const faqs = [
-    { id: '1', category: 'Appointments', qKey: 'faq.q1.question', aKey: 'faq.q1.answer' },
-    { id: '2', category: 'Appointments', qKey: 'faq.q2.question', aKey: 'faq.q2.answer' },
-    { id: '3', category: 'Surgery', qKey: 'faq.q3.question', aKey: 'faq.q3.answer' },
-    { id: '4', category: 'Surgery', qKey: 'faq.q4.question', aKey: 'faq.q4.answer' },
-    { id: '5', category: 'Recovery', qKey: 'faq.q5.question', aKey: 'faq.q5.answer' },
-    { id: '6', category: 'Recovery', qKey: 'faq.q6.question', aKey: 'faq.q6.answer' },
-    { id: '7', category: 'Insurance', qKey: 'faq.q7.question', aKey: 'faq.q7.answer' },
-    { id: '8', category: 'Insurance', qKey: 'faq.q8.question', aKey: 'faq.q8.answer' },
-    { id: '9', category: 'Pain Management', qKey: 'faq.q9.question', aKey: 'faq.q9.answer' },
-    { id: '10', category: 'Physical Therapy', qKey: 'faq.q10.question', aKey: 'faq.q10.answer' },
-    { id: '11', category: 'Physical Therapy', qKey: 'faq.q11.question', aKey: 'faq.q11.answer' },
-    { id: '12', category: 'Appointments', qKey: 'faq.q12.question', aKey: 'faq.q12.answer' },
-  ];
+  useEffect(() => {
+    const fetchFAQs = async () => {
+      setLoading(true);
+      let query = supabase.from('faqs').select('*, categories(name)');
 
-  const filteredFAQs = faqs.filter(faq => {
-    const matchesCategory = selectedCategory === 'All' || faq.category === selectedCategory;
-    const matchesSearch = searchQuery === '' || 
-      t(faq.qKey).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t(faq.aKey).toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+      if (selectedCategory !== 'All') {
+        const category = categories.find(cat => cat.name === selectedCategory);
+        if (category) {
+          query = query.eq('category_id', category.id);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) console.error('Error fetching FAQs:', error);
+      else setFaqs(data || []);
+      setLoading(false);
+    };
+
+    if (categories.length > 0) {
+        fetchFAQs();
+    } else if (selectedCategory === 'All') {
+        fetchFAQs();
+    }
+  }, [selectedCategory, categories]);
+
+  const filteredFAQs = faqs.filter(faq =>
+    searchQuery === '' ||
+    faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -84,14 +108,22 @@ const FAQPage = () => {
 
             {/* Categories */}
             <div className="flex flex-wrap justify-center gap-2 mb-8">
-              {faqCategories.map((category) => (
+              <Badge
+                key="All"
+                variant={'All' === selectedCategory ? 'default' : 'secondary'}
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                onClick={() => setSelectedCategory('All')}
+              >
+                All
+              </Badge>
+              {categories.map((category) => (
                 <Badge
-                  key={category}
-                  variant={category === selectedCategory ? 'default' : 'secondary'}
+                  key={category.id}
+                  variant={category.name === selectedCategory ? 'default' : 'secondary'}
                   className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => setSelectedCategory(category.name)}
                 >
-                  {category}
+                  {category.name}
                 </Badge>
               ))}
             </div>
@@ -99,23 +131,31 @@ const FAQPage = () => {
             {/* FAQ Accordion */}
             <Card>
               <CardContent className="p-6">
-                <Accordion type="single" collapsible className="space-y-4">
-                  {filteredFAQs.map((faq) => (
-                    <AccordionItem key={faq.id} value={faq.id} className="border rounded-lg px-4">
-                      <AccordionTrigger className="hover:no-underline text-left">
-                        <div className="flex items-start gap-3">
-                          <HelpCircle className="text-primary mt-1 shrink-0" size={20} />
-                          <span className="font-medium">{t(faq.qKey)}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="ml-8 pt-2 pb-4 text-muted-foreground leading-relaxed">
-                        {t(faq.aKey)}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : (
+                  <Accordion type="single" collapsible className="space-y-4">
+                    {filteredFAQs.map((faq) => (
+                      <AccordionItem key={faq.id} value={String(faq.id)} className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline text-left">
+                          <div className="flex items-start gap-3">
+                            <HelpCircle className="text-primary mt-1 shrink-0" size={20} />
+                            <span className="font-medium">{faq.question}</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="ml-8 pt-2 pb-4 text-muted-foreground leading-relaxed">
+                          {faq.answer}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                )}
 
-                {filteredFAQs.length === 0 && (
+                {!loading && filteredFAQs.length === 0 && (
                   <div className="text-center py-8">
                     <HelpCircle className="mx-auto mb-4 text-muted-foreground" size={48} />
                     <h3 className="text-lg font-semibold mb-2">{t('faq.noFaqsFound')}</h3>
