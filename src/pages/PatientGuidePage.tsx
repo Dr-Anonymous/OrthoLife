@@ -6,14 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, Clock, Share2, ArrowLeft, BookOpen, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Guide } from './PatientGuidesPage'; // Re-using the interface
 
+interface TranslatedGuide {
+    title: string;
+    description: string;
+    content: string;
+}
+
 const PatientGuidePage = () => {
   const { guideId } = useParams<{ guideId: string }>();
+  const { i18n } = useTranslation();
   const [guide, setGuide] = useState<Guide | null>(null);
+  const [translatedGuide, setTranslatedGuide] = useState<TranslatedGuide | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -21,16 +31,31 @@ const PatientGuidePage = () => {
     const fetchGuide = async () => {
       if (!guideId) return;
       setLoading(true);
+      setTranslatedGuide(null); // Reset on language or guide change
 
       try {
-        const { data, error } = await supabase
+        const { data: guideData, error: guideError } = await supabase
           .from('guides')
           .select('*, categories(name)')
           .eq('id', guideId)
           .single();
 
-        if (error) throw error;
-        setGuide(data);
+        if (guideError) throw guideError;
+        setGuide(guideData);
+
+        const { data: translationData, error: translationError } = await supabase
+          .from('guide_translations')
+          .select('*')
+          .eq('guide_id', guideId)
+          .eq('language', i18n.language)
+          .single();
+
+        if (translationError && translationError.code !== 'PGRST116') {
+          throw translationError;
+        }
+        if (translationData) {
+          setTranslatedGuide(translationData);
+        }
       } catch (error) {
         console.error('Error fetching guide:', error);
         setGuide(null);
@@ -40,7 +65,7 @@ const PatientGuidePage = () => {
     };
 
     fetchGuide();
-  }, [guideId]);
+  }, [guideId, i18n.language]);
 
     const handleShare = async () => {
     const shareData = {
@@ -98,7 +123,7 @@ const PatientGuidePage = () => {
                     <Badge variant="outline">{guide.difficulty}</Badge>
                   </div>
                   <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                    {guide.title}
+                    {translatedGuide?.title || guide.title}
                   </h1>
                   <div className="flex items-center text-muted-foreground flex-wrap">
                     <div className="flex items-center mr-6 mb-2">
@@ -116,9 +141,9 @@ const PatientGuidePage = () => {
                   </div>
                 </header>
 
-                <img src={guide.cover_image_url} alt={guide.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+                <img src={guide.cover_image_url} alt={translatedGuide?.title || guide.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
-                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: guide.description }} />
+                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || guide.content }} />
 
                 <div className="mt-8 pt-8 border-t">
                   <div className="flex justify-between items-center">
@@ -128,10 +153,13 @@ const PatientGuidePage = () => {
                         Back to Guides
                       </Link>
                     </Button>
-                    <Button onClick={handleShare}>
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Share Guide
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <LanguageSwitcher />
+                        <Button onClick={handleShare}>
+                          <Share2 className="mr-2 h-4 w-4" />
+                          Share Guide
+                        </Button>
+                    </div>
                   </div>
                 </div>
               </article>

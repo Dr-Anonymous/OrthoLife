@@ -33,7 +33,7 @@ const guideFormSchema = z.object({
 
 export type GuideFormValues = z.infer<typeof guideFormSchema>;
 
-interface TranslationValues {
+export interface TranslationValues {
   [lang: string]: {
     title?: string;
     description?: string;

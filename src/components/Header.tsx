@@ -54,7 +54,7 @@ const Header = () => {
               <img 
                 src={logoUrl} 
                 alt={logoAlt}
-                className="h-10 md:h-12"
+                className="h-12"
                 onError={handleLogoError}
                 onLoad={handleLogoLoad}
                 loading="lazy"
