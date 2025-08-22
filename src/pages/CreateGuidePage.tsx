@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import GuidePostForm, { GuideFormValues } from '@/components/GuidePostForm';
+import GuidePostForm, { GuideFormValues, TranslationValues } from '@/components/GuidePostForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -11,7 +11,7 @@ const CreateGuidePage = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: GuideFormValues) => {
+  const handleSubmit = async (values: GuideFormValues, translations: TranslationValues) => {
     setIsSubmitting(true);
     try {
       const { category_name, ...guideData } = values;
@@ -57,6 +57,25 @@ const CreateGuidePage = () => {
 
       if (error) throw error;
       if (!newGuide) throw new Error("Failed to create guide.");
+
+      // Insert translations
+      const translationUpserts = [];
+      for (const lang in translations) {
+        translationUpserts.push({
+          guide_id: newGuide.id,
+          language: lang,
+          title: translations[lang].title,
+          description: translations[lang].description,
+          content: translations[lang].content,
+        });
+      }
+
+      if (translationUpserts.length > 0) {
+        const { error: translationError } = await supabase
+          .from('guide_translations')
+          .insert(translationUpserts);
+        if (translationError) throw translationError;
+      }
 
       toast({
         title: "Guide created!",
