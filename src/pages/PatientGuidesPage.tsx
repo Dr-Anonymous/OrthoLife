@@ -48,7 +48,7 @@ const PatientGuidesPage = () => {
 
         if (error) throw error;
         if (guide) {
-            generatePdf(guide.content, guide.title);
+            await generatePdf(guide.content, guide.title);
         }
     } catch (error) {
         console.error("Error fetching guide content for PDF:", error);
