@@ -36,7 +36,7 @@ export interface Guide {
 }
 
 const PatientGuidesPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [categories, setCategories] = useState<GuideCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
