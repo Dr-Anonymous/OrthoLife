@@ -22,7 +22,7 @@ interface TranslatedGuide {
 
 const PatientGuidePage = () => {
   const { guideId } = useParams<{ guideId: string }>();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [guide, setGuide] = useState<Guide | null>(null);
   const [translatedGuide, setTranslatedGuide] = useState<TranslatedGuide | null>(null);
   const [loading, setLoading] = useState(true);
