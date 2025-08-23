@@ -170,7 +170,7 @@ const ResourcesPage = () => {
                             {t('resources.apps.install')}
                           </Button>
                         ) : (
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button size="sm" disabled={app.id === 1}>App Store</Button>
                             <Button size="sm" variant="outline" disabled={app.id === 1}>Play Store</Button>
                           </div>
