@@ -27,6 +27,12 @@ export interface Guide {
   estimated_time: string;
   cover_image_url: string;
   categories: { name: string };
+  guide_translations: {
+    language: string;
+    title: string;
+    description: string;
+    content: string;
+  }[];
 }
 
 const PatientGuidesPage = () => {
@@ -42,13 +48,16 @@ const PatientGuidesPage = () => {
     try {
         const { data: guide, error } = await supabase
             .from('guides')
-            .select('title, content')
+            .select('title, content, guide_translations(*)')
             .eq('id', guideId)
             .single();
 
         if (error) throw error;
         if (guide) {
-            await generatePdf(guide.content, guide.title);
+            const translation = guide.guide_translations.find(t => t.language === i18n.language);
+            const contentToSave = translation?.content || guide.content;
+            const titleToSave = translation?.title || guide.title;
+            await generatePdf(contentToSave, titleToSave);
         }
     } catch (error) {
         console.error("Error fetching guide content for PDF:", error);
@@ -77,7 +86,7 @@ const PatientGuidesPage = () => {
 
       let query = supabase
         .from('guides')
-        .select('*, categories(name)');
+        .select('*, categories(name), guide_translations(*)');
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
@@ -108,6 +117,17 @@ const PatientGuidesPage = () => {
       setSelectedCategory(categoryId);
     }
     setGuides([]); // Clear old guides immediately
+  };
+
+  const getTranslatedGuide = (guide: Guide, lang: string) => {
+    if (lang === 'en') {
+      return { title: guide.title, description: guide.description };
+    }
+    const translation = guide.guide_translations.find(t => t.language === lang);
+    return {
+      title: translation?.title || guide.title,
+      description: translation?.description || guide.description,
+    };
   };
 
   return (
@@ -235,10 +255,10 @@ const PatientGuidesPage = () => {
                         <span className="text-sm text-muted-foreground">{t('guides.featured')}</span>
                       </div>
                       <h2 className="text-2xl font-heading font-bold mb-3">
-                        {guides[0].title}
+                        {getTranslatedGuide(guides[0], i18n.language).title}
                       </h2>
                       <p className="text-muted-foreground mb-4">
-                        {guides[0].description}
+                        {getTranslatedGuide(guides[0], i18n.language).description}
                       </p>
                       <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
                         <div className="flex items-center">
@@ -282,10 +302,10 @@ const PatientGuidesPage = () => {
                           <Badge variant="secondary">{guide.categories.name}</Badge>
                           </div>
                           <CardTitle className="text-lg leading-tight">
-                            {guide.title}
+                            {getTranslatedGuide(guide, i18n.language).title}
                           </CardTitle>
                           <CardDescription className="line-clamp-2">
-                            {guide.description}
+                            {getTranslatedGuide(guide, i18n.language).description}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="mt-auto flex flex-col">

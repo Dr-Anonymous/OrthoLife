@@ -45,7 +45,6 @@ const CreateGuidePage = () => {
       const guideToInsert = {
         ...guideData,
         category_id: categoryId,
-        download_count: 0, // Add a default value for download_count
         last_updated: new Date().toISOString(), // Add a default value for last_updated
       };
 
