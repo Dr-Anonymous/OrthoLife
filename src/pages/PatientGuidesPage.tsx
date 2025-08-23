@@ -9,6 +9,7 @@ import { BookOpen, Download, Eye, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { generatePdf } from '@/lib/pdfUtils';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export interface GuideCategory {
@@ -22,9 +23,7 @@ export interface Guide {
   description: string;
   category_id: number;
   pages: number;
-  download_count: number;
   last_updated: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   estimated_time: string;
   cover_image_url: string;
   categories: { name: string };
@@ -36,6 +35,27 @@ const PatientGuidesPage = () => {
   const [categories, setCategories] = useState<GuideCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+
+  const handleDownloadPdf = async (guideId: number) => {
+    setDownloadingId(guideId);
+    try {
+        const { data: guide, error } = await supabase
+            .from('guides')
+            .select('title, content')
+            .eq('id', guideId)
+            .single();
+
+        if (error) throw error;
+        if (guide) {
+            generatePdf(guide.content, guide.title);
+        }
+    } catch (error) {
+        console.error("Error fetching guide content for PDF:", error);
+    } finally {
+        setDownloadingId(null);
+    }
+  };
 
   // Fetch categories
   useEffect(() => {
@@ -88,19 +108,6 @@ const PatientGuidesPage = () => {
       setSelectedCategory(categoryId);
     }
     setGuides([]); // Clear old guides immediately
-  };
-
-  const getDifficultyColor = (difficulty: 'Beginner' | 'Intermediate' | 'Advanced') => {
-    switch (difficulty) {
-      case 'Beginner':
-        return 'bg-green-100 text-green-800 hover:bg-green-100';
-      case 'Intermediate':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
-      case 'Advanced':
-        return 'bg-red-100 text-red-800 hover:bg-red-100';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
-    }
   };
 
   return (
@@ -225,9 +232,6 @@ const PatientGuidesPage = () => {
                     <div className="md:w-2/3 p-6">
                       <div className="flex items-center gap-2 mb-3">
                         <Badge>{guides[0].categories.name}</Badge>
-                        <Badge className={getDifficultyColor(guides[0].difficulty)}>
-                          {guides[0].difficulty}
-                        </Badge>
                         <span className="text-sm text-muted-foreground">{t('guides.featured')}</span>
                       </div>
                       <h2 className="text-2xl font-heading font-bold mb-3">
@@ -245,10 +249,6 @@ const PatientGuidesPage = () => {
                           <Clock size={16} className="mr-1" />
                           <span>{guides[0].estimated_time}</span>
                         </div>
-                        <div className="flex items-center">
-                          <Download size={16} className="mr-1" />
-                          <span>{guides[0].download_count.toLocaleString()} downloads</span>
-                        </div>
                       </div>
                       <div className="flex gap-3">
                         <Button asChild className="flex items-center gap-2">
@@ -257,9 +257,8 @@ const PatientGuidesPage = () => {
                             {t('guides.readOnline')}
                           </Link>
                         </Button>
-                        <Button variant="outline" className="flex items-center gap-2">
-                          <Download size={16} />
-                          {t('guides.downloadPdf')}
+                        <Button variant="outline" className="flex items-center gap-2" onClick={() => handleDownloadPdf(guides[0].id)} disabled={downloadingId === guides[0].id}>
+                          {downloadingId === guides[0].id ? 'Downloading...' : <><Download size={16} />{t('guides.downloadPdf')}</>}
                         </Button>
                       </div>
                     </div>
@@ -281,9 +280,6 @@ const PatientGuidesPage = () => {
                         <CardHeader>
                           <div className="flex items-center gap-2 mb-2">
                           <Badge variant="secondary">{guide.categories.name}</Badge>
-                            <Badge className={getDifficultyColor(guide.difficulty)}>
-                              {guide.difficulty}
-                            </Badge>
                           </div>
                           <CardTitle className="text-lg leading-tight">
                             {guide.title}
@@ -304,10 +300,6 @@ const PatientGuidesPage = () => {
                                 {guide.estimated_time.split(' ')[0]}m
                               </span>
                             </div>
-                            <span className="flex items-center">
-                              <Download size={14} className="mr-1" />
-                              {guide.download_count}
-                            </span>
                           </div>
                           <div className="flex gap-2 mt-auto">
                             <Button asChild size="sm" className="flex-1">
@@ -316,9 +308,8 @@ const PatientGuidesPage = () => {
                                 {t('guides.read')}
                               </Link>
                             </Button>
-                            <Button size="sm" variant="outline" className="flex-1">
-                              <Download size={14} className="mr-1" />
-                              {t('guides.pdf')}
+                            <Button size="sm" variant="outline" className="flex-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guide.id); }} disabled={downloadingId === guide.id}>
+                              {downloadingId === guide.id ? '...' : <><Download size={14} className="mr-1" />{t('guides.pdf')}</>}
                             </Button>
                           </div>
                         </CardContent>
