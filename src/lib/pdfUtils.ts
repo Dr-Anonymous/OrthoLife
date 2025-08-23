@@ -8,7 +8,7 @@ export const generatePdf = (htmlContent: string, filename: string) => {
     margin:       1,
     filename:     `${filename}.pdf`,
     image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2 },
+    html2canvas:  { scale: 2, useCORS: true },
     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
   };
 
