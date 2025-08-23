@@ -29,15 +29,13 @@ const PatientGuidePage = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!guide) return;
     setIsDownloading(true);
     const contentToSave = translatedGuide?.content || guide.content;
     const titleToSave = translatedGuide?.title || guide.title;
-    generatePdf(contentToSave, titleToSave);
-    setTimeout(() => {
-        setIsDownloading(false);
-    }, 2000);
+    await generatePdf(contentToSave, titleToSave);
+    setIsDownloading(false);
   };
 
   useEffect(() => {
