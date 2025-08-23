@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { generatePdf } from '@/lib/pdfUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Guide } from './PatientGuidesPage'; // Re-using the interface
 
@@ -25,7 +26,19 @@ const PatientGuidePage = () => {
   const [guide, setGuide] = useState<Guide | null>(null);
   const [translatedGuide, setTranslatedGuide] = useState<TranslatedGuide | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
+
+  const handleDownloadPdf = () => {
+    if (!guide) return;
+    setIsDownloading(true);
+    const contentToSave = translatedGuide?.content || guide.content;
+    const titleToSave = translatedGuide?.title || guide.title;
+    generatePdf(contentToSave, titleToSave);
+    setTimeout(() => {
+        setIsDownloading(false);
+    }, 2000);
+  };
 
   useEffect(() => {
     const fetchGuide = async () => {
@@ -120,7 +133,7 @@ const PatientGuidePage = () => {
                 <header className="mb-8">
                   <div className="flex justify-between items-center mb-4">
                     <Badge>{guide.categories.name}</Badge>
-                    <Badge variant="outline">{guide.difficulty}</Badge>
+                    <LanguageSwitcher />
                   </div>
                   <h1 className="text-4xl font-heading font-bold text-primary mb-4">
                     {translatedGuide?.title || guide.title}
@@ -133,10 +146,6 @@ const PatientGuidePage = () => {
                     <div className="flex items-center mr-6 mb-2">
                       <Clock size={16} className="mr-2" />
                       <span>{guide.estimated_time}</span>
-                    </div>
-                     <div className="flex items-center mr-6 mb-2">
-                      <Download size={16} className="mr-2" />
-                      <span>{guide.download_count} downloads</span>
                     </div>
                   </div>
                 </header>
@@ -153,13 +162,13 @@ const PatientGuidePage = () => {
                         Back to Guides
                       </Link>
                     </Button>
-                    <div className="flex items-center gap-2">
-                        <LanguageSwitcher />
-                        <Button onClick={handleShare}>
-                          <Share2 className="mr-2 h-4 w-4" />
-                          Share Guide
+                    <Button onClick={handleShare}>
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Share Guide
+                    </Button>
+                        <Button variant="outline" className="flex items-center gap-2" onClick={handleDownloadPdf} disabled={isDownloading}>
+                            {isDownloading ? 'Downloading...' : <><Download size={16} />{t('guides.downloadPdf', 'Download PDF')}</>}
                         </Button>
-                    </div>
                   </div>
                 </div>
               </article>

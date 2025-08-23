@@ -27,7 +27,6 @@ const guideFormSchema = z.object({
   cover_image_url: z.string().url("Please enter a valid URL"),
   pages: z.coerce.number().int().positive("Must be a positive number"),
   estimated_time: z.string().min(1, "Estimated time is required"),
-  difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']),
   category_name: z.string().min(1, "Category is required"),
 });
 
@@ -213,28 +212,6 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
                 <FormControl>
                   <Input placeholder="e.g., 15 min read" {...field} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="difficulty"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Difficulty</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a difficulty" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Beginner">Beginner</SelectItem>
-                    <SelectItem value="Intermediate">Intermediate</SelectItem>
-                    <SelectItem value="Advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
                 <FormMessage />
               </FormItem>
             )}
