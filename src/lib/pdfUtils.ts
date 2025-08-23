@@ -19,6 +19,33 @@ const imageToDataUri = (src: string): Promise<string> => {
   });
 };
 
+const preloadImages = (htmlContent: string): Promise<void> => {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+    const images = Array.from(doc.querySelectorAll('img'));
+
+    if (images.length === 0) {
+        return Promise.resolve();
+    }
+
+    const promises = images.map(img => {
+        return new Promise<void>((resolve) => {
+            const newImg = new Image();
+            newImg.src = img.src;
+            // Resolve regardless of success or failure to avoid blocking PDF generation
+            newImg.onload = () => resolve();
+            newImg.onerror = () => resolve();
+        });
+    });
+
+    return Promise.all(promises).then(() => {});
+  } catch (error) {
+    console.error("Error preloading images:", error);
+    return Promise.resolve(); // Don't block PDF generation on parsing error
+  }
+};
+
 export const generatePdf = async (htmlContent: string, filename: string) => {
   let logoDataUri = '';
   try {
@@ -26,6 +53,8 @@ export const generatePdf = async (htmlContent: string, filename: string) => {
   } catch (error) {
     console.error("Failed to load logo for PDF, proceeding without it.", error);
   }
+
+  await preloadImages(htmlContent);
 
   const element = document.createElement('div');
   const styledHtmlContent = `
