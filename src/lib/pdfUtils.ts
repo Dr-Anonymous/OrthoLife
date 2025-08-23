@@ -10,7 +10,7 @@ export const generatePdf = (htmlContent: string, filename: string) => {
     image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 2, useCORS: true },
     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-    pagebreak:    { mode: 'avoid-all', after: 'hr' }
+    pagebreak:    { mode: 'avoid-all', after: 'hr', avoid: 'img' }
   };
 
   // @ts-expect-error html2pdf.js does not have official type definitions
