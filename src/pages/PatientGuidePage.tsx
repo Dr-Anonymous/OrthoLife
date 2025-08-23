@@ -155,20 +155,22 @@ const PatientGuidePage = () => {
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || guide.content }} />
 
                 <div className="mt-8 pt-8 border-t">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-wrap justify-between items-center gap-4">
                     <Button asChild variant="outline">
                       <Link to="/patient-guides">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Guides
                       </Link>
                     </Button>
-                    <Button onClick={handleShare}>
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Share Guide
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button onClick={handleShare}>
+                          <Share2 className="mr-2 h-4 w-4" />
+                          Share Guide
+                        </Button>
                         <Button variant="outline" className="flex items-center gap-2" onClick={handleDownloadPdf} disabled={isDownloading}>
                             {isDownloading ? 'Downloading...' : <><Download size={16} />{t('guides.downloadPdf', 'Download PDF')}</>}
                         </Button>
+                    </div>
                   </div>
                 </div>
               </article>

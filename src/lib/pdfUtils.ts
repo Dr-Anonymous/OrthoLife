@@ -9,8 +9,13 @@ export const generatePdf = (htmlContent: string, filename: string) => {
         margin-bottom: 25px;
         border-color: #ccc;
       }
+      img {
+        margin-top: 25px;
+      }
     </style>
-    ${htmlContent}
+    <div class="prose prose-lg max-w-none">
+      ${htmlContent}
+    </div>
   `;
   element.innerHTML = styledHtmlContent;
 
