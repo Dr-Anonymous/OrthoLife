@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -11,10 +11,16 @@ interface PatientFolder {
 }
 
 interface CalendarEvent {
-  start: string;
+  start:string;
   description: string;
   attachments?: string;
 }
+
+interface RecentCall {
+  number: string;
+  name: string;
+}
+
 
 const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
@@ -22,6 +28,7 @@ const WhatsAppMe = () => {
   const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
 
   const formatPhoneNumber = (input: string) => {
     // Remove all non-digit characters
@@ -36,9 +43,23 @@ const WhatsAppMe = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const numberFromURL = params.get('number');
-    if (numberFromURL) {
-      setPhone(formatPhoneNumber(numberFromURL));
+    const numbers = params.getAll('numbers[]');
+    const names = params.getAll('names[]');
+
+    if (numbers.length > 0) {
+      const calls = numbers.map((number, index) => ({
+        number: formatPhoneNumber(number),
+        name: names[index] || `Number ${index + 1}`,
+      }));
+      setRecentCalls(calls);
+      if (calls.length > 0) {
+        setPhone(calls[0].number);
+      }
+    } else {
+      const numberFromURL = params.get('number');
+      if (numberFromURL) {
+        setPhone(formatPhoneNumber(numberFromURL));
+      }
     }
   }, []);
 
@@ -219,6 +240,27 @@ const WhatsAppMe = () => {
         </div>
 
         {isLoading && <p>Loading...</p>}
+
+        {recentCalls.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <History className="w-4 h-4" /> Recent Calls
+            </h3>
+            <div className="space-y-2">
+              {recentCalls.map(call => (
+                <Card key={call.number} className="p-4 flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold">{call.name}</p>
+                    <p className="text-sm text-gray-500">{call.number}</p>
+                  </div>
+                  <Button onClick={() => setPhone(call.number)}>
+                    Select
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {patientFolders.length > 0 && (
           <div className="space-y-2">
