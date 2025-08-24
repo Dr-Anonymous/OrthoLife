@@ -52,7 +52,9 @@ const EMR = () => {
 
   const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<string>('');
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -123,31 +125,37 @@ const EMR = () => {
     }
   };
 
-  const handlePatientSelection = async (folderId: string) => {
-    const selectedFolder = patientFolders.find(folder => folder.id === folderId);
-    setSelectedPatient(selectedFolder?.name || folderId);
-    setIsSearching(true);
-    
+  const handlePatientSelection = (folderId: string) => {
+    const selectedFolderData = patientFolders.find(folder => folder.id === folderId);
+    setSelectedPatient(selectedFolderData?.name || folderId);
+    setSelectedFolder(folderId);
+  };
+
+  useEffect(() => {
+    if (selectedFolder) {
+      fetchPatientData(selectedFolder);
+    }
+  }, [selectedFolder]);
+
+  const fetchPatientData = async (folderId: string) => {
+    setIsFetchingDetails(true);
     try {
       const { data, error } = await supabase.functions.invoke('search-patient-records', {
-        body: { selectedFolder: folderId }
+        body: { phoneNumber: formData.phone, selectedFolder: folderId }
       });
 
       if (error) throw error;
 
       if (data?.patientData) {
         const patientData = data.patientData;
-        // Store the folder ID globally for submission
         window.folderId = data.folderId;
         patientId = patientData.id;
         
-        // Auto-fill form with patient data
         setFormData(prev => ({
           ...prev,
           name: patientData.name || prev.name,
           dob: patientData.dob ? new Date(patientData.dob) : prev.dob,
           sex: patientData.sex || prev.sex,
-          phone: patientData.phone || prev.phone
         }));
 
         setExtraData(prev => ({
@@ -157,14 +165,12 @@ const EMR = () => {
           investigations: patientData.investigations || prev.investigations,
           diagnosis: patientData.diagnosis || prev.diagnosis,
           advice: patientData.advice || prev.advice,
-          medications: patientData.medications && patientData.medications.length > 0 
-            ? patientData.medications 
-            : prev.medications
+          medications: patientData.medications?.length ? patientData.medications : prev.medications
         }));
 
         toast({
           title: "Data Loaded",
-          description: "Patient data has been auto-filled from the latest prescription."
+          description: "Patient data has been auto-filled."
         });
       }
     } catch (error) {
@@ -172,10 +178,10 @@ const EMR = () => {
       toast({
         variant: 'destructive',
         title: "Load Error",
-        description: "Failed to load patient data. Please try again."
+        description: "Failed to load patient data."
       });
     } finally {
-      setIsSearching(false);
+      setIsFetchingDetails(false);
     }
   };
 
@@ -417,9 +423,12 @@ const EMR = () => {
                 {patientFolders.length > 0 && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Select Patient Record</Label>
-                    <Select value={selectedPatient} onValueChange={handlePatientSelection}>
-                      <SelectTrigger>
+                    <Select value={selectedPatient} onValueChange={handlePatientSelection} disabled={isFetchingDetails}>
+                      <SelectTrigger className="relative">
                         <SelectValue placeholder="Choose existing patient record..." />
+                        {isFetchingDetails && (
+                          <Loader2 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
+                        )}
                       </SelectTrigger>
                       <SelectContent>
                         {patientFolders.map((folder) => (
