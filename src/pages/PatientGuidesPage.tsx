@@ -140,7 +140,7 @@ const PatientGuidesPage = () => {
             <div className="text-center mb-12">
               <div className="flex justify-center items-center gap-4 mb-4">
                 <h1 className="text-4xl font-heading font-bold text-primary">
-                  {t('learn.guides.title', 'Patient Guides')}
+                  {t('learn.guides.title', 'Health Guides')}
                 </h1>
                 <LanguageSwitcher />
               </div>
