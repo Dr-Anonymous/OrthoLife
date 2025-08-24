@@ -170,7 +170,7 @@ const ResourcesPage = () => {
                             {t('resources.apps.install')}
                           </Button>
                         ) : (
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button size="sm" disabled={app.id === 1}>App Store</Button>
                             <Button size="sm" variant="outline" disabled={app.id === 1}>Play Store</Button>
                           </div>
@@ -222,7 +222,7 @@ const ResourcesPage = () => {
                 {externalResources.map((resource) => (
                   <Card key={resource.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold">{t(resource.titleKey)}</h3>
