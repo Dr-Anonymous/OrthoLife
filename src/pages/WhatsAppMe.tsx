@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+interface PatientFolder {
+  id: string;
+  name: string;
+}
+
+interface CalendarEvent {
+  start:string;
+  description: string;
+  attachments?: string;
+}
+
+interface RecentCall {
+  number: string;
+  name: string;
+}
 
 const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [patientFolders, setPatientFolders] = useState<any[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
 
   const formatPhoneNumber = (input: string) => {
     // Remove all non-digit characters
@@ -26,9 +42,23 @@ const WhatsAppMe = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const numberFromURL = params.get('number');
-    if (numberFromURL) {
-      setPhone(formatPhoneNumber(numberFromURL));
+    const numbers = params.getAll('numbers[]');
+    const names = params.getAll('names[]');
+
+    if (numbers.length > 0) {
+      const calls = numbers.map((number, index) => ({
+        number: formatPhoneNumber(number),
+        name: names[index] || `Number ${index + 1}`,
+      }));
+      setRecentCalls(calls);
+      if (calls.length > 0) {
+        setPhone(calls[0].number);
+      }
+    } else {
+      const numberFromURL = params.get('number');
+      if (numberFromURL) {
+        setPhone(formatPhoneNumber(numberFromURL));
+      }
     }
   }, []);
 
@@ -86,7 +116,7 @@ const WhatsAppMe = () => {
         address = "%2F";
     }
     
-    const finalUrl = (window as any).AndroidClipboard ? `whatsapp://send?phone=91${formattedPhone}&text=${address}` : `https://wa.me/91${formattedPhone}?text=${address}`;
+    const finalUrl = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=91${formattedPhone}&text=${address}` : `https://wa.me/91${formattedPhone}?text=${address}`;
     window.location.href = finalUrl;
   };
 
@@ -105,10 +135,10 @@ const WhatsAppMe = () => {
     let address;
     switch (e) {
       case 1:
-        address = (window as any).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedPhone}` : `https://wa.me/917093551714?text=${formattedPhone}`;
+        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedPhone}` : `https://wa.me/917093551714?text=${formattedPhone}`;
         break;
       case 2:
-        address = (window as any).AndroidClipboard ? `whatsapp://send?phone=919652377616&text=${formattedPhone}` : `https://wa.me/919652377616?text=${formattedPhone}`;        
+        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=919652377616&text=${formattedPhone}` : `https://wa.me/919652377616?text=${formattedPhone}`;
         break;
       default:
         address = "%2F";
@@ -134,10 +164,11 @@ const WhatsAppMe = () => {
 
   const handlePasteClick = async () => {
     setIsProcessing(true);
-    var text;
+    let text;
     try {
-      if ((window as any).AndroidClipboard && (window as any).AndroidClipboard.getClipboardText) { 
-        text = (window as any).AndroidClipboard.getClipboardText();
+      const clipboard = (window as { AndroidClipboard?: { getClipboardText: () => string } }).AndroidClipboard;
+      if (clipboard && clipboard.getClipboardText) {
+        text = clipboard.getClipboardText();
       } else {
         text = await navigator.clipboard.readText();
       }
@@ -209,21 +240,45 @@ const WhatsAppMe = () => {
 
         {isLoading && <p>Loading...</p>}
 
+        {recentCalls.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <History className="w-4 h-4" /> Recent Calls
+            </h3>
+            <div className="space-y-2">
+              {recentCalls.map(call => (
+                <Card key={call.number} className="p-4 flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold">{call.name}</p>
+                    <p className="text-sm text-gray-500">{call.number}</p>
+                  </div>
+                  <Button onClick={() => setPhone(call.number)}>
+                    Select
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {patientFolders.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Link className="w-4 h-4" /> Patient Records
+              <Folder className="w-4 h-4" /> Patient Records
             </h3>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {patientFolders.map(folder => (
-                <a
-                  key={folder.id}
-                  href={`https://drive.google.com/drive/folders/${folder.id}`}
-                  target="_blank"
-                  className="text-blue-600 hover:underline"
-                >
-                  {folder.name}
-                </a>
+                <Card key={folder.id} className="p-4">
+                  <a
+                    href={`https://drive.google.com/drive/folders/${folder.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline flex items-center gap-2"
+                  >
+                    <Link className="w-4 h-4" />
+                    {folder.name}
+                  </a>
+                </Card>
               ))}
             </div>
           </div>
@@ -234,15 +289,27 @@ const WhatsAppMe = () => {
             <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Calendar Events
             </h3>
-            <ul className="space-y-1 list-disc list-inside">
+            <div className="space-y-4">
               {calendarEvents.map(event => (
-                <li key={event.id}>
-                  {event.summary} ({new Date(event.start).toLocaleString()})
-                  {event.description}
-                  {event?.attachments}
-                </li>
+                <Card key={event.start} className="p-4">
+                  <p className="font-semibold">{new Date(event.start).toLocaleString()}</p>
+                  <div className="text-sm mt-2" dangerouslySetInnerHTML={{ __html: event.description.replace(/\n/g, '<br />') }} />
+                  {event.attachments && (
+                    <div className="mt-2">
+                      <a
+                        href={event.attachments}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <Link className="w-4 h-4" />
+                        View Attachment
+                      </a>
+                    </div>
+                  )}
+                </Card>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
