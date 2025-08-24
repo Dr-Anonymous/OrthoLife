@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,7 +20,6 @@ interface RecentCall {
   number: string;
   name: string;
 }
-
 
 const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
@@ -63,33 +62,31 @@ const WhatsAppMe = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const searchRecords = async () => {
-      if (phone.length === 10) {
-        setIsLoading(true);
-        setPatientFolders([]);
-        setCalendarEvents([]);
-        try {
-          const { data, error } = await supabase.functions.invoke('search-whatsappme-records', {
-            body: { phoneNumber: phone },
-          });
-          if (error) throw error;
-          setPatientFolders(data.patientFolders || []);
-          setCalendarEvents(data.calendarEvents || []);          
-        } catch (error) {
-          console.error('Error searching records:', error);
-          showError('Failed to search for records.');
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setPatientFolders([]);
-        setCalendarEvents([]);
+  const searchRecords = async () => {
+    if (phone.length === 10) {
+      setIsLoading(true);
+      setPatientFolders([]);
+      setCalendarEvents([]);
+      try {
+        const { data, error } = await supabase.functions.invoke('search-whatsappme-records', {
+          body: { phoneNumber: phone },
+        });
+        if (error) throw error;
+        setPatientFolders(data.patientFolders || []);
+        setCalendarEvents(data.calendarEvents || []);
+      } catch (error) {
+        console.error('Error searching records:', error);
+        showError('Failed to search for records.');
+      } finally {
+        setIsLoading(false);
       }
-    };
-    searchRecords();
-  }, [phone]);
-  
+    } else {
+      showError('Please enter a valid 10-digit phone number.');
+      setPatientFolders([]);
+      setCalendarEvents([]);
+    }
+  };
+
   const process = (e: number) => {
     if (!phone) {
       showError('Please enter a phone number');
@@ -139,7 +136,7 @@ const WhatsAppMe = () => {
         address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedPhone}` : `https://wa.me/917093551714?text=${formattedPhone}`;
         break;
       case 2:
-        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=919652377616&text=${formattedPhone}` : `https://wa.me/919652377616?text=${formattedPhone}`;
+        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=919652377616&text=${formattedPhone}` : `https://wa.me/919652377616?text=${formattedPhone}`;        
         break;
       default:
         address = "%2F";
@@ -168,7 +165,7 @@ const WhatsAppMe = () => {
     let text;
     try {
       const clipboard = (window as { AndroidClipboard?: { getClipboardText: () => string } }).AndroidClipboard;
-      if (clipboard && clipboard.getClipboardText) {
+      if (clipboard && clipboard.getClipboardText) { 
         text = clipboard.getClipboardText();
       } else {
         text = await navigator.clipboard.readText();
@@ -227,15 +224,26 @@ const WhatsAppMe = () => {
               onChange={handlePhoneChange}
               placeholder="Enter phone number"
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handlePasteClick}
-              disabled={isProcessing}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 px-2"
-            >
-              <Clipboard className="w-4 h-4" />
-            </Button>
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handlePasteClick}
+                disabled={isProcessing}
+                className="h-7 px-2"
+              >
+                <Clipboard className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={searchRecords}
+                disabled={isLoading}
+                className="h-7 px-2"
+              >
+                <Search className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
