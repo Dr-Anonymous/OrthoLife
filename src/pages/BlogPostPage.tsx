@@ -45,8 +45,8 @@ const BlogPostPage = () => {
     : baseUrl;
     
     const shareData = {
-      title: post.title,
-      text: `Check out this article from OrthoLife: ${post.title}`,
+      title: translatedPost?.title || post.title,
+      text: `Check out this article from OrthoLife: ${translatedPost?.title || post.title}`,
       url: shareUrl,
     };
     try {
