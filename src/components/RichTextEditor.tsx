@@ -1,26 +1,13 @@
 import React, { useRef } from 'react';
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/extension-bubble-menu';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import { ResizableImage } from 'tiptap-extension-resizable-image';
-import 'tiptap-extension-resizable-image/styles.css';
+import { CustomImage } from './CustomImage';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import { 
-  Bold, 
-  Italic, 
-  Underline as UnderlineIcon, 
-  Link2 as LinkIcon, 
-  Heading2, 
-  Minus, 
-  Strikethrough, 
-  Quote, 
-  Image as ImageIcon, 
-  AlignLeft, 
-  AlignCenter, 
-  AlignRight 
-} from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,7 +18,6 @@ interface RichTextEditorProps {
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -39,8 +25,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           levels: [2, 3],
         },
       }),
+      BubbleMenu.configure({
+        pluginKey: 'imageBubbleMenu',
+      }),
       Underline,
-      ResizableImage,
+      CustomImage,
       TextStyle,
       Color,
       Link.configure({
@@ -53,9 +42,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
       onChange(editor.getHTML());
     },
     editorProps: {
-      attributes: {
-        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl p-4 focus:outline-none min-h-[200px]',
-      },
+        attributes: {
+            class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl p-4 focus:outline-none min-h-[200px]',
+        },
     }
   });
 
@@ -88,6 +77,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
 
       if (error) {
         console.error('Error uploading image:', error);
+        // Consider adding a toast notification here
         return;
       }
 
@@ -96,7 +86,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         .getPublicUrl(fileName);
 
       if (publicUrl) {
-        editor.chain().focus().setResizableImage({ src: publicUrl }).run();
+        editor.chain().focus().setImage({ src: publicUrl }).run();
       }
     } catch (error) {
       console.error('Unexpected error during image upload:', error);
@@ -109,7 +99,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
 
   return (
     <div className="border rounded-md">
-      <div className="p-2 border-b flex items-center flex-wrap gap-1 sticky top-0 z-10 bg-background">
+      <div className="p-2 border-b flex items-center flex-wrap gap-1">
         <Button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
@@ -164,18 +154,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         >
           <UnderlineIcon className="h-4 w-4" />
         </Button>
-        <Button 
-          onClick={setLink} 
-          variant={editor.isActive('link') ? 'secondary' : 'ghost'} 
-          size="sm" 
-          type="button" 
-          title="Link"
-        >
+        <Button onClick={setLink} variant={editor.isActive('link') ? 'secondary' : 'ghost'} size="sm" type="button" title="Link">
           <LinkIcon className="h-4 w-4" />
         </Button>
         <Button
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          variant="ghost"
+          variant={'ghost'}
           size="sm"
           type="button"
           title="Horizontal Rule"
@@ -184,7 +168,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         </Button>
         <Button
           onClick={() => fileInputRef.current?.click()}
-          variant="ghost"
+          variant={'ghost'}
           size="sm"
           type="button"
           title="Image"
@@ -193,55 +177,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         </Button>
         <input
           type="color"
-          onInput={(event: React.ChangeEvent<HTMLInputElement>) => 
-            editor.chain().focus().setColor(event.target.value).run()
-          }
+          onInput={(event: React.ChangeEvent<HTMLInputElement>) => editor.chain().focus().setColor(event.target.value).run()}
           value={editor.getAttributes('textStyle').color || '#000000'}
           className="w-8 h-8 p-1 border rounded"
           title="Text Color"
         />
       </div>
-      
       <EditorContent editor={editor} />
-      
-      {editor && (
-        <BubbleMenu
-          editor={editor}
-          shouldShow={({ editor }) => {
-            return editor.isActive('resizable-image');
-          }}
-          className="flex gap-1 p-1 bg-background border rounded-md shadow-md"
-        >
-          <Button
-            onClick={() => editor.chain().focus().updateAttributes('resizable-image', { align: 'left' }).run()}
-            variant={editor.isActive('resizable-image', { align: 'left' }) ? 'secondary' : 'ghost'}
-            size="sm"
-            type="button"
-            title="Align Left"
-          >
-            <AlignLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => editor.chain().focus().updateAttributes('resizable-image', { align: 'center' }).run()}
-            variant={editor.isActive('resizable-image', { align: 'center' }) ? 'secondary' : 'ghost'}
-            size="sm"
-            type="button"
-            title="Align Center"
-          >
-            <AlignCenter className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => editor.chain().focus().updateAttributes('resizable-image', { align: 'right' }).run()}
-            variant={editor.isActive('resizable-image', { align: 'right' }) ? 'secondary' : 'ghost'}
-            size="sm"
-            type="button"
-            title="Align Right"
-          >
-            <AlignRight className="h-4 w-4" />
-          </Button>
-        </BubbleMenu>
-      )}
-      
       <input
         type="file"
         ref={fileInputRef}
