@@ -99,7 +99,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
 
   return (
     <div className="border rounded-md">
-      <div className="p-2 border-b flex items-center flex-wrap gap-1 sticky top-0 bg-background z-10">
+      <div className="p-2 border-b flex items-center flex-wrap gap-1 sticky top-20 bg-background z-40">
         <Button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
