@@ -4,7 +4,8 @@ import { BubbleMenu } from '@tiptap/extension-bubble-menu';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import { CustomImage } from './CustomImage';
+import { ResizableImage } from 'tiptap-extension-resizable-image';
+import 'tiptap-extension-resizable-image/styles.css';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
@@ -29,7 +30,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         pluginKey: 'imageBubbleMenu',
       }),
       Underline,
-      CustomImage,
+      ResizableImage,
       TextStyle,
       Color,
       Link.configure({
@@ -86,7 +87,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         .getPublicUrl(fileName);
 
       if (publicUrl) {
-        editor.chain().focus().setImage({ src: publicUrl }).run();
+        editor.chain().focus().setResizableImage({ src: publicUrl }).run();
       }
     } catch (error) {
       console.error('Unexpected error during image upload:', error);
@@ -99,7 +100,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
 
   return (
     <div className="border rounded-md">
-      <div className="p-2 border-b flex items-center flex-wrap gap-1">
+      <div className="p-2 border-b flex items-center flex-wrap gap-1 sticky top-0 z-10 bg-background">
         <Button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
@@ -184,6 +185,41 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         />
       </div>
       <EditorContent editor={editor} />
+      {editor && (
+        <BubbleMenu
+          editor={editor}
+          pluginKey="imageBubbleMenu"
+          shouldShow={({ editor, from, to }) => {
+            return editor.isActive('resizable-image');
+          }}
+          className="flex gap-1 p-1 bg-background border rounded-md shadow-md"
+        >
+          <Button
+            onClick={() => editor.chain().focus().updateAttributes('resizable-image', { align: 'left' }).run()}
+            variant={editor.isActive('resizable-image', { align: 'left' }) ? 'secondary' : 'ghost'}
+            size="sm"
+            type="button"
+          >
+            <AlignLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={() => editor.chain().focus().updateAttributes('resizable-image', { align: 'center' }).run()}
+            variant={editor.isActive('resizable-image', { align: 'center' }) ? 'secondary' : 'ghost'}
+            size="sm"
+            type="button"
+          >
+            <AlignCenter className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={() => editor.chain().focus().updateAttributes('resizable-image', { align: 'right' }).run()}
+            variant={editor.isActive('resizable-image', { align: 'right' }) ? 'secondary' : 'ghost'}
+            size="sm"
+            type="button"
+          >
+            <AlignRight className="h-4 w-4" />
+          </Button>
+        </BubbleMenu>
+      )}
       <input
         type="file"
         ref={fileInputRef}
