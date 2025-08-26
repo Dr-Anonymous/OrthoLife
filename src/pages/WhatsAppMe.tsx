@@ -249,27 +249,6 @@ const WhatsAppMe = () => {
 
         {isLoading && <p>Loading...</p>}
 
-        {recentCalls.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <History className="w-4 h-4" /> Recent Calls
-            </h3>
-            <div className="space-y-2">
-              {recentCalls.map(call => (
-                <Card key={call.number} className="p-4 flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold">{call.name}</p>
-                    <p className="text-sm text-gray-500">{call.number}</p>
-                  </div>
-                  <Button onClick={() => setPhone(call.number)}>
-                    Select
-                  </Button>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
         {patientFolders.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -322,9 +301,30 @@ const WhatsAppMe = () => {
           </div>
         )}
 
+        {recentCalls.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <History className="w-4 h-4" /> Recent Calls
+            </h3>
+            <div className="space-y-2">
+              {recentCalls.map(call => (
+                <Card key={call.number} className="p-4 flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold">{call.name}</p>
+                    <p className="text-sm text-gray-500">{call.number}</p>
+                  </div>
+                  <Button onClick={() => setPhone(call.number)}>
+                    Select
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-gray-700">
-            Send to this number
+            Send this address-
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <Button 
@@ -373,7 +373,7 @@ const WhatsAppMe = () => {
 
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-gray-700">
-            Share this number with
+            Share this number with-
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <Button 
