@@ -31,6 +31,7 @@ const DiagnosticsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showTimeSlotSelection, setShowTimeSlotSelection] = useState(false);
   const [showPatientForm, setShowPatientForm] = useState(false);
+  const [isOffer, setIsOffer] = useState(false);
   const [timeSlotData, setTimeSlotData] = useState<{ start: string; end: string; date: string } | null>(null);
   const [patientData, setPatientData] = useState({
     name: '',
@@ -40,11 +41,15 @@ const DiagnosticsPage = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  if (code == 'off') {
-    console.log('offer');
-  }
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code == 'off') {
+      setIsOffer(true);
+    }
+    const query = params.get('q');
+    if (query) {
+      setSearchTerm(query);
+    }
   }, []);
 
   
@@ -164,7 +169,9 @@ const DiagnosticsPage = () => {
   const getCartTotal = () => {
     return Object.entries(cart).reduce((total, [testId, quantity]) => {
       const test = tests.find(t => t.id === testId);
-      return total + (test ? test.price * quantity : 0);
+      if (!test) return total;
+      const price = isOffer ? test.price : (test.marketPrice || test.price);
+      return total + (price * quantity);
     }, 0);
   };
 
@@ -374,18 +381,18 @@ const DiagnosticsPage = () => {
                           </div>
                         )}
                         <div className="text-right">
-                              {test.marketPrice && test.marketPrice > test.price ? (
-                                <div className="flex flex-col">
-                                  <span className="text-sm text-muted-foreground line-through">
-                                    ₹{test.marketPrice}
-                                  </span>
-                                  <span className="text-lg font-semibold text-green-600">
-                                    ₹{test.price}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-lg font-semibold">₹{test.price}</span>
-                              )}
+                          {test.marketPrice && test.marketPrice > test.price && isOffer ? (
+                            <div className="flex flex-col">
+                              <span className="text-sm text-muted-foreground line-through">
+                                ₹{test.marketPrice}
+                              </span>
+                              <span className="text-lg font-semibold text-green-600">
+                                ₹{test.price}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-lg font-semibold">₹{test.marketPrice || test.price}</span>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -456,10 +463,11 @@ const DiagnosticsPage = () => {
                       {Object.entries(cart).map(([testId, quantity]) => {
                         const test = tests.find(t => t.id === testId);
                         if (!test) return null;
+                        const price = isOffer ? test.price : (test.marketPrice || test.price);
                         return (
                           <div key={testId} className="flex justify-between">
                             <span>{test.name} x{quantity}</span>
-                            <span>₹{test.price * quantity}</span>
+                            <span>₹{price * quantity}</span>
                           </div>
                         );
                       })}
