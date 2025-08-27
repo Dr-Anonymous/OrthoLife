@@ -237,7 +237,7 @@ const BlogPostPage = () => {
 
                 <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps} />
 
-                <div className="sticky bottom-0 bg-background p-4 border-t z-10">
+                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/60 backdrop-blur-sm">
                   <div className="flex justify-between items-center">
                     <Button asChild variant="outline">
                       <Link to="/blog">
