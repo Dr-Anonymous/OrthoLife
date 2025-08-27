@@ -137,11 +137,15 @@ const DiagnosticsPage = () => {
     fetchTests();
   }, []);
 
-  const filteredTests = tests.filter(test =>
-    test.name.replace(/[.,;]/g, '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (test.category && test.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (test.description && test.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredTests = tests.filter(test => {
+    const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
+    if (searchTerms.length === 0) return true;
+    return searchTerms.some(term =>
+      test.name.replace(/[.,;]/g, '').toLowerCase().includes(term) ||
+      (test.category && test.category.toLowerCase().includes(term)) ||
+      (test.description && test.description.toLowerCase().includes(term))
+    );
+  });
 
   const addToCart = (testId: string) => {
     setCart(prev => ({
@@ -170,7 +174,7 @@ const DiagnosticsPage = () => {
     return Object.entries(cart).reduce((total, [testId, quantity]) => {
       const test = tests.find(t => t.id === testId);
       if (!test) return total;
-      const price = isOffer ? test.price : (test.marketPrice || test.price);
+      const price = isOffer ? test.price : (test.marketPrice);
       return total + (price * quantity);
     }, 0);
   };
@@ -391,7 +395,7 @@ const DiagnosticsPage = () => {
                               </span>
                             </div>
                           ) : (
-                            <span className="text-lg font-semibold">₹{test.marketPrice || test.price}</span>
+                            <span className="text-lg font-semibold">₹{test.marketPrice}</span>
                           )}
                         </div>
                       </div>
@@ -463,7 +467,7 @@ const DiagnosticsPage = () => {
                       {Object.entries(cart).map(([testId, quantity]) => {
                         const test = tests.find(t => t.id === testId);
                         if (!test) return null;
-                        const price = isOffer ? test.price : (test.marketPrice || test.price);
+                        const price = isOffer ? test.price : (test.marketPrice);
                         return (
                           <div key={testId} className="flex justify-between">
                             <span>{test.name} x{quantity}</span>
