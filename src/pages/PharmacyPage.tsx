@@ -85,15 +85,31 @@ const PharmacyPage = () => {
     fetchMedicines();
   }, []);
 
-  const filteredMedicines = medicines.filter(medicine => {
+  const filteredMedicines = (() => {
     const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
-    if (searchTerms.length === 0) return true;
-    return searchTerms.some(term =>
-      medicine.name.toLowerCase().includes(term) ||
-      medicine.category.toLowerCase().includes(term) ||
-      medicine.description.toLowerCase().includes(term)
-    );
-  });
+    if (searchTerms.length === 0) {
+      return medicines;
+    }
+
+    const result = [];
+    const addedIds = new Set();
+
+    for (const term of searchTerms) {
+      for (const medicine of medicines) {
+        if (!addedIds.has(medicine.id)) {
+          if (
+            medicine.name.toLowerCase().includes(term) ||
+            medicine.category.toLowerCase().includes(term) ||
+            medicine.description.toLowerCase().includes(term)
+          ) {
+            result.push(medicine);
+            addedIds.add(medicine.id);
+          }
+        }
+      }
+    }
+    return result;
+  })();
 
   const getCartKey = (medicine: Medicine, size?: string): string => {
     if (medicine.isGrouped && size) {

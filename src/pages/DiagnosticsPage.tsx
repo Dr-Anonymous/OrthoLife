@@ -137,15 +137,31 @@ const DiagnosticsPage = () => {
     fetchTests();
   }, []);
 
-  const filteredTests = tests.filter(test => {
+  const filteredTests = (() => {
     const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
-    if (searchTerms.length === 0) return true;
-    return searchTerms.some(term =>
-      test.name.replace(/[.,;]/g, '').toLowerCase().includes(term) ||
-      (test.category && test.category.toLowerCase().includes(term)) ||
-      (test.description && test.description.toLowerCase().includes(term))
-    );
-  });
+    if (searchTerms.length === 0) {
+      return tests;
+    }
+
+    const result = [];
+    const addedIds = new Set();
+
+    for (const term of searchTerms) {
+      for (const test of tests) {
+        if (!addedIds.has(test.id)) {
+          if (
+            test.name.replace(/[.,;]/g, '').toLowerCase().includes(term) ||
+            (test.category && test.category.toLowerCase().includes(term)) ||
+            (test.description && test.description.toLowerCase().includes(term))
+          ) {
+            result.push(test);
+            addedIds.add(test.id);
+          }
+        }
+      }
+    }
+    return result;
+  })();
 
   const addToCart = (testId: string) => {
     setCart(prev => ({
@@ -395,7 +411,7 @@ const DiagnosticsPage = () => {
                               </span>
                             </div>
                           ) : (
-                            <span className="text-lg font-semibold">₹{test.marketPrice}</span>
+                            <span className="text-lg font-semibold">₹{test.marketPrice || test.price}</span>
                           )}
                         </div>
                       </div>
