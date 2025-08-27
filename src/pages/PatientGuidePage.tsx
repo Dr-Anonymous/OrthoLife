@@ -132,7 +132,7 @@ const PatientGuidePage = () => {
             )}
 
             {!loading && guide && (
-              <article>
+              <article className="pb-24">
                 <header className="mb-8">
                   <div className="flex justify-between items-center mb-4">
                     <Badge>{guide.categories.name}</Badge>
@@ -157,7 +157,7 @@ const PatientGuidePage = () => {
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || guide.content }} />
 
-                <div className="mt-8 pt-8 border-t">
+                <div className="sticky bottom-0 bg-background p-4 border-t z-10">
                   <div className="flex flex-wrap justify-between items-center gap-4">
                     <Button asChild variant="outline">
                       <Link to="/patient-guides">
