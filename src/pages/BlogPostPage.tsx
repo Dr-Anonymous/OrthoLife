@@ -234,10 +234,10 @@ const BlogPostPage = () => {
                 <img src={post.image_url} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedPost?.content || post.content }} />
-
+        
                 <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps} />
 
-                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/80 backdrop-blur-sm">
+                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/20 backdrop-blur-sm">
                   <div className="flex justify-between items-center">
                     <Button asChild variant="outline">
                       <Link to="/blog">
