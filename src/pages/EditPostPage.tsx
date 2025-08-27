@@ -25,6 +25,7 @@ interface TranslationValues {
     title?: string;
     excerpt?: string;
     content?: string;
+    next_steps?: string;
   };
 }
 
@@ -73,6 +74,7 @@ const EditPostPage = () => {
               title: trans.title,
               excerpt: trans.excerpt,
               content: trans.content,
+              next_steps: trans.next_steps,
             };
           }
           setTranslations(newTranslations);
@@ -92,7 +94,7 @@ const EditPostPage = () => {
     fetchPostAndTranslations();
   }, [postId, navigate, toast]);
 
-  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; } }) => {
+  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
     setIsSubmitting(true);
     try {
       // 1. Update the main post
@@ -122,13 +124,14 @@ const EditPostPage = () => {
       const translationUpserts = [];
       for (const lang in translations) {
         // Ensure that we only upsert if there is some translated content
-        if (translations[lang].title || translations[lang].excerpt || translations[lang].content) {
+        if (translations[lang].title || translations[lang].excerpt || translations[lang].content || translations[lang].next_steps) {
           translationUpserts.push({
             post_id: postId,
             language: lang,
             title: translations[lang].title,
             excerpt: translations[lang].excerpt,
             content: translations[lang].content,
+            next_steps: translations[lang].next_steps,
           });
         }
       }

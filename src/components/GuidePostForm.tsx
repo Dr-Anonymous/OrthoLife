@@ -28,15 +28,17 @@ const guideFormSchema = z.object({
   pages: z.coerce.number().int().positive("Must be a positive number"),
   estimated_time: z.string().min(1, "Estimated time is required"),
   category_name: z.string().min(1, "Category is required"),
+  next_steps: z.string().optional(),
 });
 
 export type GuideFormValues = z.infer<typeof guideFormSchema>;
 
 export interface TranslationValues {
-  [lang: string]: {
+  [lang:string]: {
     title?: string;
     description?: string;
     content?: string;
+    next_steps?: string;
   };
 }
 
@@ -142,6 +144,22 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="next_steps"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Next Steps</FormLabel>
+                  <FormControl>
+                    <RichTextEditor
+                      content={field.value || ''}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </TabsContent>
           <TabsContent value="telugu" className="space-y-8 pt-4">
             <FormItem>
@@ -170,6 +188,15 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
                 <RichTextEditor
                   content={translationValues.te?.content || ''}
                   onChange={(value) => handleTranslationChange('te', 'content', value)}
+                />
+              </FormControl>
+            </FormItem>
+            <FormItem>
+              <FormLabel>Translated Next Steps (Telugu)</FormLabel>
+              <FormControl>
+                <RichTextEditor
+                  content={translationValues.te?.next_steps || ''}
+                  onChange={(value) => handleTranslationChange('te', 'next_steps', value)}
                 />
               </FormControl>
             </FormItem>

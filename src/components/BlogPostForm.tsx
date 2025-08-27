@@ -26,6 +26,7 @@ const postFormSchema = z.object({
   image_url: z.string().url("Please enter a valid URL"),
   read_time_minutes: z.coerce.number().int().positive("Must be a positive number"),
   category_name: z.string().min(1, "Category is required"),
+  next_steps: z.string().optional(),
 });
 
 export type PostFormValues = z.infer<typeof postFormSchema>;
@@ -35,6 +36,7 @@ interface TranslationValues {
     title?: string;
     excerpt?: string;
     content?: string;
+    next_steps?: string;
   };
 }
 
@@ -140,6 +142,22 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="next_steps"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Next Steps</FormLabel>
+                  <FormControl>
+                    <RichTextEditor
+                      content={field.value || ''}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </TabsContent>
           <TabsContent value="telugu" className="space-y-8 pt-4">
             <FormItem>
@@ -168,6 +186,15 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
                 <RichTextEditor
                   content={translationValues.te?.content || ''}
                   onChange={(value) => handleTranslationChange('te', 'content', value)}
+                />
+              </FormControl>
+            </FormItem>
+            <FormItem>
+              <FormLabel>Translated Next Steps (Telugu)</FormLabel>
+              <FormControl>
+                <RichTextEditor
+                  content={translationValues.te?.next_steps || ''}
+                  onChange={(value) => handleTranslationChange('te', 'next_steps', value)}
                 />
               </FormControl>
             </FormItem>

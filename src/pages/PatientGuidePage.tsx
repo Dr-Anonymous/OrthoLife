@@ -13,11 +13,13 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { generatePdf } from '@/lib/pdfUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Guide } from './PatientGuidesPage'; // Re-using the interface
+import NextSteps from '@/components/NextSteps';
 
 interface TranslatedGuide {
     title: string;
     description: string;
     content: string;
+    next_steps?: string;
 }
 
 const PatientGuidePage = () => {
@@ -157,7 +159,9 @@ const PatientGuidePage = () => {
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || guide.content }} />
 
-                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/80 backdrop-blur-sm">
+                <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps} />
+        
+                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/60 backdrop-blur-sm">
                   <div className="flex flex-wrap justify-between items-center gap-4">
                     <Button asChild variant="outline">
                       <Link to="/patient-guides">

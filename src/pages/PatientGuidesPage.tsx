@@ -27,6 +27,7 @@ export interface Guide {
   estimated_time: string;
   cover_image_url: string;
   categories: { name: string };
+  next_steps?: string;
   guide_translations: {
     language: string;
     title: string;

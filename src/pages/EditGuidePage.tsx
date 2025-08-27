@@ -12,6 +12,7 @@ interface TranslationValues {
     title?: string;
     description?: string;
     content?: string;
+    next_steps?: string;
   };
 }
 
@@ -51,7 +52,7 @@ const EditGuidePage = () => {
         setInitialData(initialFormValues);
 
         const initialTranslations = translationData.reduce((acc, t) => {
-          acc[t.language] = { title: t.title, description: t.description, content: t.content };
+          acc[t.language] = { title: t.title, description: t.description, content: t.content, next_steps: t.next_steps };
           return acc;
         }, {});
         setTranslations(initialTranslations);
@@ -94,6 +95,7 @@ const EditGuidePage = () => {
         title: newTranslations[lang].title,
         description: newTranslations[lang].description,
         content: newTranslations[lang].content,
+        next_steps: newTranslations[lang].next_steps,
       }));
 
       if (translationUpserts.length > 0) {
