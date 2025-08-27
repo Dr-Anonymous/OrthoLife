@@ -232,7 +232,7 @@ const BlogPostPage = () => {
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedPost?.content || post.content }} />
 
-                <div className="sticky bottom-0 bg-background p-4 border-t z-10">
+                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/80 backdrop-blur-sm">
                   <div className="flex justify-between items-center">
                     <Button asChild variant="outline">
                       <Link to="/blog">
