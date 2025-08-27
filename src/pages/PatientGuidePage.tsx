@@ -161,7 +161,7 @@ const PatientGuidePage = () => {
 
                 <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps} />
         
-                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/60 backdrop-blur-sm">
+                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/80 backdrop-blur-sm">
                   <div className="flex flex-wrap justify-between items-center gap-4">
                     <Button asChild variant="outline">
                       <Link to="/patient-guides">
