@@ -66,6 +66,7 @@ const CreateGuidePage = () => {
           title: translations[lang].title,
           description: translations[lang].description,
           content: translations[lang].content,
+          next_steps: translations[lang].next_steps,
         });
       }
 
