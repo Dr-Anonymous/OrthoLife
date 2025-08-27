@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import NextSteps from '@/components/NextSteps';
 
 interface Post {
   id: number;
@@ -22,12 +23,14 @@ interface Post {
   read_time_minutes: number;
   image_url: string;
   categories: { name: string };
+  next_steps?: string;
 }
 
 interface TranslatedPost {
     title: string;
     content: string;
     excerpt: string;
+    next_steps?: string;
 }
 
 const BlogPostPage = () => {
@@ -231,6 +234,8 @@ const BlogPostPage = () => {
                 <img src={post.image_url} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedPost?.content || post.content }} />
+
+                <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps} />
 
                 <div className="sticky bottom-0 bg-background p-4 border-t z-10">
                   <div className="flex justify-between items-center">

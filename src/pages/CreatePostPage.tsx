@@ -11,7 +11,7 @@ const CreatePostPage = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; } }) => {
+  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
     setIsSubmitting(true);
     try {
       const { category_name, ...postData } = values;
@@ -65,6 +65,7 @@ const CreatePostPage = () => {
           title: translations[lang].title,
           excerpt: translations[lang].excerpt,
           content: translations[lang].content,
+          next_steps: translations[lang].next_steps,
         });
       }
 
