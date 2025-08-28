@@ -95,7 +95,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
         <Tabs defaultValue="english" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 sticky top-16 z-10 bg-background">
             <TabsTrigger value="english">English</TabsTrigger>
             <TabsTrigger value="telugu">Telugu</TabsTrigger>
           </TabsList>
