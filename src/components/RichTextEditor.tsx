@@ -7,7 +7,11 @@ import Link from '@tiptap/extension-link';
 import { CustomImage } from './CustomImage';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Pilcrow, Table as TableIcon, Trash, CornerUpLeft, CornerUpRight, Columns, Rows } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -36,6 +40,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         openOnClick: false,
         autolink: true,
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: content,
     onUpdate: ({ editor }) => {
@@ -175,6 +185,60 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
+        <Button
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          variant={'ghost'}
+          size="sm"
+          type="button"
+          title="Insert Table"
+        >
+          <TableIcon className="h-4 w-4" />
+        </Button>
+        {editor.can().deleteTable() && <Button
+          onClick={() => editor.chain().focus().deleteTable().run()}
+          variant={'ghost'}
+          size="sm"
+          type="button"
+          title="Delete Table"
+        >
+          <Trash className="h-4 w-4" />
+        </Button>}
+        {editor.can().addColumnAfter() && <Button
+          onClick={() => editor.chain().focus().addColumnAfter().run()}
+          variant={'ghost'}
+          size="sm"
+  type="button"
+          title="Add Column After"
+        >
+          <Columns className="h-4 w-4" />
+        </Button>}
+        {editor.can().addRowAfter() && <Button
+          onClick={() => editor.chain().focus().addRowAfter().run()}
+          variant={'ghost'}
+          size="sm"
+          type="button"
+          title="Add Row After"
+        >
+          <Rows className="h-4 w-4" />
+        </Button>}
+        {editor.can().deleteColumn() && <Button
+          onClick={() => editor.chain().focus().deleteColumn().run()}
+          variant={'ghost'}
+          size="sm"
+          type="button"
+          title="Delete Column"
+        >
+          <Columns className="h-4 w-4 text-red-500" />
+        </Button>}
+        {editor.can().deleteRow() && <Button
+          onClick={() => editor.chain().focus().deleteRow().run()}
+          variant={'ghost'}
+          size="sm"
+          type="button"
+          title="Delete Row"
+        >
+          <Rows className="h-4 w-4 text-red-500" />
+        </Button>}
         <input
           type="color"
           onInput={(event: React.ChangeEvent<HTMLInputElement>) => editor.chain().focus().setColor(event.target.value).run()}
@@ -184,6 +248,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         />
       </div>
       <EditorContent editor={editor} />
+      {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
+        <div className="p-2 bg-background border rounded-md shadow-lg flex items-center gap-2">
+          <Button onClick={() => editor.chain().focus().setImage({ align: 'left' }).run()} variant={editor.isActive('custom-image', { align: 'left' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Left">
+            <AlignLeft className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => editor.chain().focus().setImage({ align: 'center' }).run()} variant={editor.isActive('custom-image', { align: 'center' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Center">
+            <AlignCenter className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => editor.chain().focus().setImage({ align: 'right' }).run()} variant={editor.isActive('custom-image', { align: 'right' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Right">
+            <AlignRight className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => editor.chain().focus().setImage({ display: editor.getAttributes('custom-image').display === 'block' ? 'inline-block' : 'block' }).run()} variant={editor.isActive('custom-image', { display: 'inline-block' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Toggle Display">
+            <Pilcrow className="h-4 w-4" />
+          </Button>
+          <input
+            type="range"
+            min="25"
+            max="100"
+            value={parseInt(editor.getAttributes('custom-image').width?.replace('%', '')) || 100}
+            onChange={(e) => editor.chain().focus().setImage({ width: `${e.target.value}%` }).run()}
+            className="w-24"
+          />
+        </div>
+      </BubbleMenu>}
       <input
         type="file"
         ref={fileInputRef}

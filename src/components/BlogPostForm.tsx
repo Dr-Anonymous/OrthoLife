@@ -135,7 +135,13 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
                   <FormControl>
                     <RichTextEditor
                       content={field.value || ''}
-                      onChange={field.onChange}
+                      onChange={(content) => {
+                        if (content === '<p></p>') {
+                          field.onChange('');
+                        } else {
+                          field.onChange(content);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -194,7 +200,13 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
               <FormControl>
                 <RichTextEditor
                   content={translationValues.te?.next_steps || ''}
-                  onChange={(value) => handleTranslationChange('te', 'next_steps', value)}
+                  onChange={(value) => {
+                    if (value === '<p></p>') {
+                      handleTranslationChange('te', 'next_steps', '');
+                    } else {
+                      handleTranslationChange('te', 'next_steps', value);
+                    }
+                  }}
                 />
               </FormControl>
             </FormItem>
