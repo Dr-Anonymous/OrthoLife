@@ -29,6 +29,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           levels: [2, 3],
         },
       }),
+      BubbleMenu.configure({
+        pluginKey: 'imageBubbleMenu',
+      }),
       Underline,
       CustomImage,
       TextStyle,
@@ -245,6 +248,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         />
       </div>
       <EditorContent editor={editor} />
+      {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
+        <div className="p-2 bg-background border rounded-md shadow-lg flex items-center gap-2">
+          <Button onClick={() => editor.chain().focus().setImage({ align: 'left' }).run()} variant={editor.isActive('custom-image', { align: 'left' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Left">
+            <AlignLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      </BubbleMenu>}
       <input
         type="file"
         ref={fileInputRef}
