@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import { BubbleMenu } from '@tiptap/extension-bubble-menu';
+import { useEditor, EditorContent, BubbleMenu as BubbleMenuComponent } from '@tiptap/react';
+import BubbleMenu from '@tiptap/extension-bubble-menu';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
@@ -248,13 +248,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         />
       </div>
       <EditorContent editor={editor} />
-      {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
+      {editor && <BubbleMenuComponent editor={editor} tippyOptions={{ duration: 100 }} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
         <div className="p-2 bg-background border rounded-md shadow-lg flex items-center gap-2">
           <Button onClick={() => editor.chain().focus().setImage({ align: 'left' }).run()} variant={editor.isActive('custom-image', { align: 'left' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Left">
             <AlignLeft className="h-4 w-4" />
           </Button>
         </div>
-      </BubbleMenu>}
+      </BubbleMenuComponent>}
       <input
         type="file"
         ref={fileInputRef}
