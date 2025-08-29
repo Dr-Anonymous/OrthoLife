@@ -13,11 +13,14 @@ export const CustomImage = Image.extend({
       align: {
         default: 'center',
       },
+      display: {
+        default: 'block',
+      }
     };
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { align, width } = HTMLAttributes;
+    const { align, width, display } = HTMLAttributes;
 
     const style: { [key: string]: string } = {};
     if (align === 'left') style['margin-right'] = 'auto';
@@ -27,8 +30,7 @@ export const CustomImage = Image.extend({
       style['margin-right'] = 'auto';
     }
     
-    // a block element is required for margin auto to work
-    style['display'] = 'block';
+    style['display'] = display;
     
     if (width) {
         style['width'] = width;
