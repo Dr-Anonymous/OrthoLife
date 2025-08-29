@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import BubbleMenuExtension, { BubbleMenu } from '@tiptap/extension-bubble-menu';
+import { BubbleMenu } from '@tiptap/react/menus';
+import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
