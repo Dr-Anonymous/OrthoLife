@@ -251,16 +251,53 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
       <EditorContent editor={editor} />
       {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
         <div className="p-2 bg-background border rounded-md shadow-lg flex items-center gap-2">
-          <Button onClick={() => editor.chain().focus().setImage({ align: 'left' }).run()} variant={editor.isActive('custom-image', { align: 'left' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Left">
+          <Button
+            onClick={() => {
+              const currentAttributes = editor.getAttributes('custom-image');
+              editor.chain().focus().setImage({ ...currentAttributes, align: 'left' }).run();
+            }}
+            variant={editor.isActive('custom-image', { align: 'left' }) ? 'secondary' : 'ghost'}
+            size="sm"
+            type="button"
+            title="Align Left"
+          >
             <AlignLeft className="h-4 w-4" />
           </Button>
-          <Button onClick={() => editor.chain().focus().setImage({ align: 'center' }).run()} variant={editor.isActive('custom-image', { align: 'center' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Center">
+          <Button
+            onClick={() => {
+              const currentAttributes = editor.getAttributes('custom-image');
+              editor.chain().focus().setImage({ ...currentAttributes, align: 'center' }).run();
+            }}
+            variant={editor.isActive('custom-image', { align: 'center' }) ? 'secondary' : 'ghost'}
+            size="sm"
+            type="button"
+            title="Align Center"
+          >
             <AlignCenter className="h-4 w-4" />
           </Button>
-          <Button onClick={() => editor.chain().focus().setImage({ align: 'right' }).run()} variant={editor.isActive('custom-image', { align: 'right' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Align Right">
+          <Button
+            onClick={() => {
+              const currentAttributes = editor.getAttributes('custom-image');
+              editor.chain().focus().setImage({ ...currentAttributes, align: 'right' }).run();
+            }}
+            variant={editor.isActive('custom-image', { align: 'right' }) ? 'secondary' : 'ghost'}
+            size="sm"
+            type="button"
+            title="Align Right"
+          >
             <AlignRight className="h-4 w-4" />
           </Button>
-          <Button onClick={() => editor.chain().focus().setImage({ display: editor.getAttributes('custom-image').display === 'block' ? 'inline-block' : 'block' }).run()} variant={editor.isActive('custom-image', { display: 'inline-block' }) ? 'secondary' : 'ghost'} size="sm" type="button" title="Toggle Display">
+          <Button
+            onClick={() => {
+              const currentAttributes = editor.getAttributes('custom-image');
+              const newDisplay = currentAttributes.display === 'block' ? 'inline-block' : 'block';
+              editor.chain().focus().setImage({ ...currentAttributes, display: newDisplay }).run();
+            }}
+            variant={editor.isActive('custom-image', { display: 'inline-block' }) ? 'secondary' : 'ghost'}
+            size="sm"
+            type="button"
+            title="Toggle Display"
+          >
             <Pilcrow className="h-4 w-4" />
           </Button>
           <input
@@ -268,7 +305,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
             min="25"
             max="100"
             value={parseInt(editor.getAttributes('custom-image').width?.replace('%', '')) || 100}
-            onChange={(e) => editor.chain().focus().setImage({ width: `${e.target.value}%` }).run()}
+            onChange={(e) => {
+              const currentAttributes = editor.getAttributes('custom-image');
+              editor.chain().focus().setImage({ ...currentAttributes, width: `${e.target.value}%` }).run();
+            }}
             className="w-24"
           />
         </div>
