@@ -273,7 +273,7 @@ const PatientGuidesPage = () => {
                       </div>
                       <div className="flex gap-3">
                         <Button asChild className="flex items-center gap-2">
-                          <Link to={`/patient-guides/${guides[0].id}`}>
+                          <Link to={`/guides/${guides[0].id}`}>
                             <Eye size={16} />
                             {t('guides.readOnline')}
                           </Link>
@@ -288,7 +288,7 @@ const PatientGuidesPage = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {guides.slice(1).map((guide) => (
-                    <Link to={`/patient-guides/${guide.id}`} key={guide.id} className="group">
+                    <Link to={`/guides/${guide.id}`} key={guide.id} className="group">
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
                           <img
@@ -324,7 +324,7 @@ const PatientGuidesPage = () => {
                           </div>
                           <div className="flex gap-2 mt-auto">
                             <Button asChild size="sm" className="flex-1">
-                              <Link to={`/patient-guides/${guide.id}`}>
+                              <Link to={`/guides/${guide.id}`}>
                                 <Eye size={14} className="mr-1" />
                                 {t('guides.read')}
                               </Link>
