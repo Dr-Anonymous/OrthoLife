@@ -109,7 +109,7 @@ const EditGuidePage = () => {
         title: "Guide updated!",
         description: "The patient guide has been successfully updated.",
       });
-      navigate(`/patient-guides/${guideId}`);
+      navigate(`/guides/${guideId}`);
 
     } catch (error) {
       console.error('Error updating guide:', error);

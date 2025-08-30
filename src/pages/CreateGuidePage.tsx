@@ -82,7 +82,7 @@ const CreateGuidePage = () => {
         description: "Your new patient guide has been successfully created.",
       });
 
-      navigate(`/patient-guides/${newGuide.id}`);
+      navigate(`/guides/${newGuide.id}`);
 
     } catch (error) {
       console.error('Error creating guide:', error);

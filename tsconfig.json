@@ -15,5 +15,11 @@
     "allowJs": true,
     "noUnusedLocals": false,
     "strictNullChecks": false
+  },
+  "ts-node": {
+    "esm": true,
+    "compilerOptions": {
+      "module": "NodeNext"
+    }
   }
 }

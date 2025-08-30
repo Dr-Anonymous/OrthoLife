@@ -164,7 +164,7 @@ const PatientGuidePage = () => {
                 <div className="sticky bottom-0 p-4 border-t z-10 bg-background/20 backdrop-blur-sm">        
                   <div className="flex flex-wrap justify-between items-center gap-4">
                     <Button asChild variant="outline">
-                      <Link to="/patient-guides">
+                      <Link to="/guides">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Guides
                       </Link>
