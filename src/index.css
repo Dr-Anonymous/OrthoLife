@@ -51,3 +51,10 @@
     @apply scroll-smooth;
   }
 }
+
+/* Make tables in prose content responsive */
+.prose table {
+  width: 100%;
+  overflow-x: auto;
+  display: block;
+}
