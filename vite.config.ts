@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  build: {
+    outDir: 'build',
+    target: 'es2020',
+  },
   plugins: [
     react(),
     mode === 'development' &&
