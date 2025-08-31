@@ -230,7 +230,7 @@ const ResourcesPage = () => {
                           </div>
                           <p className="text-sm text-muted-foreground">{t(resource.descriptionKey)}</p>
                         </div>
-                        <Button onClick={(e) => {e.preventDefault();window.location.href='{resource.url}';}} variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
+                        <Button onClick={(e) => {e.preventDefault();window.location.href='resource.url';}} variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
                           {t('resources.external.visit')}
                           <ExternalLink size={16} className="ml-2" />
                         </Button>
