@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PageLoader from "./components/PageLoader";
+import { usePWAInstall } from "./hooks/usePWAInstall";
 
 const Index = lazy(() => import("./pages/Index"));
 const AppointmentPage = lazy(() => import("./pages/AppointmentPage"));
@@ -30,49 +31,61 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ErrorBoundary>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/appointment" element={<AppointmentPage />} />
-              <Route path="/legal" element={<LegalPoliciesPage />} />
-              <Route path="/wa" element={<WhatsAppMe />} />
-              <Route path="/emr" element={<EMR />} />
+const App = () => {
+  const { installPrompt, handleInstallClick } = usePWAInstall();
 
-              {/* Pharmacy Routes */}
-              <Route path="/pharmacy" element={<PharmacyPage />} />
-              <Route path="/upload-prescription" element={<UploadPrescriptionPage />} />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ErrorBoundary>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/appointment" element={<AppointmentPage />} />
+                <Route path="/legal" element={<LegalPoliciesPage />} />
+                <Route path="/wa" element={<WhatsAppMe />} />
+                <Route path="/emr" element={<EMR />} />
 
-              {/* Diagnostics Routes */}
-              <Route path="/diagnostics" element={<DiagnosticsPage />} />
-              <Route path="/track-test-results" element={<TrackTestResultsPage />} />
+                {/* Pharmacy Routes */}
+                <Route path="/pharmacy" element={<PharmacyPage />} />
+                <Route path="/upload-prescription" element={<UploadPrescriptionPage />} />
 
-              {/* Learn Routes */}
-              <Route path="/blog" element={<BlogPage />} />
-              <Route path="/blog/new" element={<CreatePostPage />} />
-              <Route path="/blog/:postId" element={<BlogPostPage />} />
-              <Route path="/blog/:postId/edit" element={<EditPostPage />} />
-              <Route path="/guides" element={<PatientGuidesPage />} />
-              <Route path="/guides/new" element={<CreateGuidePage />} />
-              <Route path="/guides/:guideId" element={<PatientGuidePage />} />
-              <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
-              <Route path="/faqs" element={<FAQPage />} />
-              <Route path="/resources" element={<ResourcesPage />} />
+                {/* Diagnostics Routes */}
+                <Route path="/diagnostics" element={<DiagnosticsPage />} />
+                <Route path="/track-test-results" element={<TrackTestResultsPage />} />
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+                {/* Learn Routes */}
+                <Route path="/blog" element={<BlogPage />} />
+                <Route path="/blog/new" element={<CreatePostPage />} />
+                <Route path="/blog/:postId" element={<BlogPostPage />} />
+                <Route path="/blog/:postId/edit" element={<EditPostPage />} />
+                <Route path="/guides" element={<PatientGuidesPage />} />
+                <Route path="/guides/new" element={<CreateGuidePage />} />
+                <Route path="/guides/:guideId" element={<PatientGuidePage />} />
+                <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
+                <Route path="/faqs" element={<FAQPage />} />
+                <Route
+                  path="/resources"
+                  element={
+                    <ResourcesPage
+                      installPrompt={installPrompt}
+                      handleInstallClick={handleInstallClick}
+                    />
+                  }
+                />
+
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </ErrorBoundary>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

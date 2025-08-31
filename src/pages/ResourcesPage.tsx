@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,36 +18,22 @@ import BMICalculator from '@/components/BMICalculator';
 import PainTracker from '@/components/PainTracker';
 import RecoveryProgressTracker from '@/components/RecoveryProgressTracker';
 
-const ResourcesPage = () => {
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
+interface ResourcesPageProps {
+  installPrompt: BeforeInstallPromptEvent | null;
+  handleInstallClick: () => void;
+}
+
+const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInstallClick }) => {
   const { t } = useTranslation();
-  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = () => {
-    if (installPrompt) {
-      (installPrompt as any).prompt();
-      (installPrompt as any).userChoice.then((choiceResult: { outcome: string }) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-        } else {
-          console.log('User dismissed the install prompt');
-        }
-        setInstallPrompt(null);
-      });
-    }
-  };
 
   const toolsAndCalculators = [
     { id: 1, titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
@@ -230,7 +216,7 @@ const ResourcesPage = () => {
                           </div>
                           <p className="text-sm text-muted-foreground">{t(resource.descriptionKey)}</p>
                         </div>
-                        <Button onClick={(e) => {e.preventDefault();window.location.href='resource.url';}} variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
+                        <Button onClick={(e) => {e.preventDefault();window.location.href=resource.url;}} variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
                           {t('resources.external.visit')}
                           <ExternalLink size={16} className="ml-2" />
                         </Button>
