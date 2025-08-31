@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Phone, Menu, X, MessageCircleCode, ChevronDown } from "lucide-react";
+import { Phone, Menu, X, MessageCircle, ChevronDown } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { cn } from '@/lib/utils';
@@ -241,7 +241,7 @@ const Header = () => {
               <span>9866812555</span>
             </Button>
             <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}} className="bg-primary hover:bg-primary/90 transition-colors">
-              <MessageCircleCode />
+              <MessageCircle />
             </Button>
             
             {/* Mobile menu button */}

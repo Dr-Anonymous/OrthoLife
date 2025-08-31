@@ -61,9 +61,9 @@ const ResourcesPage = () => {
   ];
 
   const externalResources = [
-    { id: 1, titleKey: 'resources.external1.title', descriptionKey: 'resources.external1.description', url: 'https://www.aaos.org', type: 'Medical Organization' },
-    { id: 2, titleKey: 'resources.external2.title', descriptionKey: 'resources.external2.description', url: 'https://www.bonehealthandosteoporosis.org', type: 'Health Foundation' },
-    { id: 3, titleKey: 'resources.external3.title', descriptionKey: 'resources.external3.description', url: 'https://www.apta.org', type: 'Professional Resource' }
+    { id: 1, titleKey: 'resources.external1.title', descriptionKey: 'resources.external1.description', url: 'https://orthosam.com', type: 'Website' },
+    { id: 2, titleKey: 'resources.external2.title', descriptionKey: 'resources.external2.description', url: 'https://g.page/r/CbMg_hjmdmGIEAI/', type: 'Profile' },
+    { id: 3, titleKey: 'resources.external3.title', descriptionKey: 'resources.external3.description', url: 'https://g.page/orthosam', type: 'Profile' }
   ];
 
   const downloadableResources = [
@@ -230,7 +230,7 @@ const ResourcesPage = () => {
                           </div>
                           <p className="text-sm text-muted-foreground">{t(resource.descriptionKey)}</p>
                         </div>
-                        <Button variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
+                        <Button onClick={(e) => {e.preventDefault();window.location.href='{resource.url}';}} variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
                           {t('resources.external.visit')}
                           <ExternalLink size={16} className="ml-2" />
                         </Button>

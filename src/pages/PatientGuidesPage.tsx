@@ -351,7 +351,7 @@ const PatientGuidesPage = () => {
                 <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                   {t('guides.customGuide.description')}
                 </p>
-                <Button size="lg">
+                <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20a%20custom%20exercise%20guide.';}} size="lg">
                   {t('guides.customGuide.button')}
                 </Button>
               </CardContent>

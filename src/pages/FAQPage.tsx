@@ -178,11 +178,11 @@ const FAQPage = () => {
                   {t('faq.supportMessage')}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button className="flex items-center gap-2">
+                  <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} className="flex items-center gap-2">
                     <Phone size={16} />
                     {t('faq.call')}
                   </Button>
-                  <Button variant="outline" className="flex items-center gap-2">
+                  <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%20have%20a%20question.';}} variant="outline" className="flex items-center gap-2">
                     <MessageCircle size={16} />
                     {t('faq.whatsapp')}
                   </Button>
