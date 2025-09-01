@@ -18,7 +18,7 @@ i18n
 
     detection: {
       // order and from where user language should be detected
-      order: ['localStorage', 'navigator', 'htmlTag', 'path', 'subdomain'],
+      order: ['navigator', 'htmlTag', 'path', 'subdomain', 'localStorage'],
       caches: ['localStorage'],
     },
 
