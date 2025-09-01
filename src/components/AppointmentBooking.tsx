@@ -52,6 +52,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [isBooking, setIsBooking] = useState(false);
 
   const selectedServiceData = services.find(s => s.name === selectedService);
 
@@ -99,6 +100,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
   const handleBookAppointment = () => {
     if (!selectedSlot || !selectedServiceData) return;
+    setIsBooking(true); // Disable button
 
     const appointmentData: AppointmentData = {
       start: selectedSlot.start,
@@ -262,15 +264,15 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
           )}
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={onBack} className="flex-1">
+            <Button variant="outline" onClick={onBack} className="flex-1" disabled={isBooking}>
               Back
             </Button>
             <Button 
               onClick={handleBookAppointment}
-              disabled={!selectedSlot || !selectedService}
+              disabled={!selectedSlot || !selectedService || isBooking}
               className="flex-1"
             >
-              {(paymentOption === 'online' && selectedServiceData.price !== 0) ? 'Proceed to Payment' : 'Book Appointment'}
+              {isBooking ? 'Booking...' : (paymentOption === 'online' && selectedServiceData && selectedServiceData.price !== 0) ? 'Proceed to Payment' : 'Book Appointment'}
             </Button>
           </div>
         </CardContent>
