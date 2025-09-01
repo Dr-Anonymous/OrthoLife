@@ -110,13 +110,19 @@ const PatientGuidesPage = () => {
   }, [selectedCategory]);
 
   const handleCategoryClick = (categoryId: number | null) => {
-    if (categoryId === selectedCategory) {
-      // If the clicked category is already selected, deselect it (show all)
+    if (categoryId === null) {
+    // Already on "All" → do nothing
+    if (selectedCategory === null) return;
+    // Switching from a category → reset to All
+    setSelectedCategory(null);
+    } else if (categoryId === selectedCategory) {
+      // Clicking the same category again → reset to All
       setSelectedCategory(null);
     } else {
-      // Otherwise, select the new category
+      // Switching to a new category
       setSelectedCategory(categoryId);
     }
+    
     setGuides([]); // Clear old guides immediately
   };
 
