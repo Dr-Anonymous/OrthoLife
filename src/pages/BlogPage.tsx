@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, Clock, ArrowRight } from 'lucide-react';
+import { Clock, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,8 +21,6 @@ export interface Post {
   id: number;
   title: string;
   excerpt: string;
-  author: string;
-  created_at: string;
   read_time_minutes: number;
   category_id: number;
   image_url: string;
@@ -249,10 +247,6 @@ const BlogPage = () => {
                         {getTranslatedPost(featuredPost, i18n.language).excerpt}
                       </p>
                       <div className="flex items-center text-sm text-muted-foreground mb-4 flex-wrap">
-                        <User size={16} className="mr-1" />
-                        <span className="mr-4">{featuredPost.author}</span>
-                        <Calendar size={16} className="mr-1" />
-                        <span className="mr-4">{new Date(featuredPost.created_at).toLocaleDateString()}</span>
                         <Clock size={16} className="mr-1" />
                         <span>{featuredPost.read_time_minutes} min read</span>
                       </div>
@@ -291,14 +285,6 @@ const BlogPage = () => {
                             {getTranslatedPost(post, i18n.language).excerpt}
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="mt-auto">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <User size={14} className="mr-1" />
-                            <span className="mr-3">{post.author}</span>
-                            <Calendar size={14} className="mr-1" />
-                            <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                          </div>
-                        </CardContent>
                       </Card>
                     </Link>
                   ))}

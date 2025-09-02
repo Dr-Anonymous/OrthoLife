@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, Clock, Share2, ArrowLeft } from 'lucide-react';
+import { Clock, Share2, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,8 +18,6 @@ interface Post {
   title: string;
   content: string;
   excerpt?: string;
-  author: string;
-  created_at: string;
   read_time_minutes: number;
   image_url: string;
   categories: { name: string };
@@ -169,8 +167,6 @@ const BlogPostPage = () => {
       setMetaTag('twitter:image', post.image_url);
       
       // Set article-specific meta tags
-      setOGMetaTag('article:author', post.author);
-      setOGMetaTag('article:published_time', post.created_at);
     } else if (!loading) {
       // Reset title when post not found
       document.title = 'Post Not Found | OrthoLife';
@@ -216,14 +212,6 @@ const BlogPostPage = () => {
                     {translatedPost?.title || post.title}
                   </h1>
                   <div className="flex items-center text-muted-foreground flex-wrap">
-                    <div className="flex items-center mr-6 mb-2">
-                      <User size={16} className="mr-2" />
-                      <span>{post.author}</span>
-                    </div>
-                    <div className="flex items-center mr-6 mb-2">
-                      <Calendar size={16} className="mr-2" />
-                      <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                    </div>
                     <div className="flex items-center mb-2">
                       <Clock size={16} className="mr-2" />
                       <span>{post.read_time_minutes} min read</span>
