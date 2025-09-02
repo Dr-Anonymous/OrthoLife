@@ -22,7 +22,6 @@ const postFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   excerpt: z.string().min(1, "Excerpt is required"),
   content: z.string().min(1, "Content is required"),
-  author: z.string().min(1, "Author is required"),
   image_url: z.string().url("Please enter a valid URL"),
   read_time_minutes: z.coerce.number().int().positive("Must be a positive number"),
   category_name: z.string().min(1, "Category is required"),
@@ -214,19 +213,6 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
         </Tabs>
 
         <div className="space-y-8 pt-8 border-t">
-          <FormField
-            control={form.control}
-            name="author"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Author</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter author's name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="image_url"
