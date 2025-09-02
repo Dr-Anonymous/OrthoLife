@@ -12,7 +12,7 @@ const About = () => {
               <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-secondary/20 rounded-full"></div>
               <div className="relative rounded-lg overflow-hidden shadow-xl">
                 <img 
-                  src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/surgery.jpeg" 
+                  src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/landing%20pics/surgery.jpeg" 
                   alt="Medical team at OrthoLife clinic" 
                   className="w-full h-auto object-cover aspect-[4/3]"
                   loading="lazy"
