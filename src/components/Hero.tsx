@@ -45,7 +45,7 @@ const Hero = () => {
               <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-primary/10 rounded-full"></div>
               <div className="relative rounded-lg overflow-hidden shadow-xl">
                 <img 
-                  src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover.jpeg" 
+                  src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/landing%20pics/cover.jpeg" 
                   alt="Medical professional with patient" 
                   className="w-full h-auto object-cover aspect-[4/3]"
                   loading="lazy"
