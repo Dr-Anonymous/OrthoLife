@@ -166,6 +166,14 @@ serve(async (req)=>{
           },
           replaceText: data.advice || ''
         }
+      },
+      {
+        replaceAllText: {
+          containsText: {
+            text: '{{followup}}'
+          },
+          replaceText: data.followup || ''
+        }
       }
     ];
     // Apply text replacements

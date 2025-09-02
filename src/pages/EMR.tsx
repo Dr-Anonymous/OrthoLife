@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, User, Phone, Calendar as CalendarIcon, FileText, Stethoscope } from 'lucide-react';
+import { Loader2, User, Phone, Calendar as CalendarIcon, FileText, Stethoscope, X } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -62,6 +62,7 @@ const EMR = () => {
     investigations: '',
     diagnosis: '',
     advice: '',
+    followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
     medications: [
       { name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
       { name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
@@ -70,6 +71,7 @@ const EMR = () => {
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTranslating, setIsTranslating] = useState<Record<string, boolean>>({});
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -230,6 +232,45 @@ const EMR = () => {
     }));
   };
 
+  const handleTranslate = async (field: 'advice' | 'followup', text: string) => {
+    if (!text.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Nothing to translate',
+        description: 'Please enter some text before translating.',
+      });
+      return;
+    }
+
+    setIsTranslating(prev => ({...prev, [field]: true}));
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-content', {
+        body: { text, targetLanguage: 'te' },
+      });
+
+      if (error) throw new Error(error.message || 'Translation failed');
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.translatedText) {
+        setExtraData(prev => ({ ...prev, [field]: data.translatedText }));
+        toast({
+          title: 'Translation Successful',
+          description: `Field has been translated to Telugu.`
+        });
+      }
+
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Translation Error',
+        description: 'Could not translate the text. Please try again.'
+      });
+    } finally {
+      setIsTranslating(prev => ({...prev, [field]: false}));
+    }
+  };
+
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -247,6 +288,7 @@ const EMR = () => {
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
         advice: extraData.advice,
+        followup: extraData.followup,
         medications: JSON.stringify(extraData.medications)
       };
     
@@ -502,12 +544,36 @@ const EMR = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                    <Button type="button" size="sm" variant="link" onClick={() => handleTranslate('advice', extraData.advice)} disabled={isTranslating['advice']}>
+                      {isTranslating['advice'] ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Translate to Telugu
+                    </Button>
+                  </div>
                   <Textarea 
                     id="advice"
                     value={extraData.advice} 
                     onChange={e => handleExtraChange('advice', e.target.value)} 
                     placeholder="Medical advice and recommendations..."
+                    onKeyDown={e => e.key === 'Enter' && e.stopPropagation()}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                    <Button type="button" size="sm" variant="link" onClick={() => handleTranslate('followup', extraData.followup)} disabled={isTranslating['followup']}>
+                      {isTranslating['followup'] ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Translate to Telugu
+                    </Button>
+                  </div>
+                  <Textarea
+                    id="followup"
+                    value={extraData.followup}
+                    onChange={e => handleExtraChange('followup', e.target.value)}
+                    placeholder="Follow-up instructions..."
                     onKeyDown={e => e.key === 'Enter' && e.stopPropagation()}
                     className="min-h-[80px]"
                   />
@@ -524,7 +590,17 @@ const EMR = () => {
                 
                 <div className="space-y-4">
                   {extraData.medications.map((med, index) => (
-                    <Card key={index} className="p-4 border border-border">
+                    <Card key={index} className="p-4 border border-border relative">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeMedication(index)}
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Remove medication</span>
+                      </Button>
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="space-y-2">
@@ -603,18 +679,6 @@ const EMR = () => {
                             />
                           </div>
                         </div>
-                      {extraData.medications.length > 0 && (
-                        <div className="flex justify-end">
-                          <Button 
-                            type="button" 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => removeMedication(index)}
-                          >
-                            Remove Medication
-                          </Button>
-                        </div>
-                      )}
                       </div>
                     </Card>
                   ))}
