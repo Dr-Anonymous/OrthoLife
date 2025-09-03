@@ -167,6 +167,7 @@ const EMR = () => {
           investigations: patientData.investigations || prev.investigations,
           diagnosis: patientData.diagnosis || prev.diagnosis,
           advice: patientData.advice || prev.advice,
+          followup: patientData.followup || prev.followup,
           medications: patientData.medications?.length ? patientData.medications : prev.medications
         }));
 

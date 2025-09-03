@@ -262,6 +262,11 @@ function parsePatientData(documentText) {
   if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
     data.advice = adviceMatch[1].trim();
   }
+  const followupMatch = documentText.match(/Followup[:\s]*(?:{{followup}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Dear|Orthopaedic|$)/i);
+  if (followupMatch && followupMatch[1] && !followupMatch[1].includes('{{')) {
+    data.followup = followupMatch[1].trim();
+  }
+  
   // Parse medications from tab-delimited table format (robust parser)
   try {
     const medications = [];
