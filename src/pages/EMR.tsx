@@ -519,10 +519,6 @@ const EMR = () => {
                     <FileText className="w-5 h-5 text-primary" />
                     <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
                   </div>
-                  <Button type="button" size="sm" variant="link" onClick={handleTranslateAll} disabled={isTranslating}>
-                      {isTranslating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Translate to Telugu
-                  </Button>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -712,6 +708,10 @@ const EMR = () => {
                 <div className="flex justify-end">
                   <Button type="button" onClick={addMedication} variant="outline" size="sm">
                     Add Medication
+                  </Button>
+                  <Button type="button" size="sm" variant="link" onClick={handleTranslateAll} disabled={isTranslating}>
+                      {isTranslating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Translate to Telugu
                   </Button>
                 </div>
               </div>
