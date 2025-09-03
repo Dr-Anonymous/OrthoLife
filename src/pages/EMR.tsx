@@ -71,7 +71,7 @@ const EMR = () => {
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTranslating, setIsTranslating] = useState<Record<string, boolean>>({});
+  const [isTranslating, setIsTranslating] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -233,42 +233,69 @@ const EMR = () => {
     }));
   };
 
-  const handleTranslate = async (field: 'advice' | 'followup', text: string) => {
-    if (!text.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Nothing to translate',
-        description: 'Please enter some text before translating.',
-      });
-      return;
+  const handleTranslateAll = async () => {
+    const textsToTranslate = {
+        advice: extraData.advice,
+        followup: extraData.followup,
+        medications: extraData.medications.map(med => med.instructions)
+    };
+
+    if (!textsToTranslate.advice.trim() && !textsToTranslate.followup.trim() && textsToTranslate.medications.every(inst => !inst.trim())) {
+        toast({
+            variant: 'destructive',
+            title: 'Nothing to translate',
+            description: 'Please enter some text in Advice, Follow-up, or Medication Instructions before translating.',
+        });
+        return;
     }
 
-    setIsTranslating(prev => ({...prev, [field]: true}));
+    setIsTranslating(true);
+
     try {
-      const { data, error } = await supabase.functions.invoke('translate-content', {
-        body: { text, targetLanguage: 'te' },
-      });
+        const translate = (text: string) => {
+            if (!text.trim()) return Promise.resolve(text);
+            return supabase.functions.invoke('translate-content', {
+                body: { text, targetLanguage: 'te' },
+            }).then(result => {
+                if (result.error) throw new Error(result.error.message);
+                if (result.data?.error) throw new Error(result.data.error);
+                return result.data?.translatedText || text;
+            });
+        };
 
-      if (error) throw new Error(error.message || 'Translation failed');
-      if (data?.error) throw new Error(data.error);
+        const [translatedAdvice, translatedFollowup] = await Promise.all([
+            translate(textsToTranslate.advice),
+            translate(textsToTranslate.followup)
+        ]);
 
-      if (data?.translatedText) {
-        setExtraData(prev => ({ ...prev, [field]: data.translatedText }));
+        const translatedMedInstructions = await Promise.all(
+            textsToTranslate.medications.map(inst => translate(inst))
+        );
+
+        setExtraData(prev => ({
+            ...prev,
+            advice: translatedAdvice,
+            followup: translatedFollowup,
+            medications: prev.medications.map((med, index) => ({
+                ...med,
+                instructions: translatedMedInstructions[index]
+            }))
+        }));
+
         toast({
-          title: 'Translation Successful',
-          description: `Field has been translated to Telugu.`
+            title: 'Translation Successful',
+            description: 'The relevant fields have been translated to Telugu.'
         });
-      }
 
     } catch (error) {
-      console.error('Translation error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Translation Error',
-        description: 'Could not translate the text. Please try again.'
-      });
+        console.error('Translation error:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Translation Error',
+            description: (error as Error).message || 'Could not translate the text. Please try again.'
+        });
     } finally {
-      setIsTranslating(prev => ({...prev, [field]: false}));
+        setIsTranslating(false);
     }
   };
 
@@ -487,9 +514,15 @@ const EMR = () => {
 
               {/* Medical Information Section */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                  </div>
+                  <Button type="button" size="sm" variant="link" onClick={handleTranslateAll} disabled={isTranslating}>
+                      {isTranslating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Translate to Telugu
+                  </Button>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -547,10 +580,6 @@ const EMR = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
-                    <Button type="button" size="sm" variant="link" onClick={() => handleTranslate('advice', extraData.advice)} disabled={isTranslating['advice']}>
-                      {isTranslating['advice'] ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Translate to Telugu
-                    </Button>
                   </div>
                   <Textarea 
                     id="advice"
@@ -565,10 +594,6 @@ const EMR = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
-                    <Button type="button" size="sm" variant="link" onClick={() => handleTranslate('followup', extraData.followup)} disabled={isTranslating['followup']}>
-                      {isTranslating['followup'] ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Translate to Telugu
-                    </Button>
                   </div>
                   <Textarea
                     id="followup"
