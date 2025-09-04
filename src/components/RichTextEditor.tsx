@@ -14,6 +14,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Pilcrow, Table as TableIcon, Trash, CornerUpLeft, CornerUpRight, Columns, Rows } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 
 interface RichTextEditorProps {
@@ -74,6 +75,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
     }
 
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
+  const addImageUrl = () => {
+    if (!editor) return;
+    const url = window.prompt('Image URL');
+
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,15 +187,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant={'ghost'}
-          size="sm"
-          type="button"
-          title="Image"
-        >
-          <ImageIcon className="h-4 w-4" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant={'ghost'}
+              size="sm"
+              type="button"
+              title="Image"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={addImageUrl}>
+              Add from URL
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+              Upload Image
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
           variant={'ghost'}
