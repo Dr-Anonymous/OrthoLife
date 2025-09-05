@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 const Hero = () => {
   return (
-    <section id="home" className="pt-24 md:pt-32 pb-16 md:pb-24 relative overflow-hidden">
+    <section id="home" className="pt-24 md:pt-32 pb-16 md:pb-24 relative overflow-hidden" role="banner" aria-label="OrthoLife Hero Section">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50 z-[-1]"></div>
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col md:flex-row items-center">
@@ -13,7 +13,7 @@ const Hero = () => {
                 Specialized Care For Your <span className="text-primary">Orthopaedic</span> Needs
               </h1>
               <p className="text-lg text-gray-700">
-                OrthoLife offers expert orthopaedic care for all conditions from fractures and sports injuries to spine, joint, and orthobiologic treatments. Get <i>Back to health</i>, doing what you love—stronger, faster, pain-free.
+                OrthoLife offers expert orthopaedic care for all conditions from fractures and sports injuries to spine, joint, and orthobiologic treatments. Get <em>Back to health</em>, doing what you love—stronger, faster, pain-free.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-white" onClick={(e) => {e.preventDefault();window.location.href='/appointment';}}>
@@ -23,17 +23,17 @@ const Hero = () => {
                   Our Services
                 </Button>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-6" role="region" aria-label="OrthoLife Statistics">
                 <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-primary">5+</span>
+                  <span className="text-3xl font-bold text-primary" aria-label="5 plus years experience">5+</span>
                   <span className="text-gray-600">Years Experience</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-primary">5k+</span>
+                  <span className="text-3xl font-bold text-primary" aria-label="5000 plus happy patients">5k+</span>
                   <span className="text-gray-600">Happy Patients</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-primary">99%</span>
+                  <span className="text-3xl font-bold text-primary" aria-label="99 percent patient satisfaction">99%</span>
                   <span className="text-gray-600">Patient Satisfaction</span>
                 </div>
               </div>
@@ -41,14 +41,16 @@ const Hero = () => {
           </div>
           <div className="w-full md:w-1/2 animate-fade-in" style={{animationDelay: '0.3s'}}>
             <div className="relative">
-              <div className="absolute -top-6 -left-6 w-24 h-24 bg-secondary/20 rounded-full"></div>
-              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-primary/10 rounded-full"></div>
+              <div className="absolute -top-6 -left-6 w-24 h-24 bg-secondary/20 rounded-full" aria-hidden="true"></div>
+              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-primary/10 rounded-full" aria-hidden="true"></div>
               <div className="relative rounded-lg overflow-hidden shadow-xl">
                 <img 
                   src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/landing%20pics/cover.jpeg" 
-                  alt="Medical professional with patient" 
+                  alt="OrthoLife medical professional providing expert orthopaedic care to patient in modern clinic setting" 
                   className="w-full h-auto object-cover aspect-[4/3]"
                   loading="lazy"
+                  width="600"
+                  height="450"
                 />
               </div>
             </div>
