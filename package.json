@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "npm run sitemap && vite build",
+    "dev": "vike dev",
+    "build": "npm run sitemap && vike build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vike preview",
     "sitemap": "tsx src/lib/sitemap-generator.ts"
   },
   "dependencies": {
@@ -78,6 +78,8 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "vike": "^0.4.239",
+    "vike-react": "^0.5.13",
     "zod": "^3.23.8"
   },
   "devDependencies": {
