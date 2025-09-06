@@ -60,4 +60,3 @@ ${dynamicRoutes.map(route => `  <url>
 
 // Generate the sitemap
 generateSitemap();
-
