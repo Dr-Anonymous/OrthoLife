@@ -1,4 +1,3 @@
-require('dotenv').config({ path: '.env' });
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +9,7 @@ const discoverDynamicRoutes = async () => {
   try {
     // Initialize Supabase client with environment variables
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
       console.warn('⚠️  Supabase credentials not found, skipping dynamic route discovery');

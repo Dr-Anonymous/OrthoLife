@@ -13,7 +13,7 @@ try {
   
   // Generate basic sitemap
   console.log('🗺️  Generating basic sitemap...');
-  execSync('tsx src/lib/sitemap-generator.ts', { stdio: 'inherit' });
+  execSync('node src/lib/sitemap-generator.ts', { stdio: 'inherit' });
   
 } catch (error) {
   console.error('❌ Build failed:', error.message);

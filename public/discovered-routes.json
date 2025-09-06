@@ -1,25 +1,144 @@
-[
-  "/blog/4",
-  "/blog/1",
-  "/blog/2",
-  "/blog/3",
-  "/blog/7",
-  "/blog/9",
-  "/blog/5",
-  "/blog/8",
-  "/blog/12",
-  "/blog/10",
-  "/blog/11",
-  "/guides/4",
-  "/guides/2",
-  "/guides/3",
-  "/guides/1",
-  "/guides/5",
-  "/guides/6",
-  "/guides/7",
-  "/guides/8",
-  "/guides/10",
-  "/guides/9",
-  "/guides/11",
-  "/guides/12"
-]
+{
+  "routes": [
+    "/blog/4",
+    "/blog/1",
+    "/blog/2",
+    "/blog/3",
+    "/blog/7",
+    "/blog/9",
+    "/blog/5",
+    "/blog/8",
+    "/blog/12",
+    "/blog/10",
+    "/blog/11",
+    "/guides/4",
+    "/guides/2",
+    "/guides/1",
+    "/guides/5",
+    "/guides/7",
+    "/guides/10",
+    "/guides/9",
+    "/guides/11",
+    "/guides/12",
+    "/guides/3",
+    "/guides/8",
+    "/guides/6"
+  ],
+  "metadata": [
+    {
+      "route": "/blog/4",
+      "title": "Managing Chronic Joint Pain Naturally",
+      "description": "Discover natural methods and lifestyle changes that can help reduce chronic joint pain and inflammation."
+    },
+    {
+      "route": "/blog/1",
+      "title": "5 Essential Tips for Maintaining Healthy Bones",
+      "description": "Strong bones start with smart habits. Explore 5 essential tips—from nutrient-rich diet and weight-bearing exercises to lifestyle swaps and lasting gains."
+    },
+    {
+      "route": "/blog/2",
+      "title": "Understanding Osteoporosis: Prevention and Treatment",
+      "description": "A comprehensive guide to understanding osteoporosis, its risk factors, and modern treatment approaches."
+    },
+    {
+      "route": "/blog/3",
+      "title": "Post-Surgery Recovery: What to Expect",
+      "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing."
+    },
+    {
+      "route": "/blog/7",
+      "title": "Knee Replacement Surgery: Recovery, Benefits & What to Expect",
+      "description": "Struggling with constant knee pain? Knee replacement surgery can restore mobility, ease discomfort, and help you get back to an active lifestyle. Learn when it’s needed, how recovery works, and what results to expect."
+    },
+    {
+      "route": "/blog/9",
+      "title": "Understanding Heel Pain: Causes and Focus on Plantar Fasciitis",
+      "description": "Heel pain is one of the most common foot complaints, and plantar fasciitis is often the leading cause. Learn why it happens, how it feels, and the best ways to manage it."
+    },
+    {
+      "route": "/blog/5",
+      "title": "The Role of Physical Therapy in Recovery",
+      "description": "Understanding how physical therapy accelerates healing and prevents future injuries."
+    },
+    {
+      "route": "/blog/8",
+      "title": "Hip Replacement Surgery: Recovery, Benefits & Patient Guide",
+      "description": "Hip pain can limit every step you take. Hip replacement surgery is a proven way to relieve pain and improve movement. Discover when it’s recommended, what the procedure involves, and how recovery can bring back your independence."
+    },
+    {
+      "route": "/blog/12",
+      "title": "Beat Backache: Causes, Prevention & Treatments for Back Pain",
+      "description": "Back pain is a common issue, but it doesn't have to control your life. Learn about the main causes of backache, from muscle strain to disc problems, and discover effective prevention strategies and treatment options to get you back on your feet."
+    },
+    {
+      "route": "/blog/10",
+      "title": "ACL Tear: Understanding Causes, Treatment & Recovery",
+      "description": "An ACL tear can sideline your active lifestyle—but with the right treatment and therapy, getting back in the game is possible. Learn what causes ACL tears, how they’re treated, and what recovery truly looks like."
+    },
+    {
+      "route": "/blog/11",
+      "title": "Understanding Meniscus Injuries: Causes, Symptoms, and Treatment",
+      "description": "Meniscus injuries are among the most common knee problems, often caused by twisting movements or sports-related activities. Learn about the causes, symptoms, and treatment options to ensure proper healing and prevent long-term complications."
+    },
+    {
+      "route": "/guides/4",
+      "title": "Plantar Fascia Exercises: Effective Stretches and Strengthening for Heel Pain Relief",
+      "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence."
+    },
+    {
+      "route": "/guides/2",
+      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
+      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health."
+    },
+    {
+      "route": "/guides/1",
+      "title": "Flat Foot Care: Effective Exercises and Tips for Healthy Feet",
+      "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort."
+    },
+    {
+      "route": "/guides/5",
+      "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
+      "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
+    },
+    {
+      "route": "/guides/7",
+      "title": "Navigating Life with a Plaster Cast: Essential Care and Tips",
+      "description": "A broken bone is a temporary setback, but proper cast care is crucial for a smooth recovery. Learn essential tips for living with a plaster cast, including how to keep it dry, manage itching, and spot red flags that need a doctor's attention."
+    },
+    {
+      "route": "/guides/10",
+      "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
+      "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy."
+    },
+    {
+      "route": "/guides/9",
+      "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
+      "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
+    },
+    {
+      "route": "/guides/11",
+      "title": "The ACL Rehab Journey: A Complete Post-Operative Protocol",
+      "description": "This guide outlines a typical timeline and the goals, exercises, and milestones for each phase, from the day after surgery to a full year later."
+    },
+    {
+      "route": "/guides/12",
+      "title": "Neck Pain Exercises: Effective Stretches and Strengthening for Relief",
+      "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery."
+    },
+    {
+      "route": "/guides/3",
+      "title": "Back Strengthening Exercises: Do’s and Dont's",
+      "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts."
+    },
+    {
+      "route": "/guides/8",
+      "title": "Managing High Blood Pressure: Essential Diet for Hypertensive Patients",
+      "description": "Discover the best dietary strategies to control high blood pressure. Learn about foods to eat and avoid, and how a heart-healthy diet can improve your hypertension."
+    },
+    {
+      "route": "/guides/6",
+      "title": "Diabetic Diet Chart for Andhra Pradesh Patients",
+      "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
+    }
+  ]
+}
