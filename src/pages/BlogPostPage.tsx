@@ -40,21 +40,16 @@ const BlogPostPage = () => {
   const { toast } = useToast();
 
   const handleShare = async () => {
-  const baseUrl = `${window.location.origin}${window.location.pathname}`;
-  const shareUrl = i18n.language && i18n.language !== 'en'
-    ? `${baseUrl}?lang=${i18n.language}`
-    : baseUrl;
-    
     const shareData = {
       title: translatedPost?.title || post.title,
       text: `Check out this article from OrthoLife: ${translatedPost?.title || post.title}`,
-      url: shareUrl,
+      url: window.location.href,
     };
     try {
       if (navigator.share && post) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(window.location.href);
         toast({
           title: "Link Copied!",
           description: "The article link has been copied to your clipboard.",
