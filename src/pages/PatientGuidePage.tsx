@@ -81,21 +81,16 @@ const PatientGuidePage = () => {
   }, [guideId, i18n.language]);
 
     const handleShare = async () => {
-    const baseUrl = `${window.location.origin}${window.location.pathname}`;
-    const shareUrl = i18n.language && i18n.language !== 'en'
-      ? `${baseUrl}?lang=${i18n.language}`
-      : baseUrl;
-
     const shareData = {
       title: translatedGuide?.title || guide.title,
       text: `Check out this patient guide from OrthoLife: ${translatedGuide?.title || guide.title}`,
-      url: shareUrl,
+      url: window.location.href,
     };
     try {
       if (navigator.share && guide) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(window.location.href);
         toast({
           title: "Link Copied!",
           description: "The guide link has been copied to your clipboard.",

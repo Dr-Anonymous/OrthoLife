@@ -10,6 +10,7 @@ export const LanguageSwitcher = () => {
   const navigate = useNavigate();
 
   const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
     const currentPath = location.pathname;
     let newPath;
 
@@ -17,7 +18,7 @@ export const LanguageSwitcher = () => {
       if (!currentPath.startsWith('/te')) {
         newPath = `/te${currentPath}`;
       }
-    } else {
+    } else { // lng === 'en'
       if (currentPath.startsWith('/te')) {
         newPath = currentPath.substring(3);
       }
@@ -25,8 +26,6 @@ export const LanguageSwitcher = () => {
 
     if (newPath) {
       navigate(newPath);
-    } else {
-      i18n.changeLanguage(lng);
     }
   };
 
