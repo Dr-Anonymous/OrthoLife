@@ -18,9 +18,10 @@ i18n
 
     detection: {
       // order and from where user language should be detected
-      order: ['querystring', 'localStorage', 'navigator', 'htmlTag', 'path', 'subdomain'],
+      order: ['path', 'querystring', 'localStorage', 'navigator', 'htmlTag', 'subdomain'],
       caches: ['localStorage'],
       lookupQuerystring: 'lang',
+      lookupFromPathIndex: 0,
     },
 
     ns: ['common'],

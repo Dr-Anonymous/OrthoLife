@@ -71,10 +71,12 @@ const App = () => {
                 <Route path="/blog" element={<BlogPage />} />
                 <Route path="/blog/new" element={<CreatePostPage />} />
                 <Route path="/blog/:postId" element={<BlogPostPage />} />
+                <Route path="/te/blog/:postId" element={<BlogPostPage />} />
                 <Route path="/blog/:postId/edit" element={<EditPostPage />} />
                 <Route path="/guides" element={<PatientGuidesPage />} />
                 <Route path="/guides/new" element={<CreateGuidePage />} />
                 <Route path="/guides/:guideId" element={<PatientGuidePage />} />
+                <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
                 <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
                 <Route path="/faqs" element={<FAQPage />} />
                 <Route
