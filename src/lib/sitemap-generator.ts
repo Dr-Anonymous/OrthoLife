@@ -58,7 +58,4 @@ ${dynamicRoutes.map(route => `  <url>
   console.log('Sitemap generated successfully!');
 };
 
-// Only run if called directly (not during import)
-if (require.main === module) {
   generateSitemap();
-}
