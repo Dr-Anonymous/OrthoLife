@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "npm run sitemap && vite build",
     "build:dev": "vite build --mode development",
+    "build:prerender": "node scripts/prerender-discovery.cjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "sitemap": "tsx src/lib/sitemap-generator.ts"
@@ -73,7 +74,6 @@
     "react-i18next": "^15.6.1",
     "react-resizable-panels": "^2.1.3",
     "react-router-dom": "^6.26.2",
-    "react-snap": "^1.23.0",
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
@@ -82,6 +82,10 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.5.5",
@@ -89,6 +93,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^17.2.2",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
@@ -102,6 +107,7 @@
     "tsx": "^4.20.5",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vite-plugin-prerender": "^1.0.8"
   }
 }
