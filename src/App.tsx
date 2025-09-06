@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +33,16 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const { installPrompt, handleInstallClick } = usePWAInstall();
+
+  // Mark page as ready for pre-rendering after components load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typeof document !== 'undefined') {
+        document.body.setAttribute('data-prerender-ready', 'true');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

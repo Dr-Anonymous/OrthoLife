@@ -29,10 +29,44 @@
     
     <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
+    
+    <!-- Pre-rendering configuration -->
+    <script src="/prerender.js"></script>
   </head>
 
   <body>
     <div id="root"></div>
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalClinic",
+      "name": "OrthoLife",
+      "url": "https://ortho.life",
+      "logo": "https://ortho.life/logo.png",
+      "description": "Expert orthopaedic care for joints, spine, and sports injuries. Personalized treatment to get you back to health.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "IN"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+        "url": "https://ortho.life/contact"
+      },
+      "medicalSpecialty": [
+        "Orthopedics",
+        "Sports Medicine", 
+        "Spine Surgery",
+        "Joint Replacement"
+      ],
+      "sameAs": [
+        "https://ortho.life"
+      ]
+    }
+    </script>
+    
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
