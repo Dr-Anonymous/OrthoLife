@@ -6,14 +6,17 @@ import { componentTagger } from "lovable-tagger";
 import vitePrerender from 'vite-plugin-prerender';
 import fs from 'fs';
 
-const discoveredRoutes = () => {
+const getDiscoveredData = () => {
   try {
-    return JSON.parse(fs.readFileSync('public/discovered-routes.json', 'utf-8'));
+    const data = fs.readFileSync('public/discovered-routes.json', 'utf-8');
+    return JSON.parse(data);
   } catch (error) {
-    console.warn('discovered-routes.json not found, using empty array');
-    return [];
+    console.warn('discovered-routes.json not found, using empty object');
+    return { routes: [], metadata: [] };
   }
 }
+
+const { routes: discoveredRoutes, metadata } = getDiscoveredData();
 
 const staticRoutes = [
   '/',
@@ -43,7 +46,18 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
     vitePrerender({
       staticDir: path.join(__dirname, 'dist'),
-      routes: [...staticRoutes, ...discoveredRoutes()],
+      routes: [...staticRoutes, ...discoveredRoutes],
+      postProcess(renderedRoute) {
+        const routeMetadata = metadata.find(meta => meta.route === renderedRoute.originalRoute);
+        if (routeMetadata) {
+          renderedRoute.html = renderedRoute.html
+            .replace(/<title>.*<\/title>/, `<title>${routeMetadata.title}</title>`)
+            .replace(/<meta name="description" content=".*"\s*\/?>/, `<meta name="description" content="${routeMetadata.description}" />`)
+            .replace(/<meta property="og:title" content=".*"\s*\/?>/, `<meta property="og:title" content="${routeMetadata.title}" />`)
+            .replace(/<meta property="og:description" content=".*"\s*\/?>/, `<meta property="og:description" content="${routeMetadata.description}" />`);
+        }
+        return renderedRoute;
+      },
     }),
   ].filter(Boolean),
   resolve: {
