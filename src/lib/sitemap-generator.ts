@@ -58,4 +58,6 @@ ${dynamicRoutes.map(route => `  <url>
   console.log('Sitemap generated successfully!');
 };
 
-  generateSitemap();
+// Generate the sitemap
+generateSitemap();
+
