@@ -16,6 +16,10 @@ module.exports = {
       "/blog",
       "/guides"
     ],
+    // Enable crawling to discover dynamic routes
+    crawl: true,
+    // Follow internal links to discover blog posts and guides
+    inlineCss: true,
     exclude: [
       "/admin",
       "/api",

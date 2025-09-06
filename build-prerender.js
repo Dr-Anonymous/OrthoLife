@@ -7,19 +7,27 @@ const buildPrerender = () => {
   console.log('🚀 Starting pre-render build process...');
   
   try {
-    // Step 1: Build the application
+    // Step 1: Discover dynamic routes
+    console.log('🔍 Discovering dynamic routes...');
+    try {
+      execSync('node scripts/prerender-discovery.js', { stdio: 'inherit' });
+    } catch (error) {
+      console.warn('⚠️  Could not discover dynamic routes, continuing with static routes only');
+    }
+    
+    // Step 2: Build the application
     console.log('📦 Building application...');
     execSync('npm run build', { stdio: 'inherit' });
     
-    // Step 2: Run react-snap for pre-rendering
+    // Step 3: Run react-snap for pre-rendering
     console.log('🎯 Pre-rendering pages...');
     execSync('npx react-snap', { stdio: 'inherit' });
     
-    // Step 3: Generate sitemap with pre-rendered routes
+    // Step 4: Generate sitemap with pre-rendered routes
     console.log('🗺️  Generating sitemap...');
     generateSitemap();
     
-    // Step 4: Create robots.txt
+    // Step 5: Create robots.txt
     console.log('🤖 Creating robots.txt...');
     createRobotsTxt();
     

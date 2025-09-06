@@ -27,6 +27,10 @@ window.reactSnap = {
       '/guides'
     ],
     
+    // Enable discovery of dynamic routes through crawling
+    crawlFromInternalLinks: true,
+    includePathsFromRouter: true,
+    
     // Skip external URLs and API calls
     skipThirdPartyRequests: true,
     
