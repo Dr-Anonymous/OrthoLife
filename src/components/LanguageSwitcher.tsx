@@ -2,12 +2,32 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
+    const currentPath = location.pathname;
+    let newPath;
+
+    if (lng === 'te') {
+      if (!currentPath.startsWith('/te')) {
+        newPath = `/te${currentPath}`;
+      }
+    } else {
+      if (currentPath.startsWith('/te')) {
+        newPath = currentPath.substring(3);
+      }
+    }
+
+    if (newPath) {
+      navigate(newPath);
+    } else {
+      i18n.changeLanguage(lng);
+    }
   };
 
   return (

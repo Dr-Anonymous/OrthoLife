@@ -56,6 +56,16 @@ export default defineConfig(({ mode }) => ({
             .replace(/<meta property="og:title" content=".*"\s*\/?>/, `<meta property="og:title" content="${routeMetadata.title}" />`)
             .replace(/<meta property="og:description" content=".*"\s*\/?>/, `<meta property="og:description" content="${routeMetadata.description}" />`);
         }
+
+        const canonicalRoute = renderedRoute.originalRoute.startsWith('/te/')
+          ? renderedRoute.originalRoute.substring(3)
+          : renderedRoute.originalRoute;
+
+        renderedRoute.html = renderedRoute.html.replace(
+          /<link rel="canonical" href=".*"\s*\/?>/,
+          `<link rel="canonical" href="https://ortho.life${canonicalRoute}" />`
+        );
+
         return renderedRoute;
       },
     }),

@@ -37,7 +37,24 @@ const generateDynamicRoutes = async () => {
         description: post.excerpt || createExcerpt(post.content),
       });
     });
-    console.log(`Generated ${posts.length} blog routes`);
+    console.log(`Generated ${posts.length} English blog routes`);
+  }
+
+  // Fetch Telugu post translations
+  const { data: translatedPosts, error: translatedPostsError } = await supabase.from('post_translations').select('post_id, title, excerpt, content').eq('language', 'te');
+  if (translatedPostsError) {
+    console.error('Error fetching translated posts:', translatedPostsError);
+  } else {
+    translatedPosts.forEach(post => {
+      const route = `/te/blog/${post.post_id}`;
+      allRoutes.push(route);
+      metadata.push({
+        route,
+        title: post.title,
+        description: post.excerpt || createExcerpt(post.content),
+      });
+    });
+    console.log(`Generated ${translatedPosts.length} Telugu blog routes`);
   }
 
   // Fetch guides
@@ -54,7 +71,24 @@ const generateDynamicRoutes = async () => {
         description: guide.description || createExcerpt(guide.content),
       });
     });
-    console.log(`Generated ${guides.length} guide routes`);
+    console.log(`Generated ${guides.length} English guide routes`);
+  }
+
+  // Fetch Telugu guide translations
+  const { data: translatedGuides, error: translatedGuidesError } = await supabase.from('guide_translations').select('guide_id, title, description, content').eq('language', 'te');
+  if (translatedGuidesError) {
+    console.error('Error fetching translated guides:', translatedGuidesError);
+  } else {
+    translatedGuides.forEach(guide => {
+      const route = `/te/guides/${guide.guide_id}`;
+      allRoutes.push(route);
+      metadata.push({
+        route,
+        title: guide.title,
+        description: guide.description || createExcerpt(guide.content),
+      });
+    });
+    console.log(`Generated ${translatedGuides.length} Telugu guide routes`);
   }
 
   const routesData = {
