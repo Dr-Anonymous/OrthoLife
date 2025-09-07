@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -48,7 +47,6 @@ interface BlogPostFormProps {
 }
 
 const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, onSubmit, isSubmitting }) => {
-  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [translationValues, setTranslationValues] = useState<TranslationValues>({});
 
@@ -78,7 +76,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
     }
   }, [initialData, translations, form]);
 
-  const handleTranslationChange = (lang: string, field: 'title' | 'content' | 'excerpt' | 'next_steps', value: string) => {
+  const handleTranslationChange = (lang: string, field: 'title' | 'content' | 'excerpt', value: string) => {
     setTranslationValues(prev => ({
       ...prev,
       [lang]: {
@@ -88,27 +86,9 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
     }));
   };
 
-  const handleFormSubmit = (values: PostFormValues) => {
-    const finalValues = { ...values };
-    if (!finalValues.next_steps || finalValues.next_steps.trim() === '<p></p>' || finalValues.next_steps.trim() === '') {
-      finalValues.next_steps = t('forms.defaultNextSteps');
-    }
-
-    const finalTranslations = { ...translationValues };
-    if (!finalTranslations.te) {
-        finalTranslations.te = {};
-    }
-
-    if (!finalTranslations.te.next_steps || finalTranslations.te.next_steps.trim() === '<p></p>' || finalTranslations.te.next_steps.trim() === '') {
-        finalTranslations.te.next_steps = t('forms.defaultNextSteps', { lng: 'te' });
-    }
-
-    onSubmit(finalValues, finalTranslations);
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit((values) => onSubmit(values, translationValues))} className="space-y-8">
         <Tabs defaultValue="english" className="w-full">
           <TabsList className="grid w-full grid-cols-2 sticky top-16 z-20 bg-background">
             <TabsTrigger value="english">English</TabsTrigger>
@@ -172,13 +152,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
                   <FormControl>
                     <RichTextEditor
                       content={field.value || ''}
-                      onChange={(content) => {
-                        if (content === '<p></p>') {
-                          field.onChange('');
-                        } else {
-                          field.onChange(content);
-                        }
-                      }}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />

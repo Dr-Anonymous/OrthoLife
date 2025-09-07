@@ -5,16 +5,42 @@ import Footer from '@/components/Footer';
 import BlogPostForm, { PostFormValues } from '@/components/BlogPostForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 
 const CreatePostPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const populateEmptyNextSteps = (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
+    // Handle English next_steps (main form)
+    const updatedValues = { ...values };
+    if (!values.next_steps || values.next_steps.trim() === '') {
+      updatedValues.next_steps = t('forms.defaultNextSteps');
+    }
+
+    // Handle translations next_steps
+    const updatedTranslations = { ...translations };
+    Object.keys(translations).forEach(lang => {
+      if (!translations[lang].next_steps || translations[lang].next_steps?.trim() === '') {
+        updatedTranslations[lang] = {
+          ...translations[lang],
+          next_steps: t('forms.defaultNextSteps', { lng: lang })
+        };
+      }
+    });
+
+    return { updatedValues, updatedTranslations };
+  };
 
   const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
     setIsSubmitting(true);
     try {
-      const { category_name, ...postData } = values;
+      // Populate empty next_steps with localized defaults
+      const { updatedValues, updatedTranslations } = populateEmptyNextSteps(values, translations);
+
+      const { category_name, ...postData } = updatedValues;
 
       // Check if category exists
       const { data: category, error: categoryError } = await supabase
@@ -56,16 +82,16 @@ const CreatePostPage = () => {
       if (error) throw error;
       if (!newPost) throw new Error("Failed to create post.");
 
-      // Insert translations
+      // Insert translations with populated next_steps
       const translationUpserts = [];
-      for (const lang in translations) {
+      for (const lang in updatedTranslations) {
         translationUpserts.push({
           post_id: newPost.id,
           language: lang,
-          title: translations[lang].title,
-          excerpt: translations[lang].excerpt,
-          content: translations[lang].content,
-          next_steps: translations[lang].next_steps,
+          title: updatedTranslations[lang].title,
+          excerpt: updatedTranslations[lang].excerpt,
+          content: updatedTranslations[lang].content,
+          next_steps: updatedTranslations[lang].next_steps,
         });
       }
 
