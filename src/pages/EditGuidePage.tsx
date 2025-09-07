@@ -6,6 +6,19 @@ import GuidePostForm, { GuideFormValues } from '@/components/GuidePostForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Trash2 } from "lucide-react"
 
 interface TranslationValues {
   [lang: string]: {
@@ -21,6 +34,7 @@ const EditGuidePage = () => {
   const { guideId } = useParams<{ guideId: string }>();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [initialData, setInitialData] = useState<Partial<GuideFormValues> | null>(null);
   const [translations, setTranslations] = useState<TranslationValues | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,6 +143,35 @@ const EditGuidePage = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!guideId) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('guides')
+        .delete()
+        .eq('id', guideId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Guide deleted!",
+        description: "The patient guide has been successfully deleted.",
+      });
+      navigate('/guides');
+
+    } catch (error) {
+      console.error('Error deleting guide:', error);
+      toast({
+        title: "Error",
+        description: "There was an error deleting the guide. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -154,9 +197,34 @@ const EditGuidePage = () => {
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-3xl font-heading font-bold text-primary mb-8">
-              Edit Patient Guide
-            </h1>
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-3xl font-heading font-bold text-primary">
+                Edit Patient Guide
+              </h1>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Guide
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete this
+                      guide and remove its data from our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                      {isDeleting ? 'Deleting...' : 'Continue'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
             {initialData && (
               <GuidePostForm
                 initialData={initialData}
