@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ interface GuidePostFormProps {
 const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations, onSubmit, isSubmitting }) => {
   const [categories, setCategories] = useState<GuideCategory[]>([]);
   const [translationValues, setTranslationValues] = useState<TranslationValues>({});
+  const { t } = useTranslation();
 
   const form = useForm<GuideFormValues>({
     resolver: zodResolver(guideFormSchema),
@@ -90,7 +92,11 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
   };
 
   const handleFormSubmit = (values: GuideFormValues) => {
-    onSubmit(values, translationValues);
+    const finalValues = { ...values };
+    if (!finalValues.next_steps || finalValues.next_steps === '<p></p>') {
+      finalValues.next_steps = t('whatsNextDefault');
+    }
+    onSubmit(finalValues, translationValues);
   };
 
   return (

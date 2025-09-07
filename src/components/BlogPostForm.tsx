@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ interface BlogPostFormProps {
 const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, onSubmit, isSubmitting }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [translationValues, setTranslationValues] = useState<TranslationValues>({});
+  const { t } = useTranslation();
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postFormSchema),
@@ -87,7 +89,11 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
   };
 
   const handleFormSubmit = (values: PostFormValues) => {
-    onSubmit(values, translationValues);
+    const finalValues = { ...values };
+    if (!finalValues.next_steps || finalValues.next_steps === '<p></p>') {
+      finalValues.next_steps = t('whatsNextDefault');
+    }
+    onSubmit(finalValues, translationValues);
   };
 
   return (
