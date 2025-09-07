@@ -172,7 +172,13 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
                   <FormControl>
                     <RichTextEditor
                       content={field.value || ''}
-                      onChange={field.onChange}
+                      onChange={(content) => {
+                        if (content === '<p></p>') {
+                          field.onChange('');
+                        } else {
+                          field.onChange(content);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
