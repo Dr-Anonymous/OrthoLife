@@ -29,7 +29,8 @@ export const generateSitemap = () => {
     const discoveredRoutesPath = 'public/discovered-routes.json';
     if (fs.existsSync(discoveredRoutesPath)) {
       const discoveredData = fs.readFileSync(discoveredRoutesPath, 'utf8');
-      dynamicRoutes = JSON.parse(discoveredData);
+      const discoveredJson = JSON.parse(discoveredData);
+      dynamicRoutes = discoveredJson.routes;
       console.log(`Found ${dynamicRoutes.length} dynamic routes`);
     }
   } catch (error) {
@@ -58,7 +59,5 @@ ${dynamicRoutes.map(route => `  <url>
   console.log('Sitemap generated successfully!');
 };
 
-// Only run if called directly (not during import)
-if (require.main === module) {
-  generateSitemap();
-}
+// Generate the sitemap
+generateSitemap();

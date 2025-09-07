@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +25,7 @@ interface TranslatedGuide {
 const PatientGuidePage = () => {
   const { guideId } = useParams<{ guideId: string }>();
   const { t, i18n } = useTranslation();
+  const location = useLocation();
   const [guide, setGuide] = useState<Guide | null>(null);
   const [translatedGuide, setTranslatedGuide] = useState<TranslatedGuide | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,10 +82,17 @@ const PatientGuidePage = () => {
   }, [guideId, i18n.language]);
 
     const handleShare = async () => {
-    const baseUrl = `${window.location.origin}${window.location.pathname}`;
-    const shareUrl = i18n.language && i18n.language !== 'en'
-      ? `${baseUrl}?lang=${i18n.language}`
-      : baseUrl;
+    const { origin } = window.location;
+    const currentPath = location.pathname;
+    let shareUrl;
+
+    if (i18n.language === 'te' && !currentPath.startsWith('/te')) {
+      shareUrl = `${origin}/te${currentPath}`;
+    } else if (i18n.language === 'en' && currentPath.startsWith('/te')) {
+      shareUrl = `${origin}${currentPath.substring(3)}`;
+    } else {
+      shareUrl = window.location.href;
+    }
 
     const shareData = {
       title: translatedGuide?.title || guide.title,
