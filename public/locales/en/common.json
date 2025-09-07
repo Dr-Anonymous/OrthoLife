@@ -145,5 +145,7 @@
   "recovery.milestone5": "Walked 1 mile without assistance",
   "common.reset": "Reset",
   
-  "common.whats_next": "Next steps"
+  "common.whats_next": "Next steps",
+
+  "forms.defaultNextSteps": "<ul><li><p>👨‍⚕️ Book an <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://ortho.life/appointment\"><strong><u>Appointment with Dr Samuel Manoj Cherukuri</u></strong></a></p></li></ul><p></p>"
 }
