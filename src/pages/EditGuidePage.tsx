@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GuidePostForm, { GuideFormValues } from '@/components/GuidePostForm';
@@ -20,6 +21,7 @@ const EditGuidePage = () => {
   const navigate = useNavigate();
   const { guideId } = useParams<{ guideId: string }>();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialData, setInitialData] = useState<Partial<GuideFormValues> | null>(null);
   const [translations, setTranslations] = useState<TranslationValues | null>(null);
@@ -70,7 +72,13 @@ const EditGuidePage = () => {
   const handleSubmit = async (values: GuideFormValues, newTranslations: TranslationValues) => {
     setIsSubmitting(true);
     try {
-      const { category_name, ...guideData } = values;
+      // Create a mutable copy of values to potentially add default next_steps
+      const finalValues = { ...values };
+      if (!finalValues.next_steps || finalValues.next_steps.trim() === '<p></p>' || finalValues.next_steps.trim() === '') {
+          finalValues.next_steps = t('forms.defaultNextSteps'); // Default language is English
+      }
+
+      const { category_name, ...guideData } = finalValues;
 
       // ... (Category lookup/creation logic - same as in CreateGuidePage)
       const { data: category, error: categoryError } = await supabase
@@ -89,14 +97,31 @@ const EditGuidePage = () => {
       if (updateError) throw updateError;
 
       // Upsert translations
-      const translationUpserts = Object.keys(newTranslations).map(lang => ({
-        guide_id: guideId,
-        language: lang,
-        title: newTranslations[lang].title,
-        description: newTranslations[lang].description,
-        content: newTranslations[lang].content,
-        next_steps: newTranslations[lang].next_steps,
-      }));
+      const processedTranslations = { ...newTranslations };
+
+      for (const lang in processedTranslations) {
+        const nextSteps = processedTranslations[lang].next_steps;
+        if (!nextSteps || nextSteps.trim() === '<p></p>' || nextSteps.trim() === '') {
+          processedTranslations[lang].next_steps = t('forms.defaultNextSteps', { lng: lang });
+        }
+      }
+
+      const translationUpserts = Object.keys(processedTranslations)
+        .map(lang => {
+          const translation = processedTranslations[lang];
+          if (translation.title || translation.description || translation.content || translation.next_steps) {
+            return {
+              guide_id: guideId,
+              language: lang,
+              title: translation.title,
+              description: translation.description,
+              content: translation.content,
+              next_steps: translation.next_steps,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
 
       if (translationUpserts.length > 0) {
         const { error: translationError } = await supabase
