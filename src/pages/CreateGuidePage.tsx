@@ -5,16 +5,41 @@ import Footer from '@/components/Footer';
 import GuidePostForm, { GuideFormValues, TranslationValues } from '@/components/GuidePostForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 
 const CreateGuidePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const populateEmptyNextSteps = (values: GuideFormValues, translations: TranslationValues) => {
+    // Handle English next_steps (main form)
+    const updatedValues = { ...values };
+    if (!values.next_steps || values.next_steps.trim() === '') {
+      updatedValues.next_steps = t('forms.defaultNextSteps');
+    }
+
+    // Handle translations next_steps
+    const updatedTranslations = { ...translations };
+    Object.keys(translations).forEach(lang => {
+      if (!translations[lang].next_steps || translations[lang].next_steps?.trim() === '') {
+        updatedTranslations[lang] = {
+          ...translations[lang],
+          next_steps: t('forms.defaultNextSteps', { lng: lang })
+        };
+      }
+    });
+
+    return { updatedValues, updatedTranslations };
+  };
 
   const handleSubmit = async (values: GuideFormValues, translations: TranslationValues) => {
     setIsSubmitting(true);
     try {
-      const { category_name, ...guideData } = values;
+      // Populate empty next_steps with localized defaults
+      const { updatedValues, updatedTranslations } = populateEmptyNextSteps(values, translations);
+      const { category_name, ...guideData } = updatedValues;
 
       // Check if category exists
       const { data: category, error: categoryError } = await supabase
@@ -45,7 +70,7 @@ const CreateGuidePage = () => {
       const guideToInsert = {
         ...guideData,
         category_id: categoryId,
-        last_updated: new Date().toISOString(), // Add a default value for last_updated
+        last_updated: new Date().toISOString(),
       };
 
       const { data: newGuide, error } = await supabase
@@ -57,16 +82,16 @@ const CreateGuidePage = () => {
       if (error) throw error;
       if (!newGuide) throw new Error("Failed to create guide.");
 
-      // Insert translations
+      // Insert translations with populated next_steps
       const translationUpserts = [];
-      for (const lang in translations) {
+      for (const lang in updatedTranslations) {
         translationUpserts.push({
           guide_id: newGuide.id,
           language: lang,
-          title: translations[lang].title,
-          description: translations[lang].description,
-          content: translations[lang].content,
-          next_steps: translations[lang].next_steps,
+          title: updatedTranslations[lang].title,
+          description: updatedTranslations[lang].description,
+          content: updatedTranslations[lang].content,
+          next_steps: updatedTranslations[lang].next_steps,
         });
       }
 
