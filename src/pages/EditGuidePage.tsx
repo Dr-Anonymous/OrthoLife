@@ -72,7 +72,13 @@ const EditGuidePage = () => {
   const handleSubmit = async (values: GuideFormValues, newTranslations: TranslationValues) => {
     setIsSubmitting(true);
     try {
-      const { category_name, ...guideData } = values;
+      // Create a mutable copy of values to potentially add default next_steps
+      const finalValues = { ...values };
+      if (!finalValues.next_steps || finalValues.next_steps.trim() === '<p></p>' || finalValues.next_steps.trim() === '') {
+          finalValues.next_steps = t('forms.defaultNextSteps'); // Default language is English
+      }
+
+      const { category_name, ...guideData } = finalValues;
 
       // ... (Category lookup/creation logic - same as in CreateGuidePage)
       const { data: category, error: categoryError } = await supabase

@@ -99,8 +99,14 @@ const EditPostPage = () => {
   const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
     setIsSubmitting(true);
     try {
+      // Create a mutable copy of values to potentially add default next_steps
+      const finalValues = { ...values };
+      if (!finalValues.next_steps || finalValues.next_steps.trim() === '<p></p>' || finalValues.next_steps.trim() === '') {
+          finalValues.next_steps = t('forms.defaultNextSteps'); // Default language is English
+      }
+
       // 1. Update the main post
-      const { category_name, ...postData } = values;
+      const { category_name, ...postData } = finalValues;
       const { data: category, error: categoryError } = await supabase
         .from('categories')
         .select('id')
