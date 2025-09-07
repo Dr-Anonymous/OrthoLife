@@ -59,6 +59,7 @@ const EditPostPage = () => {
           const { categories, ...rest } = postData;
           setInitialData({
             ...rest,
+            next_steps: rest.next_steps || '',
             category_name: (categories as { name: string })?.name || '',
           });
 

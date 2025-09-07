@@ -49,6 +49,7 @@ const EditGuidePage = () => {
 
         const initialFormValues: Partial<GuideFormValues> = {
           ...guideData,
+          next_steps: guideData.next_steps || '',
           category_name: guideData.categories.name,
         };
         setInitialData(initialFormValues);
