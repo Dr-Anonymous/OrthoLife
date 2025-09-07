@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BlogPostForm, { PostFormValues } from '@/components/BlogPostForm';
@@ -33,6 +34,7 @@ const EditPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [initialData, setInitialData] = useState<Partial<PostFormValues> | null>(null);
   const [translations, setTranslations] = useState<TranslationValues>({});
   const [loading, setLoading] = useState(true);
@@ -121,17 +123,26 @@ const EditPostPage = () => {
       if (postUpdateError) throw postUpdateError;
 
       // 2. Upsert translations into the new table
+      const processedTranslations = { ...translations };
+
+      for (const lang in processedTranslations) {
+        const nextSteps = processedTranslations[lang].next_steps;
+        if (!nextSteps || nextSteps.trim() === '<p></p>' || nextSteps.trim() === '') {
+          processedTranslations[lang].next_steps = t('forms.defaultNextSteps', { lng: lang });
+        }
+      }
+
       const translationUpserts = [];
-      for (const lang in translations) {
-        // Ensure that we only upsert if there is some translated content
-        if (translations[lang].title || translations[lang].excerpt || translations[lang].content || translations[lang].next_steps) {
+      for (const lang in processedTranslations) {
+        const translation = processedTranslations[lang];
+        if (translation.title || translation.excerpt || translation.content || translation.next_steps) {
           translationUpserts.push({
             post_id: postId,
             language: lang,
-            title: translations[lang].title,
-            excerpt: translations[lang].excerpt,
-            content: translations[lang].content,
-            next_steps: translations[lang].next_steps,
+            title: translation.title,
+            excerpt: translation.excerpt,
+            content: translation.content,
+            next_steps: translation.next_steps,
           });
         }
       }
