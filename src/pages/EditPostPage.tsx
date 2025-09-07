@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
-import { useTranslation } from 'react-i18next';
 
 interface TranslationValues {
   [lang: string]: {
@@ -34,7 +33,6 @@ const EditPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useTranslation();
   const [initialData, setInitialData] = useState<Partial<PostFormValues> | null>(null);
   const [translations, setTranslations] = useState<TranslationValues>({});
   const [loading, setLoading] = useState(true);
@@ -97,35 +95,11 @@ const EditPostPage = () => {
     fetchPostAndTranslations();
   }, [postId, navigate, toast]);
 
-  const populateEmptyNextSteps = (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
-    // Handle English next_steps (main form)
-    const updatedValues = { ...values };
-    if (!values.next_steps || values.next_steps.trim() === '') {
-      updatedValues.next_steps = t('forms.defaultNextSteps');
-    }
-
-    // Handle translations next_steps
-    const updatedTranslations = { ...translations };
-    Object.keys(translations).forEach(lang => {
-      if (!translations[lang].next_steps || translations[lang].next_steps?.trim() === '') {
-        updatedTranslations[lang] = {
-          ...translations[lang],
-          next_steps: t('forms.defaultNextSteps', { lng: lang })
-        };
-      }
-    });
-
-    return { updatedValues, updatedTranslations };
-  };
-
-  const handleSubmit = async (values: PostFormValues, newTranslations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
+  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
     setIsSubmitting(true);
     try {
-      // Populate empty next_steps with localized defaults
-      const { updatedValues, updatedTranslations } = populateEmptyNextSteps(values, newTranslations);
-
       // 1. Update the main post
-      const { category_name, ...postData } = updatedValues;
+      const { category_name, ...postData } = values;
       const { data: category, error: categoryError } = await supabase
         .from('categories')
         .select('id')
@@ -149,16 +123,16 @@ const EditPostPage = () => {
 
       // 2. Upsert translations into the new table
       const translationUpserts = [];
-      for (const lang in updatedTranslations) {
+      for (const lang in translations) {
         // Ensure that we only upsert if there is some translated content
-        if (updatedTranslations[lang].title || updatedTranslations[lang].excerpt || updatedTranslations[lang].content || updatedTranslations[lang].next_steps) {
+        if (translations[lang].title || translations[lang].excerpt || translations[lang].content || translations[lang].next_steps) {
           translationUpserts.push({
             post_id: postId,
             language: lang,
-            title: updatedTranslations[lang].title,
-            excerpt: updatedTranslations[lang].excerpt,
-            content: updatedTranslations[lang].content,
-            next_steps: updatedTranslations[lang].next_steps,
+            title: translations[lang].title,
+            excerpt: translations[lang].excerpt,
+            content: translations[lang].content,
+            next_steps: translations[lang].next_steps,
           });
         }
       }

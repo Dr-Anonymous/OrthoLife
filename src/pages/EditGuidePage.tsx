@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
-import { useTranslation } from 'react-i18next';
 
 interface TranslationValues {
   [lang: string]: {
@@ -34,7 +33,6 @@ const EditGuidePage = () => {
   const navigate = useNavigate();
   const { guideId } = useParams<{ guideId: string }>();
   const { toast } = useToast();
-  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [initialData, setInitialData] = useState<Partial<GuideFormValues> | null>(null);
@@ -89,52 +87,19 @@ const EditGuidePage = () => {
     fetchGuideData();
   }, [guideId, toast]);
 
-  const populateEmptyNextSteps = (values: GuideFormValues, translations: TranslationValues) => {
-    // Handle English next_steps (main form)
-    const updatedValues = { ...values };
-    if (!values.next_steps || values.next_steps.trim() === '') {
-      updatedValues.next_steps = t('forms.defaultNextSteps');
-    }
-
-    // Handle translations next_steps
-    const updatedTranslations = { ...translations };
-    Object.keys(translations).forEach(lang => {
-      if (!translations[lang].next_steps || translations[lang].next_steps?.trim() === '') {
-        updatedTranslations[lang] = {
-          ...translations[lang],
-          next_steps: t('forms.defaultNextSteps', { lng: lang })
-        };
-      }
-    });
-    return { updatedValues, updatedTranslations };
-  };
-
   const handleSubmit = async (values: GuideFormValues, newTranslations: TranslationValues) => {
     setIsSubmitting(true);
     try {
-      // Populate empty next_steps with localized defaults
-      const { updatedValues, updatedTranslations } = populateEmptyNextSteps(values, newTranslations);
-      const { category_name, ...guideData } = updatedValues;
+      const { category_name, ...guideData } = values;
 
-      // Category lookup/creation logic
+      // ... (Category lookup/creation logic - same as in CreateGuidePage)
       const { data: category, error: categoryError } = await supabase
         .from('categories')
         .select('id')
         .eq('name', category_name)
         .single();
       if (categoryError && categoryError.code !== 'PGRST116') throw categoryError;
-      let categoryId: number;
-      if (category) {
-        categoryId = category.id;
-      } else {
-        const { data: newCategory, error: newCategoryError } = await supabase
-          .from('categories')
-          .insert({ name: category_name })
-          .select('id')
-          .single();
-        if (newCategoryError) throw newCategoryError;
-        categoryId = newCategory.id;
-      }
+      const categoryId = category ? category.id : (await supabase.from('categories').insert({ name: category_name }).select('id').single()).data!.id;
 
       // Update main guide
       const { error: updateError } = await supabase
@@ -143,14 +108,14 @@ const EditGuidePage = () => {
         .eq('id', guideId);
       if (updateError) throw updateError;
 
-      // Upsert translations with populated next_steps
-      const translationUpserts = Object.keys(updatedTranslations).map(lang => ({
+      // Upsert translations
+      const translationUpserts = Object.keys(newTranslations).map(lang => ({
         guide_id: guideId,
         language: lang,
-        title: updatedTranslations[lang].title,
-        description: updatedTranslations[lang].description,
-        content: updatedTranslations[lang].content,
-        next_steps: updatedTranslations[lang].next_steps,
+        title: newTranslations[lang].title,
+        description: newTranslations[lang].description,
+        content: newTranslations[lang].content,
+        next_steps: newTranslations[lang].next_steps,
       }));
 
       if (translationUpserts.length > 0) {
