@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ interface BlogPostFormProps {
 }
 
 const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, onSubmit, isSubmitting }) => {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [translationValues, setTranslationValues] = useState<TranslationValues>({});
 
@@ -87,7 +89,21 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
   };
 
   const handleFormSubmit = (values: PostFormValues) => {
-    onSubmit(values, translationValues);
+    const finalValues = { ...values };
+    if (!finalValues.next_steps || finalValues.next_steps.trim() === '<p></p>' || finalValues.next_steps.trim() === '') {
+      finalValues.next_steps = t('forms.defaultNextSteps');
+    }
+
+    const finalTranslations = { ...translationValues };
+    if (!finalTranslations.te) {
+        finalTranslations.te = {};
+    }
+
+    if (!finalTranslations.te.next_steps || finalTranslations.te.next_steps.trim() === '<p></p>' || finalTranslations.te.next_steps.trim() === '') {
+        finalTranslations.te.next_steps = t('forms.defaultNextSteps', { lng: 'te' });
+    }
+
+    onSubmit(finalValues, finalTranslations);
   };
 
   return (

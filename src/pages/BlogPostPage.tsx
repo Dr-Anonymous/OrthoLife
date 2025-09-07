@@ -50,7 +50,7 @@ const BlogPostPage = () => {
 
     const shareData = {
       title: translatedPost?.title || post.title,
-      text: `Check out this article from OrthoLife: ${translatedPost?.title || post.title}`,
+      text: translatedPost?.title || post.title,
       url: shareUrl,
     };
     try {

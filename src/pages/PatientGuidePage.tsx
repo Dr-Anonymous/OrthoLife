@@ -91,7 +91,7 @@ const PatientGuidePage = () => {
 
     const shareData = {
       title: translatedGuide?.title || guide.title,
-      text: `Check out this patient guide from OrthoLife: ${translatedGuide?.title || guide.title}`,
+      text: translatedGuide?.title || guide.title,
       url: shareUrl,
     };
     try {
