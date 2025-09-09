@@ -56,18 +56,20 @@ const PatientGuidePage = () => {
         if (guideError) throw guideError;
         setGuide(guideData);
 
-        const { data: translationData, error: translationError } = await supabase
-          .from('guide_translations')
-          .select('*')
-          .eq('guide_id', guideId)
-          .eq('language', i18n.language)
-          .single();
-
-        if (translationError && translationError.code !== 'PGRST116') {
-          throw translationError;
-        }
-        if (translationData) {
-          setTranslatedGuide(translationData);
+        if (i18n.language !== 'en') {
+            const { data: translationData, error: translationError } = await supabase
+              .from('guide_translations')
+              .select('*')
+              .eq('guide_id', guideId)
+              .eq('language', i18n.language)
+              .single();
+    
+            if (translationError && translationError.code !== 'PGRST116') {
+              throw translationError;
+            }
+            if (translationData) {
+              setTranslatedGuide(translationData);
+            }
         }
       } catch (error) {
         console.error('Error fetching guide:', error);
