@@ -54,13 +54,6 @@ async function updateGitHubFile(content: string, token: string) {
   console.log('✅ File updated on GitHub successfully');
 }
 
-const createExcerpt = (content, maxLength = 160) => {
-  if (!content) return '';
-  const stripped = content.replace(/<[^>]*>/g, '');
-  return stripped.length > maxLength
-    ? stripped.substring(0, maxLength).trim() + '...'
-    : stripped;
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -82,7 +75,7 @@ serve(async (req) => {
     posts.forEach(post => {
       const route = `/blog/${post.id}`;
       allRoutes.push(route);
-      metadata.push({ route, title: post.title, description: post.excerpt || createExcerpt(post.content) });
+      metadata.push({ route, title: post.title, description: post.excerpt });
     });
 
     const { data: translatedPosts, error: translatedPostsError } = await supabase.from('post_translations').select('post_id, title, excerpt, content').eq('language', 'te');
@@ -90,7 +83,7 @@ serve(async (req) => {
     translatedPosts.forEach(post => {
       const route = `/te/blog/${post.post_id}`;
       allRoutes.push(route);
-      metadata.push({ route, title: post.title, description: post.excerpt || createExcerpt(post.content) });
+      metadata.push({ route, title: post.title, description: post.excerpt });
     });
 
     const { data: guides, error: guidesError } = await supabase.from('guides').select('id, title, description, content');
@@ -98,7 +91,7 @@ serve(async (req) => {
     guides.forEach(guide => {
       const route = `/guides/${guide.id}`;
       allRoutes.push(route);
-      metadata.push({ route, title: guide.title, description: guide.description || createExcerpt(guide.content) });
+      metadata.push({ route, title: guide.title, description: guide.description });
     });
 
     const { data: translatedGuides, error: translatedGuidesError } = await supabase.from('guide_translations').select('guide_id, title, description, content').eq('language', 'te');
@@ -106,7 +99,7 @@ serve(async (req) => {
     translatedGuides.forEach(guide => {
       const route = `/te/guides/${guide.guide_id}`;
       allRoutes.push(route);
-      metadata.push({ route, title: guide.title, description: guide.description || createExcerpt(guide.content) });
+      metadata.push({ route, title: guide.title, description: guide.description });
     });
 
     const routesData = {
