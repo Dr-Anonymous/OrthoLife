@@ -7,33 +7,34 @@
     "/blog/7",
     "/blog/9",
     "/blog/5",
-    "/blog/8",
     "/blog/12",
+    "/blog/8",
     "/blog/10",
     "/blog/11",
     "/te/blog/7",
-    "/te/blog/3",
     "/te/blog/2",
-    "/te/blog/5",
     "/te/blog/4",
+    "/te/blog/3",
+    "/te/blog/5",
     "/te/blog/1",
+    "/te/blog/10",
     "/te/blog/8",
     "/te/blog/11",
-    "/te/blog/10",
-    "/te/blog/9",
     "/te/blog/12",
+    "/te/blog/9",
+    "/guides/1",
     "/guides/4",
     "/guides/2",
-    "/guides/1",
     "/guides/5",
     "/guides/7",
-    "/guides/10",
     "/guides/9",
     "/guides/11",
     "/guides/12",
     "/guides/3",
+    "/guides/10",
     "/guides/8",
     "/guides/6",
+    "/guides/14",
     "/te/guides/9",
     "/te/guides/5",
     "/te/guides/1",
@@ -43,9 +44,10 @@
     "/te/guides/2",
     "/te/guides/11",
     "/te/guides/6",
-    "/te/guides/10",
     "/te/guides/8",
-    "/te/guides/3"
+    "/te/guides/3",
+    "/te/guides/10",
+    "/te/guides/14"
   ],
   "metadata": [
     {
@@ -84,14 +86,14 @@
       "description": "Understanding how physical therapy accelerates healing and prevents future injuries."
     },
     {
-      "route": "/blog/8",
-      "title": "Hip Replacement Surgery: Recovery, Benefits & Patient Guide",
-      "description": "Hip pain can limit every step you take. Hip replacement surgery is a proven way to relieve pain and improve movement. Discover when it’s recommended, what the procedure involves, and how recovery can bring back your independence."
-    },
-    {
       "route": "/blog/12",
       "title": "Beat Backache: Causes, Prevention & Treatments for Back Pain",
       "description": "Back pain is a common issue, but it doesn't have to control your life. Learn about the main causes of backache, from muscle strain to disc problems, and discover effective prevention strategies and treatment options to get you back on your feet."
+    },
+    {
+      "route": "/blog/8",
+      "title": "Hip Replacement Surgery: Recovery, Benefits & Patient Guide",
+      "description": "Hip pain can limit every step you take. Hip replacement surgery is a proven way to relieve pain and improve movement. Discover when it’s recommended, what the procedure involves, and how recovery can bring back your independence."
     },
     {
       "route": "/blog/10",
@@ -109,19 +111,9 @@
       "description": "నిరంతరం మోకాలి నొప్పితో ఇబ్బంది పడుతున్నారా? మోకాలి మార్పిడి శస్త్రచికిత్స కదలికను పునరుద్ధరించగలదు, అసౌకర్యాన్ని తగ్గించగలదు మరియు చురుకైన జీవనశైలికి తిరిగి రావడానికి మీకు సహాయపడుతుంది. ఇది ఎప్పుడు అవసరమో, కోలుకోవడం ఎలా పనిచేస్తుందో మరియు ఎలాంటి ఫలితాలను ఆశించాలో తెలుసుకోండి."
     },
     {
-      "route": "/te/blog/3",
-      "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
-      "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం."
-    },
-    {
       "route": "/te/blog/2",
       "title": "బోలు ఎముకల వ్యాధిని అర్థం చేసుకోవడం: నివారణ మరియు చికిత్స",
       "description": "బోలు ఎముకల వ్యాధి, దాని ప్రమాద కారకాలు మరియు ఆధునిక చికిత్సా విధానాలను అర్థం చేసుకోవడానికి ఒక సమగ్ర మార్గదర్శి."
-    },
-    {
-      "route": "/te/blog/5",
-      "title": "రికవరీలో ఫిజికల్ థెరపీ పాత్ర",
-      "description": "ఫిజికల్ థెరపీ వైద్యంను ఎలా వేగవంతం చేస్తుందో మరియు భవిష్యత్తులో గాయాలను ఎలా నివారిస్తుందో అర్థం చేసుకోవడం."
     },
     {
       "route": "/te/blog/4",
@@ -129,9 +121,24 @@
       "description": "దీర్ఘకాలిక కీళ్ల నొప్పులు మరియు వాపులను తగ్గించడంలో సహాయపడే సహజ పద్ధతులు మరియు జీవనశైలి మార్పులను కనుగొనండి."
     },
     {
+      "route": "/te/blog/3",
+      "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
+      "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం."
+    },
+    {
+      "route": "/te/blog/5",
+      "title": "రికవరీలో ఫిజికల్ థెరపీ పాత్ర",
+      "description": "ఫిజికల్ థెరపీ వైద్యంను ఎలా వేగవంతం చేస్తుందో మరియు భవిష్యత్తులో గాయాలను ఎలా నివారిస్తుందో అర్థం చేసుకోవడం."
+    },
+    {
       "route": "/te/blog/1",
       "title": "ఆరోగ్యకరమైన ఎముకలను నిర్వహించడానికి 5 ముఖ్యమైన చిట్కాలు",
       "description": "బలమైన ఎముకలు స్మార్ట్ అలవాట్లతో ప్రారంభమవుతాయి. పోషకాలు అధికంగా ఉండే ఆహారం మరియు బరువు మోసే వ్యాయామాల నుండి జీవనశైలి మార్పులు మరియు శాశ్వత లాభాల వరకు 5 ముఖ్యమైన చిట్కాలను అన్వేషించండి."
+    },
+    {
+      "route": "/te/blog/10",
+      "title": "ACL చిరుగు: కారణాలు, చికిత్స & కోలుకోవడం",
+      "description": "ACL చిరుగు మీ చురుకైన జీవనశైలిని పక్కకు నెట్టవచ్చు - కానీ సరైన చికిత్సతో, ఆటలోకి తిరిగి రావడం సాధ్యమవుతుంది. ACL చిరుగు కారణమేమిటి, వాటికి ఎలా చికిత్స చేస్తారు మరియు కోలుకోవడం నిజంగా ఎలా ఉంటుందో తెలుసుకోండి."
     },
     {
       "route": "/te/blog/8",
@@ -144,9 +151,9 @@
       "description": "మెనిస్కస్ (నెలవంక) గాయాలు అత్యంత సాధారణ మోకాలి సమస్యలలో ఒకటి, తరచుగా మెలితిప్పిన కదలికలు లేదా క్రీడలకు సంబంధించిన కార్యకలాపాల వల్ల సంభవిస్తాయి. సరైన వైద్యం నిర్ధారించడానికి మరియు దీర్ఘకాలిక సమస్యలను నివారించడానికి కారణాలు, లక్షణాలు మరియు చికిత్స ఎంపికల గురించి తెలుసుకోండి."
     },
     {
-      "route": "/te/blog/10",
-      "title": "ACL చిరుగు: కారణాలు, చికిత్స & కోలుకోవడం",
-      "description": "ACL చిరుగు మీ చురుకైన జీవనశైలిని పక్కకు నెట్టవచ్చు - కానీ సరైన చికిత్సతో, ఆటలోకి తిరిగి రావడం సాధ్యమవుతుంది. ACL చిరుగు కారణమేమిటి, వాటికి ఎలా చికిత్స చేస్తారు మరియు కోలుకోవడం నిజంగా ఎలా ఉంటుందో తెలుసుకోండి."
+      "route": "/te/blog/12",
+      "title": "నడుము నొప్పిని జెయించండి: నడుము నొప్పికి గల కారణాలు, నివారణ మరియు చికిత్సలు",
+      "description": "నడుము నొప్పి ఒక సాధారణ సమస్య, కానీ అది మీ జీవితాన్ని నియంత్రించకూడదు. కండరాల బెణుకు నుండి డిస్క్ సమస్యల వరకు నడుము నొప్పికి ప్రధాన కారణాల గురించి తెలుసుకోండి. అలాగే, మిమ్మల్ని మళ్లీ చురుకుగా మార్చడానికి సహాయపడే సమర్థవంతమైన నివారణ వ్యూహాలు మరియు చికిత్స ఎంపికలను కనుగొనండి."
     },
     {
       "route": "/te/blog/9",
@@ -154,9 +161,9 @@
       "description": "మడమ నొప్పి అనేది పాదాల సమస్యలకు అత్యంత సాధారణ కారణాలలో ఒకటి. ప్లాంటార్ ఫాసిటిస్ అందుకు ప్రధాన కారణం. ఇది ఎందుకు జరుగుతుంది, ఎలా అనిపిస్తుంది మరియు దానిని నియంత్రించడానికి ఉత్తమ మార్గాలను తెలుసుకోండి."
     },
     {
-      "route": "/te/blog/12",
-      "title": "నడుము నొప్పిని జెయించండి: నడుము నొప్పికి గల కారణాలు, నివారణ మరియు చికిత్సలు",
-      "description": "నడుము నొప్పి ఒక సాధారణ సమస్య, కానీ అది మీ జీవితాన్ని నియంత్రించకూడదు. కండరాల బెణుకు నుండి డిస్క్ సమస్యల వరకు నడుము నొప్పికి ప్రధాన కారణాల గురించి తెలుసుకోండి. అలాగే, మిమ్మల్ని మళ్లీ చురుకుగా మార్చడానికి సహాయపడే సమర్థవంతమైన నివారణ వ్యూహాలు మరియు చికిత్స ఎంపికలను కనుగొనండి."
+      "route": "/guides/1",
+      "title": "Flat Foot Care: Effective Exercises and Tips for Healthy Feet",
+      "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort."
     },
     {
       "route": "/guides/4",
@@ -169,11 +176,6 @@
       "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health."
     },
     {
-      "route": "/guides/1",
-      "title": "Flat Foot Care: Effective Exercises and Tips for Healthy Feet",
-      "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort."
-    },
-    {
       "route": "/guides/5",
       "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
       "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
@@ -182,11 +184,6 @@
       "route": "/guides/7",
       "title": "Navigating Life with a Plaster Cast: Essential Care and Tips",
       "description": "A broken bone is a temporary setback, but proper cast care is crucial for a smooth recovery. Learn essential tips for living with a plaster cast, including how to keep it dry, manage itching, and spot red flags that need a doctor's attention."
-    },
-    {
-      "route": "/guides/10",
-      "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
-      "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy."
     },
     {
       "route": "/guides/9",
@@ -209,6 +206,11 @@
       "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts."
     },
     {
+      "route": "/guides/10",
+      "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
+      "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy."
+    },
+    {
       "route": "/guides/8",
       "title": "Managing High Blood Pressure: Essential Diet for Hypertensive Patients",
       "description": "Discover the best dietary strategies to control high blood pressure. Learn about foods to eat and avoid, and how a heart-healthy diet can improve your hypertension."
@@ -217,6 +219,11 @@
       "route": "/guides/6",
       "title": "Diabetic Diet Chart for Andhra Pradesh Patients",
       "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
+    },
+    {
+      "route": "/guides/14",
+      "title": "Post-Meniscus Surgery Rehab: Exercises & Recovery Timeline",
+      "description": "A comprehensive guide to meniscus repair rehabilitation, including a week-by-week timeline and step-by-step instructions for post-op exercises to help you recover and get back on your feet."
     },
     {
       "route": "/te/guides/9",
@@ -264,11 +271,6 @@
       "description": "ఆంధ్రప్రదేశ్లోని రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి."
     },
     {
-      "route": "/te/guides/10",
-      "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
-      "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది."
-    },
-    {
       "route": "/te/guides/8",
       "title": "అధిక రక్తపోటును నియంత్రించడం: అధిక రక్తపోటు ఉన్నవారికి అవసరమైన ఆహారం",
       "description": "అధిక రక్తపోటును నియంత్రించడానికి ఉత్తమ ఆహార పద్ధతులను కనుగొనండి. ఏ ఆహారాలు తినాలి మరియు ఏవి నివారించాలి, మరియు హృదయానికి ఆరోగ్యకరమైన ఆహారం మీ అధిక రక్తపోటును ఎలా మెరుగుపరుస్తుందో తెలుసుకోండి."
@@ -277,6 +279,16 @@
       "route": "/te/guides/3",
       "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
       "description": "మీ వీపు కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన వీపు వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి."
+    },
+    {
+      "route": "/te/guides/10",
+      "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
+      "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది."
+    },
+    {
+      "route": "/te/guides/14",
+      "title": "మెనిస్కస్ సర్జరీ తర్వాత పునరావాసం: వ్యాయామాలు & పునరుద్ధరణ కాలక్రమం",
+      "description": "మెనిస్కస్ రిపేర్ పునరావాసానికి ఒక సమగ్ర మార్గదర్శిని, ఇందులో మీరు కోలుకోవడానికి మరియు తిరిగి మీ కాళ్లపై నిలబడటానికి సహాయపడే శస్త్రచికిత్స అనంతర వ్యాయామాలకు వారం వారీ కాలక్రమం మరియు దశల వారీ సూచనలు ఉన్నాయి."
     }
   ]
 }
