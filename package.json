@@ -10,7 +10,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "sitemap": "tsx src/lib/sitemap-generator.ts",
-    "build:prerender": "node scripts/generate-dynamic-routes.js && vite build",
     "postinstall": "patch-package"
   },
   "dependencies": {
