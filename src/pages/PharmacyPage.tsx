@@ -279,15 +279,25 @@ const PharmacyPage = () => {
             }
         }
 
-        let displayName;
+        let nameForStockUpdate = medicine.name;
         if (medicine.isGrouped && size) {
-          displayName = `${medicine.name} ${size}`;
+            nameForStockUpdate = `${medicine.name} ${size}`;
+        }
+
+        let displayNameForEmail = medicine.name;
+        if (medicine.isGrouped && size) {
+          displayNameForEmail = `${medicine.name} (${size})`;
+        }
+
+        const orderType = cartKey.endsWith('-unit') ? 'unit' : 'pack';
+        if (orderType === 'unit') {
+            displayNameForEmail = `${displayNameForEmail} (Units)`;
         } else {
-          displayName = medicine.name;
+            displayNameForEmail = `${displayNameForEmail} (Pack)`;
         }
         
         let itemPrice = 0;
-        if (cartKey.endsWith('-unit') && medicine.packSize) {
+        if (orderType === 'unit' && medicine.packSize) {
           const packSize = parseInt(medicine.packSize, 10);
           if (!isNaN(packSize) && packSize > 0) {
             itemPrice = medicine.price / packSize;
@@ -296,10 +306,9 @@ const PharmacyPage = () => {
           itemPrice = medicine.price;
         }
 
-        const orderType = cartKey.endsWith('-unit') ? 'unit' : 'pack';
-
         return {
-          name: displayName,
+          name: nameForStockUpdate,
+          displayName: displayNameForEmail,
           quantity,
           price: itemPrice,
           orderType: orderType,
