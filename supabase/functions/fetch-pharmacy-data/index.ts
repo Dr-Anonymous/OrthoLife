@@ -92,6 +92,8 @@ function parseSupplierSheetRow(row, headers) {
       medicine.inStock = stockCount > 0;
     } else if (lowerHeader === 'discount %') {
       medicine.discount = parseFloat(value) || 0;
+    } else if (lowerHeader === 'individual') {
+      medicine.individual = value || true;
     }
   });
   if (!medicine.name || medicine.name.trim() === '') return null;
@@ -138,13 +140,9 @@ const handler = async (req)=>{
             name: medicine.name,
             description: medicine.description || medicine.name,
             price: 0,
-            category: medicine.category || 'General',
             inStock: false,
             packSize: medicine.packSize,
-            prescriptionRequired: medicine.prescriptionRequired || false,
-            originalPrice: 0,
-            stockCount: 0,
-            discount: 0
+            prescriptionRequired: medicine.prescriptionRequired || false
           };
           medicineMap.set(medicine.name.toLowerCase(), completeMedicine);
         }
@@ -167,7 +165,8 @@ const handler = async (req)=>{
               inStock: supplierMedicine.inStock || false,
               originalPrice: supplierMedicine.originalPrice || 0,
               stockCount: supplierMedicine.stockCount || 0,
-              discount: supplierMedicine.discount || 0
+              discount: supplierMedicine.discount || 0,
+              individual: supplierMedicine.individual
             };
             medicineMap.set(key, mergedMedicine);
           }
