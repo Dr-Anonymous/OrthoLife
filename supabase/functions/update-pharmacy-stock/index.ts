@@ -31,14 +31,17 @@ async function updateStockInSheet(accessToken, stockUpdates) {
   // Prepare batch update requests
   const batchUpdateData = [];
   for (const update of stockUpdates){
-    if (update.name.includes("(Size:")) {
-      update.name = update.name.replace(/\(Size:\s*(\w+)\)/, "$1");
-    }
     // Find the row for this medicine
     const rowIndex = values.findIndex((row, index)=>index > 0 && row[nameIndex]?.toLowerCase().trim() === update.name.toLowerCase().trim());
     if (rowIndex !== -1) {
       const currentStock = parseInt(values[rowIndex][stockIndex]) || 0;
-      const newStock = Math.max(0, currentStock - update.quantity);
+
+      let quantityToDecrement = update.quantity;
+      if (update.orderType === 'unit' && update.packSize && update.packSize > 0) {
+        quantityToDecrement = Math.ceil(update.quantity / update.packSize);
+      }
+
+      const newStock = Math.max(0, currentStock - quantityToDecrement);
       // Add to batch update
       batchUpdateData.push({
         range: `Supplier1!${String.fromCharCode(65 + stockIndex)}${rowIndex + 1}`,
@@ -48,7 +51,7 @@ async function updateStockInSheet(accessToken, stockUpdates) {
           ]
         ]
       });
-      console.log(`Updating ${update.name}: ${currentStock} -> ${newStock} (reduced by ${update.quantity})`);
+      console.log(`Updating ${update.name}: ${currentStock} -> ${newStock} (reduced by ${quantityToDecrement} packs)`);
     } else {
       console.warn(`Medicine not found in sheet: ${update.name}`);
     }
@@ -98,7 +101,9 @@ const handler = async (req)=>{
     }
     const stockUpdates = items.map((item)=>({
         name: item.name,
-        quantity: item.quantity
+        quantity: item.quantity,
+        orderType: item.orderType,
+        packSize: item.packSize
       }));
     const accessToken = await getGoogleAccessToken();
     if (!accessToken) {

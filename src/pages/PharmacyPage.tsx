@@ -102,9 +102,9 @@ const PharmacyPage = () => {
       for (const medicine of medicines) {
         if (!addedIds.has(medicine.id)) {
           if (
-            medicine.name.toLowerCase().includes(term) ||
-            medicine.category.toLowerCase().includes(term) ||
-            medicine.description.toLowerCase().includes(term)
+            (medicine.name && medicine.name.toLowerCase().includes(term)) ||
+            (medicine.category && medicine.category.toLowerCase().includes(term)) ||
+            (medicine.description && medicine.description.toLowerCase().includes(term))
           ) {
             result.push(medicine);
             addedIds.add(medicine.id);
@@ -281,15 +281,9 @@ const PharmacyPage = () => {
 
         let displayName;
         if (medicine.isGrouped && size) {
-          displayName = `${medicine.name} (${size})`;
+          displayName = `${medicine.name} ${size}`;
         } else {
           displayName = medicine.name;
-        }
-
-        if (cartKey.endsWith('-unit')) {
-            displayName = `${displayName} (Units)`;
-        } else if (cartKey.endsWith('-pack')) {
-            displayName = `${displayName} (Pack)`;
         }
         
         let itemPrice = 0;
@@ -302,10 +296,14 @@ const PharmacyPage = () => {
           itemPrice = medicine.price;
         }
 
+        const orderType = cartKey.endsWith('-unit') ? 'unit' : 'pack';
+
         return {
           name: displayName,
           quantity,
-          price: itemPrice
+          price: itemPrice,
+          orderType: orderType,
+          packSize: medicine.packSize ? parseInt(medicine.packSize, 10) : undefined
         };
       }).filter(Boolean);
 
@@ -486,7 +484,7 @@ const PharmacyPage = () => {
                           )}
                         </CardHeader>
                         <CardContent>
-                          {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 0 && (
+                          {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
                             <div className="mb-4">
                                 <Label>Order by:</Label>
                                 <RadioGroup
@@ -561,7 +559,7 @@ const PharmacyPage = () => {
                               ) : (
                                 <span className="text-lg font-semibold">₹{medicine.price}</span>
                               )}
-                              {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 0 && (
+                              {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
                                 <div className="text-xs text-muted-foreground mt-1">
                                   (₹{(medicine.price / parseInt(medicine.packSize, 10)).toFixed(2)} / unit)
                                 </div>
