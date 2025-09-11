@@ -31,6 +31,10 @@ async function updateStockInSheet(accessToken, stockUpdates) {
   // Prepare batch update requests
   const batchUpdateData = [];
   for (const update of stockUpdates){
+    console.log('Processing update for:', update.name);
+    console.log('Order type:', update.orderType);
+    console.log('Pack size:', update.packSize);
+    console.log('Original quantity:', update.quantity);
     // Find the row for this medicine
     const rowIndex = values.findIndex((row, index)=>index > 0 && row[nameIndex]?.toLowerCase().trim() === update.name.toLowerCase().trim());
     if (rowIndex !== -1) {
