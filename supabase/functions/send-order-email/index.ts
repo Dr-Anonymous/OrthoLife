@@ -14,7 +14,7 @@ const handler = async (req)=>{
   }
   try {
     const { orderType, patientData, items, total } = await req.json();
-    const itemsList = items.map((item)=>`- ${item.name} x${item.quantity} - ₹${item.price * item.quantity}`).join('\n');
+    const itemsList = items.map((item)=>`- ${item.displayName} x${item.quantity} - ₹${item.price * item.quantity}`).join('\n');
     const subject = orderType === 'pharmacy' ? 'New Pharmacy Order' : 'New Diagnostics Booking';
     const toEmails = orderType === 'pharmacy' ? [
       "gangrenesoul@gmail.com",
