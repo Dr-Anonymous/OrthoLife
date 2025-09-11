@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { ShoppingCart, Pill, Plus, Minus, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +24,7 @@ interface SizeVariant {
 
 interface Medicine {
   id: string;
-  name: string;
+  name:string;
   description: string;
   price: number;
   category: string;
@@ -36,6 +38,7 @@ interface Medicine {
   discount?: number;
   isGrouped?: boolean;
   sizes?: SizeVariant[];
+  individual?: string;
 }
 
 const PharmacyPage = () => {
@@ -44,6 +47,7 @@ const PharmacyPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [selectedSizes, setSelectedSizes] = useState<{ [key: string]: string }>({});
+  const [orderType, setOrderType] = useState<{ [key: string]: 'pack' | 'unit' }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
   
@@ -111,19 +115,36 @@ const PharmacyPage = () => {
     return result;
   })();
 
-  const getCartKey = (medicine: Medicine, size?: string): string => {
+  const getCartKey = (medicine: Medicine, size: string | undefined, type: 'pack' | 'unit'): string => {
+    let baseKey = medicine.id;
     if (medicine.isGrouped && size) {
-      return `${medicine.id}-${size}`;
+        baseKey = `${medicine.id}-${size}`;
     }
-    return medicine.id;
+
+    if (medicine.individual === 'TRUE') {
+        return `${baseKey}-${type}`;
+    }
+
+    return baseKey;
   };
 
-  const getAvailableStock = (medicine: Medicine, size?: string): number => {
+  const getAvailableStock = (medicine: Medicine, size: string | undefined, type: 'pack' | 'unit'): number => {
+    let stock = 0;
     if (medicine.isGrouped && size && medicine.sizes) {
       const sizeVariant = medicine.sizes.find(s => s.size === size);
-      return sizeVariant?.stockCount || 0;
+      stock = sizeVariant?.stockCount || 0;
+    } else {
+      stock = medicine.stockCount || 0;
     }
-    return medicine.stockCount || 0;
+
+    if (medicine.individual === 'TRUE' && type === 'unit' && medicine.packSize) {
+        const packSize = parseInt(medicine.packSize, 10);
+        if (!isNaN(packSize)) {
+            return stock * packSize;
+        }
+    }
+
+    return stock;
   };
 
   const addToCart = (medicineId: string, selectedSize?: string) => {
@@ -139,9 +160,10 @@ const PharmacyPage = () => {
       return;
     }
     
-    const cartKey = getCartKey(medicine, selectedSize);
+    const currentOrderType = orderType[medicine.id] || 'pack';
+    const cartKey = getCartKey(medicine, selectedSize, currentOrderType);
     const currentCartQuantity = cart[cartKey] || 0;
-    const availableStock = getAvailableStock(medicine, selectedSize);
+    const availableStock = getAvailableStock(medicine, selectedSize, currentOrderType);
     
     if (currentCartQuantity >= availableStock) {
       toast({
@@ -179,7 +201,18 @@ const PharmacyPage = () => {
       const cartKeyParts = cartKey.split('-');
       const medicineId = cartKeyParts[0];
       const medicine = medicines.find(m => m.id === medicineId);
-      return total + (medicine ? medicine.price * quantity : 0);
+
+      if (medicine) {
+        if (cartKey.endsWith('-unit') && medicine.packSize) {
+          const packSize = parseInt(medicine.packSize, 10);
+          if (!isNaN(packSize) && packSize > 0) {
+            const unitPrice = medicine.price / packSize;
+            return total + (unitPrice * quantity);
+          }
+        }
+        return total + (medicine.price * quantity);
+      }
+      return total;
     }, 0);
   };
 
@@ -229,31 +262,52 @@ const PharmacyPage = () => {
   };
 
   const handlePatientFormSubmit = async () => {
-    try {      
+    try {
       const items = Object.entries(cart).map(([cartKey, quantity]) => {
-        console.log('Processing cart key for email:', cartKey);
         const cartKeyParts = cartKey.split('-');
         const medicineId = cartKeyParts[0];
-        const size = cartKeyParts.length > 1 ? cartKeyParts.slice(1).join('-') : undefined;
-        console.log('Email - Medicine ID:', medicineId, 'Size:', size);
-        
         const medicine = medicines.find(m => m.id === medicineId);
-        console.log('Email - Found medicine:', medicine?.name);
         
-        let displayName;
-        if (medicine?.isGrouped && size) {
-          displayName = `${medicine.name} (Size: ${size})`;
-        } else {
-          displayName = medicine?.name || '';
+        if (!medicine) return null;
+
+        let size;
+        if (medicine.isGrouped) {
+            if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
+                size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
+            } else {
+                size = cartKeyParts.slice(1).join('-');
+            }
         }
-        console.log('Email - Display name:', displayName);
+
+        let displayName;
+        if (medicine.isGrouped && size) {
+          displayName = `${medicine.name} (${size})`;
+        } else {
+          displayName = medicine.name;
+        }
+
+        if (cartKey.endsWith('-unit')) {
+            displayName = `${displayName} (Units)`;
+        } else if (cartKey.endsWith('-pack')) {
+            displayName = `${displayName} (Pack)`;
+        }
         
+        let itemPrice = 0;
+        if (cartKey.endsWith('-unit') && medicine.packSize) {
+          const packSize = parseInt(medicine.packSize, 10);
+          if (!isNaN(packSize) && packSize > 0) {
+            itemPrice = medicine.price / packSize;
+          }
+        } else {
+          itemPrice = medicine.price;
+        }
+
         return {
           name: displayName,
           quantity,
-          price: medicine?.price || 0
+          price: itemPrice
         };
-      });
+      }).filter(Boolean);
 
       const { error } = await supabase.functions.invoke('send-order-email', {
         body: {
@@ -374,8 +428,9 @@ const PharmacyPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                  {filteredMedicines.map((medicine) => {
                    const selectedSize = selectedSizes[medicine.id];
-                   const cartKey = getCartKey(medicine, selectedSize);
-                   const currentStock = getAvailableStock(medicine, selectedSize);
+                   const currentOrderType = orderType[medicine.id] || 'pack';
+                   const cartKey = getCartKey(medicine, selectedSize, currentOrderType);
+                   const currentStock = getAvailableStock(medicine, selectedSize, currentOrderType);
                    
                    return (
                      <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
@@ -431,6 +486,31 @@ const PharmacyPage = () => {
                           )}
                         </CardHeader>
                         <CardContent>
+                          {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 0 && (
+                            <div className="mb-4">
+                                <Label>Order by:</Label>
+                                <RadioGroup
+                                    defaultValue="pack"
+                                    value={orderType[medicine.id] || 'pack'}
+                                    onValueChange={(value) => {
+                                        setOrderType(prev => ({
+                                            ...prev,
+                                            [medicine.id]: value as 'pack' | 'unit'
+                                        }));
+                                    }}
+                                    className="flex items-center space-x-4 mt-2"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="pack" id={`${medicine.id}-pack`} />
+                                        <Label htmlFor={`${medicine.id}-pack`}>Pack</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="unit" id={`${medicine.id}-unit`} />
+                                        <Label htmlFor={`${medicine.id}-unit`}>Unit</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                          )}
                            <div className="flex justify-between items-center mb-4">
                              <div className="flex flex-col">
                                {!medicine.isGrouped && medicine.stockCount !== undefined && (
@@ -480,6 +560,11 @@ const PharmacyPage = () => {
                                 </div>
                               ) : (
                                 <span className="text-lg font-semibold">₹{medicine.price}</span>
+                              )}
+                              {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  (₹{(medicine.price / parseInt(medicine.packSize, 10)).toFixed(2)} / unit)
+                                </div>
                               )}
                             </div>
                           </div>
@@ -543,35 +628,55 @@ const PharmacyPage = () => {
                   <CardContent>
                     <div className="space-y-2 mb-4">
                       {Object.entries(cart).map(([cartKey, quantity]) => {
-                        //console.log('Cart key:', cartKey);
                         const cartKeyParts = cartKey.split('-');
                         const medicineId = cartKeyParts[0];
-                        const size = cartKeyParts.length > 1 ? cartKeyParts.slice(1).join('-') : undefined;
-                        //console.log('Medicine ID:', medicineId, 'Size:', size);
-                        
                         const medicine = medicines.find(m => m.id === medicineId);
-                        //console.log('Found medicine:', medicine?.name);
                         
                         if (!medicine) return null;
                         
+                        let size;
+                        if (medicine.isGrouped) {
+                            if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
+                                size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
+                            } else {
+                                size = cartKeyParts.slice(1).join('-');
+                            }
+                        }
+
                         let displayName;
                         if (medicine.isGrouped && size) {
                           displayName = `${medicine.name} (${size})`;
                         } else {
                           displayName = medicine.name;
                         }
-                        //console.log('Display name:', displayName);
+
+                        if (cartKey.endsWith('-unit')) {
+                            displayName = `${displayName} (Units)`;
+                        } else if (cartKey.endsWith('-pack')) {
+                            displayName = `${displayName} (Pack)`;
+                        }
                         
+                        let itemPrice = 0;
+                        if (cartKey.endsWith('-unit') && medicine.packSize) {
+                          const packSize = parseInt(medicine.packSize, 10);
+                          if (!isNaN(packSize) && packSize > 0) {
+                            const unitPrice = medicine.price / packSize;
+                            itemPrice = unitPrice * quantity;
+                          }
+                        } else {
+                          itemPrice = medicine.price * quantity;
+                        }
+
                         return (
                           <div key={cartKey} className="flex justify-between">
                             <span>{displayName} x{quantity}</span>
-                            <span>₹{medicine.price * quantity}</span>
+                            <span>₹{itemPrice.toFixed(2)}</span>
                           </div>
                         );
                       })}
                     </div>
                     <div className="border-t pt-2 font-semibold">
-                      Total: ₹{getCartTotal()}
+                      Total: ₹{getCartTotal().toFixed(2)}
                     </div>
                   </CardContent>
                   <CardFooter>
