@@ -132,66 +132,66 @@ const TrackTestResultsPage = () => {
               <div className="space-y-6">
                 <h2 className="text-2xl font-heading font-semibold">Your Test Results</h2>
                 
-                {Object.entries(results).map(([patientName, tests]) => (
-                  <Card key={patientName}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <User /> {patientName}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Accordion type="single" collapsible className="w-full">
+                <Accordion type="single" collapsible className="w-full">
+                  {Object.entries(results).map(([patientName, tests]) => (
+                    <Card key={patientName} className="mb-4">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <User /> {patientName}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
                         {tests.map((result) => (
-                          <AccordionItem value={result.testId} key={result.testId}>
-                            <AccordionTrigger>
-                              <div className="flex justify-between w-full pr-4">
-                                <span className="font-semibold">{result.testType}</span>
-                                {getStatusBadge(result.status)}
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="p-4 bg-muted/50 rounded-md">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <Calendar size={16} />
-                                    <span>Test Date: {result.testDate}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <FileText size={16} />
-                                    <span>Booking ID: {result.testId}</span>
-                                  </div>
-                                  {result.reportDate && (
+                            <AccordionItem value={result.testId} key={result.testId}>
+                              <AccordionTrigger>
+                                <div className="flex justify-between w-full pr-4">
+                                  <span className="font-semibold">{result.testType}</span>
+                                  {getStatusBadge(result.status)}
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="p-4 bg-muted/50 rounded-md">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                     <div className="flex items-center gap-2">
-                                      <CheckCircle size={16} />
-                                      <span>Report Ready: {result.reportDate}</span>
+                                      <Calendar size={16} />
+                                      <span>Test Date: {result.testDate}</span>
                                     </div>
-                                  )}
-                                  <div className="md:col-span-2">
-                                    <strong>Result:</strong>
-                                    <p className="whitespace-pre-wrap">{result.testResult}</p>
+                                    <div className="flex items-center gap-2">
+                                      <FileText size={16} />
+                                      <span>Booking ID: {result.testId}</span>
+                                    </div>
+                                    {result.reportDate && (
+                                      <div className="flex items-center gap-2">
+                                        <CheckCircle size={16} />
+                                        <span>Report Ready: {result.reportDate}</span>
+                                      </div>
+                                    )}
+                                    <div className="md:col-span-2">
+                                      <strong>Result:</strong>
+                                      <p className="whitespace-pre-wrap">{result.testResult}</p>
+                                    </div>
+                                  </div>
+                                  <div className="mt-4">
+                                    {result.status === 'completed' ? (
+                                      <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
+                                        <Download size={16} />
+                                        Download Report
+                                      </Button>
+                                    ) : (
+                                      <Button variant="outline" disabled className="flex items-center gap-2">
+                                        <Clock size={16} />
+                                        Report Pending
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="mt-4">
-                                  {result.status === 'completed' ? (
-                                    <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
-                                      <Download size={16} />
-                                      Download Report
-                                    </Button>
-                                  ) : (
-                                    <Button variant="outline" disabled className="flex items-center gap-2">
-                                      <Clock size={16} />
-                                      Report Pending
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                      </Accordion>
-                    </CardContent>
-                  </Card>
-                ))}
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Accordion>
               </div>
             )}
 
