@@ -238,12 +238,30 @@ const PharmacyPage = () => {
     for (const [cartKey, quantity] of Object.entries(cart)) {
       const cartKeyParts = cartKey.split('-');
       const medicineId = cartKeyParts[0];
-      const size = cartKeyParts.length > 1 ? cartKeyParts.slice(1).join('-') : undefined;
       const medicine = medicines.find(m => m.id === medicineId);
+
       if (medicine) {
-        const availableStock = getAvailableStock(medicine, size);
+        const orderType = cartKey.endsWith('-unit') ? 'unit' : 'pack';
+
+        let size;
+        if (medicine.isGrouped) {
+            if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
+                size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
+            } else {
+                size = cartKeyParts.slice(1).join('-');
+            }
+        }
+
+        const availableStock = getAvailableStock(medicine, size, orderType);
+
         if (quantity > availableStock) {
-          const displayName = medicine.isGrouped && size ? `${medicine.name} (${size})` : medicine.name;
+          let displayName = medicine.name;
+          if (medicine.isGrouped && size) {
+            displayName = `${medicine.name} (${size})`;
+          }
+          if (orderType === 'unit') {
+            displayName = `${displayName} (Units)`;
+          }
           stockErrors.push(`${displayName}: Only ${availableStock} available, but ${quantity} in cart`);
         }
       }
