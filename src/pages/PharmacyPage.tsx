@@ -506,7 +506,7 @@ const PharmacyPage = () => {
                             <div className="space-y-1 text-sm text-muted-foreground mt-2">
                               {medicine.manufacturer && <div>Brand: {medicine.manufacturer}</div>}
                               {medicine.dosage && <div>Dosage: {medicine.dosage}</div>}
-                              {medicine.packSize && <div>Pack Size: {medicine.packSize}</div>}
+                              {medicine.packSize && <div>Pack Size: {medicine.packSize} unit(s)/pack</div>}
                             </div>
                           )}
                         </CardHeader>
@@ -541,7 +541,7 @@ const PharmacyPage = () => {
                                {!medicine.isGrouped && medicine.stockCount !== undefined && (
                                  <div className="space-y-1">
                                    <span className="text-xs text-muted-foreground">
-                                     Stock: {medicine.stockCount} available
+                                     Stock: {medicine.stockCount} units available
                                    </span>
                                    {cart[medicine.id] && (
                                      <span className="text-xs text-orange-600">
@@ -572,14 +572,14 @@ const PharmacyPage = () => {
                               {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
                                 <div className="flex flex-col">
                                   <span className="text-sm text-muted-foreground line-through">
-                                    ₹{medicine.originalPrice}
+                                    ₹{Math.ceil(medicine.originalPrice)}
                                   </span>
                                   <span className="text-lg font-semibold text-green-600">
-                                    ₹{medicine.price}
+                                    ₹{Math.ceil(medicine.price)}
                                   </span>
                                   {medicine.discount && medicine.discount > 0 && (
                                     <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                      {medicine.discount}% OFF
+                                      {Math.ceil(medicine.discount)}% OFF
                                     </Badge>
                                   )}
                                 </div>
@@ -717,7 +717,7 @@ const PharmacyPage = () => {
       </main>
       <FloatingCart
         itemCount={Object.values(cart).reduce((sum, qty) => sum + qty, 0)}
-        total={getCartTotal()}
+        total={getCartTotal().toFixed(1)}
         onViewCart={scrollToCart}
         type="pharmacy"
       />
