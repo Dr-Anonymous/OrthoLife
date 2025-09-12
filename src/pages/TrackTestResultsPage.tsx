@@ -8,7 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Search, FileText, Download, Clock, CheckCircle, Calendar, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface TestResult {
   testId: string;
@@ -25,6 +32,7 @@ const TrackTestResultsPage = () => {
   const [results, setResults] = useState<Record<string, TestResult[]>>({});
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTest, setSelectedTest] = useState<TestResult | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,68 +140,79 @@ const TrackTestResultsPage = () => {
               <div className="space-y-6">
                 <h2 className="text-2xl font-heading font-semibold">Your Test Results</h2>
                 
-                <Accordion type="single" collapsible className="w-full">
-                  {Object.entries(results).map(([patientName, tests]) => (
-                    <Card key={patientName} className="mb-4">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <User /> {patientName}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {tests.map((result) => (
-                            <AccordionItem value={result.testId} key={result.testId}>
-                              <AccordionTrigger>
-                                <div className="flex justify-between w-full pr-4">
-                                  <span className="font-semibold">{result.testType}</span>
-                                  {getStatusBadge(result.status)}
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="p-4 bg-muted/50 rounded-md">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <div className="flex items-center gap-2">
-                                      <Calendar size={16} />
-                                      <span>Test Date: {result.testDate}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <FileText size={16} />
-                                      <span>Booking ID: {result.testId}</span>
-                                    </div>
-                                    {result.reportDate && (
-                                      <div className="flex items-center gap-2">
-                                        <CheckCircle size={16} />
-                                        <span>Report Ready: {result.reportDate}</span>
-                                      </div>
-                                    )}
-                                    <div className="md:col-span-2">
-                                      <strong>Result:</strong>
-                                      <p className="whitespace-pre-wrap">{result.testResult}</p>
-                                    </div>
-                                  </div>
-                                  <div className="mt-4">
-                                    {result.status === 'completed' ? (
-                                      <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
-                                        <Download size={16} />
-                                        Download Report
-                                      </Button>
-                                    ) : (
-                                      <Button variant="outline" disabled className="flex items-center gap-2">
-                                        <Clock size={16} />
-                                        Report Pending
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ))}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </Accordion>
+                {Object.entries(results).map(([patientName, tests]) => (
+                  <Card key={patientName}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User /> {patientName}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {tests.map((result) => (
+                        <Button
+                          key={result.testId}
+                          variant="outline"
+                          className="w-full justify-between"
+                          onClick={() => setSelectedTest(result)}
+                        >
+                          <span>{result.testType}</span>
+                          {getStatusBadge(result.status)}
+                        </Button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
+
+            {/* Test Details Modal */}
+            <Dialog open={!!selectedTest} onOpenChange={(isOpen) => !isOpen && setSelectedTest(null)}>
+              <DialogContent>
+                {selectedTest && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>{selectedTest.testType}</DialogTitle>
+                      <DialogDescription>
+                        Test result for {selectedTest.patientName}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label>Test Date</Label>
+                        <span>{selectedTest.testDate}</span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label>Report Date</Label>
+                        <span>{selectedTest.reportDate || 'Pending'}</span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label>Booking ID</Label>
+                        <span>{selectedTest.testId}</span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label>Status</Label>
+                        {getStatusBadge(selectedTest.status)}
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Result</Label>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedTest.testResult}</p>
+                      </div>
+                    </div>
+                    {selectedTest.status === 'completed' ? (
+                      <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
+                        <Download size={16} />
+                        Download Report
+                      </Button>
+                    ) : (
+                      <Button variant="outline" disabled className="flex items-center gap-2">
+                        <Clock size={16} />
+                        Report Pending
+                      </Button>
+                    )}
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
 
             {/* Help Section */}
             <Card className="mt-8">
