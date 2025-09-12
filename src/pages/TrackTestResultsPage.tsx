@@ -6,44 +6,49 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, FileText, Download, Clock, CheckCircle, Calendar } from 'lucide-react';
+import { Search, FileText, Download, Clock, CheckCircle, Calendar, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
+interface TestResult {
+  testId: string;
+  patientName: string;
+  testDate: string;
+  testType: string;
+  status: string;
+  reportDate: string | null;
+  testResult: string;
+}
 
 const TrackTestResultsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Record<string, TestResult[]>>({});
   const [isSearching, setIsSearching] = useState(false);
-
-  const mockResults = [
-    {
-      id: 'TR001',
-      patientName: 'John Doe',
-      testDate: '2024-01-15',
-      testType: 'Complete Blood Count',
-      status: 'completed',
-      reportDate: '2024-01-16',
-      downloadUrl: '#'
-    },
-    {
-      id: 'TR002',
-      patientName: 'John Doe', 
-      testDate: '2024-01-10',
-      testType: 'Lipid Profile',
-      status: 'processing',
-      reportDate: null,
-      downloadUrl: null
-    }
-  ];
+  const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
-    // Simulate API call
-    setTimeout(() => {
-      setResults(mockResults);
+    setError(null);
+    setResults({});
+
+    try {
+      const { data, error } = await supabase.functions.invoke('search-test-results', {
+        body: { query: searchQuery },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setResults(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setIsSearching(false);
-    }, 1000);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -110,53 +115,80 @@ const TrackTestResultsPage = () => {
               </CardContent>
             </Card>
 
+            {/* Error Message */}
+            {error && (
+              <Card className="mb-8 bg-destructive/10 border-destructive">
+                <CardHeader>
+                  <CardTitle className="text-destructive">Search Failed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>{error}</p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Results */}
-            {results.length > 0 && (
-              <div className="space-y-4">
+            {Object.keys(results).length > 0 && (
+              <div className="space-y-6">
                 <h2 className="text-2xl font-heading font-semibold">Your Test Results</h2>
                 
-                {results.map((result) => (
-                  <Card key={result.id}>
-                    <CardContent className="p-6">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-lg">{result.testType}</h3>
-                            {getStatusBadge(result.status)}
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Calendar size={16} />
-                              <span>Test Date: {result.testDate}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <FileText size={16} />
-                              <span>Booking ID: {result.id}</span>
-                            </div>
-                            {result.reportDate && (
-                              <div className="flex items-center gap-2">
-                                <CheckCircle size={16} />
-                                <span>Report Ready: {result.reportDate}</span>
+                {Object.entries(results).map(([patientName, tests]) => (
+                  <Card key={patientName}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User /> {patientName}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Accordion type="single" collapsible className="w-full">
+                        {tests.map((result) => (
+                          <AccordionItem value={result.testId} key={result.testId}>
+                            <AccordionTrigger>
+                              <div className="flex justify-between w-full pr-4">
+                                <span className="font-semibold">{result.testType}</span>
+                                {getStatusBadge(result.status)}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          {result.status === 'completed' ? (
-                            <Button className="flex items-center gap-2">
-                              <Download size={16} />
-                              Download Report
-                            </Button>
-                          ) : (
-                            <Button variant="outline" disabled className="flex items-center gap-2">
-                              <Clock size={16} />
-                              Report Pending
-                            </Button>
-                          )}
-                        </div>
-                      </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="p-4 bg-muted/50 rounded-md">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar size={16} />
+                                    <span>Test Date: {result.testDate}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <FileText size={16} />
+                                    <span>Booking ID: {result.testId}</span>
+                                  </div>
+                                  {result.reportDate && (
+                                    <div className="flex items-center gap-2">
+                                      <CheckCircle size={16} />
+                                      <span>Report Ready: {result.reportDate}</span>
+                                    </div>
+                                  )}
+                                  <div className="md:col-span-2">
+                                    <strong>Result:</strong>
+                                    <p className="whitespace-pre-wrap">{result.testResult}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-4">
+                                  {result.status === 'completed' ? (
+                                    <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
+                                      <Download size={16} />
+                                      Download Report
+                                    </Button>
+                                  ) : (
+                                    <Button variant="outline" disabled className="flex items-center gap-2">
+                                      <Clock size={16} />
+                                      Report Pending
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
                     </CardContent>
                   </Card>
                 ))}
