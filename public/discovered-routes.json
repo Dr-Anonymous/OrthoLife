@@ -26,10 +26,10 @@
     "/guides/4",
     "/guides/2",
     "/guides/5",
+    "/guides/12",
     "/guides/7",
     "/guides/9",
     "/guides/11",
-    "/guides/12",
     "/guides/3",
     "/guides/10",
     "/guides/8",
@@ -181,6 +181,11 @@
       "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
     },
     {
+      "route": "/guides/12",
+      "title": "Neck Pain Exercises: Effective Stretches and Strengthening for Relief",
+      "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery."
+    },
+    {
       "route": "/guides/7",
       "title": "Navigating Life with a Plaster Cast: Essential Care and Tips",
       "description": "A broken bone is a temporary setback, but proper cast care is crucial for a smooth recovery. Learn essential tips for living with a plaster cast, including how to keep it dry, manage itching, and spot red flags that need a doctor's attention."
@@ -194,11 +199,6 @@
       "route": "/guides/11",
       "title": "The ACL Rehab Journey: A Complete Post-Operative Protocol",
       "description": "This guide outlines a typical timeline and the goals, exercises, and milestones for each phase, from the day after surgery to a full year later."
-    },
-    {
-      "route": "/guides/12",
-      "title": "Neck Pain Exercises: Effective Stretches and Strengthening for Relief",
-      "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery."
     },
     {
       "route": "/guides/3",
