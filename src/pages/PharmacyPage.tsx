@@ -717,7 +717,7 @@ const PharmacyPage = () => {
       </main>
       <FloatingCart
         itemCount={Object.values(cart).reduce((sum, qty) => sum + qty, 0)}
-        total={getCartTotal().toFixed(1)}
+        total={parseInt(getCartTotal().toFixed(1))}
         onViewCart={scrollToCart}
         type="pharmacy"
       />

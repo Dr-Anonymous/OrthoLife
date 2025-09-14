@@ -34,7 +34,7 @@ const PatientGuidePage = () => {
   const handleDownloadPdf = async () => {
     if (!guide) return;
     setIsDownloading(true);
-    const contentToSave = translatedGuide?.content || guide.content;
+    const contentToSave = translatedGuide?.content || (guide as any).content;
     const titleToSave = translatedGuide?.title || guide.title;
     await generatePdf(contentToSave, titleToSave);
     setIsDownloading(false);
@@ -162,7 +162,7 @@ const PatientGuidePage = () => {
 
                 <img src={guide.cover_image_url} alt={translatedGuide?.title || guide.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
-                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || guide.content }} />
+                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || (guide as any).content }} />
 
                 <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps} />
                 

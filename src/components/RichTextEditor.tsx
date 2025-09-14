@@ -270,14 +270,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         />
       </div>
       <EditorContent editor={editor} />
-      {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
+      {editor && <BubbleMenu editor={editor} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
         <div className="p-2 bg-background border rounded-md shadow-lg flex items-center gap-2">
           <Button
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, align: 'left' }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, 'data-align': 'left' }).run();
             }}
-            variant={editor.isActive('custom-image', { align: 'left' }) ? 'secondary' : 'ghost'}
+            variant={editor.getAttributes('custom-image')['data-align'] === 'left' ? 'secondary' : 'ghost'}
             size="sm"
             type="button"
             title="Align Left"
@@ -287,9 +287,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           <Button
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, align: 'center' }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, 'data-align': 'center' }).run();
             }}
-            variant={editor.isActive('custom-image', { align: 'center' }) ? 'secondary' : 'ghost'}
+            variant={editor.getAttributes('custom-image')['data-align'] === 'center' ? 'secondary' : 'ghost'}
             size="sm"
             type="button"
             title="Align Center"
@@ -299,9 +299,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           <Button
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, align: 'right' }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, 'data-align': 'right' }).run();
             }}
-            variant={editor.isActive('custom-image', { align: 'right' }) ? 'secondary' : 'ghost'}
+            variant={editor.getAttributes('custom-image')['data-align'] === 'right' ? 'secondary' : 'ghost'}
             size="sm"
             type="button"
             title="Align Right"
@@ -311,10 +311,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           <Button
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
-              const newDisplay = currentAttributes.display === 'block' ? 'inline-block' : 'block';
-              editor.chain().focus().setImage({ ...currentAttributes, display: newDisplay }).run();
+              const newDisplay = currentAttributes['data-display'] === 'block' ? 'inline-block' : 'block';
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, 'data-display': newDisplay }).run();
             }}
-            variant={editor.isActive('custom-image', { display: 'inline-block' }) ? 'secondary' : 'ghost'}
+            variant={editor.getAttributes('custom-image')['data-display'] === 'inline-block' ? 'secondary' : 'ghost'}
             size="sm"
             type="button"
             title="Toggle Display"
@@ -328,7 +328,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
             value={parseInt(editor.getAttributes('custom-image').width?.replace('%', '')) || 100}
             onChange={(e) => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, width: `${e.target.value}%` }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, width: `${e.target.value}%` }).run();
             }}
             className="w-24"
           />

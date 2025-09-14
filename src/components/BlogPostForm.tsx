@@ -76,7 +76,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ initialData, translations, 
     }
   }, [initialData, translations, form]);
 
-  const handleTranslationChange = (lang: string, field: 'title' | 'content' | 'excerpt', value: string) => {
+  const handleTranslationChange = (lang: string, field: 'title' | 'content' | 'excerpt' | 'next_steps', value: string) => {
     setTranslationValues(prev => ({
       ...prev,
       [lang]: {

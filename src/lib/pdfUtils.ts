@@ -83,6 +83,6 @@ export const generatePdf = async (htmlContent: string, filename: string) => {
     pagebreak:    { mode: 'avoid-all', avoid: 'img' }
   };
 
-  // @ts-expect-error html2pdf.js does not have official type definitions
-  html2pdf().from(element).set(opt).save();
+  // html2pdf.js does not have official type definitions
+  (html2pdf as any)().from(element).set(opt).save();
 };

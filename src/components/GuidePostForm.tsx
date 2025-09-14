@@ -79,7 +79,7 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
     }
   }, [initialData, translations, form]);
 
-  const handleTranslationChange = (lang: string, field: 'title' | 'description' | 'content', value: string) => {
+  const handleTranslationChange = (lang: string, field: 'title' | 'description' | 'content' | 'next_steps', value: string) => {
     setTranslationValues(prev => ({
       ...prev,
       [lang]: {

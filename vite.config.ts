@@ -47,8 +47,8 @@ export default defineConfig(({ mode }) => ({
     vitePrerender({
       staticDir: path.join(__dirname, 'dist'),
       routes: [...staticRoutes, ...discoveredRoutes],
-      postProcess(renderedRoute) {
-        const routeMetadata = metadata.find(meta => meta.route === renderedRoute.originalRoute);
+      postProcess(renderedRoute: any) {
+        const routeMetadata = metadata.find((meta: any) => meta.route === renderedRoute.originalRoute);
         if (routeMetadata) {
           renderedRoute.html = renderedRoute.html
             .replace(/<title>.*<\/title>/, `<title>${routeMetadata.title}</title>`)
