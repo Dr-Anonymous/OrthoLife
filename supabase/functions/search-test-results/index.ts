@@ -31,7 +31,7 @@ serve(async (req) => {
     }
 
     const sheetDataResponse = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/Sheet1`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/Sheet1!A:J`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`
@@ -52,7 +52,7 @@ serve(async (req) => {
       return rowData;
     });
 
-    const filteredData = data.filter(item => item.phoneNumber === query || item.testId === query);
+    const filteredData = data.filter(item => item.phoneNumber === query);
 
     const groupedByPatient = filteredData.reduce((acc, current) => {
       const patientName = current.patientName;

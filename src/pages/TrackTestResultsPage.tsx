@@ -64,8 +64,10 @@ const TrackTestResultsPage = () => {
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Completed</Badge>;
       case 'processing':
         return <Badge variant="secondary">Processing</Badge>;
-      case 'sample_collected':
+      case 'collected':
         return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Sample Collected</Badge>;
+      case 'awaiting':
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Awaiting Collection</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -215,7 +217,11 @@ const TrackTestResultsPage = () => {
                     <h3 className="font-semibold mb-3">Test Status Explained</h3>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">Sample Collected</Badge>
+                        <Badge variant="outline">Awaiting</Badge>
+                        <span className="text-sm">Awaiting sample collection</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">Collected</Badge>
                         <span className="text-sm">Your sample is being processed</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -235,10 +241,10 @@ const TrackTestResultsPage = () => {
                       Can't find your results? Contact our support team.
                     </p>
                     <div className="space-y-2">
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} variant="outline" className="w-full justify-start">
                         📞 Call: 9866812555
                       </Button>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%20have%20a%20question.';}} variant="outline" className="w-full justify-start">
                         💬 WhatsApp Support
                       </Button>
                     </div>
