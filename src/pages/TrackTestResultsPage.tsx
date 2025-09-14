@@ -25,6 +25,8 @@ interface TestResult {
   status: string;
   reportDate: string | null;
   testResult: string;
+  testRange: string;
+  testUnit: string;
   comments: string | null;
 }
 
@@ -32,7 +34,35 @@ const TrackTestResultsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<Record<string, TestResult[]>>({});
   const [isSearching, setIsSearching] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isDeviated = (result: string, range: string) => {
+    // `result` is a string that can be a number or a value like "Positive" or "Negative".
+    // `range` is a string representing a numerical range, e.g., "8-10", or a non-numerical value.
+
+    // Handle non-numerical results first
+    if (isNaN(parseFloat(result))) {
+      const lowerResult = result.toLowerCase();
+      const lowerRange = range.toLowerCase();
+      if (lowerResult.includes("negative") && lowerRange.includes("negative")) return false;
+      if (lowerResult.includes("positive") && lowerRange.includes("negative")) return true;
+      return false;
+    }
+
+    // `range` is a string representing a numerical range, e.g., "8-10".
+    const rangeParts = range.split('-').map(part => parseFloat(part.trim()));
+
+    // If range is not in the expected "min-max" format, don't highlight.
+    if (rangeParts.length !== 2 || rangeParts.some(isNaN)) {
+      return false;
+    }
+
+    const [min, max] = rangeParts;
+    const value = parseFloat(result);
+
+    return value < min || value > max;
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,24 +89,62 @@ const TrackTestResultsPage = () => {
     }
   };
 
-  const handleDownloadPdf = (result: TestResult) => {
-    const { patientName, testType, testDate, reportDate, testResult, testRange, comments} = result;
+  const handleDownloadPdf = async (result: TestResult) => {
+    setIsDownloading(true);
+    const { patientName, testType, testDate, reportDate, testResult, testRange, testUnit, comments } = result;
+
+    const deviated = isDeviated(testResult, testRange);
+    const resultColor = deviated ? 'color: #dc2626;' : '';
+
     const htmlContent = `
-      <h1>Test Report</h1>
-      <p><strong>Patient:</strong> ${patientName}</p>
-      <p><strong>Test Type:</strong> ${testType}</p>
-      <p><strong>Test Date:</strong> ${testDate}</p>
-      <p><strong>Report Date:</strong> ${reportDate || 'N/A'}</p>
-      <hr />
-      <h2>Result</h2>
-      <p>${testResult}</p>
-      <h2>Normal Value</h2>
-      <p>${testRange}</p>
-      <hr />
-      <h2>Comments</h2>
-      <p>${comments}</p>
+      <div style="font-family: sans-serif; color: #333;">
+        <h1 style="text-align: center; color: #1e40af; margin-bottom: 2rem;">Test Report</h1>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+          <p><strong>Patient:</strong> ${patientName}</p>
+          <p><strong>Test Date:</strong> ${testDate}</p>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
+          <p><strong>Test Type:</strong> ${testType}</p>
+          <p><strong>Report Date:</strong> ${reportDate || 'N/A'}</p>
+        </div>
+
+        <hr style="border-top: 1px solid #e5e7eb; margin: 2rem 0;" />
+
+        <table style="width: 100%; border-collapse: collapse; text-align: center;">
+          <thead>
+            <tr>
+              <th style="padding: 0.75rem; background-color: #f3f4f6;">Test</th>
+              <th style="padding: 0.75rem; background-color: #f3f4f6;">Result</th>
+              <th style="padding: 0.75rem; background-color: #f3f4f6;">Normal Range</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 0.75rem;">${testType}</td>
+              <td style="padding: 0.75rem; font-weight: bold; ${resultColor}">${testResult} ${testUnit}</td>
+              <td style="padding: 0.75rem;">${testRange} ${testUnit}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${comments ? `
+          <hr style="border-top: 1px solid #e5e7eb; margin: 2rem 0;" />
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Comments</h2>
+            <div style="white-space: pre-wrap;">${comments}</div>
+          </div>
+        ` : ''}
+      </div>
     `;
-    generatePdf(htmlContent, `${result.patientName}'s ${result.testType} report`);
+
+    try {
+      await generatePdf(htmlContent, `${result.patientName}'s ${result.testType} report`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -188,34 +256,49 @@ const TrackTestResultsPage = () => {
                                 Test result for {result.patientName}
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-2 items-center gap-4">
-                                <Label>Test Date</Label>
-                                <span>{result.testDate}</span>
+                            <div className="space-y-4 py-4">
+                              <div className="flex justify-between items-center">
+                                <p className="text-sm text-muted-foreground">Test Date</p>
+                                <p className="font-medium">{result.testDate}</p>
                               </div>
-                              <div className="grid grid-cols-2 items-center gap-4">
-                                <Label>Report Date</Label>
-                                <span>{result.reportDate || 'Pending'}</span>
+                              <div className="flex justify-between items-center">
+                                <p className="text-sm text-muted-foreground">Report Date</p>
+                                <p className="font-medium">{result.reportDate || 'Pending'}</p>
                               </div>
-                              <div className="grid grid-cols-2 items-center gap-4">
-                                <Label>Result</Label>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testResult}</p>
+                              <div className="border-t border-muted my-4"></div>
+                              <div className="grid grid-cols-3 items-center text-center font-semibold">
+                                <p>Test</p>
+                                <p>Result</p>
+                                <p>Normal Range</p>
                               </div>
-                              <div className="grid grid-cols-2 items-center gap-4">
-                                <Label>Normal Value</Label>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testRange}</p>
+                              <div className="grid grid-cols-3 items-center text-center">
+                                <p className="font-medium">{result.testType}</p>
+                                <p className={`font-bold ${isDeviated(result.testResult, result.testRange) ? 'text-destructive' : ''}`}>
+                                  {result.testResult} {result.testUnit}
+                                </p>
+                                <p className="text-sm text-muted-foreground">{result.testRange} {result.testUnit}</p>
                               </div>
-                            {result.comments && (
-                              <div className="col-span-4">
-                                <Label>Comments:</Label>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.comments}</p>
-                              </div>
-                            )}
+                              {result.comments && (
+                                <>
+                                  <div className="border-t border-muted my-4"></div>
+                                  <div>
+                                    <p className="font-semibold mb-2">Comments</p>
+                                    <div
+                                      className="text-sm text-muted-foreground whitespace-pre-wrap"
+                                      dangerouslySetInnerHTML={{ __html: result.comments }}
+                                    />
+                                  </div>
+                                </>
+                              )}
                             </div>
                             {result.status === 'completed' ? (
-                              <Button className="flex items-center gap-2" onClick={() => handleDownloadPdf(result)}>
+                              <Button
+                                className="flex items-center gap-2"
+                                onClick={() => handleDownloadPdf(result)}
+                                disabled={isDownloading}
+                              >
                                 <Download size={16} />
-                                Download Report
+                                {isDownloading ? 'Downloading...' : 'Download Report'}
                               </Button>
                             ) : (
                               <Button variant="outline" disabled className="flex items-center gap-2">
