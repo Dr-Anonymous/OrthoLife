@@ -32,7 +32,6 @@ const TrackTestResultsPage = () => {
   const [results, setResults] = useState<Record<string, TestResult[]>>({});
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTest, setSelectedTest] = useState<TestResult | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,70 +148,64 @@ const TrackTestResultsPage = () => {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {tests.map((result) => (
-                        <Button
-                          key={result.testId}
-                          variant="outline"
-                          className="w-full justify-between"
-                          onClick={() => setSelectedTest(result)}
-                        >
-                          <span>{result.testType}</span>
-                          {getStatusBadge(result.status)}
-                        </Button>
+                        <Dialog key={result.testId}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-between"
+                            >
+                              <span>{result.testType}</span>
+                              {getStatusBadge(result.status)}
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>{result.testType}</DialogTitle>
+                              <DialogDescription>
+                                Test result for {result.patientName}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid grid-cols-2 items-center gap-4">
+                                <Label>Test Date</Label>
+                                <span>{result.testDate}</span>
+                              </div>
+                              <div className="grid grid-cols-2 items-center gap-4">
+                                <Label>Report Date</Label>
+                                <span>{result.reportDate || 'Pending'}</span>
+                              </div>
+                              <div className="grid grid-cols-2 items-center gap-4">
+                                <Label>Booking ID</Label>
+                                <span>{result.testId}</span>
+                              </div>
+                              <div className="grid grid-cols-2 items-center gap-4">
+                                <Label>Status</Label>
+                                {getStatusBadge(result.status)}
+                              </div>
+                              <div className="col-span-2">
+                                <Label>Result</Label>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testResult}</p>
+                              </div>
+                            </div>
+                            {result.status === 'completed' ? (
+                              <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
+                                <Download size={16} />
+                                Download Report
+                              </Button>
+                            ) : (
+                              <Button variant="outline" disabled className="flex items-center gap-2">
+                                <Clock size={16} />
+                                Report Pending
+                              </Button>
+                            )}
+                          </DialogContent>
+                        </Dialog>
                       ))}
                     </CardContent>
                   </Card>
                 ))}
               </div>
             )}
-
-            {/* Test Details Modal */}
-            <Dialog open={!!selectedTest} onOpenChange={(isOpen) => !isOpen && setSelectedTest(null)}>
-              <DialogContent>
-                {selectedTest && (
-                  <>
-                    <DialogHeader>
-                      <DialogTitle>{selectedTest.testType}</DialogTitle>
-                      <DialogDescription>
-                        Test result for {selectedTest.patientName}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label>Test Date</Label>
-                        <span>{selectedTest.testDate}</span>
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label>Report Date</Label>
-                        <span>{selectedTest.reportDate || 'Pending'}</span>
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label>Booking ID</Label>
-                        <span>{selectedTest.testId}</span>
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label>Status</Label>
-                        {getStatusBadge(selectedTest.status)}
-                      </div>
-                      <div className="col-span-2">
-                        <Label>Result</Label>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedTest.testResult}</p>
-                      </div>
-                    </div>
-                    {selectedTest.status === 'completed' ? (
-                      <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
-                        <Download size={16} />
-                        Download Report
-                      </Button>
-                    ) : (
-                      <Button variant="outline" disabled className="flex items-center gap-2">
-                        <Clock size={16} />
-                        Report Pending
-                      </Button>
-                    )}
-                  </>
-                )}
-              </DialogContent>
-            </Dialog>
 
             {/* Help Section */}
             <Card className="mt-8">
