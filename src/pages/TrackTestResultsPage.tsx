@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, FileText, Download, Clock, CheckCircle, Calendar, User } from 'lucide-react';
+import { Search, Download, Clock, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { generatePdf } from '@/lib/pdfUtils';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,21 @@ const TrackTestResultsPage = () => {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleDownloadPdf = (result: TestResult) => {
+    const { patientName, testType, testDate, reportDate, testResult } = result;
+    const htmlContent = `
+      <h1>Test Report</h1>
+      <p><strong>Patient:</strong> ${patientName}</p>
+      <p><strong>Test Type:</strong> ${testType}</p>
+      <p><strong>Test Date:</strong> ${testDate}</p>
+      <p><strong>Report Date:</strong> ${reportDate || 'N/A'}</p>
+      <hr />
+      <h2>Result</h2>
+      <p>${testResult}</p>
+    `;
+    generatePdf(htmlContent, `test-report-${result.testId}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -187,7 +203,7 @@ const TrackTestResultsPage = () => {
                               </div>
                             </div>
                             {result.status === 'completed' ? (
-                              <Button className="flex items-center gap-2" onClick={() => alert('Download functionality to be implemented.')}>
+                              <Button className="flex items-center gap-2" onClick={() => handleDownloadPdf(result)}>
                                 <Download size={16} />
                                 Download Report
                               </Button>
