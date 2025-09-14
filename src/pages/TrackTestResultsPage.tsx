@@ -60,7 +60,7 @@ const TrackTestResultsPage = () => {
   };
 
   const handleDownloadPdf = (result: TestResult) => {
-    const { patientName, testType, testDate, reportDate, testResult } = result;
+    const { patientName, testType, testDate, reportDate, testResult, testRange, comments} = result;
     const htmlContent = `
       <h1>Test Report</h1>
       <p><strong>Patient:</strong> ${patientName}</p>
@@ -189,24 +189,24 @@ const TrackTestResultsPage = () => {
                               </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-2">
+                              <div className="grid grid-cols-2 items-center gap-4">
                                 <Label>Test Date</Label>
                                 <span>{result.testDate}</span>
                               </div>
-                              <div className="grid grid-cols-4 items-center gap-2">
+                              <div className="grid grid-cols-2 items-center gap-4">
                                 <Label>Report Date</Label>
                                 <span>{result.reportDate || 'Pending'}</span>
                               </div>
-                              <div className="grid grid-cols-4 items-center gap-2">
+                              <div className="grid grid-cols-2 items-center gap-4">
                                 <Label>Result</Label>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testResult}</p>
                               </div>
-                              <div className="grid grid-cols-4 items-center gap-2">
+                              <div className="grid grid-cols-2 items-center gap-4">
                                 <Label>Normal Value</Label>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testRange}</p>
                               </div>
                             {result.comments && (
-                              <div className="grid grid-cols-5 items-center gap-1">
+                              <div className="col-span-4">
                                 <Label>Comments:</Label>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.comments}</p>
                               </div>
