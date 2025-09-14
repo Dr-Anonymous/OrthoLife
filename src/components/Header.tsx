@@ -35,7 +35,7 @@ const Header = () => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <Logo />
+            <Logo lineColor="white" />
           </div>
           
           <nav className="hidden md:flex items-center">

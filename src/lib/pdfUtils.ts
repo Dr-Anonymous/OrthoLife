@@ -1,24 +1,5 @@
 import html2pdf from 'html2pdf.js';
 
-const imageToDataUri = (src: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    fetch(src)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`Failed to fetch image: ${res.status} ${res.statusText}`);
-        }
-        return res.blob();
-      })
-      .then(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      })
-      .catch(reject);
-  });
-};
-
 const preloadImages = (htmlContent: string): Promise<void> => {
   try {
     const parser = new DOMParser();
@@ -46,28 +27,7 @@ const preloadImages = (htmlContent: string): Promise<void> => {
   }
 };
 
-const generateLogoSvg = (backgroundColor: string): string => {
-  const svg = `
-    <svg width="280" height="50" viewBox="0 0 280 50" xmlns="http://www.w3.org/2000/svg">
-      <style>
-        .text {
-          font-family: Montserrat, sans-serif;
-          font-size: 40px;
-          font-weight: bold;
-          fill: hsl(199, 100%, 36%);
-        }
-      </style>
-      <text x="0" y="35" class="text">OrthoLife</text>
-      <rect x="0" y="15.5" width="112" height="4" fill="${backgroundColor}" />
-    </svg>
-  `;
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
-};
-
-export const generatePdf = async (htmlContent: string, filename:string) => {
-  // The PDF background is white, so we use 'white' for the logo's strikethrough.
-  const logoDataUri = generateLogoSvg('white');
-
+export const generatePdf = async (htmlContent: string, filename: string) => {
   await preloadImages(htmlContent);
 
   const element = document.createElement('div');
@@ -81,9 +41,13 @@ export const generatePdf = async (htmlContent: string, filename:string) => {
       img { margin-top: 25px; max-width: 100%; height: auto; }
       a { color: #007bff; text-decoration: none; }
     </style>
-    ${logoDataUri ? `<div style="text-align: center; margin-bottom: 40px;">
-      <img src="${logoDataUri}" style="width: 150px; height: auto; margin: 0 auto;">
-    </div>` : ''}
+    <div style="font-family: 'Montserrat', sans-serif; font-size: 24px; font-weight: bold; color: hsl(199, 100%, 36%); text-align: center; margin-bottom: 40px;">
+      <span style="position: relative;">
+        Ortho
+        <span style="position: absolute; top: 50%; left: 0; width: 100%; height: 2px; background-color: white; transform: translateY(-50%);"></span>
+      </span>
+      <span>Life</span>
+    </div>
     ${htmlContent}
   `;
   element.innerHTML = styledHtmlContent;
