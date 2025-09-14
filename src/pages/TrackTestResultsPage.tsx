@@ -19,13 +19,13 @@ import {
 } from "@/components/ui/dialog";
 
 interface TestResult {
-  testId: string;
   patientName: string;
   testDate: string;
   testType: string;
   status: string;
   reportDate: string | null;
   testResult: string;
+  comments: string | null;
 }
 
 const TrackTestResultsPage = () => {
@@ -70,8 +70,13 @@ const TrackTestResultsPage = () => {
       <hr />
       <h2>Result</h2>
       <p>${testResult}</p>
+      <h2>Normal Value</h2>
+      <p>${testRange}</p>
+      <hr />
+      <h2>Comments</h2>
+      <p>${comments}</p>
     `;
-    generatePdf(htmlContent, `test-report-${result.testId}`);
+    generatePdf(htmlContent, `${result.patientName}'s ${result.testType} report`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -184,24 +189,24 @@ const TrackTestResultsPage = () => {
                               </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-2 items-center gap-4">
+                              <div className="grid grid-cols-4 items-center gap-2">
                                 <Label>Test Date</Label>
                                 <span>{result.testDate}</span>
                               </div>
-                              <div className="grid grid-cols-2 items-center gap-4">
+                              <div className="grid grid-cols-4 items-center gap-2">
                                 <Label>Report Date</Label>
                                 <span>{result.reportDate || 'Pending'}</span>
                               </div>
-                              <div className="col-span-2">
+                              <div className="grid grid-cols-4 items-center gap-2">
                                 <Label>Result</Label>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testResult}</p>
                               </div>
-                              <div className="col-span-2">
+                              <div className="grid grid-cols-4 items-center gap-2">
                                 <Label>Normal Value</Label>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testRange}</p>
                               </div>
                             {result.comments && (
-                              <div className="grid grid-cols-2 items-center gap-4">
+                              <div className="grid grid-cols-5 items-center gap-1">
                                 <Label>Comments:</Label>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.comments}</p>
                               </div>
