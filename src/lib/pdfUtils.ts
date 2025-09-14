@@ -46,13 +46,27 @@ const preloadImages = (htmlContent: string): Promise<void> => {
   }
 };
 
-export const generatePdf = async (htmlContent: string, filename: string) => {
-  let logoDataUri = '';
-  try {
-    logoDataUri = await imageToDataUri('/logo.png');
-  } catch (error) {
-    console.error("Failed to load logo for PDF, proceeding without it.", error);
-  }
+const generateLogoSvg = (backgroundColor: string): string => {
+  const svg = `
+    <svg width="280" height="50" viewBox="0 0 280 50" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .text {
+          font-family: Montserrat, sans-serif;
+          font-size: 40px;
+          font-weight: bold;
+          fill: hsl(199, 100%, 36%);
+        }
+      </style>
+      <text x="0" y="35" class="text">OrthoLife</text>
+      <rect x="0" y="15.5" width="112" height="4" fill="${backgroundColor}" />
+    </svg>
+  `;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
+export const generatePdf = async (htmlContent: string, filename:string) => {
+  // The PDF background is white, so we use 'white' for the logo's strikethrough.
+  const logoDataUri = generateLogoSvg('white');
 
   await preloadImages(htmlContent);
 
