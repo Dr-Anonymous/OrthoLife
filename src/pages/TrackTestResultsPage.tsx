@@ -96,7 +96,7 @@ const TrackTestResultsPage = () => {
                   Search Your Results
                 </CardTitle>
                 <CardDescription>
-                  Enter your phone number or booking ID to find your test results
+                  Enter your phone number to find your test results
                 </CardDescription>
               </CardHeader>
               
@@ -104,10 +104,10 @@ const TrackTestResultsPage = () => {
                 <form onSubmit={handleSearch} className="space-y-4">
                   <div className="flex gap-4">
                     <div className="flex-1 space-y-2">
-                      <Label htmlFor="search">Phone Number or Booking ID</Label>
+                      <Label htmlFor="search">Phone Number</Label>
                       <Input
                         id="search"
-                        placeholder="Enter phone number or booking ID"
+                        placeholder="Enter phone number"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         required
@@ -184,10 +184,6 @@ const TrackTestResultsPage = () => {
                       <div className="grid grid-cols-2 items-center gap-4">
                         <Label>Report Date</Label>
                         <span>{selectedTest.reportDate || 'Pending'}</span>
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label>Booking ID</Label>
-                        <span>{selectedTest.testId}</span>
                       </div>
                       <div className="grid grid-cols-2 items-center gap-4">
                         <Label>Status</Label>

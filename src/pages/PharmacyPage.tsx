@@ -541,7 +541,7 @@ const PharmacyPage = () => {
                                {!medicine.isGrouped && medicine.stockCount !== undefined && (
                                  <div className="space-y-1">
                                    <span className="text-xs text-muted-foreground">
-                                     Stock: {medicine.stockCount} units available
+                                     Stock: {medicine.stockCount} packs available
                                    </span>
                                    {cart[medicine.id] && (
                                      <span className="text-xs text-orange-600">
