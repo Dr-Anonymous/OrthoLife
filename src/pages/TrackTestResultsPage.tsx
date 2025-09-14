@@ -192,15 +192,20 @@ const TrackTestResultsPage = () => {
                                 <Label>Report Date</Label>
                                 <span>{result.reportDate || 'Pending'}</span>
                               </div>
-                              
                               <div className="col-span-2">
                                 <Label>Result</Label>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testResult}</p>
                               </div>
-                              <div className="grid grid-cols-2 items-center gap-4">
-                                <Label>Status</Label>
-                                {getStatusBadge(result.status)}
+                              <div className="col-span-2">
+                                <Label>Normal Value</Label>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.testRange}</p>
                               </div>
+                            {result.comments && (
+                              <div className="grid grid-cols-2 items-center gap-4">
+                                <Label>Comments:</Label>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.comments}</p>
+                              </div>
+                            )}
                             </div>
                             {result.status === 'completed' ? (
                               <Button className="flex items-center gap-2" onClick={() => handleDownloadPdf(result)}>
