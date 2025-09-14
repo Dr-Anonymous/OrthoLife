@@ -26,7 +26,6 @@ interface TestResult {
   reportDate: string | null;
   testResult: string;
   testRange: string;
-  testUnit: string;
   comments: string | null;
 }
 
@@ -47,6 +46,7 @@ const TrackTestResultsPage = () => {
       const lowerRange = range.toLowerCase();
       if (lowerResult.includes("negative") && lowerRange.includes("negative")) return false;
       if (lowerResult.includes("positive") && lowerRange.includes("negative")) return true;
+      if (lowerResult.includes("reactive") && lowerRange.includes("non-reactive")) return true;
       return false;
     }
 
@@ -91,7 +91,7 @@ const TrackTestResultsPage = () => {
 
   const handleDownloadPdf = async (result: TestResult) => {
     setIsDownloading(true);
-    const { patientName, testType, testDate, reportDate, testResult, testRange, testUnit, comments } = result;
+    const { patientName, testType, testDate, reportDate, testResult, testRange, comments } = result;
 
     const deviated = isDeviated(testResult, testRange);
     const resultColor = deviated ? 'color: #dc2626;' : '';
@@ -122,8 +122,8 @@ const TrackTestResultsPage = () => {
           <tbody>
             <tr>
               <td style="padding: 0.75rem;">${testType}</td>
-              <td style="padding: 0.75rem; font-weight: bold; ${resultColor}">${testResult} ${testUnit}</td>
-              <td style="padding: 0.75rem;">${testRange} ${testUnit}</td>
+              <td style="padding: 0.75rem; font-weight: bold; ${resultColor}">${testResult}</td>
+              <td style="padding: 0.75rem;">${testRange}</td>
             </tr>
           </tbody>
         </table>
@@ -274,9 +274,9 @@ const TrackTestResultsPage = () => {
                               <div className="grid grid-cols-3 items-center text-center">
                                 <p className="font-medium">{result.testType}</p>
                                 <p className={`font-bold ${isDeviated(result.testResult, result.testRange) ? 'text-destructive' : ''}`}>
-                                  {result.testResult} {result.testUnit}
+                                  {result.testResult}
                                 </p>
-                                <p className="text-sm text-muted-foreground">{result.testRange} {result.testUnit}</p>
+                                <p className="text-sm text-muted-foreground">{result.testRange}</p>
                               </div>
                               {result.comments && (
                                 <>
