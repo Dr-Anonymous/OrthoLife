@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useInView } from 'react-intersection-observer';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
@@ -58,27 +59,38 @@ const PharmacyPage = () => {
   });
   const { toast } = useToast();
 
-  const fetchMedicines = async () => {
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const { ref, inView } = useInView({
+    threshold: 0,
+    triggerOnce: false,
+  });
+
+  const fetchMedicines = useCallback(async (currentPage: number, currentSearchTerm: string) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const { data, error } = await supabase.functions.invoke('fetch-pharmacy-data');
-      
+
+      const { data, error } = await supabase.functions.invoke('get-medicines', {
+        queryString: { page: currentPage, search: currentSearchTerm },
+      });
+
       if (error) {
         console.error('Error fetching medicines:', error);
         setError('Failed to load medicines. Please try again.');
         return;
       }
-      
-      setMedicines(data?.medicines || []);
+
+      const newMedicines = data?.medicines || [];
+      setMedicines(prev => currentPage === 1 ? newMedicines : [...prev, ...newMedicines]);
+      setHasMore(newMedicines.length > 0);
     } catch (err) {
       console.error('Error:', err);
       setError('Failed to load medicines. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -86,34 +98,27 @@ const PharmacyPage = () => {
     if (query) {
       setSearchTerm(query);
     }
-    fetchMedicines();
+    setPage(1);
+    fetchMedicines(1, query || '');
   }, []);
 
-  const filteredMedicines = (() => {
-    const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
-    if (searchTerms.length === 0) {
-      return medicines;
-    }
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setPage(1);
+      fetchMedicines(1, searchTerm);
+    }, 500); // Debounce search term
+    return () => clearTimeout(handler);
+  }, [searchTerm, fetchMedicines]);
 
-    const result = [];
-    const addedIds = new Set();
-
-    for (const term of searchTerms) {
-      for (const medicine of medicines) {
-        if (!addedIds.has(medicine.id)) {
-          if (
-            (medicine.name && medicine.name.toLowerCase().includes(term)) ||
-            (medicine.category && medicine.category.toLowerCase().includes(term)) ||
-            (medicine.description && medicine.description.toLowerCase().includes(term))
-          ) {
-            result.push(medicine);
-            addedIds.add(medicine.id);
-          }
-        }
-      }
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      setPage(prevPage => {
+        const nextPage = prevPage + 1;
+        fetchMedicines(nextPage, searchTerm);
+        return nextPage;
+      });
     }
-    return result;
-  })();
+  }, [inView, hasMore, loading, fetchMedicines, searchTerm]);
 
   const getCartKey = (medicine: Medicine, size: string | undefined, type: 'pack' | 'unit'): string => {
     let baseKey = medicine.id;
