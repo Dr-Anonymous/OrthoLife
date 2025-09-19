@@ -25,7 +25,7 @@ for FUNCTION in $CHANGED_FUNCTIONS; do
     supabase functions deploy "$FUNCTION" --project-ref "$PROJECT_ID"
   else
     echo "Deleting function $FUNCTION..."
-    supabase functions delete "$FUNCTION" --project-ref "$PROJECT_ID" --force
+    supabase functions delete "$FUNCTION" --project-ref "$PROJECT_ID" --yes
   fi
 done
 
