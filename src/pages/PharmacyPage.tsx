@@ -1,10 +1,3 @@
-// No changes are needed in this file. The issues with stock display,
-// discount calculation, and infinite scroll were caused by data issues
-// from the backend. The `get-medicines` function has been updated to
-// provide the correct data in the expected format (camelCase keys,
-// parsed `sizes` array, and correct pagination). This component will
-// now work as intended without any modifications.
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import Header from '@/components/Header';

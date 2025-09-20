@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +18,7 @@ const handler = async (req: Request): Promise<Response> => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
-    const { id, price, stock_count, parentId } = await req.json();
+    const { id, price, stock_count } = await req.json();
 
     if (!id) {
       return new Response(JSON.stringify({ error: 'Medicine ID is required' }), {
@@ -43,7 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
     }
 
-    const { data: updatedMedicine, error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('medicines')
       .update(updateData)
       .eq('id', id)
@@ -52,42 +52,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error('Error updating medicine:', error);
-      throw new Error('Failed to update medicine');
+      return new Response(JSON.stringify({ error: 'Failed to update medicine' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
     }
 
-    if (parentId && stock_count !== undefined) {
-      // This is a variant, we need to update the parent's `sizes` array
-      const { data: parent, error: parentError } = await supabaseClient
-        .from('medicines')
-        .select('sizes')
-        .eq('id', parentId)
-        .single();
-
-      if (parentError) {
-        console.error('Error fetching parent medicine:', parentError);
-        throw new Error('Failed to update parent medicine');
-      } else if (parent && parent.sizes) {
-        const sizes = typeof parent.sizes === 'string' ? JSON.parse(parent.sizes) : parent.sizes;
-
-        const variantIndex = sizes.findIndex((v: { id: string }) => v.id === id);
-        if (variantIndex !== -1) {
-          sizes[variantIndex].stockCount = stock_count;
-          sizes[variantIndex].inStock = stock_count > 0;
-        }
-
-        const { error: updateParentError } = await supabaseClient
-          .from('medicines')
-          .update({ sizes: JSON.stringify(sizes) })
-          .eq('id', parentId);
-
-        if (updateParentError) {
-          console.error('Error updating parent medicine sizes:', updateParentError);
-          throw new Error('Failed to update parent medicine');
-        }
-      }
-    }
-
-    return new Response(JSON.stringify({ medicine: updatedMedicine }), {
+    return new Response(JSON.stringify({ medicine: data }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });

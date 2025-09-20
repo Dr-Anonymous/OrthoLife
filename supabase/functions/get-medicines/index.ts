@@ -6,35 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper to convert snake_case to camelCase
-const toCamelCase = (str: string) => {
-  return str.replace(/([-_][a-z])/ig, ($1) => {
-    return $1.toUpperCase()
-      .replace('-', '')
-      .replace('_', '');
-  });
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const snakeToCamel = (obj: any): any => {
-  if (typeof obj !== 'object' || obj === null) {
-    return obj;
-  }
-  return Object.keys(obj).reduce((acc, key) => {
-    const camelKey = toCamelCase(key);
-    let value = obj[key];
-    if (key === 'sizes' && typeof value === 'string') {
-      try {
-        value = JSON.parse(value);
-      } catch (e) {
-        console.error('Error parsing sizes JSON:', e);
-      }
-    }
-    acc[camelKey] = value;
-    return acc;
-  }, {} as any);
-};
-
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -69,10 +40,8 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    const processedMedicines = data.map(med => snakeToCamel(med));
-
     return new Response(JSON.stringify({
-      medicines: processedMedicines,
+      medicines: data,
       total: count,
       page,
       limit,
