@@ -596,7 +596,7 @@ const PharmacyPage = () => {
                                     ₹{Math.ceil(medicine.price)}
                                   </span>
                                   <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                    {Math.ceil(((medicine.originalPrice - medicine.price) / medicine.originalPrice) * 100)}% OFF
+                                    {Math.ceil(((Number(medicine.originalPrice) - Number(medicine.price)) / Number(medicine.originalPrice)) * 100)}% OFF
                                   </Badge>
                                 </div>
                               ) : (
@@ -625,7 +625,7 @@ const PharmacyPage = () => {
                                variant="outline"
                                size="icon"
                                onClick={() => addToCart(medicine.id, selectedSize)}
-                               disabled={!isInStock || (cart[cartKey] || 0) >= currentStock}
+                               disabled={(cart[cartKey] || 0) >= currentStock}
                              >
                                <Plus className="h-4 w-4" />
                              </Button>
@@ -633,7 +633,7 @@ const PharmacyPage = () => {
                          ) : (
                            <Button
                              onClick={() => addToCart(medicine.id, selectedSize)}
-                             disabled={!isInStock || currentStock === 0 || (medicine.isGrouped && !selectedSize)}
+                             disabled={currentStock === 0 || (medicine.isGrouped && !selectedSize)}
                              className="flex items-center gap-2"
                            >
                              <Pill className="h-4 w-4" />
