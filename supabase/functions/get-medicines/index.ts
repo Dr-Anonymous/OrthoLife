@@ -18,16 +18,14 @@ const handler = async (req: Request): Promise<Response> => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
-    const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get('page') || '1', 10);
-    const searchTerm = url.searchParams.get('search') || '';
+    const { page = 1, search = '' } = await req.json();
     const limit = 20;
     const offset = (page - 1) * limit;
 
     let query = supabaseClient.from('medicines').select('*', { count: 'exact' });
 
-    if (searchTerm) {
-      query = query.or(`name.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,category.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
     query = query.range(offset, offset + limit - 1);
