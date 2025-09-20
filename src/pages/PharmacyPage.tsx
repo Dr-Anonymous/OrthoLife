@@ -36,7 +36,7 @@ interface Medicine {
   stockCount?: number;
   isGrouped?: boolean;
   sizes?: SizeVariant[];
-  individual?: boolean;
+  individual?: string;
 }
 
 const PharmacyPage = () => {
@@ -98,8 +98,10 @@ const PharmacyPage = () => {
     const query = params.get('q');
     if (query) {
       setSearchTerm(query);
+    } else {
+      fetchMedicines(1, '');
     }
-  }, []);
+  }, [fetchMedicines]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -123,7 +125,7 @@ const PharmacyPage = () => {
         baseKey = `${medicine.id}-${size}`;
     }
 
-    if (medicine.individual) {
+    if (medicine.individual === 'TRUE') {
         return `${baseKey}-${type}`;
     }
 
@@ -139,7 +141,7 @@ const PharmacyPage = () => {
       stock = medicine.stockCount || 0;
     }
 
-    if (medicine.individual && type === 'unit' && medicine.packSize) {
+    if (medicine.individual === 'TRUE' && type === 'unit' && medicine.packSize) {
         const packSize = parseInt(medicine.packSize, 10);
         if (!isNaN(packSize)) {
             return stock * packSize;
@@ -527,7 +529,7 @@ const PharmacyPage = () => {
                           )}
                         </CardHeader>
                         <CardContent>
-                          {medicine.individual && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
+                          {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
                             <div className="mb-4">
                                 <Label>Order by:</Label>
                                 <RadioGroup
@@ -594,13 +596,13 @@ const PharmacyPage = () => {
                                     ₹{Math.ceil(medicine.price)}
                                   </span>
                                   <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                    {Math.ceil(((Number(medicine.originalPrice) - Number(medicine.price)) / Number(medicine.originalPrice)) * 100)}% OFF
+                                    {Math.ceil(((medicine.originalPrice - medicine.price) / medicine.originalPrice) * 100)}% OFF
                                   </Badge>
                                 </div>
                               ) : (
                                 <span className="text-lg font-semibold">₹{medicine.price}</span>
                               )}
-                              {medicine.individual && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
+                              {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
                                 <div className="text-xs text-muted-foreground mt-1">
                                   (₹{(medicine.price / parseInt(medicine.packSize, 10)).toFixed(2)} / unit)
                                 </div>
@@ -623,7 +625,7 @@ const PharmacyPage = () => {
                                variant="outline"
                                size="icon"
                                onClick={() => addToCart(medicine.id, selectedSize)}
-                               disabled={(cart[cartKey] || 0) >= currentStock}
+                               disabled={!isInStock || (cart[cartKey] || 0) >= currentStock}
                              >
                                <Plus className="h-4 w-4" />
                              </Button>
@@ -631,7 +633,7 @@ const PharmacyPage = () => {
                          ) : (
                            <Button
                              onClick={() => addToCart(medicine.id, selectedSize)}
-                             disabled={currentStock === 0 || (medicine.isGrouped && !selectedSize)}
+                             disabled={!isInStock || currentStock === 0 || (medicine.isGrouped && !selectedSize)}
                              className="flex items-center gap-2"
                            >
                              <Pill className="h-4 w-4" />
