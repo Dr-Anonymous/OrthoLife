@@ -27,6 +27,7 @@ const CreateGuidePage = lazy(() => import("./pages/CreateGuidePage"));
 const EditGuidePage = lazy(() => import("./pages/EditGuidePage"));
 const FAQPage = lazy(() => import("./pages/FAQPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
+const StockManagementPage = lazy(() => import("./pages/StockManagementPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -90,6 +91,9 @@ const App = () => {
                     />
                   }
                 />
+
+                {/* Admin Routes */}
+                <Route path="/admin/stock" element={<StockManagementPage />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
