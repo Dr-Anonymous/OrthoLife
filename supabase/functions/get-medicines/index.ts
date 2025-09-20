@@ -47,7 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
-    const { page = 1, search = '' } = await req.json();
+    const { page = 1, search = '', fetchAll = false } = await req.json();
     const limit = 20;
     const offset = (page - 1) * limit;
 
@@ -57,7 +57,9 @@ const handler = async (req: Request): Promise<Response> => {
       query = query.or(`name.ilike.%${search}%,category.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
-    query = query.range(offset, offset + limit - 1);
+    if (!fetchAll) {
+      query = query.range(offset, offset + limit - 1);
+    }
 
     const { data, error, count } = await query;
 
