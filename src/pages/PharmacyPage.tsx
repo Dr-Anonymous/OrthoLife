@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useInView } from 'react-intersection-observer';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
@@ -18,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface SizeVariant {
   size: string;
   stockCount: number;
+  inStock: boolean;
   originalName: string;
   id: string;
 }
@@ -28,12 +28,14 @@ interface Medicine {
   description: string;
   price: number;
   category: string;
+  inStock: boolean;
   manufacturer?: string;
   dosage?: string;
   packSize?: string;
   prescriptionRequired?: boolean;
   originalPrice?: number;
   stockCount?: number;
+  discount?: number;
   isGrouped?: boolean;
   sizes?: SizeVariant[];
   individual?: string;
@@ -56,68 +58,62 @@ const PharmacyPage = () => {
   });
   const { toast } = useToast();
 
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const { ref, inView } = useInView({
-    threshold: 0,
-    triggerOnce: false,
-  });
-
-  const fetchMedicines = useCallback(async (currentPage: number, currentSearchTerm: string) => {
-    setLoading(true);
-    setError(null);
+  const fetchMedicines = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-medicines', {
-        body: { page: currentPage, search: currentSearchTerm },
-      });
-
+      setLoading(true);
+      setError(null);
+      
+      const { data, error } = await supabase.functions.invoke('fetch-pharmacy-data');
+      
       if (error) {
         console.error('Error fetching medicines:', error);
         setError('Failed to load medicines. Please try again.');
         return;
       }
-
-      const newMedicines = data?.medicines || [];
-      setMedicines(prev => currentPage === 1 ? newMedicines : [...prev, ...newMedicines]);
-      setHasMore(newMedicines.length > 0);
+      
+      setMedicines(data?.medicines || []);
     } catch (err) {
       console.error('Error:', err);
       setError('Failed to load medicines. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const handleRefresh = () => {
-    setPage(1);
-    fetchMedicines(1, searchTerm);
-  }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const query = params.get('q');
     if (query) {
       setSearchTerm(query);
-    } else {
-      fetchMedicines(1, '');
     }
-  }, [fetchMedicines]);
+    fetchMedicines();
+  }, []);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setPage(1);
-      fetchMedicines(1, searchTerm);
-    }, 500); // Debounce search term
-    return () => clearTimeout(handler);
-  }, [searchTerm, fetchMedicines]);
-
-  useEffect(() => {
-    if (inView && hasMore && !loading) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchMedicines(nextPage, searchTerm);
+  const filteredMedicines = (() => {
+    const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
+    if (searchTerms.length === 0) {
+      return medicines;
     }
-  }, [inView, hasMore, loading, fetchMedicines, searchTerm, page]);
+
+    const result = [];
+    const addedIds = new Set();
+
+    for (const term of searchTerms) {
+      for (const medicine of medicines) {
+        if (!addedIds.has(medicine.id)) {
+          if (
+            (medicine.name && medicine.name.toLowerCase().includes(term)) ||
+            (medicine.category && medicine.category.toLowerCase().includes(term)) ||
+            (medicine.description && medicine.description.toLowerCase().includes(term))
+          ) {
+            result.push(medicine);
+            addedIds.add(medicine.id);
+          }
+        }
+      }
+    }
+    return result;
+  })();
 
   const getCartKey = (medicine: Medicine, size: string | undefined, type: 'pack' | 'unit'): string => {
     let baseKey = medicine.id;
@@ -306,14 +302,6 @@ const PharmacyPage = () => {
             nameForStockUpdate = `${medicine.name} ${size}`;
         }
 
-        let id_to_update = medicine.id;
-        if (medicine.isGrouped && size) {
-            const sizeVariant = medicine.sizes?.find(s => s.size === size);
-            if (sizeVariant) {
-                id_to_update = sizeVariant.id;
-            }
-        }
-
         let displayNameForEmail = medicine.name;
         if (medicine.isGrouped && size) {
           displayNameForEmail = `${medicine.name} (${size})`;
@@ -337,7 +325,6 @@ const PharmacyPage = () => {
         }
 
         return {
-          id: id_to_update,
           name: nameForStockUpdate,
           displayName: displayNameForEmail,
           quantity,
@@ -368,7 +355,7 @@ const PharmacyPage = () => {
           description: "Your medicines will be delivered within 2-3 hours.",
         });
         
-        handleRefresh();
+        fetchMedicines();
       }
 
       setCart({});
@@ -398,11 +385,11 @@ const PharmacyPage = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleRefresh}
-                  disabled={loading && page === 1}
+                  onClick={fetchMedicines}
+                  disabled={loading}
                   title="Refresh medicines"
                 >
-                  <RefreshCw className={`h-4 w-4 ${loading && page === 1 ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
               <p className="text-xl text-muted-foreground">
@@ -416,7 +403,7 @@ const PharmacyPage = () => {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-destructive mb-4">{error}</p>
-                      <Button onClick={handleRefresh} disabled={loading}>
+                      <Button onClick={fetchMedicines} disabled={loading}>
                         {loading ? 'Loading...' : 'Try Again'}
                       </Button>
                     </div>
@@ -432,11 +419,11 @@ const PharmacyPage = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
-                disabled={loading && page === 1}
+                disabled={loading}
               />
             </div>
 
-            {loading && page === 1 ? (
+            {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                 {[...Array(6)].map((_, i) => (
                   <Card key={i} className="animate-pulse">
@@ -454,7 +441,7 @@ const PharmacyPage = () => {
                   </Card>
                 ))}
               </div>
-            ) : medicines.length === 0 && !loading ? (
+            ) : filteredMedicines.length === 0 ? (
               <div className="text-center py-12">
                 <Pill className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">No medicines found</h3>
@@ -464,16 +451,14 @@ const PharmacyPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                 {medicines.map((medicine, index) => {
-                   const isLastElement = index === medicines.length - 1;
+                 {filteredMedicines.map((medicine) => {
                    const selectedSize = selectedSizes[medicine.id];
                    const currentOrderType = orderType[medicine.id] || 'pack';
                    const cartKey = getCartKey(medicine, selectedSize, currentOrderType);
                    const currentStock = getAvailableStock(medicine, selectedSize, currentOrderType);
-                   const isInStock = (medicine.stockCount || 0) > 0;
                    
                    return (
-                     <Card ref={isLastElement ? ref : null} key={medicine.id} className="hover:shadow-lg transition-shadow">
+                     <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
                         <CardHeader>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
@@ -497,24 +482,21 @@ const PharmacyPage = () => {
                                       <SelectValue placeholder="Select size" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {medicine.sizes.map((sizeVariant) => {
-                                        const sizeInStock = (sizeVariant.stockCount || 0) > 0;
-                                        return (
-                                          <SelectItem
-                                            key={sizeVariant.size}
-                                            value={sizeVariant.size}
-                                            disabled={!sizeInStock}
-                                          >
-                                            {sizeVariant.size} {!sizeInStock ? '(Out of Stock)' : `(${sizeVariant.stockCount} available)`}
-                                          </SelectItem>
-                                        )
-                                      })}
+                                      {medicine.sizes.map((sizeVariant) => (
+                                        <SelectItem 
+                                          key={sizeVariant.size} 
+                                          value={sizeVariant.size}
+                                          disabled={!sizeVariant.inStock || sizeVariant.stockCount === 0}
+                                        >
+                                          {sizeVariant.size} {!sizeVariant.inStock || sizeVariant.stockCount === 0 ? '(Out of Stock)' : `(${sizeVariant.stockCount} available)`}
+                                        </SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
                               ) : (
-                                <Badge variant={isInStock ? "default" : "secondary"} className="w-fit mt-2">
-                                  {isInStock ? "In Stock" : "Out of Stock"}
+                                <Badge variant={medicine.inStock ? "default" : "secondary"} className="w-fit mt-2">
+                                  {medicine.inStock ? "In Stock" : "Out of Stock"}
                                 </Badge>
                               )}
                             </div>
@@ -563,7 +545,7 @@ const PharmacyPage = () => {
                                    </span>
                                    {cart[medicine.id] && (
                                      <span className="text-xs text-orange-600">
-                                       {" "}{medicine.stockCount - (cart[medicine.id] || 0)} remaining
+                                       {" "}{medicine.stockCount - cart[medicine.id]} remaining
                                      </span>
                                    )}
                                  </div>
@@ -575,7 +557,7 @@ const PharmacyPage = () => {
                                    </span>
                                    {cart[cartKey] && (
                                      <span className="text-xs text-orange-600">
-                                       {" "}{currentStock - (cart[cartKey] || 0)} remaining
+                                       {" "}{currentStock - cart[cartKey]} remaining
                                      </span>
                                    )}
                                  </div>
@@ -595,9 +577,11 @@ const PharmacyPage = () => {
                                   <span className="text-lg font-semibold text-green-600">
                                     ₹{Math.ceil(medicine.price)}
                                   </span>
-                                  <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                    {Math.ceil(((medicine.originalPrice - medicine.price) / medicine.originalPrice) * 100)}% OFF
-                                  </Badge>
+                                  {medicine.discount && medicine.discount > 0 && (
+                                    <Badge variant="destructive" className="text-xs w-fit ml-auto">
+                                      {Math.ceil(medicine.discount)}% OFF
+                                    </Badge>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="text-lg font-semibold">₹{medicine.price}</span>
@@ -625,7 +609,7 @@ const PharmacyPage = () => {
                                variant="outline"
                                size="icon"
                                onClick={() => addToCart(medicine.id, selectedSize)}
-                               disabled={!isInStock || (cart[cartKey] || 0) >= currentStock}
+                               disabled={!medicine.inStock || (cart[cartKey] || 0) >= currentStock}
                              >
                                <Plus className="h-4 w-4" />
                              </Button>
@@ -633,7 +617,7 @@ const PharmacyPage = () => {
                          ) : (
                            <Button
                              onClick={() => addToCart(medicine.id, selectedSize)}
-                             disabled={!isInStock || currentStock === 0 || (medicine.isGrouped && !selectedSize)}
+                             disabled={!medicine.inStock || currentStock === 0 || (medicine.isGrouped && !selectedSize)}
                              className="flex items-center gap-2"
                            >
                              <Pill className="h-4 w-4" />
@@ -645,18 +629,6 @@ const PharmacyPage = () => {
                      </Card>
                    );
                  })}
-              </div>
-            )}
-
-            {loading && page > 1 && (
-              <div className="text-center py-4">
-                <p>Loading more medicines...</p>
-              </div>
-            )}
-
-            {!hasMore && !loading && (
-              <div className="text-center py-4">
-                <p>No more medicines to load.</p>
               </div>
             )}
 
