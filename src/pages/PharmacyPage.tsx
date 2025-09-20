@@ -63,20 +63,32 @@ const PharmacyPage = () => {
   });
   const { toast } = useToast();
 
-  const fetchAllMedicines = useCallback(async (currentSearchTerm: string) => {
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const { ref, inView } = useInView({
+    threshold: 0,
+    triggerOnce: false,
+  });
+
+  const fetchMedicines = useCallback(async (currentPage: number, currentSearchTerm: string) => {
     setLoading(true);
     setError(null);
     try {
       const { data, error } = await supabase.functions.invoke('get-medicines', {
-        body: { fetchAll: true, search: currentSearchTerm },
+        body: { page: currentPage, search: currentSearchTerm },
       });
 
       if (error) {
-        throw new Error('Failed to load medicines');
+        console.error('Error fetching medicines:', error);
+        setError('Failed to load medicines. Please try again.');
+        return;
       }
 
-      setMedicines(data?.medicines || []);
+      const newMedicines = data?.medicines || [];
+      setMedicines(prev => currentPage === 1 ? newMedicines : [...prev, ...newMedicines]);
+      setHasMore(newMedicines.length > 0);
     } catch (err) {
+      console.error('Error:', err);
       setError('Failed to load medicines. Please try again.');
     } finally {
       setLoading(false);
@@ -84,7 +96,8 @@ const PharmacyPage = () => {
   }, []);
 
   const handleRefresh = () => {
-    fetchAllMedicines(searchTerm);
+    setPage(1);
+    fetchMedicines(1, searchTerm);
   }
 
   useEffect(() => {
@@ -97,10 +110,19 @@ const PharmacyPage = () => {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      fetchAllMedicines(searchTerm);
+      setPage(1);
+      fetchMedicines(1, searchTerm);
     }, 500); // Debounce search term
     return () => clearTimeout(handler);
-  }, [searchTerm, fetchAllMedicines]);
+  }, [searchTerm, fetchMedicines]);
+
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchMedicines(nextPage, searchTerm);
+    }
+  }, [inView, hasMore, loading, fetchMedicines, searchTerm, page]);
 
   const getCartKey = (medicine: Medicine, size: string | undefined, type: 'pack' | 'unit'): string => {
     let baseKey = medicine.id;
@@ -382,10 +404,10 @@ const PharmacyPage = () => {
                   variant="outline"
                   size="icon"
                   onClick={handleRefresh}
-                  disabled={loading}
+                  disabled={loading && page === 1}
                   title="Refresh medicines"
                 >
-                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${loading && page === 1 ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
               <p className="text-xl text-muted-foreground">
@@ -415,11 +437,11 @@ const PharmacyPage = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
-                disabled={loading}
+                disabled={loading && page === 1}
               />
             </div>
 
-            {loading ? (
+            {loading && page === 1 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                 {[...Array(6)].map((_, i) => (
                   <Card key={i} className="animate-pulse">
@@ -447,7 +469,8 @@ const PharmacyPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                 {medicines.map((medicine) => {
+                 {medicines.map((medicine, index) => {
+                   const isLastElement = index === medicines.length - 1;
                    const selectedSize = selectedSizes[medicine.id];
                    const currentOrderType = orderType[medicine.id] || 'pack';
                    const cartKey = getCartKey(medicine, selectedSize, currentOrderType);
@@ -455,7 +478,7 @@ const PharmacyPage = () => {
                    const isInStock = (medicine.stockCount || 0) > 0;
                    
                    return (
-                     <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
+                     <Card ref={isLastElement ? ref : null} key={medicine.id} className="hover:shadow-lg transition-shadow">
                         <CardHeader>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
@@ -630,6 +653,17 @@ const PharmacyPage = () => {
               </div>
             )}
 
+            {loading && page > 1 && (
+              <div className="text-center py-4">
+                <p>Loading more medicines...</p>
+              </div>
+            )}
+
+            {!hasMore && !loading && (
+              <div className="text-center py-4">
+                <p>No more medicines to load.</p>
+              </div>
+            )}
 
             {showPatientForm ? (
               <div className="max-w-md mx-auto">
