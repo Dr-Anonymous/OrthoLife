@@ -27,6 +27,7 @@ const CreateGuidePage = lazy(() => import("./pages/CreateGuidePage"));
 const EditGuidePage = lazy(() => import("./pages/EditGuidePage"));
 const FAQPage = lazy(() => import("./pages/FAQPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -90,6 +91,7 @@ const App = () => {
                     />
                   }
                 />
+                <Route path="/analytics" element={<AnalyticsPage />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
