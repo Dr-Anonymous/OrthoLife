@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { trackEvent } from '@/lib/analytics';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,6 +44,14 @@ const PatientGuidesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    trackEvent({
+      eventType: "page_view",
+      path: location.pathname,
+    });
+  }, [location.pathname]);
 
   const handleDownloadPdf = async (guideId: number) => {
     setDownloadingId(guideId);
