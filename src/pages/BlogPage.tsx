@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { trackEvent } from '@/lib/analytics';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +37,14 @@ const BlogPage = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    trackEvent({
+      eventType: "page_view",
+      path: location.pathname,
+    });
+  }, [location.pathname]);
 
   const POSTS_PER_PAGE = 5; // 1 featured + 4 in grid
 

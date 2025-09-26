@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { trackEvent } from '@/lib/analytics';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
@@ -57,6 +59,15 @@ const PharmacyPage = () => {
     address: ''
   });
   const { toast } = useToast();
+  const location = useLocation();
+
+  useEffect(() => {
+    trackEvent({
+      eventType: "page_view",
+      path: location.pathname,
+      details: { page: 'pharmacy' }
+    });
+  }, [location.pathname]);
 
   const fetchMedicines = async () => {
     try {
@@ -173,6 +184,18 @@ const PharmacyPage = () => {
       });
       return;
     }
+
+    trackEvent({
+      eventType: "add_to_cart",
+      path: location.pathname,
+      details: {
+        page: 'pharmacy',
+        medicineId: medicine.id,
+        medicineName: medicine.name,
+        size: selectedSize,
+        orderType: currentOrderType,
+      },
+    });
     
     setCart(prev => ({
       ...prev,
@@ -334,12 +357,24 @@ const PharmacyPage = () => {
         };
       }).filter(Boolean);
 
+      const total = getCartTotal();
+
+      trackEvent({
+        eventType: "purchase",
+        path: location.pathname,
+        details: {
+          page: 'pharmacy',
+          items: items,
+          total: total,
+        },
+      });
+
       const { error } = await supabase.functions.invoke('send-order-email', {
         body: {
           orderType: 'pharmacy',
           patientData,
           items,
-          total: getCartTotal()
+          total: total
         }
       });
 

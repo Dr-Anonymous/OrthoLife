@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { trackEvent } from '@/lib/analytics';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +31,17 @@ const PatientGuidePage = () => {
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (guideId) {
+      trackEvent({
+        eventType: "page_view",
+        path: location.pathname,
+        details: { page: 'patient-guide', guideId: guideId },
+      });
+    }
+  }, [location.pathname, guideId]);
 
   const handleDownloadPdf = async () => {
     if (!guide) return;

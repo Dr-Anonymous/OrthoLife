@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { trackEvent } from '@/lib/analytics';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
@@ -39,6 +41,15 @@ const DiagnosticsPage = () => {
     address: ''
   });
   const { toast } = useToast();
+  const location = useLocation();
+
+  useEffect(() => {
+    trackEvent({
+      eventType: "page_view",
+      path: location.pathname,
+      details: { page: 'diagnostics' }
+    });
+  }, [location.pathname]);
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -164,6 +175,19 @@ const DiagnosticsPage = () => {
   })();
 
   const addToCart = (testId: string) => {
+    const test = tests.find(t => t.id === testId);
+    if (!test) return;
+
+    trackEvent({
+      eventType: "add_to_cart",
+      path: location.pathname,
+      details: {
+        page: 'diagnostics',
+        testId: test.id,
+        testName: test.name,
+      },
+    });
+
     setCart(prev => ({
       ...prev,
       [testId]: (prev[testId] || 0) + 1
@@ -230,6 +254,17 @@ const DiagnosticsPage = () => {
           quantity,
           price: test?.price || 0
         };
+      });
+
+      const total = getCartTotal();
+      trackEvent({
+        eventType: "purchase",
+        path: location.pathname,
+        details: {
+          page: 'diagnostics',
+          items: items,
+          total: total,
+        },
       });
 
       // Book the time slot in Google Calendar
