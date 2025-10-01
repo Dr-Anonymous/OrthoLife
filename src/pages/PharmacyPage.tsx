@@ -69,7 +69,51 @@ const PharmacyPage = () => {
     });
   }, [location.pathname]);
 
-  const fetchMedicines = async () => {
+  const addMultipleToCart = (medicine: Medicine, quantity: number) => {
+    if (!medicine) return;
+
+    const packSize = medicine.packSize ? parseInt(medicine.packSize, 10) : 0;
+    let itemsAdded = false;
+
+    if (packSize > 0 && medicine.individual === 'TRUE') {
+      const packs = Math.floor(quantity / packSize);
+      const units = quantity % packSize;
+
+      if (packs > 0) {
+        const cartKey = getCartKey(medicine, undefined, 'pack');
+        const availableStock = getAvailableStock(medicine, undefined, 'pack');
+        if (packs <= availableStock) {
+          setCart(prev => ({ ...prev, [cartKey]: (prev[cartKey] || 0) + packs }));
+          itemsAdded = true;
+        }
+      }
+
+      if (units > 0) {
+        const cartKey = getCartKey(medicine, undefined, 'unit');
+        const availableStock = getAvailableStock(medicine, undefined, 'unit');
+        if (units <= availableStock) {
+          setCart(prev => ({ ...prev, [cartKey]: (prev[cartKey] || 0) + units }));
+          itemsAdded = true;
+        }
+      }
+    } else {
+      const cartKey = getCartKey(medicine, undefined, 'pack');
+      const availableStock = getAvailableStock(medicine, undefined, 'pack');
+      if (quantity <= availableStock) {
+        setCart(prev => ({ ...prev, [cartKey]: (prev[cartKey] || 0) + quantity }));
+        itemsAdded = true;
+      }
+    }
+
+    if(itemsAdded) {
+        toast({
+            title: "Added to cart",
+            description: `${medicine.name} was automatically added to your cart.`,
+        });
+    }
+  };
+
+  const fetchMedicines = async (): Promise<Medicine[]> => {
     try {
       setLoading(true);
       setError(null);
@@ -79,25 +123,55 @@ const PharmacyPage = () => {
       if (error) {
         console.error('Error fetching medicines:', error);
         setError('Failed to load medicines. Please try again.');
-        return;
+        return [];
       }
       
-      setMedicines(data?.medicines || []);
+      const medicinesData = data?.medicines || [];
+      setMedicines(medicinesData);
+      return medicinesData;
     } catch (err) {
       console.error('Error:', err);
       setError('Failed to load medicines. Please try again.');
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get('q');
-    if (query) {
-      setSearchTerm(query);
-    }
-    fetchMedicines();
+    const processUrlQuery = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const query = params.get('q');
+
+        const medicinesData = await fetchMedicines();
+
+        if (query && query.includes('*')) {
+            const items = query.split(',').map(item => {
+                const parts = item.split('*');
+                return { name: parts[0].trim(), quantity: parseInt(parts[1] || '1', 10) };
+            });
+
+            const medicineNames = items.map(item => item.name).join(', ');
+            setSearchTerm(medicineNames);
+
+            items.forEach(item => {
+                const searchTerm = item.name.toLowerCase();
+                const medicine = medicinesData.find(m =>
+                    (m.name && m.name.toLowerCase().includes(searchTerm)) ||
+                    (m.category && m.category.toLowerCase().includes(searchTerm)) ||
+                    (m.description && m.description.toLowerCase().includes(searchTerm))
+                );
+
+                if (medicine) {
+                    addMultipleToCart(medicine, item.quantity);
+                }
+            });
+        } else if (query) {
+            setSearchTerm(query);
+        }
+    };
+
+    processUrlQuery();
   }, []);
 
   const filteredMedicines = (() => {
