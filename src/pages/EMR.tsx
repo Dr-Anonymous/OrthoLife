@@ -382,12 +382,12 @@ const EMR = () => {
     }
 
     if (field === 'name' && typeof value === 'string' && value.startsWith('/')) {
-      const shortcutIndex = parseInt(value.substring(1), 10) - 1;
-      if (shortcutIndex >= 0 && shortcutIndex < savedMedications.length) {
-        const savedMed = savedMedications[shortcutIndex];
+      const shortcutId = parseInt(value.substring(1), 10);
+      const savedMed = savedMedications.find(m => m.id === shortcutId);
+      if (savedMed) {
         setExtraData(prev => {
           const newMeds = [...prev.medications];
-          newMeds[index] = { ...savedMed, name: savedMed.name }; // Ensure name is also copied
+          newMeds[index] = { ...savedMed, id: crypto.randomUUID(), name: savedMed.name }; // Keep a unique id for the new row
           return { ...prev, medications: newMeds };
         });
         return;
