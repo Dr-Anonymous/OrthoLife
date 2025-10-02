@@ -1,0 +1,6 @@
+Navigating to EMR page...
+EMR page loaded.
+Opening medication modal...
+Modal opened.
+Screenshot taken.
+Verification script completed successfully!

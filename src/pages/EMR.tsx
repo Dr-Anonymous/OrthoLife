@@ -6,12 +6,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, User, Phone, Calendar as CalendarIcon, FileText, Stethoscope, X } from 'lucide-react';
+import { Loader2, User, Phone, Calendar as CalendarIcon, FileText, Stethoscope, X, GripVertical } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 
 interface FormData {
   name: string;
@@ -26,6 +30,7 @@ interface PatientFolder {
 }
 
 interface Medication {
+  id: string;
   name: string;
   dose: string;
   freqMorning: boolean;
@@ -34,6 +39,118 @@ interface Medication {
   duration: string;
   instructions: string;
 }
+
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: med.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Card className="p-4 border border-border relative">
+        <div {...listeners} className="absolute top-1/2 -left-6 -translate-y-1/2 p-2 cursor-grab text-muted-foreground">
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
+          onClick={() => removeMedication(index)}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Remove medication</span>
+        </Button>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Medicine Name</Label>
+              <Input
+                value={med.name}
+                onChange={e => handleMedChange(index, 'name', e.target.value)}
+                placeholder="Enter medicine name"
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Dosage</Label>
+              <Input
+                value={med.dose}
+                onChange={e => handleMedChange(index, 'dose', e.target.value)}
+                placeholder="e.g., 500mg"
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Frequency</Label>
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={med.freqMorning}
+                  onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
+                  className="rounded border-border"
+                />
+                <span className="text-sm">Morning</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={med.freqNoon}
+                  onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
+                  className="rounded border-border"
+                />
+                <span className="text-sm">Noon</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={med.freqNight}
+                  onChange={e => handleMedChange(index, 'freqNight', e.target.checked)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
+                  className="rounded border-border"
+                />
+                <span className="text-sm">Night</span>
+              </label>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Duration</Label>
+              <Input
+                value={med.duration}
+                onChange={e => handleMedChange(index, 'duration', e.target.value)}
+                placeholder="e.g., 7 days"
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Instructions</Label>
+              <Input
+                value={med.instructions}
+                onChange={e => handleMedChange(index, 'instructions', e.target.value)}
+                placeholder="Special instructions"
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
 
 let patientId;
 declare global {
@@ -55,11 +172,26 @@ const EMR = () => {
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
+  const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
 
-  const savedMedications: Medication[] = [
-    { name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
-    { name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
-  ];
+  const fetchSavedMedications = async () => {
+    const { data, error } = await supabase.from('saved_medications').select('*').order('name');
+    if (error) {
+      console.error('Error fetching saved medications:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error fetching saved medications',
+        description: error.message,
+      });
+    } else {
+      setSavedMedications(data.map(d => ({...d, freqMorning: d.freq_morning, freqNoon: d.freq_noon, freqNight: d.freq_night})));
+    }
+  };
+
+  useEffect(() => {
+    fetchSavedMedications();
+  }, []);
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -69,10 +201,31 @@ const EMR = () => {
     advice: '',
     followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
     medications: [
-      { name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
-      { name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
+      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
+      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
     ] as Medication[]
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setExtraData(prev => {
+        const oldIndex = prev.medications.findIndex(m => m.id === active.id);
+        const newIndex = prev.medications.findIndex(m => m.id === over.id);
+        return {
+          ...prev,
+          medications: arrayMove(prev.medications, oldIndex, newIndex),
+        };
+      });
+    }
+  };
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -217,13 +370,24 @@ const EMR = () => {
   };
 
   const handleMedChange = (index: number, field: keyof Medication, value: string | boolean) => {
+    if (field === 'name' && typeof value === 'string' && value.startsWith('//')) {
+      setIsMedicationsModalOpen(true);
+      // Clear the input field after triggering the modal
+      setExtraData(prev => {
+        const newMeds = [...prev.medications];
+        newMeds[index].name = '';
+        return { ...prev, medications: newMeds };
+      });
+      return;
+    }
+
     if (field === 'name' && typeof value === 'string' && value.startsWith('/')) {
       const shortcutIndex = parseInt(value.substring(1), 10) - 1;
       if (shortcutIndex >= 0 && shortcutIndex < savedMedications.length) {
         const savedMed = savedMedications[shortcutIndex];
         setExtraData(prev => {
           const newMeds = [...prev.medications];
-          newMeds[index] = { ...savedMed };
+          newMeds[index] = { ...savedMed, name: savedMed.name }; // Ensure name is also copied
           return { ...prev, medications: newMeds };
         });
         return;
@@ -240,7 +404,10 @@ const EMR = () => {
   const addMedication = () => {
     setExtraData(prev => ({
       ...prev,
-      medications: [...prev.medications, { name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, duration: '', instructions: '' }]
+      medications: [
+        ...prev.medications,
+        { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, duration: '', instructions: '' }
+      ]
     }));
   };
 
@@ -628,100 +795,20 @@ const EMR = () => {
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                  {extraData.medications.map((med, index) => (
-                    <Card key={index} className="p-4 border border-border relative">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeMedication(index)}
-                      >
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Remove medication</span>
-                      </Button>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Medicine Name</Label>
-                            <Input 
-                              value={med.name} 
-                              onChange={e => handleMedChange(index, 'name', e.target.value)} 
-                              placeholder="Enter medicine name"
-                              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Dosage</Label>
-                            <Input 
-                              value={med.dose} 
-                              onChange={e => handleMedChange(index, 'dose', e.target.value)} 
-                              placeholder="e.g., 500mg"
-                              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Frequency</Label>
-                          <div className="flex items-center gap-6">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                checked={med.freqMorning} 
-                                onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)} 
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
-                                className="rounded border-border"
-                              />
-                              <span className="text-sm">Morning</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                checked={med.freqNoon} 
-                                onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)} 
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
-                                className="rounded border-border"
-                              />
-                              <span className="text-sm">Noon</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                checked={med.freqNight} 
-                                onChange={e => handleMedChange(index, 'freqNight', e.target.checked)} 
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
-                                className="rounded border-border"
-                              />
-                              <span className="text-sm">Night</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Duration</Label>
-                            <Input 
-                              value={med.duration} 
-                              onChange={e => handleMedChange(index, 'duration', e.target.value)} 
-                              placeholder="e.g., 7 days"
-                              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Instructions</Label>
-                            <Input 
-                              value={med.instructions} 
-                              onChange={e => handleMedChange(index, 'instructions', e.target.value)} 
-                              placeholder="Special instructions"
-                              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                <div className="space-y-4 pl-6">
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={extraData.medications.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                      {extraData.medications.map((med, index) => (
+                        <SortableMedicationItem
+                          key={med.id}
+                          med={med}
+                          index={index}
+                          handleMedChange={handleMedChange}
+                          removeMedication={removeMedication}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 </div>
                 <div className="flex justify-end">
                   <Button type="button" onClick={addMedication} variant="outline" size="sm">
@@ -755,6 +842,11 @@ const EMR = () => {
           </CardContent>
         </Card>
       </div>
+      <SavedMedicationsModal
+        isOpen={isMedicationsModalOpen}
+        onClose={() => setIsMedicationsModalOpen(false)}
+        onMedicationsUpdate={fetchSavedMedications}
+      />
     </div>
   );
 };

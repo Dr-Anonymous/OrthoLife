@@ -1,0 +1,209 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, X, Plus, Save, Trash2, Edit } from 'lucide-react';
+
+interface Medication {
+  id?: string;
+  name: string;
+  dose: string;
+  freqMorning: boolean;
+  freqNoon: boolean;
+  freqNight: boolean;
+  duration: string;
+  instructions: string;
+}
+
+interface SavedMedicationsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onMedicationsUpdate: () => void;
+}
+
+const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, onClose, onMedicationsUpdate }) => {
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [newMed, setNewMed] = useState<Medication>({
+    name: '',
+    dose: '',
+    freqMorning: false,
+    freqNoon: false,
+    freqNight: false,
+    duration: '',
+    instructions: '',
+  });
+
+  const fetchMedications = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase.from('saved_medications').select('*').order('name');
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch saved medications.' });
+    } else {
+      setMedications(data.map(d => ({...d, freqMorning: d.freq_morning, freqNoon: d.freq_noon, freqNight: d.freq_night})));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchMedications();
+    }
+  }, [isOpen]);
+
+  const handleInputChange = (field: keyof Medication, value: string | boolean) => {
+    setNewMed(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddOrUpdateMedication = async () => {
+    if (!newMed.name) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Medication name is required.' });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = isEditing
+      ? await supabase.from('saved_medications').update({
+          name: newMed.name,
+          dose: newMed.dose,
+          freq_morning: newMed.freqMorning,
+          freq_noon: newMed.freqNoon,
+          freq_night: newMed.freqNight,
+          duration: newMed.duration,
+          instructions: newMed.instructions,
+        }).eq('id', isEditing)
+      : await supabase.from('saved_medications').insert([{
+          name: newMed.name,
+          dose: newMed.dose,
+          freq_morning: newMed.freqMorning,
+          freq_noon: newMed.freqNoon,
+          freq_night: newMed.freqNight,
+          duration: newMed.duration,
+          instructions: newMed.instructions,
+        }]);
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: `Could not ${isEditing ? 'update' : 'add'} medication.` });
+      setIsLoading(false);
+    } else {
+      toast({ title: 'Success', description: `Medication ${isEditing ? 'updated' : 'added'} successfully.` });
+      resetForm();
+      await fetchMedications();
+      onMedicationsUpdate();
+    }
+  };
+
+  const handleDeleteMedication = async (id: string) => {
+    setIsLoading(true);
+    const { error } = await supabase.from('saved_medications').delete().eq('id', id);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not delete medication.' });
+      setIsLoading(false);
+    } else {
+      toast({ title: 'Success', description: 'Medication deleted successfully.' });
+      await fetchMedications();
+      onMedicationsUpdate();
+    }
+  };
+
+  const startEditing = (med: Medication) => {
+    setIsEditing(med.id!);
+    setNewMed(med);
+  };
+
+  const resetForm = () => {
+    setIsEditing(null);
+    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, duration: '', instructions: '' });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Manage Saved Medications</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">{isEditing ? 'Edit Medication' : 'Add New Medication'}</h3>
+            <div className="space-y-2">
+              <Label htmlFor="med-name">Name</Label>
+              <Input id="med-name" value={newMed.name} onChange={e => handleInputChange('name', e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="med-dose">Dose</Label>
+              <Input id="med-dose" value={newMed.dose} onChange={e => handleInputChange('dose', e.target.value)} />
+            </div>
+            <div className="flex items-center space-x-4">
+                <Label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={newMed.freqMorning} onChange={e => handleInputChange('freqMorning', e.target.checked)} className="rounded border-border" />
+                    Morning
+                </Label>
+                <Label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={newMed.freqNoon} onChange={e => handleInputChange('freqNoon', e.target.checked)} className="rounded border-border" />
+                    Noon
+                </Label>
+                <Label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={newMed.freqNight} onChange={e => handleInputChange('freqNight', e.target.checked)} className="rounded border-border" />
+                    Night
+                </Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="med-duration">Duration</Label>
+              <Input id="med-duration" value={newMed.duration} onChange={e => handleInputChange('duration', e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="med-instructions">Instructions</Label>
+              <Input id="med-instructions" value={newMed.instructions} onChange={e => handleInputChange('instructions', e.target.value)} />
+            </div>
+            <div className="flex justify-end space-x-2">
+              {isEditing && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}
+              <Button onClick={handleAddOrUpdateMedication} disabled={isLoading}>
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                <span className="ml-2">{isEditing ? 'Update' : 'Add'}</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Saved List</h3>
+            <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
+              {isLoading && medications.length === 0 ? (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                medications.map(med => (
+                  <div key={med.id} className="flex items-center justify-between p-2 border rounded-md">
+                    <span className="font-medium">{med.name}</span>
+                    <div className="space-x-2">
+                      <Button variant="ghost" size="icon" onClick={() => startEditing(med)}><Edit className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteMedication(med.id!)}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">Close</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default SavedMedicationsModal;
