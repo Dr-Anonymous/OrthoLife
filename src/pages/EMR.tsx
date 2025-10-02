@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,6 +55,11 @@ const EMR = () => {
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  const savedMedications: Medication[] = [
+    { name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
+    { name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
+  ];
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -137,9 +142,9 @@ const EMR = () => {
     if (selectedFolder) {
       fetchPatientData(selectedFolder);
     }
-  }, [selectedFolder]);
+  }, [selectedFolder, fetchPatientData]);
 
-  const fetchPatientData = async (folderId: string) => {
+  const fetchPatientData = useCallback(async (folderId: string) => {
     setIsFetchingDetails(true);
     try {
       const { data, error } = await supabase.functions.invoke('search-patient-records', {
@@ -152,7 +157,7 @@ const EMR = () => {
         const patientData = data.patientData;
         window.folderId = data.folderId;
         patientId = patientData.id;
-        
+
         setFormData(prev => ({
           ...prev,
           name: patientData.name || prev.name,
@@ -186,7 +191,7 @@ const EMR = () => {
     } finally {
       setIsFetchingDetails(false);
     }
-  };
+  }, [formData.phone]);
 
   const handleSexChange = (value: string) => setFormData(prev => ({ ...prev, sex: value }));
 
@@ -212,6 +217,19 @@ const EMR = () => {
   };
 
   const handleMedChange = (index: number, field: keyof Medication, value: string | boolean) => {
+    if (field === 'name' && typeof value === 'string' && value.startsWith('/')) {
+      const shortcutIndex = parseInt(value.substring(1), 10) - 1;
+      if (shortcutIndex >= 0 && shortcutIndex < savedMedications.length) {
+        const savedMed = savedMedications[shortcutIndex];
+        setExtraData(prev => {
+          const newMeds = [...prev.medications];
+          newMeds[index] = { ...savedMed };
+          return { ...prev, medications: newMeds };
+        });
+        return;
+      }
+    }
+
     setExtraData(prev => {
       const newMeds = [...prev.medications];
       newMeds[index][field] = value as never;
