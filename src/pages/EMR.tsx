@@ -138,12 +138,6 @@ const EMR = () => {
     setSelectedFolder(folderId);
   };
 
-  useEffect(() => {
-    if (selectedFolder) {
-      fetchPatientData(selectedFolder);
-    }
-  }, [selectedFolder, fetchPatientData]);
-
   const fetchPatientData = useCallback(async (folderId: string) => {
     setIsFetchingDetails(true);
     try {
@@ -192,6 +186,12 @@ const EMR = () => {
       setIsFetchingDetails(false);
     }
   }, [formData.phone]);
+
+  useEffect(() => {
+    if (selectedFolder) {
+      fetchPatientData(selectedFolder);
+    }
+  }, [selectedFolder, fetchPatientData]);
 
   const handleSexChange = (value: string) => setFormData(prev => ({ ...prev, sex: value }));
 
