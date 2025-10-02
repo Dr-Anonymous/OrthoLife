@@ -1,5 +1,5 @@
 CREATE TABLE saved_medications (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     dose TEXT,
     freq_morning BOOLEAN DEFAULT FALSE,
@@ -14,29 +14,29 @@ CREATE TABLE saved_medications (
 -- RLS Policies
 ALTER TABLE saved_medications ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow authenticated users to read saved medications"
+CREATE POLICY "Allow anonymous users to read saved medications"
 ON saved_medications
 FOR SELECT
-TO authenticated
+TO anon
 USING (true);
 
-CREATE POLICY "Allow authenticated users to insert saved medications"
+CREATE POLICY "Allow anonymous users to insert saved medications"
 ON saved_medications
 FOR INSERT
-TO authenticated
+TO anon
 WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated users to update saved medications"
+CREATE POLICY "Allow anonymous users to update saved medications"
 ON saved_medications
 FOR UPDATE
-TO authenticated
+TO anon
 USING (true)
 WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated users to delete saved medications"
+CREATE POLICY "Allow anonymous users to delete saved medications"
 ON saved_medications
 FOR DELETE
-TO authenticated
+TO anon
 USING (true);
 
 -- Function and Trigger to update updated_at timestamp
