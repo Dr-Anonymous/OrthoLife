@@ -185,7 +185,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
               ) : (
                 medications.map(med => (
                   <div key={med.id} className="flex items-center justify-between p-2 border rounded-md">
-                    <span className="font-medium">{med.name}</span>
+                    <span className="font-medium">({med.id}) {med.name}</span>
                     <div className="space-x-2">
                       <Button variant="ghost" size="icon" onClick={() => startEditing(med)}><Edit className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteMedication(med.id!)}><Trash2 className="w-4 h-4" /></Button>
