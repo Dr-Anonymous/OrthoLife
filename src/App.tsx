@@ -29,6 +29,7 @@ const FAQPage = lazy(() => import("./pages/FAQPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const SymptomCheckerPage = lazy(() => import("./pages/SymptomCheckerPage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -94,6 +95,7 @@ const App = () => {
                 />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
+                <Route path="/auth" element={<AuthPage />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

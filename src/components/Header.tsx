@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Phone, Menu, X, MessageCircle, ChevronDown } from "lucide-react";
+import { Phone, Menu, X, MessageCircle, ChevronDown, User, LogOut } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { cn } from '@/lib/utils';
 import Logo from './Logo';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const lang = searchParams.get('lang');
+  const { user, signOut } = useAuth();
 
   const withLang = (path: string) => {
     return lang ? `${path}?lang=${lang}` : path;
@@ -228,6 +236,30 @@ const Header = () => {
             <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}} className="bg-primary hover:bg-primary/90 transition-colors">
               <MessageCircle />
             </Button>
+
+            {/* User Menu */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="hidden md:flex">
+                    <User size={20} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth">
+                <Button variant="ghost" className="hidden md:flex items-center gap-2">
+                  <User size={16} />
+                  <span>Login</span>
+                </Button>
+              </Link>
+            )}
             
             {/* Mobile menu button */}
             <Button
@@ -276,6 +308,22 @@ const Header = () => {
             </div>
 
             <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
+            
+            {/* Mobile Login/Logout */}
+            {user ? (
+              <Button onClick={() => { signOut(); setIsMobileMenuOpen(false); }} variant="outline" className="w-full flex items-center justify-center gap-2">
+                <LogOut size={16} />
+                <span>Logout</span>
+              </Button>
+            ) : (
+              <Link to="/auth">
+                <Button onClick={() => setIsMobileMenuOpen(false)} variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <User size={16} />
+                  <span>Login</span>
+                </Button>
+              </Link>
+            )}
+
             <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';setIsMobileMenuOpen(false);}} variant="outline" className="w-full flex items-center justify-center gap-2">
               <Phone size={16} />
               <span>9866812555</span>
