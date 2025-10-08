@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -208,8 +209,8 @@ const SymptomCheckerPage = () => {
                   <CardDescription>Based on the symptoms you provided</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap">
-                    {analysis}
+                  <div className="prose dark:prose-invert max-w-none">
+                    <ReactMarkdown>{analysis}</ReactMarkdown>
                   </div>
                   <div className="mt-6 pt-6 border-t">
                     <p className="text-sm font-semibold mb-2">Ready to consult with a doctor?</p>
