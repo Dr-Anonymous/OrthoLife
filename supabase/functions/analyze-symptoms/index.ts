@@ -64,7 +64,9 @@ Please provide a preliminary analysis with possible conditions, recommended acti
           { parts: [{ text: userPrompt }] }
         ],
         generationConfig: {
-          "thinkingBudget": 0
+          "thinkingConfig": {
+            "thinkingBudget": 0
+          }
         }
       }),
     });
