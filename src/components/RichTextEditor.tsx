@@ -270,12 +270,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
         />
       </div>
       <EditorContent editor={editor} />
-      {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
+      {editor && <BubbleMenu editor={editor} pluginKey="imageBubbleMenu" shouldShow={({ editor, from, to }) => editor.isActive('custom-image')}>
         <div className="p-2 bg-background border rounded-md shadow-lg flex items-center gap-2">
           <Button
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, align: 'left' }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, align: 'left' }).run();
             }}
             variant={editor.isActive('custom-image', { align: 'left' }) ? 'secondary' : 'ghost'}
             size="sm"
@@ -287,7 +287,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           <Button
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, align: 'center' }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, align: 'center' }).run();
             }}
             variant={editor.isActive('custom-image', { align: 'center' }) ? 'secondary' : 'ghost'}
             size="sm"
@@ -299,7 +299,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           <Button
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, align: 'right' }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, align: 'right' }).run();
             }}
             variant={editor.isActive('custom-image', { align: 'right' }) ? 'secondary' : 'ghost'}
             size="sm"
@@ -312,7 +312,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
             onClick={() => {
               const currentAttributes = editor.getAttributes('custom-image');
               const newDisplay = currentAttributes.display === 'block' ? 'inline-block' : 'block';
-              editor.chain().focus().setImage({ ...currentAttributes, display: newDisplay }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, display: newDisplay }).run();
             }}
             variant={editor.isActive('custom-image', { display: 'inline-block' }) ? 'secondary' : 'ghost'}
             size="sm"
@@ -325,10 +325,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
             type="range"
             min="25"
             max="100"
-            value={parseInt(editor.getAttributes('custom-image').width?.replace('%', '')) || 100}
+            value={parseInt(editor.getAttributes('custom-image').width?.replace('%', '') || '100', 10)}
             onChange={(e) => {
               const currentAttributes = editor.getAttributes('custom-image');
-              editor.chain().focus().setImage({ ...currentAttributes, width: `${e.target.value}%` }).run();
+              editor.chain().focus().updateAttributes('custom-image', { ...currentAttributes, width: `${e.target.value}%` }).run();
             }}
             className="w-24"
           />

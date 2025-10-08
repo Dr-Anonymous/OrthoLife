@@ -383,7 +383,7 @@ const EMR = () => {
 
     if (field === 'name' && typeof value === 'string' && value.startsWith('/')) {
       const shortcutId = parseInt(value.substring(1), 10);
-      const savedMed = savedMedications.find(m => m.id === shortcutId);
+      const savedMed = savedMedications.find(m => Number(m.id) === shortcutId);
       if (savedMed) {
         setExtraData(prev => {
           const newMeds = [...prev.medications];
