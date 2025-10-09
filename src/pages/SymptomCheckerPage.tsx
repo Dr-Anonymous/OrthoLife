@@ -76,7 +76,7 @@ const SymptomCheckerPage = () => {
     <div className="min-h-screen flex flex-col">
         <Header />
         
-        <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <Activity className="h-12 w-12 mx-auto mb-4 text-primary" />

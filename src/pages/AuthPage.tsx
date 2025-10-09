@@ -111,7 +111,7 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow flex items-center justify-center p-4 bg-gradient-to-b from-background to-secondary/20">
+      <main className="flex-grow flex items-center justify-center p-4 py-16 bg-gradient-to-b from-background to-secondary/20">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <div className="flex items-center justify-center mb-4">

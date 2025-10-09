@@ -231,7 +231,6 @@ const Header = () => {
           <div className="flex items-center space-x-2">
             <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} variant="outline" className="hidden md:flex items-center gap-2">
               <Phone size={16} />
-              <span>9866812555</span>
             </Button>
             <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}} className="bg-primary hover:bg-primary/90 transition-colors">
               <MessageCircle />
@@ -305,6 +304,7 @@ const Header = () => {
               <Link to={withLang("/guides")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Health Guides</Link>
               <Link to={withLang("/faqs")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>FAQs</Link>
               <Link to={withLang("/resources")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Resources</Link>
+              <Link to={withLang("/symptom-checker")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Symptom Checker</Link>
             </div>
 
             <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
