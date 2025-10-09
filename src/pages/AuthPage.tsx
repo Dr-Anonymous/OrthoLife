@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,26 +17,30 @@ const AuthPage = () => {
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
-      }
-    };
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
         navigate('/');
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    // Initialize reCAPTCHA
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {
+          // reCAPTCHA solved
+        }
+      });
+    }
+  }, []);
 
   const formatPhoneNumber = (value: string) => {
     // Remove all non-digits
@@ -64,20 +69,19 @@ const AuthPage = () => {
         return;
       }
 
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
-        options: {
-          channel: 'sms',
-        }
-      });
-
-      if (error) throw error;
-
+      const appVerifier = (window as any).recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
       setIsOtpSent(true);
       toast.success('OTP sent successfully! Check your phone.');
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       toast.error(error.message || 'Failed to send OTP. Please try again.');
+      // Reset reCAPTCHA on error
+      if ((window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier.clear();
+        (window as any).recaptchaVerifier = null;
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,16 +92,11 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      const formattedPhone = formatPhoneNumber(phone);
+      if (!confirmationResult) {
+        throw new Error('Please request OTP first');
+      }
 
-      const { error } = await supabase.auth.verifyOtp({
-        phone: formattedPhone,
-        token: otp,
-        type: 'sms'
-      });
-
-      if (error) throw error;
-
+      await confirmationResult.confirm(otp);
       toast.success('Successfully logged in!');
       navigate('/');
     } catch (error: any) {
@@ -111,6 +110,7 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <div id="recaptcha-container"></div>
       <main className="flex-grow flex items-center justify-center p-4 bg-gradient-to-b from-background to-secondary/20">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
