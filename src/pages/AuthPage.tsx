@@ -77,7 +77,9 @@ const AuthPage = () => {
     } catch (error) {
       const err = error as Error;
       console.error('Error sending OTP:', err);
-      toast.error(err.message || 'Failed to send OTP. Please try again.');
+      toast.error(err.message || 'Failed to send OTP. Please try again.', {
+        description: err.stack,
+      });
       // Reset reCAPTCHA
       window.recaptchaVerifier?.clear();
     } finally {
