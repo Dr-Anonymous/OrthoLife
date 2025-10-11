@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { auth } from '@/integrations/firebase/client';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,25 +17,15 @@ const AuthPage = () => {
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
-      }
-    };
-    checkUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      if (user) {
         navigate('/');
       }
     });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, [navigate]);
 
   const formatPhoneNumber = (value: string) => {
@@ -51,6 +42,17 @@ const AuthPage = () => {
     return '';
   };
 
+  useEffect(() => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': () => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+  }, []);
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -64,20 +66,20 @@ const AuthPage = () => {
         return;
       }
 
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
-        options: {
-          channel: 'sms',
-        }
-      });
-
-      if (error) throw error;
-
+      const appVerifier = window.recaptchaVerifier;
+      if (!appVerifier) {
+        throw new Error("Recaptcha verifier not initialized");
+      }
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(confirmation);
       setIsOtpSent(true);
       toast.success('OTP sent successfully! Check your phone.');
-    } catch (error: any) {
-      console.error('Error sending OTP:', error);
-      toast.error(error.message || 'Failed to send OTP. Please try again.');
+    } catch (error) {
+      const err = error as Error;
+      console.error('Error sending OTP:', err);
+      toast.error(err.message || 'Failed to send OTP. Please try again.');
+      // Reset reCAPTCHA
+      window.recaptchaVerifier?.clear();
     } finally {
       setIsLoading(false);
     }
@@ -88,21 +90,15 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      const formattedPhone = formatPhoneNumber(phone);
-
-      const { error } = await supabase.auth.verifyOtp({
-        phone: formattedPhone,
-        token: otp,
-        type: 'sms'
-      });
-
-      if (error) throw error;
-
+      if(confirmationResult) {
+        await confirmationResult.confirm(otp);
+      }
       toast.success('Successfully logged in!');
       navigate('/');
-    } catch (error: any) {
-      console.error('Error verifying OTP:', error);
-      toast.error(error.message || 'Invalid OTP. Please try again.');
+    } catch (error) {
+      const err = error as Error;
+      console.error('Error verifying OTP:', err);
+      toast.error(err.message || 'Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +106,7 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+       <div id="recaptcha-container"></div>
       <Header />
       <main className="flex-grow flex items-center justify-center p-4 py-16 bg-gradient-to-b from-background to-secondary/20">
         <Card className="w-full max-w-md">
@@ -121,8 +118,8 @@ const AuthPage = () => {
             </div>
             <CardTitle className="text-2xl text-center">Patient Login</CardTitle>
             <CardDescription className="text-center">
-              {isOtpSent 
-                ? 'Enter the OTP sent to your phone' 
+              {isOtpSent
+                ? 'Enter the OTP sent to your phone'
                 : 'Enter your phone number to receive an OTP'}
             </CardDescription>
           </CardHeader>
@@ -155,7 +152,7 @@ const AuthPage = () => {
                 </Button>
               </form>
             ) : (
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <form onSubmit={handleVerifyOtp} className="space-y-4" data-testid="otp-form">
                 <div className="space-y-2">
                   <Label htmlFor="otp">Enter OTP</Label>
                   <Input
