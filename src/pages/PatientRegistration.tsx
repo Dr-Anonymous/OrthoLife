@@ -1,0 +1,394 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, User, Phone, Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+
+interface FormData {
+  name: string;
+  dob: Date | undefined;
+  sex: string;
+  phone: string;
+}
+
+interface PatientFolder {
+  id: string;
+  name: string;
+}
+
+const PatientRegistration = () => {
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    dob: undefined,
+    sex: 'M',
+    phone: ''
+  });
+
+  const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<string>('');
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.dob) newErrors.dob = 'Date of birth is required';
+    if (formData.dob && formData.dob > new Date()) newErrors.dob = 'Date of birth cannot be in the future';
+    if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) newErrors.phone = 'Enter valid 10-digit phone number';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex'>, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
+
+    if (field === 'phone') {
+      setPatientFolders([]);
+      setSelectedPatient('');
+    }
+  };
+
+  const searchPatientRecords = async (phoneNumber: string) => {
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('search-patient-records', {
+        body: { phoneNumber }
+      });
+
+      if (error) throw error;
+
+      if (data?.patientFolders?.length > 0) {
+        setPatientFolders(data.patientFolders);
+        toast({
+          title: "Patient Records Found",
+          description: `Found ${data.patientFolders.length} patient record(s). Please select a patient.`
+        });
+      } else {
+        setPatientFolders([]);
+        setSelectedPatient('');
+        toast({
+            title: "No Records Found",
+            description: "No existing patient records found for this phone number. You can register a new patient."
+        });
+      }
+    } catch (error) {
+      console.error('Error searching patient records:', error);
+      toast({
+        variant: 'destructive',
+        title: "Search Error",
+        description: "Failed to search patient records. Please try again."
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handlePatientSelection = (folderId: string) => {
+    const selectedFolderData = patientFolders.find(folder => folder.id === folderId);
+    setSelectedPatient(selectedFolderData?.name || folderId);
+    setSelectedFolder(folderId);
+  };
+
+  const fetchPatientData = useCallback(async (folderId: string) => {
+    setIsFetchingDetails(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('search-patient-records', {
+        body: { phoneNumber: formData.phone, selectedFolder: folderId }
+      });
+
+      if (error) throw error;
+
+      if (data?.patientData) {
+        const patientData = data.patientData;
+        setFormData(prev => ({
+          ...prev,
+          name: patientData.name || prev.name,
+          dob: patientData.dob ? new Date(patientData.dob) : prev.dob,
+          sex: patientData.sex || prev.sex,
+        }));
+
+        toast({
+          title: "Data Loaded",
+          description: "Patient data has been auto-filled."
+        });
+      }
+    } catch (error) {
+      console.error('Error loading patient data:', error);
+      toast({
+        variant: 'destructive',
+        title: "Load Error",
+        description: "Failed to load patient data."
+      });
+    } finally {
+      setIsFetchingDetails(false);
+    }
+  }, [formData.phone]);
+
+  useEffect(() => {
+    if (selectedFolder) {
+      fetchPatientData(selectedFolder);
+    }
+  }, [selectedFolder, fetchPatientData]);
+
+  const handleSexChange = (value: string) => setFormData(prev => ({ ...prev, sex: value }));
+
+  const handleDateChange = (date: Date | undefined) => {
+    setFormData(prev => ({ ...prev, dob: date }));
+    if (errors.dob) setErrors(prev => ({ ...prev, dob: undefined }));
+    if (date) setIsDatePickerOpen(false);
+  };
+  const handleYearChange = (year: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setFullYear(parseInt(year));
+    setCalendarDate(newDate);
+  };
+
+  const handleMonthChange = (month: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setMonth(parseInt(month));
+    setCalendarDate(newDate);
+  };
+
+  const submitForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+        body: {
+          name: formData.name,
+          dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
+          sex: formData.sex,
+          phone: formData.phone,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast({
+        title: "Patient Registered for Consultation",
+        description: `${formData.name} has been successfully registered. Fee: ₹${data.consultation.fee}`,
+      });
+
+      // Reset form after submission
+      setFormData({ name: '', dob: undefined, sex: 'M', phone: '' });
+      setPatientFolders([]);
+      setSelectedPatient('');
+      setSelectedFolder('');
+
+    } catch (error) {
+      console.error('Error:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i);
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                  'August', 'September', 'October', 'November', 'December'];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+      <div className="container mx-auto max-w-4xl">
+        <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+          <CardHeader className="text-center pb-8">
+            <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
+              <User className="w-7 h-7" />
+              Patient Registration
+            </CardTitle>
+            <CardDescription className="text-lg text-muted-foreground">
+              Register new patients and create consultations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <form onSubmit={submitForm} className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <User className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-semibold text-foreground">Patient Information</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-sm font-medium">Phone Number (Search/Register)</Label>
+                        <div className="relative">
+                        <Phone className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                        <Input
+                            id="phone"
+                            value={formData.phone}
+                            onChange={e => handleInputChange('phone', e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatientRecords((e.target as HTMLInputElement).value))}
+                            className={cn("pl-10", errors.phone && "border-destructive")}
+                            placeholder="Enter 10-digit number and press Enter to search"
+                        />
+                        {isSearching && (
+                            <Loader2 className="w-4 h-4 absolute right-3 top-3 animate-spin text-muted-foreground" />
+                        )}
+                        </div>
+                        {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                    </div>
+                    {patientFolders.length > 0 && (
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Select Existing Patient</Label>
+                            <Select value={selectedPatient} onValueChange={handlePatientSelection} disabled={isFetchingDetails}>
+                            <SelectTrigger className="relative">
+                                <SelectValue placeholder="Choose existing patient..." />
+                                {isFetchingDetails && (
+                                <Loader2 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
+                                )}
+                            </SelectTrigger>
+                            <SelectContent>
+                                {patientFolders.map((folder) => (
+                                <SelectItem key={folder.id} value={folder.id}>
+                                    {folder.name}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                    <div className="relative">
+                      <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={e => handleInputChange('name', e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                        className={cn("pl-10", errors.name && "border-destructive")}
+                        placeholder="Enter full name"
+                      />
+                    </div>
+                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
+                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.dob && "text-muted-foreground",
+                            errors.dob && "border-destructive"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.dob ? (
+                            format(formData.dob, "PPP")
+                          ) : (
+                            <span>Select date of birth</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <div className="p-3 border-b space-y-2">
+                          <div className="flex gap-2">
+                            <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                              <SelectTrigger className="flex-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {months.map((month, index) => (
+                                  <SelectItem key={index} value={index.toString()}>
+                                    {month}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                              <SelectTrigger className="flex-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-48">
+                                {years.map((year) => (
+                                  <SelectItem key={year} value={year.toString()}>
+                                    {year}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <Calendar
+                          mode="single"
+                          selected={formData.dob}
+                          onSelect={handleDateChange}
+                          month={calendarDate}
+                          onMonthChange={setCalendarDate}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sex" className="text-sm font-medium">Sex</Label>
+                    <Select value={formData.sex} onValueChange={handleSexChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Male</SelectItem>
+                        <SelectItem value="F">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-lg font-semibold"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    'Register for Consultation'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default PatientRegistration;
