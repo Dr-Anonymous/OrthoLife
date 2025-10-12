@@ -426,6 +426,7 @@ const Consultation = () => {
         if (patientError) throw patientError;
 
       const payload = {
+        templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
         patientId: selectedConsultation.patient_id,
         name: patientData.name,
         dob: patientData.dob,

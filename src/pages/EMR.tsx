@@ -490,6 +490,7 @@ const EMR = () => {
     setIsSubmitting(true);
     try {
       const payload = {
+        templateId: "1AT025Qq_HbkSEWYHE1okVSG_Fu7qGwzP00HuNHypiNs",
         folderId: window.folderId,
         patientId: patientId,
         name: formData.name,

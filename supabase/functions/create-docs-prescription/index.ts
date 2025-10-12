@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
-const templateId = '1AT025Qq_HbkSEWYHE1okVSG_Fu7qGwzP00HuNHypiNs', today = new Date();
+const today = new Date();
 serve(async (req)=>{
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -39,7 +39,7 @@ serve(async (req)=>{
         }
       });
     }
-    let myId = '';
+    let templateId = data.templateId, myId = '';
     if (data.patientId) {
       myId = data.patientId;
     } else {
