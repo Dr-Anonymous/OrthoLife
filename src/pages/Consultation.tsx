@@ -252,22 +252,18 @@ const Consultation = () => {
   const fetchPatientData = useCallback(async (patientId: string) => {
     setIsFetchingDetails(true);
     try {
-        const { data, error } = await supabase
-            .from('patients')
-            .select('*')
-            .eq('id', patientId)
-            .single();
-
-        if (error) throw error;
-
+        // Since we are not storing medical data in the patient table, we just need to reset the form
         setExtraData({
-            complaints: data.complaints || '',
-            findings: data.findings || '',
-            investigations: data.investigations || '',
-            diagnosis: data.diagnosis || '',
-            advice: data.advice || '',
-            followup: data.followup || 'after 2 weeks/immediately- if worsening of any symptoms.',
-            medications: data.medications || extraData.medications,
+            complaints: '',
+            findings: '',
+            investigations: '',
+            diagnosis: '',
+            advice: '',
+            followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+            medications: [
+              { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
+              { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
+            ],
         });
     } catch (error) {
         console.error('Error fetching patient details:', error);
@@ -279,7 +275,7 @@ const Consultation = () => {
     } finally {
         setIsFetchingDetails(false);
     }
-  }, [extraData.medications]);
+  }, []);
 
   useEffect(() => {
     if (selectedDate) {
@@ -419,7 +415,7 @@ const Consultation = () => {
     try {
         const { data: patientData, error: patientError } = await supabase
             .from('patients')
-            .select('*')
+            .select('name, dob, sex, phone')
             .eq('id', selectedConsultation.patient_id)
             .single();
 
