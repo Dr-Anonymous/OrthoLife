@@ -7,6 +7,28 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_ANON_KEY')!
 );
 
+async function generateIncrementalId(supabaseClient) {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const dateKey = `${yyyy}${mm}${dd}`;
+  try {
+    const { data, error } = await supabaseClient.rpc('increment_patient_counter', {
+      input_date_key: dateKey
+    });
+    if (error) throw error;
+    const counter = data || 1;
+    return `${dateKey}${counter}`;
+  } catch (error) {
+    console.error('Error generating incremental ID:', error);
+    // Fallback to timestamp-based ID
+    const timestamp = Date.now().toString().slice(-3);
+    return `${dateKey}${timestamp}`;
+  }
+}
+
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -26,34 +48,40 @@ serve(async (req) => {
       throw patientError
     }
 
-    let isNewPatient = false;
-    if (!patient) {
+    const isNewPatient = !patient;
+    if (isNewPatient) {
+      const newPatientId = await generateIncrementalId(supabase);
       const { data: newPatient, error: newPatientError } = await supabase
         .from('patients')
-        .insert({ name, dob, sex, phone })
+        .insert({ id: newPatientId, name, dob, sex, phone })
         .select('id, created_at')
         .single()
 
       if (newPatientError) throw newPatientError
       patient = newPatient
-      isNewPatient = true
     }
 
-    // 2. Check for recent consultations
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    let isFreeReview = false;
+    if (!isNewPatient) {
+      // This is an existing patient. Check if they are eligible for a free review.
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-    const { data: recentConsultations, error: consultationError } = await supabase
-      .from('consultations')
-      .select('id')
-      .eq('patient_id', patient.id)
-      .gte('created_at', sevenDaysAgo.toISOString())
+      const { data: recentConsultations, error: consultationError } = await supabase
+        .from('consultations')
+        .select('id')
+        .eq('patient_id', patient.id)
+        .gte('created_at', sevenDaysAgo.toISOString())
 
-    if (consultationError) throw consultationError
+      if (consultationError) throw consultationError
 
-    // 3. Determine fee status
-    const isFreeReview = !isNewPatient && recentConsultations.length > 0;
-    const consultationFee = isNewPatient ? 0 : 500; // Example fee
+      if (recentConsultations && recentConsultations.length > 0) {
+          isFreeReview = true;
+      }
+    }
+
+    // 3. Determine fee
+    const consultationFee = isFreeReview ? 0 : 500;
 
     // 4. Create consultation
     const { data: consultation, error: newConsultationError } = await supabase
@@ -61,7 +89,7 @@ serve(async (req) => {
       .insert({
         patient_id: patient.id,
         status: 'pending',
-        fee: isFreeReview ? 0 : consultationFee,
+        fee: consultationFee,
       })
       .select()
       .single()
