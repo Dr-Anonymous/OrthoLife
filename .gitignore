@@ -31,3 +31,7 @@ jules-scratch
 
 # logs
 *.log
+
+# temp files
+*.temp
+.temp/
