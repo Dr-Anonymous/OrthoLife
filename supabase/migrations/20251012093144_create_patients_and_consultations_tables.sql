@@ -26,5 +26,5 @@ CREATE TABLE consultations (
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consultations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow authenticated users to manage their data" ON public.patients FOR ALL TO authenticated USING (true);
-CREATE POLICY "Allow authenticated users to manage their data" ON public.consultations FOR ALL TO authenticated USING (true);
+CREATE POLICY "Allow anon users to manage their data" ON public.patients FOR ALL TO anon USING (true);
+CREATE POLICY "Allow anon users to manage their data" ON public.consultations FOR ALL TO anon USING (true);
