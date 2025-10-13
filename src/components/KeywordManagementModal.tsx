@@ -157,9 +157,9 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                 {keywords.map(kw => (
                   <div key={kw.id} className="flex items-center justify-between p-2 border rounded-md">
                     <div>
-                      <p className="font-semibold">{kw.keywords.join(', ')}</p>
+                      <p className="font-semibold">{(kw.keywords || []).join(', ')}</p>
                       <p className="text-sm text-muted-foreground">
-                        {kw.medication_ids.map(id => medications.find(m => m.id === id)?.name).join(', ')}
+                        {(kw.medication_ids || []).map(id => medications.find(m => m.id === id)?.name).join(', ')}
                       </p>
                     </div>
                     <div className="flex gap-2">
