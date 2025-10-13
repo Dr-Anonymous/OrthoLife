@@ -24,6 +24,7 @@ const AutosuggestInput = ({
 }: AutosuggestInputProps) => {
   const [filteredSuggestions, setFilteredSuggestions] = useState<Suggestion[]>([]);
   const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
@@ -46,6 +47,28 @@ const AutosuggestInput = ({
     onChange(suggestion.name);
     setFilteredSuggestions([]);
     setIsSuggestionsVisible(false);
+    setActiveSuggestionIndex(0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+
+    if (e.key === 'ArrowDown') {
+      if (activeSuggestionIndex < filteredSuggestions.length - 1) {
+        setActiveSuggestionIndex(activeSuggestionIndex + 1);
+      }
+    } else if (e.key === 'ArrowUp') {
+      if (activeSuggestionIndex > 0) {
+        setActiveSuggestionIndex(activeSuggestionIndex - 1);
+      }
+    } else if (e.key === 'Enter') {
+      if (filteredSuggestions.length > 0) {
+        e.preventDefault();
+        handleSuggestionClick(filteredSuggestions[activeSuggestionIndex]);
+      }
+    }
   };
 
   return (
@@ -53,17 +76,19 @@ const AutosuggestInput = ({
       <Input
         value={value}
         onChange={handleInputChange}
-        onKeyDown={onKeyDown}
+        onKeyDown={handleKeyDown}
         placeholder="Enter medicine name"
       />
       {isSuggestionsVisible && filteredSuggestions.length > 0 && (
         <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg">
           <ul>
-            {filteredSuggestions.map(suggestion => (
+            {filteredSuggestions.map((suggestion, index) => (
               <li
                 key={suggestion.id}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="p-2 hover:bg-muted cursor-pointer"
+                className={`p-2 cursor-pointer ${
+                  index === activeSuggestionIndex ? 'bg-muted' : 'hover:bg-muted'
+                }`}
               >
                 {suggestion.name}
               </li>
