@@ -22,17 +22,19 @@ serve(async (req) => {
       .select('keywords, medication_ids');
 
     if (keywordsError) {
-      return new Response(JSON.stringify({ error: keywordsError.message }), {
-        status: 500,
+      console.error('Error fetching keywords:', keywordsError);
+      return new Response(JSON.stringify([]), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    for (const word of words) {
-      for (const mapping of keywordMappings) {
-        if (mapping.keywords.includes(word)) {
-          for (const id of mapping.medication_ids) {
-            medicationIds.add(id);
+    if (keywordMappings) {
+      for (const word of words) {
+        for (const mapping of keywordMappings) {
+          if (mapping.keywords && mapping.keywords.includes(word)) {
+            for (const id of mapping.medication_ids) {
+              medicationIds.add(id);
+            }
           }
         }
       }
@@ -50,8 +52,8 @@ serve(async (req) => {
       .in('id', Array.from(medicationIds));
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
+      console.error('Error fetching medications:', error);
+      return new Response(JSON.stringify([]), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -60,8 +62,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+    console.error('Unexpected error:', error);
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred.' }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
