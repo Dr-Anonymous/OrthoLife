@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
+import AutosuggestInput from '@/components/ui/AutosuggestInput';
 
 interface FormData {
   name: string;
@@ -74,10 +75,20 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Medicine Name</Label>
-              <Input
+              <AutosuggestInput
                 value={med.name}
-                onChange={e => handleMedChange(index, 'name', e.target.value)}
-                placeholder="Enter medicine name"
+                onChange={value => handleMedChange(index, 'name', value)}
+                suggestions={savedMedications.map(m => ({ id: m.id, name: m.name }))}
+                onSuggestionSelected={suggestion => {
+                  const savedMed = savedMedications.find(m => m.id === suggestion.id);
+                  if (savedMed) {
+                    setExtraData(prev => {
+                      const newMeds = [...prev.medications];
+                      newMeds[index] = { ...savedMed, id: crypto.randomUUID(), name: savedMed.name };
+                      return { ...prev, medications: newMeds };
+                    });
+                  }
+                }}
                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               />
             </div>
@@ -379,19 +390,6 @@ const EMR = () => {
         return { ...prev, medications: newMeds };
       });
       return;
-    }
-
-    if (field === 'name' && typeof value === 'string' && value.startsWith('/')) {
-      const shortcutId = parseInt(value.substring(1), 10);
-      const savedMed = savedMedications.find(m => Number(m.id) === shortcutId);
-      if (savedMed) {
-        setExtraData(prev => {
-          const newMeds = [...prev.medications];
-          newMeds[index] = { ...savedMed, id: crypto.randomUUID(), name: savedMed.name }; // Keep a unique id for the new row
-          return { ...prev, medications: newMeds };
-        });
-        return;
-      }
     }
 
     setExtraData(prev => {
