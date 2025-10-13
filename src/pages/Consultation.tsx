@@ -16,7 +16,9 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
+import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Medication {
   id: string;
@@ -180,6 +182,7 @@ const Consultation = () => {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
+  const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
 
   const [extraData, setExtraData] = useState({
@@ -218,6 +221,47 @@ const Consultation = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+
+  const debouncedComplaints = useDebounce(extraData.complaints, 500);
+  const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
+
+  useEffect(() => {
+    const autofillMeds = async (text: string) => {
+      if (text.trim() === '') return;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('get-autofill-medications', {
+          body: { text },
+        });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const newMedications = data.map(med => ({
+            ...med,
+            id: crypto.randomUUID(),
+            freqMorning: med.freq_morning,
+            freqNoon: med.freq_noon,
+            freqNight: med.freq_night,
+          }));
+
+          setExtraData(prev => {
+            const existingMedNames = new Set(prev.medications.map(m => m.name));
+            const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
+            return {
+              ...prev,
+              medications: [...prev.medications, ...filteredNewMeds],
+            };
+          });
+        }
+      } catch (error) {
+        console.error('Error autofilling medications:', error);
+      }
+    };
+
+    autofillMeds(debouncedComplaints);
+    autofillMeds(debouncedDiagnosis);
+  }, [debouncedComplaints, debouncedDiagnosis]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
@@ -311,6 +355,17 @@ const Consultation = () => {
       setExtraData(prev => {
         const newMeds = [...prev.medications];
         newMeds[index].name = '';
+        return { ...prev, medications: newMeds };
+      });
+      return;
+    }
+
+    if (field === 'name' && typeof value === 'string' && value.includes('@')) {
+      setIsKeywordModalOpen(true);
+      setExtraData(prev => {
+        const newMeds = [...prev.medications];
+        const med = newMeds[index];
+        newMeds[index] = { ...med, name: med.name.replace('@', '') };
         return { ...prev, medications: newMeds };
       });
       return;
@@ -638,6 +693,10 @@ const Consultation = () => {
         isOpen={isMedicationsModalOpen}
         onClose={() => setIsMedicationsModalOpen(false)}
         onMedicationsUpdate={fetchSavedMedications}
+      />
+      <KeywordManagementModal
+        isOpen={isKeywordModalOpen}
+        onClose={() => setIsKeywordModalOpen(false)}
       />
     </div>
   );

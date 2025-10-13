@@ -16,7 +16,9 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
+import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface FormData {
   name: string;
@@ -184,6 +186,7 @@ const EMR = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
+  const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
 
   const fetchSavedMedications = async () => {
@@ -243,6 +246,47 @@ const EMR = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+  const debouncedComplaints = useDebounce(extraData.complaints, 500);
+  const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
+
+  useEffect(() => {
+    const autofillMeds = async (text: string) => {
+      if (text.trim() === '') return;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('get-autofill-medications', {
+          body: { text },
+        });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const newMedications = data.map(med => ({
+            ...med,
+            id: crypto.randomUUID(),
+            freqMorning: med.freq_morning,
+            freqNoon: med.freq_noon,
+            freqNight: med.freq_night,
+          }));
+
+          setExtraData(prev => {
+            const existingMedNames = new Set(prev.medications.map(m => m.name));
+            const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
+            return {
+              ...prev,
+              medications: [...prev.medications, ...filteredNewMeds],
+            };
+          });
+        }
+      } catch (error) {
+        console.error('Error autofilling medications:', error);
+      }
+    };
+
+    autofillMeds(debouncedComplaints);
+    autofillMeds(debouncedDiagnosis);
+  }, [debouncedComplaints, debouncedDiagnosis]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
@@ -383,10 +427,20 @@ const EMR = () => {
   const handleMedChange = (index: number, field: keyof Medication, value: string | boolean) => {
     if (field === 'name' && typeof value === 'string' && value.startsWith('//')) {
       setIsMedicationsModalOpen(true);
-      // Clear the input field after triggering the modal
       setExtraData(prev => {
         const newMeds = [...prev.medications];
         newMeds[index].name = '';
+        return { ...prev, medications: newMeds };
+      });
+      return;
+    }
+
+    if (field === 'name' && typeof value === 'string' && value.includes('@')) {
+      setIsKeywordModalOpen(true);
+      setExtraData(prev => {
+        const newMeds = [...prev.medications];
+        const med = newMeds[index];
+        newMeds[index] = { ...med, name: med.name.replace('@', '') };
         return { ...prev, medications: newMeds };
       });
       return;
@@ -847,6 +901,10 @@ const EMR = () => {
         isOpen={isMedicationsModalOpen}
         onClose={() => setIsMedicationsModalOpen(false)}
         onMedicationsUpdate={fetchSavedMedications}
+      />
+      <KeywordManagementModal
+        isOpen={isKeywordModalOpen}
+        onClose={() => setIsKeywordModalOpen(false)}
       />
     </div>
   );
