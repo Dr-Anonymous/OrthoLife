@@ -50,7 +50,7 @@ interface PatientData {
     medications: Medication[];
 }
 
-const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void }) => {
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
   const {
     attributes,
     listeners,
@@ -593,6 +593,8 @@ const Consultation = () => {
                                     index={index}
                                     handleMedChange={handleMedChange}
                                     removeMedication={removeMedication}
+                                    savedMedications={savedMedications}
+                                    setExtraData={setExtraData}
                                     />
                                 ))}
                                 </SortableContext>
