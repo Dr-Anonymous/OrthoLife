@@ -107,9 +107,9 @@ const AuthPage = () => {
   };
 
   return (
+    <Header />
     <div className="min-h-screen flex flex-col">
        <div id="recaptcha-container"></div>
-      <Header />
       <main className="flex-grow flex items-center justify-center p-4 py-16 bg-gradient-to-b from-background to-secondary/20">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
@@ -191,8 +191,8 @@ const AuthPage = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
     </div>
+    <Footer />
   );
 };
 
