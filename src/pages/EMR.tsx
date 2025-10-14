@@ -19,6 +19,7 @@ import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { useDebounce } from '@/hooks/useDebounce';
+import { handleError } from '@/lib/error';
 
 interface FormData {
   name: string;
@@ -192,12 +193,7 @@ const EMR = () => {
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
     if (error) {
-      console.error('Error fetching saved medications:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error fetching saved medications',
-        description: error.message,
-      });
+      handleError(error, 'Error fetching saved medications');
     } else {
       setSavedMedications(data.map(d => ({...d, freqMorning: d.freq_morning, freqNoon: d.freq_noon, freqNight: d.freq_night})));
     }
@@ -329,12 +325,7 @@ const EMR = () => {
         setSelectedPatient('');
       }
     } catch (error) {
-      console.error('Error searching patient records:', error);
-      toast({
-        variant: 'destructive',
-        title: "Search Error",
-        description: "Failed to search patient records. Please try again."
-      });
+      handleError(error, 'Failed to search patient records. Please try again.');
     } finally {
       setIsSearching(false);
     }
@@ -384,12 +375,7 @@ const EMR = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading patient data:', error);
-      toast({
-        variant: 'destructive',
-        title: "Load Error",
-        description: "Failed to load patient data."
-      });
+      handleError(error, 'Failed to load patient data.');
     } finally {
       setIsFetchingDetails(false);
     }
@@ -525,12 +511,7 @@ const EMR = () => {
         });
 
     } catch (error) {
-        console.error('Translation error:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Translation Error',
-            description: (error as Error).message || 'Could not translate the text. Please try again.'
-        });
+        handleError(error, 'Could not translate the text. Please try again.');
     } finally {
         setIsTranslating(false);
     }
@@ -576,8 +557,7 @@ const EMR = () => {
       }
       
     } catch (error) {
-      console.error('Error:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
+      handleError(error, 'Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PageLoader from "./components/PageLoader";
 import { usePWAInstall } from "./hooks/usePWAInstall";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const Index = lazy(() => import("./pages/Index"));
 const AppointmentPage = lazy(() => import("./pages/AppointmentPage"));
@@ -56,55 +58,59 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/appointment" element={<AppointmentPage />} />
-                <Route path="/legal" element={<LegalPoliciesPage />} />
-                <Route path="/wa" element={<WhatsAppMe />} />
-                <Route path="/emr" element={<EMR />} />
-                <Route path="/patient-registration" element={<PatientRegistration />} />
-                <Route path="/consultation" element={<Consultation />} />
+            <AuthProvider>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/appointment" element={<AppointmentPage />} />
+                  <Route path="/legal" element={<LegalPoliciesPage />} />
+                  <Route path="/wa" element={<WhatsAppMe />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/emr" element={<EMR />} />
+                    <Route path="/patient-registration" element={<PatientRegistration />} />
+                    <Route path="/consultation" element={<Consultation />} />
+                  </Route>
 
-                {/* Pharmacy Routes */}
-                <Route path="/pharmacy" element={<PharmacyPage />} />
-                <Route path="/upload-prescription" element={<UploadPrescriptionPage />} />
+                  {/* Pharmacy Routes */}
+                  <Route path="/pharmacy" element={<PharmacyPage />} />
+                  <Route path="/upload-prescription" element={<UploadPrescriptionPage />} />
 
-                {/* Diagnostics Routes */}
-                <Route path="/diagnostics" element={<DiagnosticsPage />} />
-                <Route path="/track-test-results" element={<TrackTestResultsPage />} />
+                  {/* Diagnostics Routes */}
+                  <Route path="/diagnostics" element={<DiagnosticsPage />} />
+                  <Route path="/track-test-results" element={<TrackTestResultsPage />} />
 
-                {/* Learn Routes */}
-                <Route path="/blog" element={<BlogPage />} />
-                <Route path="/te/blog" element={<BlogPage />} />
-                <Route path="/blog/new" element={<CreatePostPage />} />
-                <Route path="/blog/:postId" element={<BlogPostPage />} />
-                <Route path="/te/blog/:postId" element={<BlogPostPage />} />
-                <Route path="/blog/:postId/edit" element={<EditPostPage />} />
-                <Route path="/guides" element={<PatientGuidesPage />} />
-                <Route path="/te/guides" element={<PatientGuidesPage />} />
-                <Route path="/guides/new" element={<CreateGuidePage />} />
-                <Route path="/guides/:guideId" element={<PatientGuidePage />} />
-                <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
-                <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
-                <Route path="/faqs" element={<FAQPage />} />
-                <Route
-                  path="/resources"
-                  element={
-                    <ResourcesPage
-                      installPrompt={installPrompt}
-                      handleInstallClick={handleInstallClick}
-                    />
-                  }
-                />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
-                <Route path="/auth" element={<AuthPage />} />
+                  {/* Learn Routes */}
+                  <Route path="/blog" element={<BlogPage />} />
+                  <Route path="/te/blog" element={<BlogPage />} />
+                  <Route path="/blog/new" element={<CreatePostPage />} />
+                  <Route path="/blog/:postId" element={<BlogPostPage />} />
+                  <Route path="/te/blog/:postId" element={<BlogPostPage />} />
+                  <Route path="/blog/:postId/edit" element={<EditPostPage />} />
+                  <Route path="/guides" element={<PatientGuidesPage />} />
+                  <Route path="/te/guides" element={<PatientGuidesPage />} />
+                  <Route path="/guides/new" element={<CreateGuidePage />} />
+                  <Route path="/guides/:guideId" element={<PatientGuidePage />} />
+                  <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
+                  <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
+                  <Route path="/faqs" element={<FAQPage />} />
+                  <Route
+                    path="/resources"
+                    element={
+                      <ResourcesPage
+                        installPrompt={installPrompt}
+                        handleInstallClick={handleInstallClick}
+                      />
+                    }
+                  />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
 
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </AuthProvider>
           </BrowserRouter>
         </ErrorBoundary>
       </TooltipProvider>
