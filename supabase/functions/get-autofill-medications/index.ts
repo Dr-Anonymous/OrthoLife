@@ -31,7 +31,7 @@ serve(async (req) => {
     if (keywordMappings) {
       for (const word of words) {
         for (const mapping of keywordMappings) {
-          if (mapping.keywords && mapping.keywords.includes(word)) {
+          if (mapping.keywords && mapping.keywords.map(kw => kw.toLowerCase()).includes(word)) {
             for (const id of mapping.medication_ids) {
               medicationIds.add(id);
             }

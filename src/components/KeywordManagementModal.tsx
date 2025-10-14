@@ -59,7 +59,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   }, [isOpen]);
 
   const handleSaveKeyword = async () => {
-    const keywordsArray = newKeywords.split(',').map(kw => kw.trim()).filter(Boolean);
+    const keywordsArray = newKeywords.split(',').map(kw => kw.trim().toLowerCase()).filter(Boolean);
     if (keywordsArray.length === 0 || selectedMeds.length === 0) {
       toast({ variant: 'destructive', title: 'Invalid input', description: 'Please provide at least one keyword and select at least one medication.' });
       return;
