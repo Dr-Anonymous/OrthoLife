@@ -24,20 +24,17 @@ interface PatientFolder {
   name: string;
 }
 
-import { useStore } from '@/store/useStore';
-import { handleError } from '@/lib/error';
-
 const PatientRegistration = () => {
-  const {
-    formData,
-    setFormData,
-    patientFolders,
-    setPatientFolders,
-    selectedPatient,
-    setSelectedPatient,
-    selectedFolder,
-    setSelectedFolder,
-  } = useStore();
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    dob: undefined,
+    sex: 'M',
+    phone: ''
+  });
+
+  const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<string>('');
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
@@ -57,7 +54,7 @@ const PatientRegistration = () => {
   };
 
   const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex'>, value: string) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
 
     if (field === 'phone') {
@@ -90,7 +87,12 @@ const PatientRegistration = () => {
         });
       }
     } catch (error) {
-      handleError(error, 'Failed to search patient records. Please try again.');
+      console.error('Error searching patient records:', error);
+      toast({
+        variant: 'destructive',
+        title: "Search Error",
+        description: "Failed to search patient records. Please try again."
+      });
     } finally {
       setIsSearching(false);
     }
@@ -113,12 +115,12 @@ const PatientRegistration = () => {
 
       if (data?.patientData) {
         const patientData = data.patientData;
-        setFormData({
-          ...formData,
-          name: patientData.name || formData.name,
-          dob: patientData.dob ? new Date(patientData.dob) : formData.dob,
-          sex: patientData.sex || formData.sex,
-        });
+        setFormData(prev => ({
+          ...prev,
+          name: patientData.name || prev.name,
+          dob: patientData.dob ? new Date(patientData.dob) : prev.dob,
+          sex: patientData.sex || prev.sex,
+        }));
 
         toast({
           title: "Data Loaded",
@@ -126,11 +128,16 @@ const PatientRegistration = () => {
         });
       }
     } catch (error) {
-      handleError(error, 'Failed to load patient data.');
+      console.error('Error loading patient data:', error);
+      toast({
+        variant: 'destructive',
+        title: "Load Error",
+        description: "Failed to load patient data."
+      });
     } finally {
       setIsFetchingDetails(false);
     }
-  }, [formData, setFormData]);
+  }, [formData.phone]);
 
   useEffect(() => {
     if (selectedFolder) {
@@ -138,10 +145,10 @@ const PatientRegistration = () => {
     }
   }, [selectedFolder, fetchPatientData]);
 
-  const handleSexChange = (value: string) => setFormData({ ...formData, sex: value });
+  const handleSexChange = (value: string) => setFormData(prev => ({ ...prev, sex: value }));
 
   const handleDateChange = (date: Date | undefined) => {
-    setFormData({ ...formData, dob: date });
+    setFormData(prev => ({ ...prev, dob: date }));
     if (errors.dob) setErrors(prev => ({ ...prev, dob: undefined }));
     if (date) setIsDatePickerOpen(false);
   };
@@ -186,7 +193,8 @@ const PatientRegistration = () => {
       setSelectedFolder('');
 
     } catch (error) {
-      handleError(error, 'Registration failed. Please try again.');
+      console.error('Error:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
