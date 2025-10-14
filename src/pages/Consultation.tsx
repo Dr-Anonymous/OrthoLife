@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Loader2, FileText, Stethoscope, X, GripVertical, Calendar as CalendarIcon } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -18,8 +19,17 @@ import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { useDebounce } from '@/hooks/useDebounce';
-import SortableMedicationItem, { Medication } from '@/components/SortableMedicationItem';
-import { handleError } from '@/lib/error';
+
+interface Medication {
+  id: string;
+  name: string;
+  dose: string;
+  freqMorning: boolean;
+  freqNoon: boolean;
+  freqNight: boolean;
+  duration: string;
+  instructions: string;
+}
 
 interface Consultation {
     id: string;
@@ -42,24 +52,151 @@ interface PatientData {
     medications: Medication[];
 }
 
-import { useStore } from '@/store/useStore';
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: med.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Card className="p-4 border border-border relative">
+        <div {...listeners} className="absolute top-1/2 -left-6 -translate-y-1/2 p-2 cursor-grab text-muted-foreground">
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
+          onClick={() => removeMedication(index)}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Remove medication</span>
+        </Button>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Medicine Name</Label>
+              <AutosuggestInput
+                value={med.name}
+                onChange={value => handleMedChange(index, 'name', value)}
+                suggestions={savedMedications.map(m => ({ id: m.id, name: m.name }))}
+                onSuggestionSelected={suggestion => {
+                  const savedMed = savedMedications.find(m => m.id === suggestion.id);
+                  if (savedMed) {
+                    setExtraData(prev => {
+                      const newMeds = [...prev.medications];
+                      newMeds[index] = { ...savedMed, id: crypto.randomUUID(), name: savedMed.name };
+                      return { ...prev, medications: newMeds };
+                    });
+                  }
+                }}
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Dosage</Label>
+              <Input
+                value={med.dose}
+                onChange={e => handleMedChange(index, 'dose', e.target.value)}
+                placeholder="e.g., 500mg"
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Frequency</Label>
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={med.freqMorning}
+                  onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
+                  className="rounded border-border"
+                />
+                <span className="text-sm">Morning</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={med.freqNoon}
+                  onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
+                  className="rounded border-border"
+                />
+                <span className="text-sm">Noon</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={med.freqNight}
+                  onChange={e => handleMedChange(index, 'freqNight', e.target.checked)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
+                  className="rounded border-border"
+                />
+                <span className="text-sm">Night</span>
+              </label>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Duration</Label>
+              <Input
+                value={med.duration}
+                onChange={e => handleMedChange(index, 'duration', e.target.value)}
+                placeholder="e.g., 7 days"
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Instructions</Label>
+              <Input
+                value={med.instructions}
+                onChange={e => handleMedChange(index, 'instructions', e.target.value)}
+                placeholder="Special instructions"
+                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
 
 const Consultation = () => {
-  const {
-    extraData,
-    setExtraData,
-    savedMedications,
-    setSavedMedications,
-    pendingConsultations,
-    setPendingConsultations,
-    selectedConsultation,
-    setSelectedConsultation,
-  } = useStore();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
+  const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
+  const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
+
+  const [extraData, setExtraData] = useState({
+    complaints: '',
+    findings: '',
+    investigations: '',
+    diagnosis: '',
+    advice: '',
+    followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+    medications: [
+      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
+      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
+    ] as Medication[]
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -71,11 +208,13 @@ const Consultation = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = extraData.medications.findIndex(m => m.id === active.id);
-      const newIndex = extraData.medications.findIndex(m => m.id === over.id);
-      setExtraData({
-        ...extraData,
-        medications: arrayMove(extraData.medications, oldIndex, newIndex),
+      setExtraData(prev => {
+        const oldIndex = prev.medications.findIndex(m => m.id === active.id);
+        const newIndex = prev.medications.findIndex(m => m.id === over.id);
+        return {
+          ...prev,
+          medications: arrayMove(prev.medications, oldIndex, newIndex),
+        };
       });
     }
   };
@@ -106,11 +245,13 @@ const Consultation = () => {
             freqNight: med.freq_night,
           }));
 
-          const existingMedNames = new Set(extraData.medications.map(m => m.name));
-          const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
-          setExtraData({
-            ...extraData,
-            medications: [...extraData.medications, ...filteredNewMeds],
+          setExtraData(prev => {
+            const existingMedNames = new Set(prev.medications.map(m => m.name));
+            const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
+            return {
+              ...prev,
+              medications: [...prev.medications, ...filteredNewMeds],
+            };
           });
         }
       } catch (error) {
@@ -125,7 +266,12 @@ const Consultation = () => {
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
     if (error) {
-      handleError(error, 'Error fetching saved medications');
+      console.error('Error fetching saved medications:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error fetching saved medications',
+        description: error.message,
+      });
     } else {
       setSavedMedications(data.map(d => ({...d, freqMorning: d.freq_morning, freqNoon: d.freq_noon, freqNight: d.freq_night})));
     }
@@ -147,7 +293,12 @@ const Consultation = () => {
 
       setPendingConsultations(data.consultations || []);
     } catch (error) {
-      handleError(error, 'Error fetching consultations');
+      console.error('Error fetching consultations:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error fetching consultations',
+        description: error.message,
+      });
     } finally {
       setIsFetchingConsultations(false);
     }
@@ -170,7 +321,12 @@ const Consultation = () => {
             ],
         });
     } catch (error) {
-        handleError(error, 'Error fetching patient details');
+        console.error('Error fetching patient details:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error fetching patient details',
+            description: error.message,
+        });
     } finally {
         setIsFetchingDetails(false);
     }
@@ -190,47 +346,53 @@ const Consultation = () => {
   }, [selectedConsultation, fetchPatientData]);
 
   const handleExtraChange = (field: string, value: string) => {
-    setExtraData({ ...extraData, [field]: value });
+    setExtraData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleMedChange = (index: number, field: keyof Medication, value: string | boolean) => {
     if (field === 'name' && typeof value === 'string' && value.startsWith('//')) {
       setIsMedicationsModalOpen(true);
-      const newMeds = [...extraData.medications];
-      newMeds[index].name = '';
-      setExtraData({ ...extraData, medications: newMeds });
+      setExtraData(prev => {
+        const newMeds = [...prev.medications];
+        newMeds[index].name = '';
+        return { ...prev, medications: newMeds };
+      });
       return;
     }
 
     if (field === 'name' && typeof value === 'string' && value.includes('@')) {
       setIsKeywordModalOpen(true);
-      const newMeds = [...extraData.medications];
-      const med = newMeds[index];
-      newMeds[index] = { ...med, name: med.name.replace('@', '') };
-      setExtraData({ ...extraData, medications: newMeds });
+      setExtraData(prev => {
+        const newMeds = [...prev.medications];
+        const med = newMeds[index];
+        newMeds[index] = { ...med, name: med.name.replace('@', '') };
+        return { ...prev, medications: newMeds };
+      });
       return;
     }
 
-    const newMeds = [...extraData.medications];
-    newMeds[index][field] = value as never;
-    setExtraData({ ...extraData, medications: newMeds });
+    setExtraData(prev => {
+      const newMeds = [...prev.medications];
+      newMeds[index][field] = value as never;
+      return { ...prev, medications: newMeds };
+    });
   };
 
   const addMedication = () => {
-    setExtraData({
-      ...extraData,
+    setExtraData(prev => ({
+      ...prev,
       medications: [
-        ...extraData.medications,
+        ...prev.medications,
         { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, duration: '', instructions: '' }
       ]
-    });
+    }));
   };
 
   const removeMedication = (index: number) => {
-    setExtraData({
-      ...extraData,
-      medications: extraData.medications.filter((_, i) => i !== index)
-    });
+    setExtraData(prev => ({
+      ...prev,
+      medications: prev.medications.filter((_, i) => i !== index)
+    }));
   };
 
   const handleTranslateAll = async () => {
@@ -272,15 +434,15 @@ const Consultation = () => {
             textsToTranslate.medications.map(inst => translate(inst))
         );
 
-        setExtraData({
-            ...extraData,
+        setExtraData(prev => ({
+            ...prev,
             advice: translatedAdvice,
             followup: translatedFollowup,
-            medications: extraData.medications.map((med, index) => ({
+            medications: prev.medications.map((med, index) => ({
                 ...med,
                 instructions: translatedMedInstructions[index]
             }))
-        });
+        }));
 
         toast({
             title: 'Translation Successful',
@@ -288,7 +450,12 @@ const Consultation = () => {
         });
 
     } catch (error) {
-        handleError(error, 'Could not translate the text. Please try again.');
+        console.error('Translation error:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Translation Error',
+            description: (error as Error).message || 'Could not translate the text. Please try again.'
+        });
     } finally {
         setIsTranslating(false);
     }
@@ -351,7 +518,8 @@ const Consultation = () => {
       setSelectedConsultation(null);
 
     } catch (error) {
-      handleError(error, 'Failed to generate prescription.');
+      console.error('Error:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to generate prescription.' });
     } finally {
       setIsSubmitting(false);
     }
