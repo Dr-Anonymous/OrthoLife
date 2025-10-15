@@ -7,7 +7,8 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Download, Eye, Clock } from 'lucide-react';
+import { BookOpen, Download, Eye, Clock, Share2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePdf } from '@/lib/pdfUtils';
@@ -44,6 +45,7 @@ const PatientGuidesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const { toast } = useToast();
   const location = useLocation();
 
   useEffect(() => {
@@ -73,6 +75,37 @@ const PatientGuidesPage = () => {
         console.error("Error fetching guide content for PDF:", error);
     } finally {
         setDownloadingId(null);
+    }
+  };
+
+  const handleShare = async (guide: Guide) => {
+    const shareUrl = `${window.location.origin}/guides/${guide.id}`;
+    const translatedGuide = getTranslatedGuide(guide, i18n.language);
+
+    const shareData = {
+      title: translatedGuide.title,
+      text: translatedGuide.description,
+      url: shareUrl,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        trackEvent({ eventType: 'share', details: { method: 'navigator', contentType: 'guide', contentId: guide.id, sharedTo: 'unknown' } });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link Copied!",
+          description: "The guide link has been copied to your clipboard.",
+        });
+        trackEvent({ eventType: 'share', details: { method: 'clipboard', contentType: 'guide', contentId: guide.id } });
+      }
+    } catch (error) {
+      console.error("Failed to share:", error);
+      toast({
+        title: "Error",
+        description: "Could not share the guide.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -255,60 +288,68 @@ const PatientGuidesPage = () => {
             {/* Featured Guide & Grid */}
             {guides.length > 0 && (
               <>
-                <Card className="mb-8 overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-                  <div className="md:flex">
-                    <div className="md:w-1/3">
-                      <img
-                        src={guides[0].cover_image_url}
-                        alt={guides[0].title}
-                        className="w-full h-64 md:h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="md:w-2/3 p-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Badge>{guides[0].categories.name}</Badge>
-                        <span className="text-sm text-muted-foreground">{t('guides.featured')}</span>
+                <Link to={`/guides/${guides[0].id}`} className="group block">
+                  <Card className="mb-8 overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 hover:shadow-lg transition-shadow">
+                    <div className="md:flex">
+                      <div className="md:w-1/3">
+                        <img
+                          src={guides[0].cover_image_url}
+                          alt={getTranslatedGuide(guides[0], i18n.language).title}
+                          className="w-full h-64 md:h-full object-cover"
+                          loading="lazy"
+                        />
                       </div>
-                      <h2 className="text-2xl font-heading font-bold mb-3">
-                        {getTranslatedGuide(guides[0], i18n.language).title}
-                      </h2>
-                      <p className="text-muted-foreground mb-4">
-                        {getTranslatedGuide(guides[0], i18n.language).description}
-                      </p>
-                      <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
-                        <div className="flex items-center">
-                          <BookOpen size={16} className="mr-1" />
-                          <span>{guides[0].pages} pages</span>
+                      <div className="md:w-2/3 p-6 flex flex-col">
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Badge>{guides[0].categories.name}</Badge>
+                            <span className="text-sm text-muted-foreground">{t('guides.featured')}</span>
+                          </div>
+                          <h2 className="text-2xl font-heading font-bold mb-3">
+                            {getTranslatedGuide(guides[0], i18n.language).title}
+                          </h2>
+                          <p className="text-muted-foreground mb-4">
+                            {getTranslatedGuide(guides[0], i18n.language).description}
+                          </p>
+                          <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
+                            <div className="flex items-center">
+                              <BookOpen size={16} className="mr-1" />
+                              <span>{guides[0].pages} pages</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Clock size={16} className="mr-1" />
+                              <span>{guides[0].estimated_time}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center">
-                          <Clock size={16} className="mr-1" />
-                          <span>{guides[0].estimated_time}</span>
+                        <div className="flex gap-2 mt-auto">
+                          <Button asChild className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Link to={`/guides/${guides[0].id}`}>
+                              <Eye size={16} className="md:mr-2" />
+                              <span className="hidden md:inline">{t('guides.readOnline')}</span>
+                            </Link>
+                          </Button>
+                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guides[0].id); }} disabled={downloadingId === guides[0].id}>
+                            {downloadingId === guides[0].id ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf')}</span></>}
+                          </Button>
+                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(guides[0]); }}>
+                            <Share2 size={16} className="md:mr-2" />
+                            <span className="hidden md:inline">{t('guides.share', 'Share')}</span>
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-3">
-                        <Button asChild className="flex items-center gap-2">
-                          <Link to={`/guides/${guides[0].id}`}>
-                            <Eye size={16} />
-                            {t('guides.readOnline')}
-                          </Link>
-                        </Button>
-                        <Button variant="outline" className="flex items-center gap-2" onClick={() => handleDownloadPdf(guides[0].id)} disabled={downloadingId === guides[0].id}>
-                          {downloadingId === guides[0].id ? 'Downloading...' : <><Download size={16} />{t('guides.downloadPdf')}</>}
-                        </Button>
-                      </div>
                     </div>
-                  </div>
-                </Card>
+                  </Card>
+                </Link>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {guides.slice(1).map((guide) => (
+                  {guides.slice(0).map((guide) => (
                     <Link to={`/guides/${guide.id}`} key={guide.id} className="group">
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
                           <img
                             src={guide.cover_image_url}
-                            alt={guide.title}
+                            alt={getTranslatedGuide(guide, i18n.language).title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
                           />
@@ -338,14 +379,18 @@ const PatientGuidesPage = () => {
                             </div>
                           </div>
                           <div className="flex gap-2 mt-auto">
-                            <Button asChild size="sm" className="flex-1">
-                              <Link to={`/guides/${guide.id}`}>
-                                <Eye size={14} className="mr-1" />
-                                {t('guides.read')}
-                              </Link>
+                            <Button asChild size="sm" className="flex-1" onClick={(e) => e.stopPropagation()}>
+                                <Link to={`/guides/${guide.id}`} className="w-full justify-center">
+                                    <Eye size={14} className="md:mr-1" />
+                                    <span className="hidden md:inline">{t('guides.read')}</span>
+                                </Link>
                             </Button>
                             <Button size="sm" variant="outline" className="flex-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guide.id); }} disabled={downloadingId === guide.id}>
-                              {downloadingId === guide.id ? '...' : <><Download size={14} className="mr-1" />{t('guides.pdf')}</>}
+                              {downloadingId === guide.id ? '...' : <><Download size={14} className="md:mr-1" /><span className="hidden md:inline">{t('guides.pdf')}</span></>}
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(guide); }}>
+                                <Share2 size={14} className="md:mr-1" />
+                                <span className="hidden md:inline">{t('guides.share', 'Share')}</span>
                             </Button>
                           </div>
                         </CardContent>
