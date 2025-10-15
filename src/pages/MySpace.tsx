@@ -53,7 +53,8 @@ const MySpace = () => {
       if (user?.phoneNumber) {
         try {
           setLoading(true);
-          const phoneNumber = user.phoneNumber;
+          // Strip country code, keep last 10 digits
+          const phoneNumber = user.phoneNumber.slice(-10);
 
           const [recordsRes, testResultsRes] = await Promise.all([
             supabase.functions.invoke('search-whatsappme-records', {
