@@ -79,7 +79,9 @@ const PatientGuidesPage = () => {
   };
 
   const handleShare = async (guide: Guide) => {
-    const shareUrl = `${window.location.origin}/guides/${guide.id}`;
+    const lang = i18n.language;
+    const langPrefix = lang === 'en' ? '' : `/${lang}`;
+    const shareUrl = `${window.location.origin}${langPrefix}/guides/${guide.id}`;
     const translatedGuide = getTranslatedGuide(guide, i18n.language);
 
     const shareData = {
@@ -343,7 +345,7 @@ const PatientGuidesPage = () => {
                 </Link>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {guides.slice(0).map((guide) => (
+                  {guides.slice(1).map((guide) => (
                     <Link to={`/guides/${guide.id}`} key={guide.id} className="group">
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
