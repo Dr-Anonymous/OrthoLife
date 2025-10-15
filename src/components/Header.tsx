@@ -232,10 +232,12 @@ const Header = () => {
 
             {/* User Menu */}
             {user ? (
-              <Button onClick={signOut} variant="ghost" className="hidden md:flex items-center gap-2">
-                <LogOut size={16} />
-                <span>Logout</span>
-              </Button>
+              <Link to="/my-space">
+                <Button variant="ghost" className="hidden md:flex items-center gap-2">
+                  <User size={16} />
+                  <span>My Space</span>
+                </Button>
+              </Link>
             ) : (
               <Link to="/auth">
                 <Button variant="ghost" className="hidden md:flex items-center gap-2">
@@ -296,10 +298,12 @@ const Header = () => {
             
             {/* Mobile Login/Logout */}
             {user ? (
-              <Button onClick={() => { signOut(); setIsMobileMenuOpen(false); }} variant="outline" className="w-full flex items-center justify-center gap-2">
-                <LogOut size={16} />
-                <span>Logout</span>
-              </Button>
+              <Link to="/my-space">
+                <Button onClick={() => setIsMobileMenuOpen(false)} variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <User size={16} />
+                  <span>My Space</span>
+                </Button>
+              </Link>
             ) : (
               <Link to="/auth">
                 <Button onClick={() => setIsMobileMenuOpen(false)} variant="outline" className="w-full flex items-center justify-center gap-2">
