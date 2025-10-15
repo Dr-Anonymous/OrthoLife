@@ -28,18 +28,10 @@ const AuthPage = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  const formatPhoneNumber = (value: string) => {
-    // Remove all non-digits
-    const digits = value.replace(/\D/g, '');
-    
-    // Add +91 prefix if not present
-    if (digits.length > 0 && !digits.startsWith('91')) {
-      return '+91' + digits;
-    }
-    if (digits.length > 0) {
-      return '+' + digits;
-    }
-    return '';
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Sanitize the input to only allow digits and keep the last 10
+    const sanitized = e.target.value.replace(/\D/g, '');
+    setPhone(sanitized.slice(-10));
   };
 
   useEffect(() => {
@@ -57,15 +49,14 @@ const AuthPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
-      const formattedPhone = formatPhoneNumber(phone);
-      
-      if (formattedPhone.length < 13) {
-        toast.error('Please enter a valid 10-digit phone number');
-        setIsLoading(false);
-        return;
-      }
+    if (phone.length !== 10) {
+      toast.error('Please enter a valid 10-digit phone number');
+      setIsLoading(false);
+      return;
+    }
 
+    try {
+      const formattedPhone = `+91${phone}`;
       const appVerifier = window.recaptchaVerifier;
       if (!appVerifier) {
         throw new Error("Recaptcha verifier not initialized");
@@ -121,7 +112,7 @@ const AuthPage = () => {
             <CardTitle className="text-2xl text-center">Patient Login</CardTitle>
             <CardDescription className="text-center">
               {isOtpSent
-                ? 'Enter the OTP sent to your phone'
+                ? `Enter the OTP sent to +91${phone}`
                 : 'Enter your phone number to receive an OTP'}
             </CardDescription>
           </CardHeader>
@@ -137,10 +128,9 @@ const AuthPage = () => {
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="9876543210"
-                      value={phone.replace('+91', '')}
-                      onChange={(e) => setPhone(e.target.value)}
-                      maxLength={10}
+                      placeholder="98765 43210"
+                      value={phone}
+                      onChange={handlePhoneChange}
                       required
                       className="flex-1"
                     />
@@ -166,9 +156,6 @@ const AuthPage = () => {
                     maxLength={6}
                     required
                   />
-                  <p className="text-xs text-muted-foreground">
-                    OTP sent to +91{phone.replace('+91', '')}
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Button type="submit" className="w-full" disabled={isLoading}>
