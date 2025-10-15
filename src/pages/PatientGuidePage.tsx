@@ -178,21 +178,21 @@ const PatientGuidePage = () => {
 
                 <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps} />
                 
-                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/20 backdrop-blur-sm">        
-                  <div className="flex flex-wrap justify-between items-center gap-4">
+                <div className="sticky bottom-4 md:bottom-0 p-4 border-t z-10 bg-background/20 backdrop-blur-sm -mx-4">
+                  <div className="container mx-auto flex flex-wrap justify-between items-center gap-2">
                     <Button asChild variant="outline">
-                      <Link to="/guides">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Guides
+                      <Link to="/guides" className="flex items-center">
+                        <ArrowLeft className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Back to Guides</span>
                       </Link>
                     </Button>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button onClick={handleShare}>
-                          <Share2 className="mr-2 h-4 w-4" />
-                          Share Guide
+                          <Share2 className="h-4 w-4 md:mr-2" />
+                          <span className="hidden md:inline">Share Guide</span>
                         </Button>
-                        <Button variant="outline" className="flex items-center gap-2" onClick={handleDownloadPdf} disabled={isDownloading}>
-                            {isDownloading ? 'Downloading...' : <><Download size={16} />{t('guides.downloadPdf', 'Download PDF')}</>}
+                        <Button variant="outline" className="flex items-center" onClick={handleDownloadPdf} disabled={isDownloading}>
+                            {isDownloading ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf', 'Download PDF')}</span></>}
                         </Button>
                     </div>
                   </div>
