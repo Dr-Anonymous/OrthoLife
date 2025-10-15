@@ -53,7 +53,6 @@ const MySpace = () => {
       if (user?.phoneNumber) {
         try {
           setLoading(true);
-          // Strip country code, keep last 10 digits
           const phoneNumber = user.phoneNumber.slice(-10);
 
           const [recordsRes, testResultsRes] = await Promise.all([
@@ -176,6 +175,13 @@ const MySpace = () => {
     }
   };
 
+  const formatAppointmentDescription = (description: string) => {
+    if (!description) return '';
+    const cutoff = description.indexOf('WhatsApp:');
+    const truncatedDesc = cutoff !== -1 ? description.substring(0, cutoff) : description;
+    return truncatedDesc.replace(/\n/g, '<br />');
+  };
+
 
   if (authLoading) {
     return <PageLoader />;
@@ -239,7 +245,10 @@ const MySpace = () => {
                       {records.calendarEvents.map((event: any, index: number) => (
                         <li key={index} className="p-4 bg-gray-100 rounded-lg">
                           <p className="font-semibold text-gray-800">{new Date(event.start).toLocaleString()}</p>
-                          <p className="text-gray-600 mt-1">{event.description || 'No description'}</p>
+                          <div
+                            className="text-gray-600 mt-1"
+                            dangerouslySetInnerHTML={{ __html: formatAppointmentDescription(event.description) }}
+                          />
                           {event.attachments && <a href={event.attachments} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 inline-block">View Attachment</a>}
                         </li>
                       ))}
