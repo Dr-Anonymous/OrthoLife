@@ -267,7 +267,7 @@ const MySpace = () => {
                 </CardContent>
               </Card>
 
-              <Card className="lg:col-span-2">
+              <Card className="lg:col-span-1">
                 <CardHeader className="flex flex-row items-center space-x-3">
                   <Beaker className="h-6 w-6 text-primary" />
                   <CardTitle>My Test Results</CardTitle>
