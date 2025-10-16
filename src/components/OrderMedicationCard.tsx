@@ -41,11 +41,7 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
 
     const frequency = (med.freqMorning ? 1 : 0) + (med.freqNoon ? 1 : 0) + (med.freqNight ? 1 : 0);
 
-    // Extract dose quantity, default to 1 if not specified
-    const doseMatch = med.dose.match(/(\d+)/);
-    const doseQuantity = doseMatch ? parseInt(doseMatch[1], 10) : 1;
-
-    return days * frequency * doseQuantity;
+    return days * frequency;
   };
 
   const handleQuantityChange = (name: string, quantity: string) => {
@@ -55,9 +51,13 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
     }));
   };
 
+  const cleanMedicationName = (name: string) => {
+    return name.replace(/^(T\.|Cap\.|Syr\.)\s*/, '');
+  };
+
   const handleOrderNow = () => {
     const query = Object.entries(medicationQuantities)
-      .map(([name, quantity]) => `${encodeURIComponent(name)}*${quantity}`)
+      .map(([name, quantity]) => `${encodeURIComponent(cleanMedicationName(name))}*${quantity}`)
       .join(',');
     navigate(`/pharmacy?q=${query}`);
   };
