@@ -262,7 +262,8 @@ const MySpace = () => {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-gray-500">No appointments found.</br>Want to <a href="/appointment">book an appointment</a>?</p>
+                    <p className="text-gray-500">No appointments found.</p>
+                    <p>Want to <a href="/appointment">book an appointment</a>?</p>
                   )}
                 </CardContent>
               </Card>
