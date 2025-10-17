@@ -202,7 +202,7 @@ const MySpace = () => {
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Welcome to My Space</h1>
-              {user?.phoneNumber && <p className="mt-1 text-lg text-gray-600">Your personal health dashboard for <strong>{user.phoneNumber}</strong></p>}
+              {user?.phoneNumber && <p className="mt-1 text-lg text-gray-600">Your personal health dashboard (<strong>{user.phoneNumber}</strong>).</p>}
             </div>
             <Button onClick={handleLogout} variant="outline" className="mt-4 sm:mt-0">
               <LogOut className="mr-2 h-4 w-4" /> Logout
@@ -225,7 +225,7 @@ const MySpace = () => {
               <Card className="lg:col-span-1">
                 <CardHeader className="flex flex-row items-center space-x-3">
                   <Briefcase className="h-6 w-6 text-primary" />
-                  <CardTitle>My Patient Records</CardTitle>
+                  <CardTitle>My Prescriptions and Records</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {records?.patientFolders?.length > 0 ? (
@@ -237,7 +237,7 @@ const MySpace = () => {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-gray-500">No patient records found.</p>
+                    <p className="text-gray-500">No prescriptions/records found.</p>
                   )}
                 </CardContent>
               </Card>
@@ -262,7 +262,7 @@ const MySpace = () => {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-gray-500">No appointments found.</p>
+                    <p className="text-gray-500">No appointments found.</br>Want to <a href="/appointment">book an appointment</a>?</p>
                   )}
                 </CardContent>
               </Card>

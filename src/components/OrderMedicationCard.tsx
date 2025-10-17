@@ -73,6 +73,7 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
         <CardTitle>Order Medication</CardTitle>
       </CardHeader>
       <CardContent>
+        <p>From the latest prescription:</p>
         <table className="w-full">
           <thead>
             <tr>
