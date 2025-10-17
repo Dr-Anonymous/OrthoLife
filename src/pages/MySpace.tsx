@@ -11,6 +11,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Badge } from '@/components/ui/badge';
 import OrderMedicationCard from '@/components/OrderMedicationCard';
+import OrderTestsCard from '@/components/OrderTestsCard';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,8 @@ const MySpace = () => {
   const [records, setRecords] = useState<any>(null);
   const [testResults, setTestResults] = useState<Record<string, TestResult[]>>({});
   const [medications, setMedications] = useState<any[]>([]);
+  const [investigations, setInvestigations] = useState<string>('');
+  const [patientName, setPatientName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +60,7 @@ const MySpace = () => {
           setLoading(true);
           const phoneNumber = user.phoneNumber.slice(-10);
 
-          const [recordsRes, testResultsRes, medicationsRes] = await Promise.all([
+          const [recordsRes, testResultsRes, prescriptionRes] = await Promise.all([
             supabase.functions.invoke('search-whatsappme-records', {
               body: { phoneNumber },
             }),
@@ -71,11 +74,13 @@ const MySpace = () => {
 
           if (recordsRes.error) throw new Error(`Error fetching records: ${recordsRes.error.message}`);
           if (testResultsRes.error) throw new Error(`Error fetching test results: ${testResultsRes.error.message}`);
-          if (medicationsRes.error) throw new Error(`Error fetching medications: ${medicationsRes.error.message}`);
+          if (prescriptionRes.error) throw new Error(`Error fetching prescription: ${prescriptionRes.error.message}`);
 
           setRecords(recordsRes.data);
           setTestResults(testResultsRes.data || {});
-          setMedications(medicationsRes.data?.medications || []);
+          setMedications(prescriptionRes.data?.medications || []);
+          setInvestigations(prescriptionRes.data?.investigations || '');
+          setPatientName(prescriptionRes.data?.patientName || '');
 
         } catch (err: any) {
           setError(err.message);
@@ -222,6 +227,7 @@ const MySpace = () => {
           {!loading && !error && (
             <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
               <OrderMedicationCard medications={medications} />
+              <OrderTestsCard investigations={investigations} patientName={patientName} />
               <Card className="lg:col-span-1">
                 <CardHeader className="flex flex-row items-center space-x-3">
                   <Briefcase className="h-6 w-6 text-primary" />
