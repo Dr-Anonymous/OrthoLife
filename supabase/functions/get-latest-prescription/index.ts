@@ -46,7 +46,11 @@ serve(async (req) => {
     const documentText = extractTextFromDocument(contentData);
     const patientData = parsePatientData(documentText);
 
-    return new Response(JSON.stringify({ medications: patientData.medications || [] }), {
+    return new Response(JSON.stringify({
+        medications: patientData.medications || [],
+        investigations: patientData.investigations,
+        patientName: patientData.name
+    }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -61,13 +65,21 @@ serve(async (req) => {
 });
 
 function extractTextFromDocument(document: any): string {
+    let text = '';
     if (document.body && document.body.content) {
-        const firstTable = document.body.content.find((element: any) => element.table);
-        if (firstTable) {
-            return extractTextFromTable(firstTable.table);
+        for (const element of document.body.content) {
+            if (element.paragraph) {
+                for (const textElement of element.paragraph.elements || []) {
+                    if (textElement.textRun) {
+                        text += textElement.textRun.content;
+                    }
+                }
+            } else if (element.table) {
+                text += extractTextFromTable(element.table);
+            }
         }
     }
-    return '';
+    return text;
 }
 
 function extractTextFromTable(table: any): string {
@@ -100,54 +112,61 @@ function extractTextFromTable(table: any): string {
     return tableText;
 }
 
-function parsePatientData(tableText: string): { medications?: any[] } {
-    const data: { medications?: any[] } = {};
+function parsePatientData(documentText: string): { medications?: any[], investigations?: string, name?: string } {
+    const data: { medications?: any[], investigations?: string, name?: string } = {};
+    const nameMatch = documentText.match(/Name:\s*(?:{{name}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:D\.O\.B)/i);
+    if (nameMatch && nameMatch[1] && !nameMatch[1].includes('{{')) {
+        data.name = nameMatch[1].trim();
+    }
+
+    const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([\s\S]*?))(?=\s*(?:→|Diagnosis:|Advice:|[A-Z][A-Za-z\s]+:|$))/i);
+    if (investigationsMatch && investigationsMatch[1] && !investigationsMatch[1].includes('{{')) {
+        data.investigations = investigationsMatch[1].trim();
+    }
+
     try {
         const medications = [];
-        const lines = tableText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-
-        const isTruthyMarker = (val?: string) => {
-            if (!val) return false;
-            const v = val.trim().toLowerCase();
-            return v === '✔' || v === '✓' || v === 'true' || v === '1' || v === 'yes' || v === 'y' || v.includes('✔');
-        };
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.includes('Name') && line.includes('Dose') || line.includes('Morning') || line.includes('ఉదయం') || line.includes('Frequency')) {
-                continue;
+        const medicationTableMatch = documentText.match(/Medication:(.*?)(?:→|Get free|Followup)/s);
+        if (medicationTableMatch && medicationTableMatch[1]) {
+            const tableContent = medicationTableMatch[1];
+            const lines = tableContent.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
+            const isTruthyMarker = (val?: string) => {
+                if (!val) return false;
+                const v = val.trim().toLowerCase();
+                return v === '✔' || v === '✓' || v === 'true' || v === '1' || v === 'yes' || v === 'y' || v.includes('✔');
+            };
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.includes('Name') && line.includes('Dose') || line.includes('Morning') || line.includes('ఉదయం') || line.includes('Frequency')) {
+                    continue;
+                }
+                let cols: string[];
+                if (line.includes('\t')) {
+                    cols = line.split('\t').map((c) => c.trim());
+                } else {
+                    cols = line.split(/\s{2,}/).map((c) => c.trim()).filter((c) => c.length > 0);
+                }
+                if (cols.length < 3) continue;
+                const indexCol = cols[0];
+                if (!/^\d+\.?$/.test(indexCol)) continue;
+                const name = cols[1] || '';
+                const dose = cols[2] || '';
+                if (!name || name.length < 2 || name.toLowerCase().includes('name')) continue;
+                const morningMark = cols[3] || '';
+                const noonMark = cols[4] || '';
+                const nightMark = cols[5] || '';
+                const duration = cols[6] || '';
+                const instructions = cols[7] || '';
+                medications.push({
+                    name: name,
+                    dose: dose,
+                    freqMorning: isTruthyMarker(morningMark),
+                    freqNoon: isTruthyMarker(noonMark),
+                    freqNight: isTruthyMarker(nightMark),
+                    duration: duration,
+                    instructions: instructions,
+                });
             }
-
-            let cols: string[];
-            if (line.includes('\t')) {
-                cols = line.split('\t').map(c => c.trim());
-            } else {
-                cols = line.split(/\s{2,}/).map(c => c.trim()).filter(c => c.length > 0);
-            }
-
-            if (cols.length < 3) continue;
-            const indexCol = cols[0];
-            if (!/^\d+\.?$/.test(indexCol)) continue;
-
-            const name = cols[1] || '';
-            const dose = cols[2] || '';
-            if (!name || name.length < 2 || name.toLowerCase().includes('name')) continue;
-
-            const morningMark = cols[3] || '';
-            const noonMark = cols[4] || '';
-            const nightMark = cols[5] || '';
-            const duration = cols[6] || '';
-            const instructions = cols[7] || '';
-
-            medications.push({
-                name: name,
-                dose: dose,
-                freqMorning: isTruthyMarker(morningMark),
-                freqNoon: isTruthyMarker(noonMark),
-                freqNight: isTruthyMarker(nightMark),
-                duration: duration,
-                instructions: instructions,
-            });
         }
         if (medications.length > 0) {
             data.medications = medications;
