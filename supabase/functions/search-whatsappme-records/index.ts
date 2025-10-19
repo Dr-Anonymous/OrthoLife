@@ -90,12 +90,26 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
           }
         });
         const folderData = await folderResponse.json();
+        const filesQuery = encodeURIComponent(`'${folderId}' in parents`);
+        const filesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${filesQuery}&fields=files(id,name,createdTime,mimeType)`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        const filesData = await filesResponse.json();
+        const files = filesData.files || [];
         return {
           id: folderId,
-          name: folderData.name
+          name: folderData.name,
+          files: files.map((file)=>({
+              id: file.id,
+              name: file.name,
+              createdTime: file.createdTime,
+              mimeType: file.mimeType
+            }))
         };
       } catch (error) {
-        console.error(`Error fetching folder name for ID ${folderId}:`, error);
+        console.error(`Error fetching folder contents for ID ${folderId}:`, error);
         return null;
       }
     });

@@ -261,9 +261,33 @@ const MySpace = () => {
                   {records?.patientFolders?.length > 0 ? (
                     <ul className="space-y-3">
                       {records.patientFolders.map((record: any) => (
-                        <a key={record.id} href={`https://drive.google.com/drive/folders/${record.id}`} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                          <p className="font-medium text-gray-800">{record.name}</p>
-                        </a>
+                        <div key={record.id} className="p-4 bg-gray-100 rounded-lg">
+                          <a href={`https://drive.google.com/drive/folders/${record.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-800 hover:underline">{record.name}</a>
+                          {record.files && record.files.length > 0 && (
+                            <ul className="mt-2 space-y-1">
+                              {record.files.map((file: any) => (
+                                <li key={file.id} className="text-sm text-gray-600 flex justify-between items-center">
+                                  <span>{file.name}</span>
+                                  <div className="flex items-center">
+                                    <span className="mr-4">{new Date(file.createdTime).toLocaleDateString()}</span>
+                                    <a
+                                      href={
+                                        file.mimeType === 'application/vnd.google-apps.document'
+                                          ? `https://docs.google.com/document/d/${file.id}/export?format=pdf`
+                                          : `https://drive.google.com/file/d/${file.id}/view`
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      View
+                                    </a>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       ))}
                     </ul>
                   ) : (
