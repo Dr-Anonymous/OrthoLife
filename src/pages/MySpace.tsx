@@ -48,8 +48,8 @@ const MySpace = () => {
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
             <AppointmentsCard />
             <PrescriptionsCard />
-            <TestResultsCard />
             <PrescriptionOrders />
+            <TestResultsCard />
           </div>
         </div>
       </main>

@@ -41,7 +41,11 @@ const AppointmentsCard = () => {
     const truncatedDesc = cutoff !== -1 ? description.substring(0, cutoff) : description;
     return truncatedDesc.replace(/\n/g, '<br />');
   };
-
+  
+  const appointment = () => {
+    navigate('/appointment');
+  };
+  
   return (
     <Card className="lg:col-span-1">
       <CardHeader className="flex flex-row items-center space-x-3">
@@ -66,7 +70,10 @@ const AppointmentsCard = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">No appointments found. <a href="/appointment">Click here to book an appointment.</a></p>
+            <p className="text-gray-500">No appointments found.</p>
+            <Button onClick={appointment} className="w-full mt-4">
+              Book an Appointment
+            </Button>
           )
         )}
       </CardContent>

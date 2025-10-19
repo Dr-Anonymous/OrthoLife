@@ -98,10 +98,12 @@ const PrescriptionsCard = () => {
                             <span className="mr-4">{new Date(file.createdTime).toLocaleDateString()}</span>
                             <a
                               href={
-                                file.mimeType === 'application/vnd.google-apps.document'
-                                  ? `https://docs.google.com/document/d/${file.id}/export?format=pdf`
-                                  : `https://drive.google.com/file/d/${file.id}/view`
-                              }
+                                    file.mimeType === 'application/vnd.google-apps.document'
+                                    ? `https://docs.google.com/document/d/${file.id}/export?format=pdf`
+                                    : file.mimeType === 'application/vnd.google-apps.folder'
+                                    ? `https://drive.google.com/drive/folders/${file.id}`
+                                    : `https://drive.google.com/file/d/${file.id}/view`
+                                  }
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline"
