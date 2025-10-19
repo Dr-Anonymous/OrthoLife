@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const AppointmentsCard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,10 +73,12 @@ const AppointmentsCard = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">No appointments found.</p>
-            <Button onClick={bookAppointment} className="w-full mt-4">
-              Book an Appointment
-            </Button>
+            <>
+              <p className="text-gray-500">No appointments found.</p>
+              <Button onClick={bookAppointment} className="w-full mt-4">
+                Book an Appointment
+              </Button>
+            </>
           )
         )}
       </CardContent>
