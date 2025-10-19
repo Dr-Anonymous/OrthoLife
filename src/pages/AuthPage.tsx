@@ -87,7 +87,7 @@ const AuthPage = () => {
         await confirmationResult.confirm(otp);
       }
       toast.success('Successfully logged in!');
-      navigate('/');
+      navigate('/my-space');
     } catch (error) {
       const err = error as Error;
       console.error('Error verifying OTP:', err);
