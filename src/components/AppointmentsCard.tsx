@@ -42,7 +42,7 @@ const AppointmentsCard = () => {
     return truncatedDesc.replace(/\n/g, '<br />');
   };
   
-  const appointment = () => {
+  const bookAppointment = () => {
     navigate('/appointment');
   };
   
@@ -71,7 +71,7 @@ const AppointmentsCard = () => {
             </ul>
           ) : (
             <p className="text-gray-500">No appointments found.</p>
-            <Button onClick={appointment} className="w-full mt-4">
+            <Button onClick={bookAppointment} className="w-full mt-4">
               Book an Appointment
             </Button>
           )
