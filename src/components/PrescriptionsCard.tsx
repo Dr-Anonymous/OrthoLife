@@ -36,26 +36,6 @@ const PrescriptionsCard = () => {
   };
 
   useEffect(() => {
-      if (user?.phoneNumber) {
-        try {
-          setLoading(true);
-          const phoneNumber = user.phoneNumber.slice(-10);
-          const { data, error } = await supabase.functions.invoke('search-whatsappme-records', {
-            body: { phoneNumber },
-          });
-
-          if (error) throw new Error(`Error fetching records: ${error.message}`);
-          setRecords(data);
-        } catch (err: any) {
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-      }
-    };
-
     fetchRecords();
   }, [user]);
 
@@ -78,7 +58,7 @@ const PrescriptionsCard = () => {
         });
 
         if (error) throw new Error(`Upload failed: ${error.message}`);
-
+        
         setSelectedFile(null);
         await fetchRecords();
 
