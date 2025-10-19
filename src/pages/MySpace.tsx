@@ -226,27 +226,6 @@ const MySpace = () => {
 
           {!loading && !error && (
             <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-              <OrderMedicationCard medications={medications} />
-              <OrderTestsCard investigations={investigations} patientName={patientName} />
-              <Card className="lg:col-span-1">
-                <CardHeader className="flex flex-row items-center space-x-3">
-                  <Briefcase className="h-6 w-6 text-primary" />
-                  <CardTitle>My Prescriptions and Records</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {records?.patientFolders?.length > 0 ? (
-                    <ul className="space-y-3">
-                      {records.patientFolders.map((record: any) => (
-                        <a key={record.id} href={`https://drive.google.com/drive/folders/${record.id}`} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                          <p className="font-medium text-gray-800">{record.name}</p>
-                        </a>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500">No prescriptions/records found.</p>
-                  )}
-                </CardContent>
-              </Card>
 
               <Card className="lg:col-span-1">
                 <CardHeader className="flex flex-row items-center space-x-3">
@@ -273,6 +252,28 @@ const MySpace = () => {
                 </CardContent>
               </Card>
 
+              <Card className="lg:col-span-1">
+                <CardHeader className="flex flex-row items-center space-x-3">
+                  <Briefcase className="h-6 w-6 text-primary" />
+                  <CardTitle>My Prescriptions and Records</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {records?.patientFolders?.length > 0 ? (
+                    <ul className="space-y-3">
+                      {records.patientFolders.map((record: any) => (
+                        <a key={record.id} href={`https://drive.google.com/drive/folders/${record.id}`} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                          <p className="font-medium text-gray-800">{record.name}</p>
+                        </a>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500">No prescriptions/records found.</p>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <OrderMedicationCard medications={medications} patientName={patientName} />
+              <OrderTestsCard investigations={investigations} patientName={patientName} />
               <Card className="lg:col-span-1">
                 <CardHeader className="flex flex-row items-center space-x-3">
                   <Beaker className="h-6 w-6 text-primary" />

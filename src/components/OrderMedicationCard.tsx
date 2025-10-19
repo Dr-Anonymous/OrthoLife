@@ -17,9 +17,11 @@ interface Medication {
 
 interface OrderMedicationCardProps {
   medications: Medication[];
+  patientName: string;
+
 }
 
-const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }) => {
+const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, patientName }) => {
   const [medicationQuantities, setMedicationQuantities] = useState<Record<string, number>>({});
   const navigate = useNavigate();
 
@@ -52,7 +54,7 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
   };
 
   const cleanMedicationName = (name: string) => {
-    return name.replace(/^(T\.|Cap\.|Syr\.)\s*/, '');
+    return name.replace(/^(?:T|Cap|Syr)\.?\s*/i, '');
   };
 
   const handleOrderNow = () => {
@@ -70,7 +72,7 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
     <Card>
       <CardHeader className="flex flex-row items-center space-x-3">
         <Pill className="h-6 w-6 text-primary" />
-        <CardTitle>Order Medication</CardTitle>
+        <CardTitle>Order Medication for {patientName}</CardTitle>
       </CardHeader>
       <CardContent>
         <p>From the latest prescription:</p>
