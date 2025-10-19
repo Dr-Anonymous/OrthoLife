@@ -22,7 +22,7 @@ const AuthPage = () => {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       if (user) {
-        navigate('/');
+        navigate('/my-space');
       }
     });
     return () => unsubscribe();
