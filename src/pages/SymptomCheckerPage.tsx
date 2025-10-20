@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import ThinkingAnimation from '@/components/ThinkingAnimation';
 
 const SymptomCheckerPage = () => {
   const { t } = useTranslation();
@@ -23,16 +24,20 @@ const SymptomCheckerPage = () => {
   const [duration, setDuration] = useState('');
   const [analysis, setAnalysis] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const analysisRef = useRef<HTMLDivElement>(null);
 
   const addSymptom = () => {
     if (currentSymptom.trim() && !symptoms.includes(currentSymptom.trim())) {
       setSymptoms([...symptoms, currentSymptom.trim()]);
       setCurrentSymptom('');
+      setIsDirty(true);
     }
   };
 
   const removeSymptom = (symptom: string) => {
     setSymptoms(symptoms.filter(s => s !== symptom));
+    setIsDirty(true);
   };
 
   const analyzeSymptoms = async () => {
@@ -43,6 +48,7 @@ const SymptomCheckerPage = () => {
 
     setIsAnalyzing(true);
     setAnalysis('');
+    setIsDirty(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('analyze-symptoms', {
@@ -65,6 +71,16 @@ const SymptomCheckerPage = () => {
     }
   };
 
+  const handleInputChange = (setter: (value: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(e.target.value);
+    setIsDirty(true);
+  };
+
+  const handleSelectChange = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    setIsDirty(true);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -72,11 +88,17 @@ const SymptomCheckerPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (analysis && analysisRef.current) {
+      analysisRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [analysis]);
+
   return (
     <div className="min-h-screen flex flex-col">
         <Header />
         
-        <main className="flex-1 py-16 px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <Activity className="h-12 w-12 mx-auto mb-4 text-primary" />
@@ -115,12 +137,12 @@ const SymptomCheckerPage = () => {
                       type="number"
                       placeholder="Enter your age"
                       value={age}
-                      onChange={(e) => setAge(e.target.value)}
+                      onChange={handleInputChange(setAge)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={gender} onValueChange={setGender}>
+                    <Select value={gender} onValueChange={handleSelectChange(setGender)}>
                       <SelectTrigger id="gender">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
@@ -137,7 +159,7 @@ const SymptomCheckerPage = () => {
                       id="duration"
                       placeholder="e.g., 3 days, 2 weeks"
                       value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
+                      onChange={handleInputChange(setDuration)}
                     />
                   </div>
                 </CardContent>
@@ -156,7 +178,7 @@ const SymptomCheckerPage = () => {
                         id="symptom"
                         placeholder="e.g., knee pain, headache"
                         value={currentSymptom}
-                        onChange={(e) => setCurrentSymptom(e.target.value)}
+                        onChange={handleInputChange(setCurrentSymptom)}
                         onKeyPress={handleKeyPress}
                       />
                       <Button onClick={addSymptom} size="icon">
@@ -186,40 +208,46 @@ const SymptomCheckerPage = () => {
             </div>
 
             <div className="flex justify-center mb-6">
-              <Button
-                size="lg"
-                onClick={analyzeSymptoms}
-                disabled={isAnalyzing || symptoms.length === 0}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  'Analyze Symptoms'
-                )}
-              </Button>
+              {isDirty && (
+                <Button
+                  size="lg"
+                  onClick={analyzeSymptoms}
+                  disabled={isAnalyzing || symptoms.length === 0}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    'Analyze Symptoms'
+                  )}
+                </Button>
+              )}
             </div>
 
+            {isAnalyzing && <ThinkingAnimation />}
+
             {analysis && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Preliminary Analysis</CardTitle>
-                  <CardDescription>Based on the symptoms you provided</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose dark:prose-invert max-w-none">
-                    <ReactMarkdown>{analysis}</ReactMarkdown>
-                  </div>
-                  <div className="mt-6 pt-6 border-t">
-                    <p className="text-sm font-semibold mb-2">Ready to consult with a doctor?</p>
-                    <Button asChild>
-                      <a href="/appointment">Book an Appointment</a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div ref={analysisRef}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Preliminary Analysis</CardTitle>
+                    <CardDescription>Based on the symptoms you provided</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose dark:prose-invert max-w-none">
+                      <ReactMarkdown>{analysis}</ReactMarkdown>
+                    </div>
+                    <div className="mt-6 pt-6 border-t">
+                      <p className="text-sm font-semibold mb-2">Ready to consult with a doctor?</p>
+                      <Button asChild>
+                        <a href="/appointment">Book an Appointment</a>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         </main>
