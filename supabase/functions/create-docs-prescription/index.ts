@@ -446,7 +446,7 @@ serve(async (req)=>{
       }
     }
     // Handle QR code and WhatsApp link
-    const waData = `https://wa.me/919866812555?text=Hi,\nI'd like to order medicines for prescription id ${myId}`;
+    const waData = `https://ortho.life/auth?phone=${data.phone}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=76x76&data=${encodeURIComponent(waData)}`;
     try {
       // Fetch QR code image
@@ -481,7 +481,6 @@ serve(async (req)=>{
           return null;
         }
         const qrLoc = findTextInContent(qrDoc.body.content, '{{waqr}}');
-        const whatsappLoc = findTextInContent(qrDoc.body.content, 'WhatsApp');
         if (qrLoc) {
           const qrPlaceholderIndex = qrLoc.index;
           const requests = [];
@@ -503,23 +502,6 @@ serve(async (req)=>{
               }
             }
           });
-          // Update the WhatsApp link if present
-          if (whatsappLoc) {
-            requests.push({
-              updateTextStyle: {
-                range: {
-                  startIndex: whatsappLoc.index,
-                  endIndex: whatsappLoc.index + 8
-                },
-                textStyle: {
-                  link: {
-                    url: waData
-                  }
-                },
-                fields: 'link'
-              }
-            });
-          }
           await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
             method: 'POST',
             headers: {
@@ -532,7 +514,6 @@ serve(async (req)=>{
           });
         }
       }
-    // WhatsApp link update handled in the same batchUpdate as QR insertion for performance
     } catch (qrError) {
       console.error('Error handling QR code:', qrError);
       // Fallback: just remove the placeholder text
