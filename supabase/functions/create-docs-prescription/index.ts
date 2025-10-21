@@ -45,7 +45,53 @@ serve(async (req)=>{
     } else {
       myId = await generateIncrementalId(supabaseClient);
     }
-    // Copy the template file
+    let parents;
+    if (data.folderId) {
+      parents = [
+        data.folderId
+      ];
+    } else {
+      let templateParent = null;
+      try {
+        const tplResp = await fetch(`https://www.googleapis.com/drive/v3/files/${templateId}?fields=parents`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        if (tplResp.ok) {
+          const tpl = await tplResp.json();
+          templateParent = tpl.parents?.[0] || null;
+        }
+      } catch (e) {
+        console.warn('Could not fetch template parent:', e);
+      }
+      if (templateParent) {
+        const createFolderResp = await fetch(`https://www.googleapis.com/drive/v3/files`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: data.name,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [
+              templateParent
+            ]
+          })
+        });
+        if (createFolderResp.ok) {
+          const folderData = await createFolderResp.json();
+          parents = [
+            folderData.id
+          ];
+        } else {
+          console.warn('Could not create folder; file will be created in default location.');
+        }
+      } else {
+        console.warn('Template parent not found; file will be created in default location.');
+      }
+    }
     const copyResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${templateId}/copy`, {
       method: 'POST',
       headers: {
@@ -53,12 +99,11 @@ serve(async (req)=>{
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        name: data.name
+        name: data.name,
+        parents: parents
       })
     });
-    if (!copyResponse.ok) {
-      throw new Error(`Failed to copy template: ${copyResponse.statusText}`);
-    }
+    if (!copyResponse.ok) throw new Error(`Failed to copy template: ${copyResponse.statusText}`);
     const copyData = await copyResponse.json();
     const docId = copyData.id;
     // Removed redundant document fetch for performance
@@ -176,63 +221,138 @@ serve(async (req)=>{
         }
       }
     ];
-    // Apply text replacements
-    const batchUpdateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        requests: replacements
-      })
-    });
-    if (!batchUpdateResponse.ok) {
-      throw new Error(`Failed to update document: ${batchUpdateResponse.statusText}`);
+    const qrRequests = [];
+    const waData = `https://ortho.life/auth?phone=${data.phone}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=76x76&data=${encodeURIComponent(waData)}`;
+    try {
+      const qrDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (!qrDocResponse.ok) throw new Error('Failed to fetch document for QR code placement');
+      const qrDoc = await qrDocResponse.json();
+      const findTextInContent = (content, searchText)=>{
+        for (const element of content){
+          if (element.paragraph?.elements) {
+            for (const textElement of element.paragraph.elements){
+              if (textElement.textRun?.content?.includes(searchText)) {
+                const textContent = textElement.textRun.content;
+                const textStartIndex = textElement.startIndex;
+                const placeholderStart = textContent.indexOf(searchText);
+                return {
+                  index: textStartIndex + placeholderStart,
+                  length: searchText.length
+                };
+              }
+            }
+          }
+        }
+        return null;
+      };
+      const qrLoc = findTextInContent(qrDoc.body.content, '{{waqr}}');
+      const qrResponse = await fetch(qrUrl);
+      if (qrResponse.ok && qrLoc) {
+        const qrArrayBuffer = await qrResponse.arrayBuffer();
+        const qrBase64 = btoa(String.fromCharCode(...new Uint8Array(qrArrayBuffer)));
+        qrRequests.push({
+          deleteContentRange: {
+            range: {
+              startIndex: qrLoc.index,
+              endIndex: qrLoc.index + qrLoc.length
+            }
+          }
+        });
+        qrRequests.push({
+          insertInlineImage: {
+            location: {
+              index: qrLoc.index
+            },
+            uri: `data:image/png;base64,${qrBase64}`,
+            objectSize: {
+              height: {
+                magnitude: 76,
+                unit: 'PT'
+              },
+              width: {
+                magnitude: 76,
+                unit: 'PT'
+              }
+            }
+          }
+        });
+      } else {
+        replacements.push({
+          replaceAllText: {
+            containsText: {
+              text: '{{waqr}}'
+            },
+            replaceText: 'QR Code'
+          }
+        });
+      }
+    } catch (qrError) {
+      console.error('Error handling QR code:', qrError);
+      replacements.push({
+        replaceAllText: {
+          containsText: {
+            text: '{{waqr}}'
+          },
+          replaceText: 'QR Code'
+        }
+      });
+    }
+    const allRequests = [
+      ...qrRequests,
+      ...replacements
+    ];
+    if (allRequests.length > 0) {
+      const batchUpdateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          requests: allRequests
+        })
+      });
+      if (!batchUpdateResponse.ok) {
+        throw new Error(`Failed to update document: ${batchUpdateResponse.statusText}`);
+      }
     }
     if (data.medications) {
       try {
         const medsRaw = data.medications;
         const meds = Array.isArray(medsRaw) ? medsRaw : JSON.parse(medsRaw);
         if (meds.length > 0) {
-          // Get updated document to find table
-          const updatedDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
+          const docResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
             headers: {
               'Authorization': `Bearer ${accessToken}`
             }
           });
-          if (!updatedDocResponse.ok) {
-            throw new Error(`Failed to fetch document: ${updatedDocResponse.statusText}`);
-          }
-          const updatedDoc = await updatedDocResponse.json();
-          // Find the first table in the document
-          let table = null;
-          let tableStartIndex = -1;
-          for (const element of updatedDoc.body.content){
-            if (element.table) {
-              table = element.table;
-              tableStartIndex = element.startIndex;
-              break;
-            }
+          if (!docResponse.ok) throw new Error(`Failed to fetch document: ${docResponse.statusText}`);
+          const doc = await docResponse.json();
+          let table, tableStartIndex = -1;
+          for (const element of doc.body.content)if (element.table) {
+            table = element.table;
+            tableStartIndex = element.startIndex;
+            break;
           }
           if (table && tableStartIndex !== -1) {
-            //console.log(`Found table with ${table.tableRows.length} rows at index ${tableStartIndex}`);
-            // Insert rows one by one to avoid batch issues
-            let currentRowCount = table.tableRows.length;
-            for(let i = 0; i < meds.length; i++){
-              const insertRowRequest = {
+            const insertRowRequests = meds.map(()=>({
                 insertTableRow: {
                   tableCellLocation: {
                     tableStartLocation: {
                       index: tableStartIndex
                     },
-                    rowIndex: currentRowCount - 1,
+                    rowIndex: table.tableRows.length - 1,
                     columnIndex: 0
                   },
                   insertBelow: true
                 }
-              };
-              //console.log(`Inserting row ${i + 1} of ${meds.length}`);
+              }));
+            if (insertRowRequests.length > 0) {
               const insertResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
                 method: 'POST',
                 headers: {
@@ -240,374 +360,79 @@ serve(async (req)=>{
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                  requests: [
-                    insertRowRequest
-                  ]
+                  requests: insertRowRequests
                 })
               });
-              if (!insertResponse.ok) {
-                const errorText = await insertResponse.text();
-                console.error(`Failed to insert row ${i + 1}: ${insertResponse.status} ${insertResponse.statusText}`, errorText);
-                throw new Error(`Failed to insert table row ${i + 1}: ${insertResponse.statusText}`);
-              }
-              currentRowCount++; // Increment for next iteration
-              // Small delay to avoid rate limiting
-              await new Promise((resolve)=>setTimeout(resolve, 100));
+              if (!insertResponse.ok) throw new Error(`Failed to insert table rows: ${insertResponse.statusText}`);
             }
-            // Now get the updated document to populate cells
             const finalDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
               headers: {
                 'Authorization': `Bearer ${accessToken}`
               }
             });
-            if (!finalDocResponse.ok) {
-              throw new Error(`Failed to fetch updated document: ${finalDocResponse.statusText}`);
-            }
+            if (!finalDocResponse.ok) throw new Error(`Failed to fetch updated document: ${finalDocResponse.statusText}`);
             const finalDoc = await finalDocResponse.json();
-            // Find the updated table
-            let updatedTable = null;
-            for (const element of finalDoc.body.content){
-              if (element.table) {
-                updatedTable = element.table;
-                break;
-              }
+            let updatedTable;
+            for (const element of finalDoc.body.content)if (element.table) {
+              updatedTable = element.table;
+              break;
             }
             if (updatedTable) {
-              //console.log(`Updated table now has ${updatedTable.tableRows.length} rows`);
-              // Populate cells for each medication
               const cellRequests = [];
-              // Calculate starting row index (skip header rows)
               const startingRowIndex = updatedTable.tableRows.length - meds.length;
-              for(let medIndex = 0; medIndex < meds.length; medIndex++){
-                const med = meds[medIndex];
+              const getCellInsertionIndex = (cell)=>{
+                if (!cell?.content?.[0]?.paragraph) return null;
+                const paragraph = cell.content[0].paragraph;
+                if (paragraph.elements) for (const element of paragraph.elements)if (element.textRun) return element.startIndex;
+                if (paragraph.elements?.[0]?.startIndex !== undefined) return paragraph.elements[0].startIndex;
+                return null;
+              };
+              meds.forEach((med, medIndex)=>{
                 const rowIndex = startingRowIndex + medIndex;
                 const row = updatedTable.tableRows[rowIndex];
-                //console.log(`Processing medication ${medIndex + 1}: ${med.name} in row ${rowIndex}`);
-                if (row && row.tableCells && row.tableCells.length >= 8) {
-                  // Helper function to get valid insertion index for a cell
-                  const getCellInsertionIndex = (cell)=>{
-                    if (!cell || !cell.content || !cell.content[0] || !cell.content[0].paragraph) {
-                      return null;
-                    }
-                    const paragraph = cell.content[0].paragraph;
-                    // Check if paragraph has elements with text
-                    if (paragraph.elements && paragraph.elements.length > 0) {
-                      // Find the first text run or use the paragraph's start index + 1
-                      for (const element of paragraph.elements){
-                        if (element.textRun) {
-                          return element.startIndex;
-                        }
+                if (row?.tableCells?.length >= 8) {
+                  const createInsertTextRequest = (cell, text)=>{
+                    const index = getCellInsertionIndex(cell);
+                    if (index !== null && text) return {
+                      insertText: {
+                        location: {
+                          index
+                        },
+                        text
                       }
-                    }
-                    // Fallback: use paragraph start index + 1 if it exists
-                    if (paragraph.elements && paragraph.elements[0] && paragraph.elements[0].startIndex !== undefined) {
-                      return paragraph.elements[0].startIndex;
-                    }
+                    };
                     return null;
                   };
-                  // Column 0: Serial number
-                  const col0Index = getCellInsertionIndex(row.tableCells[0]);
-                  if (col0Index !== null) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col0Index
-                        },
-                        text: (medIndex + 1).toString()
-                      }
-                    });
-                  }
-                  // Column 1: Medicine Name
-                  const col1Index = getCellInsertionIndex(row.tableCells[1]);
-                  if (col1Index !== null && med.name) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col1Index
-                        },
-                        text: med.name
-                      }
-                    });
-                  }
-                  // Column 2: Dose
-                  const col2Index = getCellInsertionIndex(row.tableCells[2]);
-                  if (col2Index !== null && med.dose) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col2Index
-                        },
-                        text: med.dose
-                      }
-                    });
-                  }
-                  // Column 3: Morning frequency
-                  const col3Index = getCellInsertionIndex(row.tableCells[3]);
-                  if (col3Index !== null && (med.freqMorning === true || med.freqMorning === 'true')) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col3Index
-                        },
-                        text: '✔'
-                      }
-                    });
-                  }
-                  // Column 4: Noon frequency  
-                  const col4Index = getCellInsertionIndex(row.tableCells[4]);
-                  if (col4Index !== null && (med.freqNoon === true || med.freqNoon === 'true')) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col4Index
-                        },
-                        text: '✔'
-                      }
-                    });
-                  }
-                  // Column 5: Night frequency
-                  const col5Index = getCellInsertionIndex(row.tableCells[5]);
-                  if (col5Index !== null && (med.freqNight === true || med.freqNight === 'true')) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col5Index
-                        },
-                        text: '✔'
-                      }
-                    });
-                  }
-                  // Column 6: Duration
-                  const col6Index = getCellInsertionIndex(row.tableCells[6]);
-                  if (col6Index !== null && med.duration) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col6Index
-                        },
-                        text: med.duration
-                      }
-                    });
-                  }
-                  // Column 7: Instructions
-                  const col7Index = getCellInsertionIndex(row.tableCells[7]);
-                  if (col7Index !== null && med.instructions) {
-                    cellRequests.push({
-                      insertText: {
-                        location: {
-                          index: col7Index
-                        },
-                        text: med.instructions
-                      }
-                    });
-                  }
-                } else {
-                  console.error(`Row ${rowIndex} does not have enough cells or is malformed`);
-                }
+                  cellRequests.push(createInsertTextRequest(row.tableCells[0], (medIndex + 1).toString()));
+                  cellRequests.push(createInsertTextRequest(row.tableCells[1], med.name));
+                  cellRequests.push(createInsertTextRequest(row.tableCells[2], med.dose));
+                  if (med.freqMorning === true || med.freqMorning === 'true') cellRequests.push(createInsertTextRequest(row.tableCells[3], '✔'));
+                  if (med.freqNoon === true || med.freqNoon === 'true') cellRequests.push(createInsertTextRequest(row.tableCells[4], '✔'));
+                  if (med.freqNight === true || med.freqNight === 'true') cellRequests.push(createInsertTextRequest(row.tableCells[5], '✔'));
+                  cellRequests.push(createInsertTextRequest(row.tableCells[6], med.duration));
+                  cellRequests.push(createInsertTextRequest(row.tableCells[7], med.instructions));
+                } else console.error(`Row ${rowIndex} does not have enough cells or is malformed`);
+              });
+              const validRequests = cellRequests.filter(Boolean);
+              if (validRequests.length > 0) {
+                const reversedRequests = validRequests.reverse();
+                const populateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    requests: reversedRequests
+                  })
+                });
+                if (!populateResponse.ok) console.error(`Failed to populate cells: ${populateResponse.statusText}`, await populateResponse.text());
               }
-              if (cellRequests.length > 0) {
-                //console.log(`Populating ${cellRequests.length} cells`);
-                // Process in reverse order to maintain correct indices and in smaller batches
-                const batchSize = 20;
-                const reversedRequests = cellRequests.reverse();
-                for(let i = 0; i < reversedRequests.length; i += batchSize){
-                  const batch = reversedRequests.slice(i, i + batchSize);
-                  const populateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${accessToken}`,
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                      requests: batch
-                    })
-                  });
-                  if (!populateResponse.ok) {
-                    const errorText = await populateResponse.text();
-                    console.error(`Failed to populate cells batch ${Math.floor(i / batchSize) + 1}: ${populateResponse.status} ${populateResponse.statusText}`, errorText);
-                  // Don't throw error, just log and continue with next batch
-                  } else {
-                  //console.log(`Successfully populated batch ${Math.floor(i / batchSize) + 1}`);
-                  }
-                  // Add delay between batches
-                  await new Promise((resolve)=>setTimeout(resolve, 200));
-                }
-              }
-            } else {
-              console.error('Could not find updated table after row insertion');
-            }
-          } else {
-            console.error('No table found in document');
-          }
+            } else console.error('Could not find updated table after row insertion');
+          } else console.error('No table found in document');
         }
       } catch (error) {
         console.error('Error processing medications:', error);
-      // Don't throw error, just log and continue - the rest of the prescription will still be created
-      }
-    }
-    // Handle QR code and WhatsApp link
-    const waData = `https://ortho.life/auth?phone=${data.phone}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=76x76&data=${encodeURIComponent(waData)}`;
-    try {
-      // Fetch QR code image
-      const qrResponse = await fetch(qrUrl);
-      if (qrResponse.ok) {
-        const qrArrayBuffer = await qrResponse.arrayBuffer();
-        const qrBase64 = btoa(String.fromCharCode(...new Uint8Array(qrArrayBuffer)));
-        // Get the document to find QR placeholder
-        const qrDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        const qrDoc = await qrDocResponse.json();
-        // Find the QR placeholder text and the 'WhatsApp' text, then perform a single batch update
-        function findTextInContent(content, searchText) {
-          for(let i = 0; i < content.length; i++){
-            const element = content[i];
-            if (element.paragraph?.elements) {
-              for (const textElement of element.paragraph.elements){
-                if (textElement.textRun?.content?.includes(searchText)) {
-                  const textContent = textElement.textRun.content;
-                  const textStartIndex = textElement.startIndex;
-                  const placeholderStart = textContent.indexOf(searchText);
-                  return {
-                    index: textStartIndex + placeholderStart
-                  };
-                }
-              }
-            }
-          }
-          return null;
-        }
-        const qrLoc = findTextInContent(qrDoc.body.content, '{{waqr}}');
-        if (qrLoc) {
-          const qrPlaceholderIndex = qrLoc.index;
-          const requests = [];
-          // Insert the image at the placeholder
-          requests.push({
-            insertInlineImage: {
-              location: {
-                index: qrPlaceholderIndex
-              },
-              uri: `data:image/png;base64,${qrBase64}`
-            }
-          });
-          // Delete the placeholder text '{{waqr}}'
-          requests.push({
-            deleteContentRange: {
-              range: {
-                startIndex: qrPlaceholderIndex + 1,
-                endIndex: qrPlaceholderIndex + 1 + 8
-              }
-            }
-          });
-          await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              requests
-            })
-          });
-        }
-      }
-    } catch (qrError) {
-      console.error('Error handling QR code:', qrError);
-      // Fallback: just remove the placeholder text
-      await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          requests: [
-            {
-              replaceAllText: {
-                containsText: {
-                  text: '{{waqr}}'
-                },
-                replaceText: 'QR Code'
-              }
-            }
-          ]
-        })
-      });
-    }
-    // Move file to target folder if specified
-    let previousParents = [];
-    try {
-      const fileMetaResp = await fetch(`https://www.googleapis.com/drive/v3/files/${docId}?fields=parents`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      if (fileMetaResp.ok) {
-        const fileMeta = await fileMetaResp.json();
-        previousParents = fileMeta.parents || [];
-      }
-    } catch (e) {
-      console.warn('Could not fetch file parents:', e);
-    }
-    if (data.folderId) {
-      const removed = previousParents.length ? previousParents.join(',') : '';
-      const patchUrl = `https://www.googleapis.com/drive/v3/files/${docId}?addParents=${data.folderId}${removed ? `&removeParents=${removed}` : ''}`;
-      await fetch(patchUrl, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-    } else {
-      // create a folder in the template's parent folder
-      // get template parents
-      let templateParent = null;
-      try {
-        const tplResp = await fetch(`https://www.googleapis.com/drive/v3/files/${templateId}?fields=parents`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        if (tplResp.ok) {
-          const tpl = await tplResp.json();
-          templateParent = tpl.parents?.[0] || null;
-        }
-      } catch (e) {}
-      if (templateParent) {
-        // create folder
-        const createFolderResp = await fetch(`https://www.googleapis.com/drive/v3/files`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: data.name,
-            mimeType: 'application/vnd.google-apps.folder',
-            parents: [
-              templateParent
-            ]
-          })
-        });
-        if (createFolderResp.ok) {
-          const folderData = await createFolderResp.json();
-          const folderId = folderData.id;
-          const removed = previousParents.length ? previousParents.join(',') : '';
-          const patchUrl = `https://www.googleapis.com/drive/v3/files/${docId}?addParents=${folderId}${removed ? `&removeParents=${removed}` : ''}`;
-          await fetch(patchUrl, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`
-            }
-          });
-        } else {
-          console.warn('Could not create folder; skipping move to new folder.');
-        }
-      } else {
-        console.warn('Template parent not found; skipping create-folder behaviour.');
       }
     }
     // Get the document URL
