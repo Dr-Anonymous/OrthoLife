@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth } from '@/integrations/firebase/client';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import Footer from '@/components/Footer';
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -27,6 +28,13 @@ const AuthPage = () => {
     });
     return () => unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    const phoneFromUrl = searchParams.get('phone');
+    if (phoneFromUrl) {
+      setPhone(phoneFromUrl);
+    }
+  }, [searchParams]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Sanitize the input to only allow digits and keep the last 10
