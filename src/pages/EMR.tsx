@@ -39,6 +39,7 @@ interface Medication {
   freqMorning: boolean;
   freqNoon: boolean;
   freqNight: boolean;
+  frequency: string;
   duration: string;
   instructions: string;
 }
@@ -56,6 +57,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const [isCustom, setIsCustom] = useState(false);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
@@ -105,40 +107,61 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Frequency</Label>
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={med.freqMorning}
-                  onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
-                  className="rounded border-border"
-                />
-                <span className="text-sm">Morning</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={med.freqNoon}
-                  onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
-                  className="rounded border-border"
-                />
-                <span className="text-sm">Noon</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={med.freqNight}
-                  onChange={e => handleMedChange(index, 'freqNight', e.target.checked)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
-                  className="rounded border-border"
-                />
-                <span className="text-sm">Night</span>
-              </label>
-            </div>
+          <Label className="text-sm font-medium">Frequency</Label>
+          <div className="flex items-center gap-6">
+            {!isCustom &&
+              <>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={med.freqMorning}
+                    onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm">Morning</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={med.freqNoon}
+                    onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm">Noon</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={med.freqNight}
+                    onChange={e => handleMedChange(index, 'freqNight', e.target.checked)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm">Night</span>
+                </label>
+              </>
+            }
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isCustom}
+                onChange={() => setIsCustom(isCustom => !isCustom)}
+                className="rounded border-border"
+              />
+              <span className="text-sm">Custom</span>
+            </label>
           </div>
+          {isCustom &&
+            <Textarea
+              value={med.frequency}
+              onChange={e => handleMedChange(index, 'frequency', e.target.value)}
+              placeholder="e.g., once a week"
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+            />
+          }
+        </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Duration</Label>
@@ -215,8 +238,8 @@ const EMR = () => {
     advice: '',
     followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
     medications: [
-      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, duration: '1 week', instructions: 'Aft. meal' },
-      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, duration: '1 week', instructions: 'Bef. breakfast' }
+      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, frequency: '', duration: '1 week', instructions: 'Aft. meal' },
+      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, frequency: '', duration: '1 week', instructions: 'Bef. breakfast' }
     ] as Medication[]
   });
 
@@ -458,7 +481,7 @@ const EMR = () => {
       ...prev,
       medications: [
         ...prev.medications,
-        { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, duration: '', instructions: '' }
+        { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '' }
       ]
     }));
   };
