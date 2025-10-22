@@ -36,6 +36,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [isCustom, setIsCustom] = useState(false);
   const [newMed, setNewMed] = useState<Medication>({
     name: '',
     dose: '',
@@ -124,11 +125,13 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const startEditing = (med: Medication) => {
     setIsEditing(med.id!);
     setNewMed(med);
+    setIsCustom(!!med.frequency);
   };
 
   const resetForm = () => {
     setIsEditing(null);
     setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '' });
+    setIsCustom(false);
   };
 
   return (
@@ -151,20 +154,43 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
             <div className="space-y-2">
               <Label>Frequency</Label>
               <div className="flex items-center gap-6">
+                {!isCustom && (
+                  <>
+                    <Label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={newMed.freqMorning} onChange={e => handleInputChange('freqMorning', e.target.checked)} className="rounded border-border" />
+                      Morning
+                    </Label>
+                    <Label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={newMed.freqNoon} onChange={e => handleInputChange('freqNoon', e.target.checked)} className="rounded border-border" />
+                      Noon
+                    </Label>
+                    <Label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={newMed.freqNight} onChange={e => handleInputChange('freqNight', e.target.checked)} className="rounded border-border" />
+                      Night
+                    </Label>
+                  </>
+                )}
                 <Label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={newMed.freqMorning} onChange={e => handleInputChange('freqMorning', e.target.checked)} className="rounded border-border" />
-                  Morning
-                </Label>
-                <Label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={newMed.freqNoon} onChange={e => handleInputChange('freqNoon', e.target.checked)} className="rounded border-border" />
-                  Noon
-                </Label>
-                <Label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={newMed.freqNight} onChange={e => handleInputChange('freqNight', e.target.checked)} className="rounded border-border" />
-                  Night
+                  <input
+                    type="checkbox"
+                    checked={isCustom}
+                    onChange={() => {
+                      const newIsCustom = !isCustom;
+                      setIsCustom(newIsCustom);
+                      if (newIsCustom) {
+                        handleInputChange('freqMorning', false);
+                        handleInputChange('freqNoon', false);
+                        handleInputChange('freqNight', false);
+                      } else {
+                        handleInputChange('frequency', '');
+                      }
+                    }}
+                    className="rounded border-border"
+                  />
+                  Custom
                 </Label>
               </div>
-              <Input id="med-frequency" value={newMed.frequency} onChange={e => handleInputChange('frequency', e.target.value)} placeholder="e.g., once a week" />
+              {isCustom && <Input id="med-frequency" value={newMed.frequency} onChange={e => handleInputChange('frequency', e.target.value)} placeholder="e.g., once a week" />}
             </div>
             <div className="space-y-2">
               <Label htmlFor="med-duration">Duration</Label>
