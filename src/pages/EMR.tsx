@@ -57,7 +57,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
     transform: CSS.Transform.toString(transform),
     transition,
   };
-  const [isCustom, setIsCustom] = useState(false);
+  const [isCustom, setIsCustom] = useState(!!med.frequency);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
@@ -147,7 +147,17 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
               <input
                 type="checkbox"
                 checked={isCustom}
-                onChange={() => setIsCustom(isCustom => !isCustom)}
+                onChange={() => {
+                  const newIsCustom = !isCustom;
+                  setIsCustom(newIsCustom);
+                  if (newIsCustom) {
+                    handleMedChange(index, 'freqMorning', false);
+                    handleMedChange(index, 'freqNoon', false);
+                    handleMedChange(index, 'freqNight', false);
+                  } else {
+                    handleMedChange(index, 'frequency', '');
+                  }
+                }}
                 className="rounded border-border"
               />
               <span className="text-sm">Custom</span>
@@ -291,6 +301,7 @@ const EMR = () => {
             freqMorning: med.freq_morning,
             freqNoon: med.freq_noon,
             freqNight: med.freq_night,
+            frequency: med.frequency,
           }));
 
           setExtraData(prev => {
