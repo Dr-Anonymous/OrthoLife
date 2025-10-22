@@ -21,6 +21,7 @@ interface Medication {
   freqMorning: boolean;
   freqNoon: boolean;
   freqNight: boolean;
+  frequency: string;
   duration: string;
   instructions: string;
 }
@@ -41,6 +42,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     freqMorning: false,
     freqNoon: false,
     freqNight: false,
+    frequency: '',
     duration: '',
     instructions: '',
   });
@@ -80,6 +82,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           freq_morning: newMed.freqMorning,
           freq_noon: newMed.freqNoon,
           freq_night: newMed.freqNight,
+          frequency: newMed.frequency,
           duration: newMed.duration,
           instructions: newMed.instructions,
         }).eq('id', isEditing)
@@ -89,6 +92,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           freq_morning: newMed.freqMorning,
           freq_noon: newMed.freqNoon,
           freq_night: newMed.freqNight,
+          frequency: newMed.frequency,
           duration: newMed.duration,
           instructions: newMed.instructions,
         }]);
@@ -124,7 +128,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const resetForm = () => {
     setIsEditing(null);
-    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, duration: '', instructions: '' });
+    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '' });
   };
 
   return (
@@ -144,19 +148,23 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
               <Label htmlFor="med-dose">Dose</Label>
               <Input id="med-dose" value={newMed.dose} onChange={e => handleInputChange('dose', e.target.value)} />
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="space-y-2">
+              <Label>Frequency</Label>
+              <div className="flex items-center gap-6">
                 <Label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={newMed.freqMorning} onChange={e => handleInputChange('freqMorning', e.target.checked)} className="rounded border-border" />
-                    Morning
+                  <input type="checkbox" checked={newMed.freqMorning} onChange={e => handleInputChange('freqMorning', e.target.checked)} className="rounded border-border" />
+                  Morning
                 </Label>
                 <Label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={newMed.freqNoon} onChange={e => handleInputChange('freqNoon', e.target.checked)} className="rounded border-border" />
-                    Noon
+                  <input type="checkbox" checked={newMed.freqNoon} onChange={e => handleInputChange('freqNoon', e.target.checked)} className="rounded border-border" />
+                  Noon
                 </Label>
                 <Label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={newMed.freqNight} onChange={e => handleInputChange('freqNight', e.target.checked)} className="rounded border-border" />
-                    Night
+                  <input type="checkbox" checked={newMed.freqNight} onChange={e => handleInputChange('freqNight', e.target.checked)} className="rounded border-border" />
+                  Night
                 </Label>
+              </div>
+              <Input id="med-frequency" value={newMed.frequency} onChange={e => handleInputChange('frequency', e.target.value)} placeholder="e.g., once a week" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="med-duration">Duration</Label>

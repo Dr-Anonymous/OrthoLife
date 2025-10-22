@@ -379,6 +379,7 @@ serve(async (req)=>{
             }
             if (updatedTable) {
               const cellRequests = [];
+              const mergeRequests = [];
               const startingRowIndex = updatedTable.tableRows.length - meds.length;
               const getCellInsertionIndex = (cell)=>{
                 if (!cell?.content?.[0]?.paragraph) return null;
@@ -406,16 +407,38 @@ serve(async (req)=>{
                   cellRequests.push(createInsertTextRequest(row.tableCells[0], (medIndex + 1).toString()));
                   cellRequests.push(createInsertTextRequest(row.tableCells[1], med.name));
                   cellRequests.push(createInsertTextRequest(row.tableCells[2], med.dose));
-                  if (med.freqMorning === true || med.freqMorning === 'true') cellRequests.push(createInsertTextRequest(row.tableCells[3], '✔'));
-                  if (med.freqNoon === true || med.freqNoon === 'true') cellRequests.push(createInsertTextRequest(row.tableCells[4], '✔'));
-                  if (med.freqNight === true || med.freqNight === 'true') cellRequests.push(createInsertTextRequest(row.tableCells[5], '✔'));
+                  if (med.frequency && med.frequency.trim() !== "") {
+                    mergeRequests.push({
+                      mergeTableCells: {
+                        tableRange: {
+                          tableCellLocation: {
+                            tableStartLocation: {
+                              index: tableStartIndex
+                            },
+                            rowIndex: rowIndex,
+                            columnIndex: 3
+                          },
+                          rowSpan: 1,
+                          columnSpan: 3
+                        }
+                      }
+                    });
+                    cellRequests.push(createInsertTextRequest(row.tableCells[3], med.frequency));
+                  } else {
+                    if (med.freqMorning === true || med.freqMorning === "true") cellRequests.push(createInsertTextRequest(row.tableCells[3], "✔"));
+                    if (med.freqNoon === true || med.freqNoon === "true") cellRequests.push(createInsertTextRequest(row.tableCells[4], "✔"));
+                    if (med.freqNight === true || med.freqNight === "true") cellRequests.push(createInsertTextRequest(row.tableCells[5], "✔"));
+                  }
                   cellRequests.push(createInsertTextRequest(row.tableCells[6], med.duration));
                   cellRequests.push(createInsertTextRequest(row.tableCells[7], med.instructions));
                 } else console.error(`Row ${rowIndex} does not have enough cells or is malformed`);
               });
-              const validRequests = cellRequests.filter(Boolean);
-              if (validRequests.length > 0) {
-                const reversedRequests = validRequests.reverse();
+              const validCellRequests = cellRequests.filter(Boolean).reverse();
+              const allMedRequests = [
+                ...mergeRequests,
+                ...validCellRequests
+              ];
+              if (allMedRequests.length > 0) {
                 const populateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
                   method: 'POST',
                   headers: {
@@ -423,7 +446,7 @@ serve(async (req)=>{
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
-                    requests: reversedRequests
+                    requests: allMedRequests
                   })
                 });
                 if (!populateResponse.ok) console.error(`Failed to populate cells: ${populateResponse.statusText}`, await populateResponse.text());
