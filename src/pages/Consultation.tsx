@@ -453,10 +453,13 @@ const Consultation = () => {
     };
 
     if (
-      !textsToTranslate.advice.trim() &&
-      !textsToTranslate.followup.trim() &&
+      !(textsToTranslate.advice || '').trim() &&
+      !(textsToTranslate.followup || '').trim() &&
       textsToTranslate.medications.every(
-        med => !med.instructions.trim() && !med.frequency.trim() && !med.notes.trim()
+        med =>
+          !(med.instructions || '').trim() &&
+          !(med.frequency || '').trim() &&
+          !(med.notes || '').trim()
       )
     ) {
       toast({
@@ -471,11 +474,12 @@ const Consultation = () => {
     setIsTranslating(true);
 
     try {
-      const translate = (text: string) => {
-        if (!text.trim()) return Promise.resolve(text);
+      const translate = (text: string | null | undefined) => {
+        const textToTranslate = text || '';
+        if (!textToTranslate.trim()) return Promise.resolve(text);
         return supabase.functions
           .invoke('translate-content', {
-            body: { text, targetLanguage: 'te' },
+            body: { text: textToTranslate, targetLanguage: 'te' },
           })
           .then(result => {
             if (result.error) throw new Error(result.error.message);
