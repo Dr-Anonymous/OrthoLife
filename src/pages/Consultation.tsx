@@ -30,6 +30,7 @@ interface Medication {
   frequency: string;
   duration: string;
   instructions: string;
+  notes: string;
 }
 
 interface Consultation {
@@ -202,6 +203,15 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
               />
             </div>
           </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Notes</Label>
+            <Input
+              value={med.notes}
+              onChange={e => handleMedChange(index, 'notes', e.target.value)}
+              placeholder="e.g., side effects"
+              onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+            />
+          </div>
         </div>
       </Card>
     </div>
@@ -227,8 +237,8 @@ const Consultation = () => {
     advice: '',
     followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
     medications: [
-      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, frequency: '', duration: '1 week', instructions: 'Aft. meal' },
-      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, frequency: '', duration: '1 week', instructions: 'Bef. breakfast' }
+      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, frequency: '', duration: '1 week', instructions: 'Aft. meal', notes: '' },
+      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, frequency: '', duration: '1 week', instructions: 'Bef. breakfast', notes: '' }
     ] as Medication[]
   });
 
@@ -278,6 +288,7 @@ const Consultation = () => {
             freqNoon: med.freq_noon,
             freqNight: med.freq_night,
             frequency: med.frequency,
+            notes: med.notes,
           }));
 
           setExtraData(prev => {
@@ -351,8 +362,8 @@ const Consultation = () => {
             advice: '',
             followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
             medications: [
-              { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, frequency: '', duration: '1 week', instructions: 'Aft. meal' },
-              { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, frequency: '', duration: '1 week', instructions: 'Bef. breakfast' }
+              { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, frequency: '', duration: '1 week', instructions: 'Aft. meal', notes: '' },
+              { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, frequency: '', duration: '1 week', instructions: 'Bef. breakfast', notes: '' }
             ],
         });
     } catch (error) {
@@ -418,7 +429,7 @@ const Consultation = () => {
       ...prev,
       medications: [
         ...prev.medications,
-        { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '' }
+        { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '', notes: '' }
       ]
     }));
   };
