@@ -496,7 +496,7 @@ serve(async (req)=>{
                     }
                   }
                   rowIndex++;
-                  if (med.notes && med.notes.trim() !== "" && medIndex < meds.length - 1) {
+                  if (med.notes && med.notes.trim() !== "") {
                     const nextRow = updatedTable.tableRows[rowIndex];
                     if (nextRow) {
                       const startIndex = nextRow.tableCells[0].startIndex;

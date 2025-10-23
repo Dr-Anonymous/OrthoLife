@@ -517,67 +517,87 @@ const EMR = () => {
 
   const handleTranslateAll = async () => {
     const textsToTranslate = {
-        advice: extraData.advice,
-        followup: extraData.followup,
-        medications: extraData.medications.map(med => med.instructions)
+      advice: extraData.advice,
+      followup: extraData.followup,
+      medications: extraData.medications.map(med => ({
+        instructions: med.instructions,
+        frequency: med.frequency,
+        notes: med.notes,
+      })),
     };
 
-    if (!textsToTranslate.advice.trim() && !textsToTranslate.followup.trim() && textsToTranslate.medications.every(inst => !inst.trim())) {
-        toast({
-            variant: 'destructive',
-            title: 'Nothing to translate',
-            description: 'Please enter some text in Advice, Follow-up, or Medication Instructions before translating.',
-        });
-        return;
+    if (
+      !textsToTranslate.advice.trim() &&
+      !textsToTranslate.followup.trim() &&
+      textsToTranslate.medications.every(
+        med => !med.instructions.trim() && !med.frequency.trim() && !med.notes.trim()
+      )
+    ) {
+      toast({
+        variant: 'destructive',
+        title: 'Nothing to translate',
+        description:
+          'Please enter some text in Advice, Follow-up, or Medication fields before translating.',
+      });
+      return;
     }
 
     setIsTranslating(true);
 
     try {
-        const translate = (text: string) => {
-            if (!text.trim()) return Promise.resolve(text);
-            return supabase.functions.invoke('translate-content', {
-                body: { text, targetLanguage: 'te' },
-            }).then(result => {
-                if (result.error) throw new Error(result.error.message);
-                if (result.data?.error) throw new Error(result.data.error);
-                return result.data?.translatedText || text;
-            });
-        };
+      const translate = (text: string) => {
+        if (!text.trim()) return Promise.resolve(text);
+        return supabase.functions
+          .invoke('translate-content', {
+            body: { text, targetLanguage: 'te' },
+          })
+          .then(result => {
+            if (result.error) throw new Error(result.error.message);
+            if (result.data?.error) throw new Error(result.data.error);
+            return result.data?.translatedText || text;
+          });
+      };
 
-        const [translatedAdvice, translatedFollowup] = await Promise.all([
-            translate(textsToTranslate.advice),
-            translate(textsToTranslate.followup)
-        ]);
+      const [translatedAdvice, translatedFollowup] = await Promise.all([
+        translate(textsToTranslate.advice),
+        translate(textsToTranslate.followup),
+      ]);
 
-        const translatedMedInstructions = await Promise.all(
-            textsToTranslate.medications.map(inst => translate(inst))
-        );
+      const translatedMedications = await Promise.all(
+        textsToTranslate.medications.map(async med => ({
+          instructions: await translate(med.instructions),
+          frequency: await translate(med.frequency),
+          notes: await translate(med.notes),
+        }))
+      );
 
-        setExtraData(prev => ({
-            ...prev,
-            advice: translatedAdvice,
-            followup: translatedFollowup,
-            medications: prev.medications.map((med, index) => ({
-                ...med,
-                instructions: translatedMedInstructions[index]
-            }))
-        }));
+      setExtraData(prev => ({
+        ...prev,
+        advice: translatedAdvice,
+        followup: translatedFollowup,
+        medications: prev.medications.map((med, index) => ({
+          ...med,
+          instructions: translatedMedications[index].instructions,
+          frequency: translatedMedications[index].frequency,
+          notes: translatedMedications[index].notes,
+        })),
+      }));
 
-        toast({
-            title: 'Translation Successful',
-            description: 'The relevant fields have been translated to Telugu.'
-        });
-
+      toast({
+        title: 'Translation Successful',
+        description: 'The relevant fields have been translated to Telugu.',
+      });
     } catch (error) {
-        console.error('Translation error:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Translation Error',
-            description: (error as Error).message || 'Could not translate the text. Please try again.'
-        });
+      console.error('Translation error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Translation Error',
+        description:
+          (error as Error).message ||
+          'Could not translate the text. Please try again.',
+      });
     } finally {
-        setIsTranslating(false);
+      setIsTranslating(false);
     }
   };
 
