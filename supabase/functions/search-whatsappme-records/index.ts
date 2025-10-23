@@ -95,7 +95,22 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
           }
         });
         const filesData = await filesResponse.json();
-        const files = filesData.files || [];
+        const files = await Promise.all((filesData.files || []).map(async (file)=>{
+          if (file.name === 'uploads' && file.mimeType === 'application/vnd.google-apps.folder') {
+            const subFilesQuery = encodeURIComponent(`'${file.id}' in parents`);
+            const subFilesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${subFilesQuery}&fields=files(id,name,createdTime,mimeType)`, {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`
+              }
+            });
+            const subFilesData = await subFilesResponse.json();
+            return {
+              ...file,
+              files: subFilesData.files || []
+            };
+          }
+          return file;
+        }));
         return {
           id: folderId,
           name: folderData.name,
@@ -103,7 +118,13 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
               id: file.id,
               name: file.name,
               createdTime: file.createdTime,
-              mimeType: file.mimeType
+              mimeType: file.mimeType,
+              files: file.files ? file.files.map((subFile)=>({
+                id: subFile.id,
+                name: subFile.name,
+                createdTime: subFile.createdTime,
+                mimeType: subFile.mimeType
+              })) : []
             }))
         };
       } catch (error) {
