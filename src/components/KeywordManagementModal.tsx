@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -11,6 +12,7 @@ interface Keyword {
   id: number;
   keywords: string[];
   medication_ids: number[];
+  advice?: string;
 }
 
 interface Medication {
@@ -29,6 +31,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [isLoading, setIsLoading] = useState(false);
   const [newKeywords, setNewKeywords] = useState('');
   const [selectedMeds, setSelectedMeds] = useState<number[]>([]);
+  const [advice, setAdvice] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
 
   const fetchKeywords = async () => {
@@ -65,7 +68,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       return;
     }
 
-    const payload = { keywords: keywordsArray, medication_ids: selectedMeds };
+    const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice };
 
     let error;
     if (editingKeyword) {
@@ -80,6 +83,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       toast({ title: `Keyword ${editingKeyword ? 'updated' : 'added'} successfully` });
       setNewKeywords('');
       setSelectedMeds([]);
+      setAdvice('');
       setEditingKeyword(null);
       fetchKeywords();
     }
@@ -99,6 +103,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
     setEditingKeyword(keyword);
     setNewKeywords(keyword.keywords.join(', '));
     setSelectedMeds(keyword.medication_ids);
+    setAdvice(keyword.advice || '');
   };
 
   return (
@@ -138,12 +143,16 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                 </div>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="advice">Advice</Label>
+              <Textarea id="advice" value={advice} onChange={(e) => setAdvice(e.target.value)} placeholder="e.g., Drink plenty of fluids" />
+            </div>
             <Button onClick={handleSaveKeyword} size="sm">
               {editingKeyword ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
               {editingKeyword ? 'Save Changes' : 'Add Keyword'}
             </Button>
             {editingKeyword && (
-              <Button variant="ghost" size="sm" onClick={() => { setEditingKeyword(null); setNewKeywords(''); setSelectedMeds([]); }}>
+              <Button variant="ghost" size="sm" onClick={() => { setEditingKeyword(null); setNewKeywords(''); setSelectedMeds([]); setAdvice(''); }}>
                 Cancel Edit
               </Button>
             )}
@@ -159,8 +168,9 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                     <div>
                       <p className="font-semibold">{(kw.keywords || []).join(', ')}</p>
                       <p className="text-sm text-muted-foreground">
-                        {(kw.medication_ids || []).map(id => medications.find(m => m.id === id)?.name).join(', ')}
+                        Meds: {(kw.medication_ids || []).map(id => medications.find(m => m.id === id)?.name).join(', ')}
                       </p>
+                      {kw.advice && <p className="text-sm text-muted-foreground mt-1">Advice: {kw.advice}</p>}
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEdit(kw)}>

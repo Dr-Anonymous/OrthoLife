@@ -16,14 +16,16 @@ serve(async (req) => {
     const { text } = await req.json();
     const words = text.toLowerCase().split(/\s+/);
     const medicationIds = new Set<number>();
+    const adviceTexts = new Set<string>();
 
     const { data: keywordMappings, error: keywordsError } = await supabase
       .from('autofill_keywords')
-      .select('keywords, medication_ids');
+      .select('keywords, medication_ids, advice');
 
     if (keywordsError) {
       console.error('Error fetching keywords:', keywordsError);
-      return new Response(JSON.stringify([]), {
+      // Return empty array for medications, and empty string for advice
+      return new Response(JSON.stringify({ medications: [], advice: '' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -35,30 +37,34 @@ serve(async (req) => {
             for (const id of mapping.medication_ids) {
               medicationIds.add(id);
             }
+            if (mapping.advice) {
+              adviceTexts.add(mapping.advice);
+            }
           }
         }
       }
     }
 
-    if (medicationIds.size === 0) {
-      return new Response(JSON.stringify([]), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let medications = [];
+    if (medicationIds.size > 0) {
+      const { data, error } = await supabase
+        .from('saved_medications')
+        .select('*')
+        .in('id', Array.from(medicationIds));
+
+      if (error) {
+        console.error('Error fetching medications:', error);
+      } else {
+        medications = data;
+      }
     }
 
-    const { data, error } = await supabase
-      .from('saved_medications')
-      .select('*')
-      .in('id', Array.from(medicationIds));
+    const response = {
+      medications,
+      advice: Array.from(adviceTexts).join('\n'),
+    };
 
-    if (error) {
-      console.error('Error fetching medications:', error);
-      return new Response(JSON.stringify([]), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

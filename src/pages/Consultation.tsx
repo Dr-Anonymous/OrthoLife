@@ -280,8 +280,10 @@ const Consultation = () => {
 
         if (error) throw error;
 
-        if (data && data.length > 0) {
-          const newMedications = data.map(med => ({
+        const { medications, advice } = data;
+
+        if (medications && medications.length > 0) {
+          const newMedications = medications.map(med => ({
             ...med,
             id: crypto.randomUUID(),
             freqMorning: med.freq_morning,
@@ -294,11 +296,19 @@ const Consultation = () => {
           setExtraData(prev => {
             const existingMedNames = new Set(prev.medications.map(m => m.name));
             const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
+            const newAdvice = [prev.advice, advice].filter(Boolean).join('\n');
+
             return {
               ...prev,
+              advice: newAdvice,
               medications: [...prev.medications, ...filteredNewMeds],
             };
           });
+        } else if (advice) {
+          setExtraData(prev => ({
+            ...prev,
+            advice: [prev.advice, advice].filter(Boolean).join('\n'),
+          }));
         }
       } catch (error) {
         console.error('Error autofilling medications:', error);
