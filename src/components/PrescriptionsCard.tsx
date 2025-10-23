@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Briefcase, Upload } from 'lucide-react';
@@ -13,6 +13,7 @@ const PrescriptionsCard = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRecords = async () => {
     if (user?.phoneNumber) {
@@ -61,6 +62,9 @@ const PrescriptionsCard = () => {
         
         setSelectedFile(null);
         await fetchRecords();
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
 
       } catch (err: any) {
         setError(err.message);
@@ -91,28 +95,64 @@ const PrescriptionsCard = () => {
                   <a href={`https://drive.google.com/drive/folders/${record.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-800 hover:underline">{record.name}</a>
                   {record.files && record.files.length > 0 && (
                     <ul className="mt-2 space-y-1">
-                      {record.files.map((file: any) => (
-                        <li key={file.id} className="text-sm text-gray-600 flex justify-between items-center">
-                          <span>{file.name}</span>
-                          <div className="flex items-center">
-                            <span className="mr-4">{new Date(file.createdTime).toLocaleDateString()}</span>
-                            <a
-                              href={
+                      {record.files.map((file: any) => {
+                        if (file.name === 'uploads' && file.mimeType === 'application/vnd.google-apps.folder') {
+                          return (
+                            <li key={file.id} className="text-sm text-gray-600">
+                              <span className='font-medium'>{file.name}</span>
+                              {file.files && file.files.length > 0 && (
+                                <ul className="ml-4 mt-1 space-y-1">
+                                  {file.files.map((subFile: any) => (
+                                    <li key={subFile.id} className="flex justify-between items-center">
+                                      <span>{subFile.name}</span>
+                                      <div className="flex items-center">
+                                        <span className="mr-4">{new Date(subFile.createdTime).toLocaleDateString()}</span>
+                                        <a
+                                          href={
+                                            subFile.mimeType === 'application/vnd.google-apps.document'
+                                              ? `https://docs.google.com/document/d/${subFile.id}/export?format=pdf`
+                                              : subFile.mimeType === 'application/vnd.google-apps.folder'
+                                                ? `https://drive.google.com/drive/folders/${subFile.id}`
+                                                : `https://drive.google.com/file/d/${subFile.id}/view`
+                                          }
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:underline"
+                                        >
+                                          View
+                                        </a>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </li>
+                          );
+                        } else {
+                          return (
+                            <li key={file.id} className="text-sm text-gray-600 flex justify-between items-center">
+                              <span>{file.name}</span>
+                              <div className="flex items-center">
+                                <span className="mr-4">{new Date(file.createdTime).toLocaleDateString()}</span>
+                                <a
+                                  href={
                                     file.mimeType === 'application/vnd.google-apps.document'
-                                    ? `https://docs.google.com/document/d/${file.id}/export?format=pdf`
-                                    : file.mimeType === 'application/vnd.google-apps.folder'
-                                    ? `https://drive.google.com/drive/folders/${file.id}`
-                                    : `https://drive.google.com/file/d/${file.id}/view`
+                                      ? `https://docs.google.com/document/d/${file.id}/export?format=pdf`
+                                      : file.mimeType === 'application/vnd.google-apps.folder'
+                                        ? `https://drive.google.com/drive/folders/${file.id}`
+                                        : `https://drive.google.com/file/d/${file.id}/view`
                                   }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              View
-                            </a>
-                          </div>
-                        </li>
-                      ))}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  View
+                                </a>
+                              </div>
+                            </li>
+                          );
+                        }
+                      })}
                     </ul>
                   )}
                 </div>
@@ -126,6 +166,7 @@ const PrescriptionsCard = () => {
           <h3 className="text-lg font-medium text-gray-800 mb-2">Upload New Record</h3>
           <div className="flex items-center space-x-2">
             <Input
+              ref={fileInputRef}
               type="file"
               onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
               className="flex-grow"
