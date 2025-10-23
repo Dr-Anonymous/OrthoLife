@@ -162,7 +162,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             {isLoading ? (
               <Loader2 className="animate-spin" />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-64 overflow-y-auto">
                 {keywords.map(kw => (
                   <div key={kw.id} className="flex items-center justify-between p-2 border rounded-md">
                     <div>
