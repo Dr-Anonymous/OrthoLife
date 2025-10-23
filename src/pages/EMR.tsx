@@ -320,7 +320,7 @@ const EMR = () => {
           setExtraData(prev => {
             const existingMedNames = new Set(prev.medications.map(m => m.name));
             const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
-            const newAdvice = [prev.advice, advice].filter(Boolean).join('\n');
+            const newAdvice = prev.advice.includes(advice) ? prev.advice : [prev.advice, advice].filter(Boolean).join('\n');
 
             return {
               ...prev,
@@ -331,7 +331,7 @@ const EMR = () => {
         } else if (advice) {
           setExtraData(prev => ({
             ...prev,
-            advice: [prev.advice, advice].filter(Boolean).join('\n'),
+            advice: prev.advice.includes(advice) ? prev.advice : [prev.advice, advice].filter(Boolean).join('\n'),
           }));
         }
       } catch (error) {
