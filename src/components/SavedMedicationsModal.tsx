@@ -24,6 +24,7 @@ interface Medication {
   frequency: string;
   duration: string;
   instructions: string;
+  notes: string;
 }
 
 interface SavedMedicationsModalProps {
@@ -46,6 +47,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     frequency: '',
     duration: '',
     instructions: '',
+    notes: '',
   });
 
   const fetchMedications = async () => {
@@ -86,6 +88,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           frequency: newMed.frequency,
           duration: newMed.duration,
           instructions: newMed.instructions,
+          notes: newMed.notes,
         }).eq('id', isEditing)
       : await supabase.from('saved_medications').insert([{
           name: newMed.name,
@@ -96,6 +99,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           frequency: newMed.frequency,
           duration: newMed.duration,
           instructions: newMed.instructions,
+          notes: newMed.notes,
         }]);
 
     if (error) {
@@ -130,7 +134,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const resetForm = () => {
     setIsEditing(null);
-    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '' });
+    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '', notes: '' });
     setIsCustom(false);
   };
 
@@ -199,6 +203,10 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
             <div className="space-y-2">
               <Label htmlFor="med-instructions">Instructions</Label>
               <Input id="med-instructions" value={newMed.instructions} onChange={e => handleInputChange('instructions', e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="med-notes">Notes</Label>
+              <Input id="med-notes" value={newMed.notes} onChange={e => handleInputChange('notes', e.target.value)} />
             </div>
             <div className="flex justify-end space-x-2">
               {isEditing && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}

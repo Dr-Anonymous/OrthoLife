@@ -340,7 +340,8 @@ serve(async (req)=>{
             break;
           }
           if (table && tableStartIndex !== -1) {
-            const insertRowRequests = meds.map(()=>({
+            const insertRowRequests = meds.flatMap(med => {
+              const requests = [{
                 insertTableRow: {
                   tableCellLocation: {
                     tableStartLocation: {
@@ -351,7 +352,23 @@ serve(async (req)=>{
                   },
                   insertBelow: true
                 }
-              }));
+              }];
+              if (med.notes && med.notes.trim() !== "") {
+                requests.push({
+                  insertTableRow: {
+                    tableCellLocation: {
+                      tableStartLocation: {
+                        index: tableStartIndex
+                      },
+                      rowIndex: table.tableRows.length,
+                      columnIndex: 0
+                    },
+                    insertBelow: true
+                  }
+                });
+              }
+              return requests;
+            });
             if (insertRowRequests.length > 0) {
               const insertResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
                 method: 'POST',
@@ -380,7 +397,7 @@ serve(async (req)=>{
             if (updatedTable) {
               const cellRequests = [];
               const mergeRequests = [];
-              const startingRowIndex = updatedTable.tableRows.length - meds.length;
+              let rowIndex = updatedTable.tableRows.length - meds.reduce((acc, med) => acc + (med.notes && med.notes.trim() !== "" ? 2 : 1), 0);
               const getCellInsertionIndex = (cell)=>{
                 if (!cell?.content?.[0]?.paragraph) return null;
                 const paragraph = cell.content[0].paragraph;
@@ -389,7 +406,6 @@ serve(async (req)=>{
                 return null;
               };
               meds.forEach((med, medIndex)=>{
-                const rowIndex = startingRowIndex + medIndex;
                 const row = updatedTable.tableRows[rowIndex];
                 if (row?.tableCells?.length >= 8) {
                   const createInsertTextRequest = (cell, text)=>{
@@ -432,6 +448,54 @@ serve(async (req)=>{
                   cellRequests.push(createInsertTextRequest(row.tableCells[6], med.duration));
                   cellRequests.push(createInsertTextRequest(row.tableCells[7], med.instructions));
                 } else console.error(`Row ${rowIndex} does not have enough cells or is malformed`);
+                rowIndex++;
+                if (med.notes && med.notes.trim() !== "") {
+                  const notesRow = updatedTable.tableRows[rowIndex];
+                  if (notesRow?.tableCells?.length >= 1) {
+                    const notesCellIndex = getCellInsertionIndex(notesRow.tableCells[0]);
+                    if (notesCellIndex !== null) {
+                      mergeRequests.push({
+                        mergeTableCells: {
+                          tableRange: {
+                            tableCellLocation: {
+                              tableStartLocation: {
+                                index: tableStartIndex
+                              },
+                              rowIndex: rowIndex,
+                              columnIndex: 0
+                            },
+                            rowSpan: 1,
+                            columnSpan: 8
+                          }
+                        }
+                      });
+                      cellRequests.push({
+                        insertText: {
+                          location: {
+                            index: notesCellIndex
+                          },
+                          text: med.notes
+                        }
+                      });
+                      cellRequests.push({
+                        updateTextStyle: {
+                          range: {
+                            startIndex: notesCellIndex,
+                            endIndex: notesCellIndex + med.notes.length
+                          },
+                          textStyle: {
+                            fontSize: {
+                              magnitude: 10,
+                              unit: "PT"
+                            }
+                          },
+                          fields: "fontSize"
+                        }
+                      });
+                    }
+                  }
+                  rowIndex++;
+                }
               });
               const validCellRequests = cellRequests.filter(Boolean).reverse();
               const allMedRequests = [
