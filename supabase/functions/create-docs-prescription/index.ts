@@ -469,15 +469,7 @@ serve(async (req)=>{
                           }
                         }
                       });
-                      cellRequests.push({
-                        insertText: {
-                          location: {
-                            index: notesCellIndex
-                          },
-                          text: med.notes
-                        }
-                      });
-                      cellRequests.push({
+                      const styleRequest = {
                         updateTextStyle: {
                           range: {
                             startIndex: notesCellIndex,
@@ -491,10 +483,41 @@ serve(async (req)=>{
                           },
                           fields: "fontSize"
                         }
+                      };
+                      cellRequests.push(styleRequest);
+                      cellRequests.push({
+                        insertText: {
+                          location: {
+                            index: notesCellIndex
+                          },
+                          text: med.notes
+                        }
                       });
                     }
                   }
                   rowIndex++;
+                  if (med.notes && med.notes.trim() !== "" && medIndex < meds.length - 1) {
+                    const nextRow = updatedTable.tableRows[rowIndex];
+                    if (nextRow) {
+                      const startIndex = nextRow.tableCells[0].startIndex;
+                      const endIndex = nextRow.tableCells[nextRow.tableCells.length - 1].endIndex;
+                      mergeRequests.push({
+                        updateTextStyle: {
+                          range: {
+                            startIndex,
+                            endIndex
+                          },
+                          textStyle: {
+                            fontSize: {
+                              magnitude: 12,
+                              unit: "PT"
+                            }
+                          },
+                          fields: "fontSize"
+                        }
+                      });
+                    }
+                  }
                 }
               });
               const validCellRequests = cellRequests.filter(Boolean).reverse();
