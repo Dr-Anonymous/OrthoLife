@@ -183,7 +183,7 @@ const PatientRegistration = () => {
 
       toast({
         title: "Patient Registered for Consultation",
-        description: `${formData.name} has been successfully registered. Fee: ₹${data.consultation.fee}`,
+        description: `${formData.name} has been successfully registered.`,
       });
 
       // Reset form after submission

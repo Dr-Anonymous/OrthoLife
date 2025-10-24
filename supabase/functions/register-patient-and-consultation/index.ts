@@ -61,35 +61,12 @@ serve(async (req) => {
       patient = newPatient
     }
 
-    let isFreeReview = false;
-    if (!isNewPatient) {
-      // This is an existing patient. Check if they are eligible for a free review.
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-      const { data: recentConsultations, error: consultationError } = await supabase
-        .from('consultations')
-        .select('id')
-        .eq('patient_id', patient.id)
-        .gte('created_at', sevenDaysAgo.toISOString())
-
-      if (consultationError) throw consultationError
-
-      if (recentConsultations && recentConsultations.length > 0) {
-          isFreeReview = true;
-      }
-    }
-
-    // 3. Determine fee
-    const consultationFee = isFreeReview ? 0 : 500;
-
     // 4. Create consultation
     const { data: consultation, error: newConsultationError } = await supabase
       .from('consultations')
       .insert({
         patient_id: patient.id,
         status: 'pending',
-        fee: consultationFee,
       })
       .select()
       .single()
