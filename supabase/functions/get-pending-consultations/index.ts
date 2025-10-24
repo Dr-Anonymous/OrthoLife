@@ -22,9 +22,12 @@ serve(async (req) => {
       .from('consultations')
       .select(`
         id,
-        patients (
+        patient:patients (
           id,
-          name
+          name,
+          dob,
+          sex,
+          phone
         )
       `)
       .eq('status', 'pending')
@@ -33,10 +36,9 @@ serve(async (req) => {
 
     if (error) throw error
 
-    const consultations = data.map(c => ({
-        id: c.id,
-        patient_name: c.patients.name,
-        patient_id: c.patients.id
+    const consultations = data.map((c) => ({
+      id: c.id,
+      patient: c.patient,
     }))
 
     return new Response(JSON.stringify({ consultations }), {

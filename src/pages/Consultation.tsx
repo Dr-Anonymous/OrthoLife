@@ -33,25 +33,19 @@ interface Medication {
   notes: string;
 }
 
-interface Consultation {
-    id: string;
-    patient_name: string;
-    patient_id: string;
-    // Add other patient details here if needed
+import { User, Phone, Calendar as CalendarIcon } from 'lucide-react';
+
+interface Patient {
+  id: string;
+  name: string;
+  dob: string;
+  sex: string;
+  phone: string;
 }
 
-interface PatientData {
-    name: string;
-    dob: Date | undefined;
-    sex: string;
-    phone: string;
-    complaints: string;
-    findings: string;
-    investigations: string;
-    diagnosis: string;
-    advice: string;
-    followup: string;
-    medications: Medication[];
+interface Consultation {
+  id: string;
+  patient: Patient;
 }
 
 const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
@@ -223,7 +217,9 @@ const Consultation = () => {
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
-  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
@@ -358,10 +354,16 @@ const Consultation = () => {
     }
   }
 
-  const fetchPatientData = useCallback(async (patientId: string) => {
-    setIsFetchingDetails(true);
-    try {
-        // Since we are not storing medical data in the patient table, we just need to reset the form
+  useEffect(() => {
+    if (selectedDate) {
+        fetchConsultations(selectedDate);
+        setSelectedConsultation(null);
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (selectedConsultation) {
+        setEditablePatientDetails(selectedConsultation.patient);
         setExtraData({
             complaints: '',
             findings: '',
@@ -371,30 +373,23 @@ const Consultation = () => {
             followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
             medications: [ ],
         });
-    } catch (error) {
-        console.error('Error fetching patient details:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Error fetching patient details',
-            description: error.message,
-        });
-    } finally {
-        setIsFetchingDetails(false);
+    } else {
+        setEditablePatientDetails(null);
     }
-  }, []);
+  }, [selectedConsultation]);
 
-  useEffect(() => {
-    if (selectedDate) {
-        fetchConsultations(selectedDate);
-        setSelectedConsultation(null); // Reset selection when date changes
+  const handlePatientDetailsChange = (field: keyof Patient, value: string) => {
+    if (editablePatientDetails) {
+        setEditablePatientDetails(prev => prev ? { ...prev, [field]: value } : null);
     }
-  }, [selectedDate]);
+  };
 
-  useEffect(() => {
-    if (selectedConsultation) {
-        fetchPatientData(selectedConsultation.patient_id);
+    const handleDateChange = (date: Date | undefined) => {
+    if (editablePatientDetails && date) {
+        setEditablePatientDetails(prev => prev ? { ...prev, dob: format(date, 'yyyy-MM-dd') } : null);
     }
-  }, [selectedConsultation, fetchPatientData]);
+    setIsDatePickerOpen(false);
+    };
 
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
@@ -537,24 +532,16 @@ const Consultation = () => {
   };
 
   const handleOrderNow = async () => {
-    if (!selectedConsultation) return;
+    if (!selectedConsultation || !editablePatientDetails) return;
     setIsOrdering(true);
     try {
-      const { data: patientData, error: patientError } = await supabase
-        .from('patients')
-        .select('name, dob, sex, phone')
-        .eq('id', selectedConsultation.patient_id)
-        .single();
-
-      if (patientError) throw patientError;
-
       const payload = {
         templateId: "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0",
-        patientId: selectedConsultation.patient_id,
-        name: patientData.name,
-        dob: patientData.dob,
-        sex: patientData.sex,
-        phone: patientData.phone,
+        patientId: selectedConsultation.patient.id,
+        name: editablePatientDetails.name,
+        dob: editablePatientDetails.dob,
+        sex: editablePatientDetails.sex,
+        phone: editablePatientDetails.phone,
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
@@ -580,24 +567,16 @@ const Consultation = () => {
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedConsultation) return;
+    if (!selectedConsultation || !editablePatientDetails) return;
     setIsSubmitting(true);
     try {
-        const { data: patientData, error: patientError } = await supabase
-            .from('patients')
-            .select('name, dob, sex, phone')
-            .eq('id', selectedConsultation.patient_id)
-            .single();
-
-        if (patientError) throw patientError;
-
       const payload = {
         templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
-        patientId: selectedConsultation.patient_id,
-        name: patientData.name,
-        dob: patientData.dob,
-        sex: patientData.sex,
-        phone: patientData.phone,
+        patientId: selectedConsultation.patient.id,
+        name: editablePatientDetails.name,
+        dob: editablePatientDetails.dob,
+        sex: editablePatientDetails.sex,
+        phone: editablePatientDetails.phone,
         complaints: extraData.complaints,
         findings: extraData.findings,
         investigations: extraData.investigations,
@@ -627,7 +606,7 @@ const Consultation = () => {
 
       toast({
         title: "Prescription Generated",
-        description: `Prescription for ${selectedConsultation.patient_name} has been generated.`,
+        description: `Prescription for ${editablePatientDetails.name} has been generated.`,
       });
 
       // Refresh consultation list
@@ -693,7 +672,7 @@ const Consultation = () => {
                             <div className="space-y-2 mt-2">
                                 {pendingConsultations.map(c => (
                                     <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
-                                        {c.patient_name}
+                                        {c.patient.name}
                                     </Button>
                                 ))}
                                 {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations for this date.</p>}
@@ -703,14 +682,67 @@ const Consultation = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                {selectedConsultation ? (
+                {selectedConsultation && editablePatientDetails ? (
                     <form onSubmit={submitForm} className="space-y-6">
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-primary" />
-                                <h3 className="text-lg font-semibold text-foreground">Medical Information for {selectedConsultation.patient_name}</h3>
+                             <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                <User className="w-5 h-5 text-primary" />
+                                <h3 className="text-lg font-semibold text-foreground">Patient Details</h3>
+                                </div>
                             </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                <Label htmlFor="name">Full Name</Label>
+                                <Input id="name" value={editablePatientDetails.name} onChange={e => handlePatientDetailsChange('name', e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                <Label htmlFor="phone">Phone Number</Label>
+                                <Input id="phone" value={editablePatientDetails.phone} onChange={e => handlePatientDetailsChange('phone', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                <Label htmlFor="dob">Date of Birth</Label>
+                                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                                    <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
+                                        onSelect={handleDateChange}
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                                </div>
+                                <div className="space-y-2">
+                                <Label htmlFor="sex">Sex</Label>
+                                <Select value={editablePatientDetails.sex} onValueChange={value => handlePatientDetailsChange('sex', value)}>
+                                    <SelectTrigger>
+                                    <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    <SelectItem value="M">Male</SelectItem>
+                                    <SelectItem value="F">Female</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-primary" />
+                                    <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
