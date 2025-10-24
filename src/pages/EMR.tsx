@@ -286,6 +286,7 @@ const EMR = () => {
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -615,6 +616,35 @@ const EMR = () => {
     }
   };
 
+  const handleOrderNow = async () => {
+    setIsOrdering(true);
+    try {
+      const payload = {
+        patientId: patientId,
+        name: formData.name,
+        complaints: extraData.complaints,
+        investigations: extraData.investigations,
+        diagnosis: extraData.diagnosis,
+      };
+
+      const { data, error } = await supabase.functions.invoke('create-docs-investigations', {
+        body: payload,
+      });
+
+      if (error) throw new Error(error.message || 'Failed to create investigations document');
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error ordering investigations:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to order investigations. Please try again.' });
+    } finally {
+      setIsOrdering(false);
+    }
+  };
+
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -866,8 +896,14 @@ const EMR = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
-                    <Textarea 
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                      <Button type="button" size="sm" variant="link" onClick={handleOrderNow} disabled={isOrdering}>
+                        {isOrdering ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        Order Now
+                      </Button>
+                    </div>
+                    <Textarea
                       id="investigations"
                       value={extraData.investigations} 
                       onChange={e => handleExtraChange('investigations', e.target.value)} 

@@ -264,6 +264,7 @@ const Consultation = () => {
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
@@ -541,6 +542,44 @@ const Consultation = () => {
     }
   };
 
+  const handleOrderNow = async () => {
+    if (!selectedConsultation) return;
+    setIsOrdering(true);
+    try {
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('name')
+        .eq('id', selectedConsultation.patient_id)
+        .single();
+
+      if (patientError) throw patientError;
+
+      const payload = {
+        patientId: selectedConsultation.patient_id,
+        name: patientData.name,
+        complaints: extraData.complaints,
+        investigations: extraData.investigations,
+        diagnosis: extraData.diagnosis,
+      };
+
+      const { data, error } = await supabase.functions.invoke('create-docs-investigations', {
+        body: payload,
+      });
+
+      if (error) throw new Error(error.message || 'Failed to create investigations document');
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error ordering investigations:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to order investigations. Please try again.' });
+    } finally {
+      setIsOrdering(false);
+    }
+  };
+
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedConsultation) return;
@@ -690,7 +729,13 @@ const Consultation = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                <div className="flex justify-between items-center">
+                                  <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                  <Button type="button" size="sm" variant="link" onClick={handleOrderNow} disabled={isOrdering}>
+                                    {isOrdering ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                    Order Now
+                                  </Button>
+                                </div>
                                 <Textarea id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value)} placeholder="Investigations required..." className="min-h-[100px]" />
                             </div>
 
