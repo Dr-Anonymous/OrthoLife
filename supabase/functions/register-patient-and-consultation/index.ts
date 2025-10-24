@@ -40,7 +40,7 @@ serve(async (req) => {
     // 1. Find or create patient
     let { data: patient, error: patientError } = await supabase
       .from('patients')
-      .select('id, created_at')
+      .select('id')
       .eq('phone', phone)
       .single()
 
@@ -48,48 +48,24 @@ serve(async (req) => {
       throw patientError
     }
 
-    const isNewPatient = !patient;
-    if (isNewPatient) {
+    if (!patient) {
       const newPatientId = await generateIncrementalId(supabase);
       const { data: newPatient, error: newPatientError } = await supabase
         .from('patients')
         .insert({ id: newPatientId, name, dob, sex, phone })
-        .select('id, created_at')
+        .select('id')
         .single()
 
       if (newPatientError) throw newPatientError
       patient = newPatient
     }
 
-    let isFreeReview = false;
-    if (!isNewPatient) {
-      // This is an existing patient. Check if they are eligible for a free review.
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-      const { data: recentConsultations, error: consultationError } = await supabase
-        .from('consultations')
-        .select('id')
-        .eq('patient_id', patient.id)
-        .gte('created_at', sevenDaysAgo.toISOString())
-
-      if (consultationError) throw consultationError
-
-      if (recentConsultations && recentConsultations.length > 0) {
-          isFreeReview = true;
-      }
-    }
-
-    // 3. Determine fee
-    const consultationFee = isFreeReview ? 0 : 500;
-
-    // 4. Create consultation
+    // 2. Create consultation
     const { data: consultation, error: newConsultationError } = await supabase
       .from('consultations')
       .insert({
         patient_id: patient.id,
         status: 'pending',
-        fee: consultationFee,
       })
       .select()
       .single()
