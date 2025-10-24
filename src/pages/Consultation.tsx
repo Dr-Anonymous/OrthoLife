@@ -548,7 +548,7 @@ const Consultation = () => {
     try {
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
-        .select('name')
+        .select('name, dob, sex, phone')
         .eq('id', selectedConsultation.patient_id)
         .single();
 
@@ -557,6 +557,9 @@ const Consultation = () => {
       const payload = {
         patientId: selectedConsultation.patient_id,
         name: patientData.name,
+        dob: patientData.dob,
+        sex: patientData.sex,
+        phone: patientData.phone,
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
