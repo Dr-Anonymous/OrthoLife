@@ -257,10 +257,7 @@ const EMR = () => {
     diagnosis: '',
     advice: '',
     followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-    medications: [
-      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, frequency: '', duration: '1 week', instructions: 'Aft. meal', notes: '' },
-      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, frequency: '', duration: '1 week', instructions: 'Bef. breakfast', notes: '' }
-    ] as Medication[]
+    medications: [ ] as Medication[]
   });
 
   const sensors = useSensors(
@@ -620,6 +617,7 @@ const EMR = () => {
     setIsOrdering(true);
     try {
       const payload = {
+        templateId: "1WqiyTfWBG4j7I4iry0weMmMLEPGJZDnTNkiZHCdd9Ao",
         patientId: patientId,
         name: formData.name,
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',

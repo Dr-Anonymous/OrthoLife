@@ -236,10 +236,7 @@ const Consultation = () => {
     diagnosis: '',
     advice: '',
     followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-    medications: [
-      { id: crypto.randomUUID(), name: 'T. HIFENAC SP', dose: '1 tab', freqMorning: true, freqNoon: false, freqNight: true, frequency: '', duration: '1 week', instructions: 'Aft. meal', notes: '' },
-      { id: crypto.randomUUID(), name: 'T. PANTOVAR', dose: '40 mg', freqMorning: true, freqNoon: false, freqNight: false, frequency: '', duration: '1 week', instructions: 'Bef. breakfast', notes: '' }
-    ] as Medication[]
+    medications: [ ] as Medication[]
   });
 
   const sensors = useSensors(
@@ -555,6 +552,7 @@ const Consultation = () => {
       if (patientError) throw patientError;
 
       const payload = {
+        templateId: "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0",
         patientId: selectedConsultation.patient_id,
         name: patientData.name,
         dob: patientData.dob,

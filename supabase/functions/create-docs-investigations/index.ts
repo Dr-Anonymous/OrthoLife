@@ -39,7 +39,7 @@ serve(async (req)=>{
         }
       });
     }
-    let templateId = "1WqiyTfWBG4j7I4iry0weMmMLEPGJZDnTNkiZHCdd9Ao", myId = '';
+    let templateId = data.templateId, myId = '';
     if (data.patientId) {
       myId = data.patientId;
     } else {
