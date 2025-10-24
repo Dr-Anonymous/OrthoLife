@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Calendar as CalendarIcon, User, Phone } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Calendar as CalendarIcon } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -37,9 +37,21 @@ interface Consultation {
     id: string;
     patient_name: string;
     patient_id: string;
-    patient_dob: string;
-    patient_sex: string;
-    patient_phone: string;
+    // Add other patient details here if needed
+}
+
+interface PatientData {
+    name: string;
+    dob: Date | undefined;
+    sex: string;
+    phone: string;
+    complaints: string;
+    findings: string;
+    investigations: string;
+    diagnosis: string;
+    advice: string;
+    followup: string;
+    medications: Medication[];
 }
 
 const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
@@ -57,10 +69,6 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
   };
 
   const [isCustom, setIsCustom] = useState(!!med.frequency);
-
-  useEffect(() => {
-    setIsCustom(!!med.frequency);
-  }, [med.frequency]);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
@@ -210,127 +218,12 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
   );
 };
 
-const PatientRegistration = ({ onRegistrationSuccess }: { onRegistrationSuccess: () => void }) => {
-    const [formData, setFormData] = useState({
-        name: '',
-        dob: undefined as Date | undefined,
-        sex: 'M',
-        phone: ''
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errors, setErrors] = useState<Partial<Record<keyof typeof formData, string>>>({});
-
-    const validateForm = (): boolean => {
-        const newErrors: Partial<Record<keyof typeof formData, string>> = {};
-        if (!formData.name.trim()) newErrors.name = 'Name is required';
-        if (!formData.dob) newErrors.dob = 'Date of birth is required';
-        if (formData.dob && formData.dob > new Date()) newErrors.dob = 'Date of birth cannot be in the future';
-        if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) newErrors.phone = 'Enter valid 10-digit phone number';
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleInputChange = (field: keyof Omit<typeof formData, 'dob' | 'sex'>, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
-    };
-
-    const handleSexChange = (value: string) => setFormData(prev => ({ ...prev, sex: value }));
-    const handleDateChange = (date: Date | undefined) => {
-        setFormData(prev => ({ ...prev, dob: date }));
-        if (errors.dob) setErrors(prev => ({ ...prev, dob: undefined }));
-    };
-
-    const submitForm = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateForm()) return;
-        setIsSubmitting(true);
-        try {
-            const { error } = await supabase.functions.invoke('register-patient-and-consultation', {
-                body: {
-                    ...formData,
-                    dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
-                },
-            });
-
-            if (error) throw new Error(error.message || 'Failed to register patient');
-
-            toast({
-                title: "Registration Successful",
-                description: `${formData.name} has been added to the consultation list.`,
-            });
-            onRegistrationSuccess();
-        } catch (error) {
-            console.error('Error:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <form onSubmit={submitForm} className="space-y-6">
-             <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <User className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-foreground">Patient Information</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
-                    <Input id="name" value={formData.name} onChange={e => handleInputChange('name', e.target.value)} className={cn(errors.name && "border-destructive")} placeholder="Enter full name" />
-                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formData.dob && "text-muted-foreground", errors.dob && "border-destructive")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {formData.dob ? format(formData.dob, "PPP") : <span>Select date of birth</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar mode="single" selected={formData.dob} onSelect={handleDateChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                    {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="sex" className="text-sm font-medium">Sex</Label>
-                        <Select value={formData.sex} onValueChange={handleSexChange}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="M">Male</SelectItem>
-                                <SelectItem value="F">Female</SelectItem>
-                                <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
-                        <Input id="phone" value={formData.phone} onChange={e => handleInputChange('phone', e.target.value)} className={cn(errors.phone && "border-destructive")} placeholder="1234567890" />
-                        {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                    </div>
-                </div>
-            </div>
-            <div className="pt-6">
-                <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting}>
-                    {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Registering...</> : 'Register Patient'}
-                </Button>
-            </div>
-        </form>
-    );
-};
-
-
-const ConsultationView = () => {
+const Consultation = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
@@ -345,8 +238,6 @@ const ConsultationView = () => {
     followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
     medications: [ ] as Medication[]
   });
-
-  const [view, setView] = useState<'consultation' | 'register'>('consultation');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -444,7 +335,7 @@ const ConsultationView = () => {
     fetchSavedMedications();
   }, []);
 
-  const fetchConsultations = useCallback(async (date: Date) => {
+  const fetchConsultations = async (date: Date) => {
     setIsFetchingConsultations(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-pending-consultations', {
@@ -465,18 +356,31 @@ const ConsultationView = () => {
     } finally {
       setIsFetchingConsultations(false);
     }
-  }, []);
+  }
 
-  const resetForm = useCallback(() => {
-    setExtraData({
-        complaints: '',
-        findings: '',
-        investigations: '',
-        diagnosis: '',
-        advice: '',
-        followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-        medications: [ ],
-    });
+  const fetchPatientData = useCallback(async (patientId: string) => {
+    setIsFetchingDetails(true);
+    try {
+        // Since we are not storing medical data in the patient table, we just need to reset the form
+        setExtraData({
+            complaints: '',
+            findings: '',
+            investigations: '',
+            diagnosis: '',
+            advice: '',
+            followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+            medications: [ ],
+        });
+    } catch (error) {
+        console.error('Error fetching patient details:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error fetching patient details',
+            description: error.message,
+        });
+    } finally {
+        setIsFetchingDetails(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -484,20 +388,13 @@ const ConsultationView = () => {
         fetchConsultations(selectedDate);
         setSelectedConsultation(null); // Reset selection when date changes
     }
-  }, [selectedDate, fetchConsultations]);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (selectedConsultation) {
-        resetForm();
+        fetchPatientData(selectedConsultation.patient_id);
     }
-  }, [selectedConsultation, resetForm]);
-
-  const handleRegistrationSuccess = () => {
-    setView('consultation');
-    if (selectedDate) {
-      fetchConsultations(selectedDate);
-    }
-  };
+  }, [selectedConsultation, fetchPatientData]);
 
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
@@ -643,13 +540,21 @@ const ConsultationView = () => {
     if (!selectedConsultation) return;
     setIsOrdering(true);
     try {
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('name, dob, sex, phone')
+        .eq('id', selectedConsultation.patient_id)
+        .single();
+
+      if (patientError) throw patientError;
+
       const payload = {
         templateId: "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0",
         patientId: selectedConsultation.patient_id,
-        name: selectedConsultation.patient_name,
-        dob: selectedConsultation.patient_dob,
-        sex: selectedConsultation.patient_sex,
-        phone: selectedConsultation.patient_phone,
+        name: patientData.name,
+        dob: patientData.dob,
+        sex: patientData.sex,
+        phone: patientData.phone,
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
@@ -678,13 +583,21 @@ const ConsultationView = () => {
     if (!selectedConsultation) return;
     setIsSubmitting(true);
     try {
+        const { data: patientData, error: patientError } = await supabase
+            .from('patients')
+            .select('name, dob, sex, phone')
+            .eq('id', selectedConsultation.patient_id)
+            .single();
+
+        if (patientError) throw patientError;
+
       const payload = {
         templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
         patientId: selectedConsultation.patient_id,
-        name: selectedConsultation.patient_name,
-        dob: selectedConsultation.patient_dob,
-        sex: selectedConsultation.patient_sex,
-        phone: selectedConsultation.patient_phone,
+        name: patientData.name,
+        dob: patientData.dob,
+        sex: patientData.sex,
+        phone: patientData.phone,
         complaints: extraData.complaints,
         findings: extraData.findings,
         investigations: extraData.investigations,
@@ -743,18 +656,6 @@ const ConsultationView = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-             <div className="flex justify-end gap-2">
-                <Button variant={view === 'consultation' ? 'default' : 'outline'} onClick={() => setView('consultation')}>
-                    Consultation
-                </Button>
-                <Button variant={view === 'register' ? 'default' : 'outline'} onClick={() => setView('register')}>
-                    Register Patient
-                </Button>
-            </div>
-
-            {view === 'register' ? (
-                <PatientRegistration onRegistrationSuccess={handleRegistrationSuccess} />
-            ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-1 space-y-4">
                     <div>
@@ -810,11 +711,6 @@ const ConsultationView = () => {
                                 <FileText className="w-5 h-5 text-primary" />
                                 <h3 className="text-lg font-semibold text-foreground">Medical Information for {selectedConsultation.patient_name}</h3>
                             </div>
-                            </div>
-                            <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-2">
-                                <p><strong>DOB:</strong> {selectedConsultation.patient_dob}</p>
-                                <p><strong>Sex:</strong> {selectedConsultation.patient_sex}</p>
-                                <p><strong>Phone:</strong> {selectedConsultation.patient_phone}</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -913,7 +809,6 @@ const ConsultationView = () => {
                 )}
                 </div>
             </div>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -930,4 +825,4 @@ const ConsultationView = () => {
   );
 };
 
-export default ConsultationView;
+export default Consultation;

@@ -24,10 +24,7 @@ serve(async (req) => {
         id,
         patients (
           id,
-          name,
-          dob,
-          sex,
-          phone
+          name
         )
       `)
       .eq('status', 'pending')
@@ -38,11 +35,8 @@ serve(async (req) => {
 
     const consultations = data.map(c => ({
         id: c.id,
-        patient_id: c.patients.id,
         patient_name: c.patients.name,
-        patient_dob: c.patients.dob,
-        patient_sex: c.patients.sex,
-        patient_phone: c.patients.phone,
+        patient_id: c.patients.id
     }))
 
     return new Response(JSON.stringify({ consultations }), {
