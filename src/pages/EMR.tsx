@@ -622,6 +622,9 @@ const EMR = () => {
       const payload = {
         patientId: patientId,
         name: formData.name,
+        dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
+        sex: formData.sex,
+        phone: formData.phone,
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
