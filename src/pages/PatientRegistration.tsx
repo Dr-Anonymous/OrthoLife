@@ -215,7 +215,7 @@ const PatientRegistration = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium">Full Name (Search/Register)</Label>
+                    <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
                     <div className="relative">
                       <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                       <Input
@@ -233,7 +233,7 @@ const PatientRegistration = () => {
                     {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number (Search/Register)</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
                     <div className="relative">
                       <Phone className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                       <Input

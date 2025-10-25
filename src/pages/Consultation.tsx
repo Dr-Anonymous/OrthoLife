@@ -542,7 +542,7 @@ const Consultation = () => {
     setIsOrdering(true);
     try {
       const payload = {
-        templateId: "1WqiyTfWBG4j7I4iry0weMmMLEPGJZDnTNkiZHCdd9Ao",
+        templateId: "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0",
         patientId: selectedConsultation.patient.id,
         name: editablePatientDetails.name,
         dob: editablePatientDetails.dob,

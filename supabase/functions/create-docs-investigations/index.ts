@@ -89,7 +89,7 @@ serve(async (req) => {
     if (!finalDocResponse.ok) throw new Error(`Failed to get document URL: ${finalDocResponse.statusText}`);
     const finalDocData = await finalDocResponse.json();
 
-    if (finalFolderId && !folderId && templateId === "1WqiyTfWBG4j7I4iry0weMmMLEPGJZDnTNkiZHCdd9Ao") {
+    if (finalFolderId && !folderId && templateId === "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0") {
         const { error: updateError } = await supabaseClient
           .from('patients')
           .update({ drive_id: finalFolderId })
