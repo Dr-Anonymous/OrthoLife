@@ -27,7 +27,8 @@ serve(async (req) => {
           name,
           dob,
           sex,
-          phone
+          phone,
+          drive_id
         )
       `)
       .eq('status', 'pending')

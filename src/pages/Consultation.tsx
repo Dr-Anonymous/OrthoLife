@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Calendar as CalendarIcon, Plus, Printer, Languages } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -41,6 +41,7 @@ interface Patient {
   dob: string;
   sex: string;
   phone: string;
+  drive_id: string | null;
 }
 
 interface Consultation {
@@ -63,6 +64,10 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
   };
 
   const [isCustom, setIsCustom] = useState(!!med.frequency);
+
+  useEffect(() => {
+    setIsCustom(!!med.frequency);
+  }, [med.frequency]);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
@@ -333,6 +338,8 @@ const Consultation = () => {
 
   const fetchConsultations = async (date: Date) => {
     setIsFetchingConsultations(true);
+    setPendingConsultations([]);
+    setSelectedConsultation(null);
     try {
       const { data, error } = await supabase.functions.invoke('get-pending-consultations', {
         body: { date: format(date, 'yyyy-MM-dd') },
@@ -357,7 +364,6 @@ const Consultation = () => {
   useEffect(() => {
     if (selectedDate) {
         fetchConsultations(selectedDate);
-        setSelectedConsultation(null);
     }
   }, [selectedDate]);
 
@@ -378,7 +384,7 @@ const Consultation = () => {
     }
   }, [selectedConsultation]);
 
-  const handlePatientDetailsChange = (field: keyof Patient, value: string) => {
+  const handlePatientDetailsChange = (field: keyof Omit<Patient, 'drive_id'>, value: string) => {
     if (editablePatientDetails) {
         setEditablePatientDetails(prev => prev ? { ...prev, [field]: value } : null);
     }
@@ -536,7 +542,7 @@ const Consultation = () => {
     setIsOrdering(true);
     try {
       const payload = {
-        templateId: "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0",
+        templateId: "1WqiyTfWBG4j7I4iry0weMmMLEPGJZDnTNkiZHCdd9Ao",
         patientId: selectedConsultation.patient.id,
         name: editablePatientDetails.name,
         dob: editablePatientDetails.dob,
@@ -545,6 +551,7 @@ const Consultation = () => {
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
+        folderId: editablePatientDetails.drive_id,
       };
 
       const { data, error } = await supabase.functions.invoke('create-docs-investigations', {
@@ -583,7 +590,8 @@ const Consultation = () => {
         diagnosis: extraData.diagnosis,
         advice: extraData.advice,
         followup: extraData.followup,
-        medications: JSON.stringify(extraData.medications)
+        medications: JSON.stringify(extraData.medications),
+        folderId: editablePatientDetails.drive_id,
       };
 
       const { data, error } = await supabase.functions.invoke('create-docs-prescription', {
@@ -601,7 +609,6 @@ const Consultation = () => {
         window.open(data.url, '_blank');
       }
 
-      // Update consultation status
       await supabase.from('consultations').update({ status: 'completed' }).eq('id', selectedConsultation.id);
 
       toast({
@@ -609,7 +616,6 @@ const Consultation = () => {
         description: `Prescription for ${editablePatientDetails.name} has been generated.`,
       });
 
-      // Refresh consultation list
       if(selectedDate) fetchConsultations(selectedDate);
       setSelectedConsultation(null);
 
@@ -687,9 +693,16 @@ const Consultation = () => {
                         <div className="space-y-4">
                              <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
-                                <User className="w-5 h-5 text-primary" />
-                                <h3 className="text-lg font-semibold text-foreground">Patient Details</h3>
+                                  <User className="w-5 h-5 text-primary" />
+                                  <h3 className="text-lg font-semibold text-foreground">
+                                    Medical Information for {editablePatientDetails.name}
+                                  </h3>
                                 </div>
+                                {editablePatientDetails.drive_id && (
+                                    <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
+                                        <Folder className="w-5 h-5 text-blue-500 hover:text-blue-700" />
+                                    </a>
+                                )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
