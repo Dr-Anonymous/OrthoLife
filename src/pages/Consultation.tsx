@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Calendar as CalendarIcon, Plus, Printer, Languages } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -113,7 +113,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">Frequency</Label>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               {!isCustom &&
                 <>
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -761,9 +761,9 @@ const Consultation = () => {
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
                                   <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
-                                  <Button type="button" size="sm" variant="link" onClick={handleOrderNow} disabled={isOrdering}>
-                                    {isOrdering ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                    Order Now
+                                  <Button type="button" size="icon" variant="ghost" onClick={handleOrderNow} disabled={isOrdering}>
+                                    {isOrdering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                                    <span className="sr-only">Order Now</span>
                                   </Button>
                                 </div>
                                 <Textarea id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value)} placeholder="Investigations required..." className="min-h-[100px]" />
@@ -810,14 +810,15 @@ const Consultation = () => {
                                 </SortableContext>
                             </DndContext>
                             </div>
-                            <div className="flex justify-end">
-                            <Button type="button" onClick={addMedication} variant="outline" size="sm">
-                                Add Medication
-                            </Button>
-                            <Button type="button" size="sm" variant="link" onClick={handleTranslateAll} disabled={isTranslating}>
-                                {isTranslating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                Translate to Telugu
-                            </Button>
+                            <div className="flex justify-end items-center gap-2">
+                                <Button type="button" size="icon" variant="ghost" onClick={handleTranslateAll} disabled={isTranslating}>
+                                    {isTranslating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Languages className="w-4 h-4" />}
+                                    <span className="sr-only">Translate to Telugu</span>
+                                </Button>
+                                <Button type="button" onClick={addMedication} variant="outline" size="icon" className="rounded-full">
+                                    <Plus className="h-4 w-4" />
+                                    <span className="sr-only">Add Medication</span>
+                                </Button>
                             </div>
                         </div>
 
