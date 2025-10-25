@@ -1,8 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
-import { corsHeaders } from '../_shared/cors.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
+import { corsHeaders } from '../_shared/cors.ts'
 import { getGoogleAccessToken } from '../_shared/google-auth.ts';
-import { createOrGetPatientFolder } from '../_shared/google-drive.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -29,30 +28,47 @@ async function generateIncrementalId(supabaseClient) {
   }
 }
 
+async function createGoogleDriveFolder(folderName: string, accessToken: string): Promise<string | null> {
+  try {
+    const templateParent = "1-q41-i2W-_1_e-nQ2-Z-B-1_Z-I-e-R-c-x-p-H-l-k-Q";
+    const createFolderResp = await fetch(`https://www.googleapis.com/drive/v3/files`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [templateParent]
+      })
+    });
+
+    if (createFolderResp.ok) {
+      const folderData = await createFolderResp.json();
+      return folderData.id;
+    } else {
+      console.error('Could not create Google Drive folder:', await createFolderResp.text());
+      return null;
+    }
+  } catch (error) {
+    console.error('Error creating Google Drive folder:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const { name, dob, sex, phone, driveId: existingDriveId } = await req.json();
 
     let patient;
+    let driveId = existingDriveId || null;
 
-    if (existingDriveId) {
-      // Logic for an existing patient whose details might have been edited
-      const { data: updatedPatient, error: updateError } = await supabase
-        .from('patients')
-        .update({ name, dob, sex, phone })
-        .eq('drive_id', existingDriveId)
-        .select('id, created_at, drive_id')
-        .single();
-
-      if (updateError) throw updateError;
-      patient = updatedPatient;
-
-    } else {
-      // Logic for a new patient or a patient being looked up for the first time
+    if (!existingDriveId) {
       const { data: existingPatient, error: patientError } = await supabase
         .from('patients')
         .select('id, created_at, drive_id')
@@ -64,17 +80,12 @@ serve(async (req) => {
         throw patientError;
       }
 
-      if (existingPatient) {
-        patient = existingPatient;
-      } else { // New patient registration
+      patient = existingPatient;
+
+      if (!patient) { // New patient registration
         const accessToken = await getGoogleAccessToken();
-        let driveId = null;
         if (accessToken) {
-          driveId = await createOrGetPatientFolder({
-            patientName: name,
-            accessToken,
-            templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4", // Prescription template
-          });
+          driveId = await createGoogleDriveFolder(name, accessToken);
         } else {
           console.error("Failed to get Google Access Token. Cannot create Drive folder.");
         }
@@ -89,13 +100,19 @@ serve(async (req) => {
         if (newPatientError) throw newPatientError;
         patient = newPatient;
       }
+    } else {
+        const { data: existingPatient } = await supabase
+        .from('patients')
+        .select('id, created_at, drive_id')
+        .eq('drive_id', existingDriveId)
+        .single();
+        patient = existingPatient;
     }
 
     if (!patient) {
       throw new Error("Patient could not be found or created.");
     }
 
-    // Create the consultation record
     const { data: consultation, error: newConsultationError } = await supabase
       .from('consultations')
       .insert({

@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
-import { createOrGetPatientFolder } from "../_shared/google-drive.ts";
 
 const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 const corsHeaders = {
@@ -35,21 +34,40 @@ serve(async (req) => {
     const { templateId, patientId, name, dob, sex, phone, complaints, investigations, diagnosis, folderId } = data;
     const myId = patientId || await generateIncrementalId(supabaseClient);
 
-    const finalFolderId = await createOrGetPatientFolder({
-      patientName: name,
-      accessToken,
-      templateId,
-      folderId,
-    });
+    let parents;
+    let newFolderId = folderId;
 
-    if (!finalFolderId) {
-      throw new Error("Could not create or find Google Drive folder.");
+    if (folderId) {
+      parents = [folderId];
+    } else {
+      const templateParent = "1-q41-i2W-_1_e-nQ2-Z-B-1_Z-I-e-R-c-x-p-H-l-k-Q";
+      if (templateParent) {
+        const createFolderResp = await fetch(`https://www.googleapis.com/drive/v3/files`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [templateParent]
+          })
+        });
+
+        if (createFolderResp.ok) {
+          const folderData = await createFolderResp.json();
+          parents = [folderData.id];
+          newFolderId = folderData.id;
+        } else {
+          console.warn('Could not create folder; file will be created in default location.');
+        }
+      } else {
+        console.warn('Template parent not found; file will be created in default location.');
+      }
     }
 
     const copyResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${templateId}/copy`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, parents: [finalFolderId] })
+      body: JSON.stringify({ name, parents })
     });
 
     if (!copyResponse.ok) throw new Error(`Failed to copy template: ${copyResponse.statusText}`);
@@ -89,15 +107,15 @@ serve(async (req) => {
     if (!finalDocResponse.ok) throw new Error(`Failed to get document URL: ${finalDocResponse.statusText}`);
     const finalDocData = await finalDocResponse.json();
 
-    if (finalFolderId && !folderId && templateId === "1WqiyTfWBG4j7I4iry0weMmMLEPGJZDnTNkiZHCdd9Ao") {
+    if (newFolderId && !folderId && templateId === "1WqiyTfWBG4j7I4iry0weMmMLEPGJZDnTNkiZHCdd9Ao") {
         const { error: updateError } = await supabaseClient
           .from('patients')
-          .update({ drive_id: finalFolderId })
+          .update({ drive_id: newFolderId })
           .eq('id', myId);
         if (updateError) console.error('Error updating patient with new drive_id:', updateError);
     }
 
-    return new Response(JSON.stringify({ url: finalDocData.webViewLink, patientId: myId, driveId: finalFolderId }), {
+    return new Response(JSON.stringify({ url: finalDocData.webViewLink, patientId: myId, driveId: newFolderId }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
