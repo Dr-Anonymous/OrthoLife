@@ -1,27 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, User, Phone, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, User, Phone, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
+interface Patient {
+  id: number;
+  name: string;
+  dob: string;
+  sex: string;
+  phone: string;
+  drive_id: string | null;
+}
+
 interface FormData {
   name: string;
   dob: Date | undefined;
   sex: string;
   phone: string;
-}
-
-interface PatientFolder {
-  id: string;
-  name: string;
+  driveId: string | null;
 }
 
 const PatientRegistration = () => {
@@ -29,14 +34,13 @@ const PatientRegistration = () => {
     name: '',
     dob: undefined,
     sex: 'M',
-    phone: ''
+    phone: '',
+    driveId: null,
   });
 
-  const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<string>('');
-  const [selectedFolder, setSelectedFolder] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<Patient[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
-  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,97 +57,80 @@ const PatientRegistration = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex'>, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId'>, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value, driveId: null }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
 
-    if (field === 'phone') {
-      setPatientFolders([]);
-      setSelectedPatient('');
+    if (field === 'phone' || field === 'name') {
+      setSearchResults([]);
+      setSelectedPatientId('');
     }
   };
 
-  const searchPatientRecords = async (phoneNumber: string) => {
+  const handleSearch = async (searchType: 'name' | 'phone') => {
+    const searchTerm = searchType === 'name' ? formData.name : formData.phone;
+    if (!searchTerm.trim()) {
+      toast({
+        title: 'Search term required',
+        description: `Please enter a ${searchType} to search.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSearching(true);
+    setSearchResults([]);
+    setSelectedPatientId('');
+
     try {
-      const { data, error } = await supabase.functions.invoke('search-patient-records', {
-        body: { phoneNumber }
+      const { data, error } = await supabase.functions.invoke('search-patients-database', {
+        body: { searchTerm, searchType },
       });
 
       if (error) throw error;
 
-      if (data?.patientFolders?.length > 0) {
-        setPatientFolders(data.patientFolders);
+      if (data && data.length > 0) {
+        setSearchResults(data);
         toast({
-          title: "Patient Records Found",
-          description: `Found ${data.patientFolders.length} patient record(s). Please select a patient.`
+          title: 'Patients Found',
+          description: `Found ${data.length} patient(s). Please select one.`,
         });
       } else {
-        setPatientFolders([]);
-        setSelectedPatient('');
         toast({
-            title: "No Records Found",
-            description: "No existing patient records found for this phone number. You can register a new patient."
+          title: 'No Patients Found',
+          description: 'No existing patients found with this criteria. You can register a new patient.',
         });
       }
     } catch (error) {
-      console.error('Error searching patient records:', error);
+      console.error('Error searching patients:', error);
       toast({
         variant: 'destructive',
-        title: "Search Error",
-        description: "Failed to search patient records. Please try again."
+        title: 'Search Error',
+        description: 'Failed to search for patients. Please try again.',
       });
     } finally {
       setIsSearching(false);
     }
   };
 
-  const handlePatientSelection = (folderId: string) => {
-    const selectedFolderData = patientFolders.find(folder => folder.id === folderId);
-    setSelectedPatient(selectedFolderData?.name || folderId);
-    setSelectedFolder(folderId);
-  };
+  const handlePatientSelection = (patientId: string) => {
+    const selected = searchResults.find(p => p.id.toString() === patientId);
+    setSelectedPatientId(patientId);
 
-  const fetchPatientData = useCallback(async (folderId: string) => {
-    setIsFetchingDetails(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('search-patient-records', {
-        body: { phoneNumber: formData.phone, selectedFolder: folderId }
+    if (selected) {
+      setFormData({
+        name: selected.name,
+        dob: selected.dob ? new Date(selected.dob) : undefined,
+        sex: selected.sex,
+        phone: selected.phone,
+        driveId: selected.drive_id,
       });
-
-      if (error) throw error;
-
-      if (data?.patientData) {
-        const patientData = data.patientData;
-        setFormData(prev => ({
-          ...prev,
-          name: patientData.name || prev.name,
-          dob: patientData.dob ? new Date(patientData.dob) : prev.dob,
-          sex: patientData.sex || prev.sex,
-        }));
-
-        toast({
-          title: "Data Loaded",
-          description: "Patient data has been auto-filled."
-        });
-      }
-    } catch (error) {
-      console.error('Error loading patient data:', error);
       toast({
-        variant: 'destructive',
-        title: "Load Error",
-        description: "Failed to load patient data."
+        title: 'Patient Data Loaded',
+        description: "The form has been auto-filled with the selected patient's data.",
       });
-    } finally {
-      setIsFetchingDetails(false);
     }
-  }, [formData.phone]);
-
-  useEffect(() => {
-    if (selectedFolder) {
-      fetchPatientData(selectedFolder);
-    }
-  }, [selectedFolder, fetchPatientData]);
+  };
 
   const handleSexChange = (value: string) => setFormData(prev => ({ ...prev, sex: value }));
 
@@ -152,6 +139,7 @@ const PatientRegistration = () => {
     if (errors.dob) setErrors(prev => ({ ...prev, dob: undefined }));
     if (date) setIsDatePickerOpen(false);
   };
+
   const handleYearChange = (year: string) => {
     const newDate = new Date(calendarDate);
     newDate.setFullYear(parseInt(year));
@@ -175,6 +163,7 @@ const PatientRegistration = () => {
           dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
           sex: formData.sex,
           phone: formData.phone,
+          driveId: formData.driveId,
         },
       });
 
@@ -182,15 +171,13 @@ const PatientRegistration = () => {
       if (data.error) throw new Error(data.error);
 
       toast({
-        title: "Patient Registered for Consultation",
+        title: 'Patient Registered for Consultation',
         description: `${formData.name} has been successfully registered.`,
       });
 
-      // Reset form after submission
-      setFormData({ name: '', dob: undefined, sex: 'M', phone: '' });
-      setPatientFolders([]);
-      setSelectedPatient('');
-      setSelectedFolder('');
+      setFormData({ name: '', dob: undefined, sex: 'M', phone: '', driveId: null });
+      setSearchResults([]);
+      setSelectedPatientId('');
 
     } catch (error) {
       console.error('Error:', error);
@@ -227,62 +214,63 @@ const PatientRegistration = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-sm font-medium">Phone Number (Search/Register)</Label>
-                        <div className="relative">
-                        <Phone className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-                        <Input
-                            id="phone"
-                            value={formData.phone}
-                            onChange={e => handleInputChange('phone', e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchPatientRecords((e.target as HTMLInputElement).value))}
-                            className={cn("pl-10", errors.phone && "border-destructive")}
-                            placeholder="Enter 10-digit number and press Enter to search"
-                        />
-                        {isSearching && (
-                            <Loader2 className="w-4 h-4 absolute right-3 top-3 animate-spin text-muted-foreground" />
-                        )}
-                        </div>
-                        {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                    </div>
-                    {patientFolders.length > 0 && (
-                        <div className="space-y-2">
-                            <Label className="text-sm font-medium">Select Existing Patient</Label>
-                            <Select value={selectedPatient} onValueChange={handlePatientSelection} disabled={isFetchingDetails}>
-                            <SelectTrigger className="relative">
-                                <SelectValue placeholder="Choose existing patient..." />
-                                {isFetchingDetails && (
-                                <Loader2 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
-                                )}
-                            </SelectTrigger>
-                            <SelectContent>
-                                {patientFolders.map((folder) => (
-                                <SelectItem key={folder.id} value={folder.id}>
-                                    {folder.name}
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                    <Label htmlFor="name" className="text-sm font-medium">Full Name (Search/Register)</Label>
                     <div className="relative">
                       <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                       <Input
                         id="name"
                         value={formData.name}
                         onChange={e => handleInputChange('name', e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
-                        className={cn("pl-10", errors.name && "border-destructive")}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); }}}
+                        className={cn("pl-10 pr-10", errors.name && "border-destructive")}
                         placeholder="Enter full name"
                       />
+                      <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
+                        {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
+                      </button>
                     </div>
                     {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number (Search/Register)</Label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={e => handleInputChange('phone', e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('phone'); }}}
+                        className={cn("pl-10 pr-10", errors.phone && "border-destructive")}
+                        placeholder="Enter 10-digit number"
+                      />
+                       <button type="button" onClick={() => handleSearch('phone')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
+                        {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
+                      </button>
+                    </div>
+                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                  </div>
+                </div>
+
+                {searchResults.length > 0 && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-sm font-medium">Select Existing Patient</Label>
+                    <Select value={selectedPatientId} onValueChange={handlePatientSelection}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a patient from search results..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {searchResults.map((patient) => (
+                          <SelectItem key={patient.id} value={patient.id.toString()}>
+                            {patient.name} - {patient.phone}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
                     <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
@@ -296,38 +284,22 @@ const PatientRegistration = () => {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.dob ? (
-                            format(formData.dob, "PPP")
-                          ) : (
-                            <span>Select date of birth</span>
-                          )}
+                          {formData.dob ? format(formData.dob, "PPP") : <span>Select date of birth</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <div className="p-3 border-b space-y-2">
                           <div className="flex gap-2">
                             <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                              <SelectTrigger className="flex-1">
-                                <SelectValue />
-                              </SelectTrigger>
+                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {months.map((month, index) => (
-                                  <SelectItem key={index} value={index.toString()}>
-                                    {month}
-                                  </SelectItem>
-                                ))}
+                                {months.map((month, index) => <SelectItem key={index} value={index.toString()}>{month}</SelectItem>)}
                               </SelectContent>
                             </Select>
                             <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                              <SelectTrigger className="flex-1">
-                                <SelectValue />
-                              </SelectTrigger>
+                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                               <SelectContent className="max-h-48">
-                                {years.map((year) => (
-                                  <SelectItem key={year} value={year.toString()}>
-                                    {year}
-                                  </SelectItem>
-                                ))}
+                                {years.map((year) => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
@@ -338,25 +310,18 @@ const PatientRegistration = () => {
                           onSelect={handleDateChange}
                           month={calendarDate}
                           onMonthChange={setCalendarDate}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
+                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                           initialFocus
-                          className={cn("p-3 pointer-events-auto")}
+                          className="p-3"
                         />
                       </PopoverContent>
                     </Popover>
                     {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="sex" className="text-sm font-medium">Sex</Label>
                     <Select value={formData.sex} onValueChange={handleSexChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="M">Male</SelectItem>
                         <SelectItem value="F">Female</SelectItem>
@@ -368,16 +333,9 @@ const PatientRegistration = () => {
               </div>
 
               <div className="pt-6">
-                <Button
-                  type="submit"
-                  className="w-full h-12 text-lg font-semibold"
-                  disabled={isSubmitting}
-                >
+                <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting}>
                   {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Registering...
-                    </>
+                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Registering...</>
                   ) : (
                     'Register for Consultation'
                   )}
