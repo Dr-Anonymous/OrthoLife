@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, User, ChevronsRight } from 'lucide-react';
-import { format, getMonth, getYear, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { format, getMonth, getYear } from 'date-fns';
 
 interface Patient {
   id: string;
@@ -13,6 +13,7 @@ interface Patient {
   dob: string;
   sex: string;
   phone: string;
+  drive_id: string | null;
 }
 
 interface DailyConsultation {
@@ -135,7 +136,20 @@ const ConsultationStats = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {dailyData.map((consultation) => (
                         <tr key={consultation.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{consultation.patient.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {consultation.patient.drive_id ? (
+                              <a
+                                href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                {consultation.patient.name}
+                              </a>
+                            ) : (
+                              consultation.patient.name
+                            )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${

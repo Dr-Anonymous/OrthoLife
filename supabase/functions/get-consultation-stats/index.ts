@@ -41,7 +41,8 @@ serve(async (req) => {
           name,
           dob,
           sex,
-          phone
+          phone,
+          drive_id
         )
       `)
       .gte('created_at', dayStartDate)
