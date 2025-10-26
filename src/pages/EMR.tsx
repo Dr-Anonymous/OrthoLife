@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
@@ -287,6 +288,23 @@ const EMR = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [age, setAge] = useState<number | ''>('');
+
+  useEffect(() => {
+    setAge(calculateAge(formData.dob));
+  }, [formData.dob]);
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAge = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+    setAge(newAge);
+
+    if (newAge !== '' && !isNaN(newAge)) {
+      const today = new Date();
+      const birthYear = today.getFullYear() - newAge;
+      const newDob = new Date(birthYear, formData.dob?.getMonth() ?? today.getMonth(), formData.dob?.getDate() ?? today.getDate());
+      setFormData(prev => ({ ...prev, dob: newDob }));
+    }
+  };
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
@@ -623,6 +641,7 @@ const EMR = () => {
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
         sex: formData.sex,
         phone: formData.phone,
+        age,
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
@@ -659,6 +678,7 @@ const EMR = () => {
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
         sex: formData.sex,
         phone: formData.phone,
+        age,
         complaints: extraData.complaints,
         findings: extraData.findings,
         investigations: extraData.investigations,
@@ -738,67 +758,61 @@ const EMR = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
-                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !formData.dob && "text-muted-foreground",
-                            errors.dob && "border-destructive"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.dob ? (
-                            format(formData.dob, "PPP")
-                          ) : (
-                            <span>Select date of birth</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <div className="p-3 border-b space-y-2">
-                          <div className="flex gap-2">
-                            <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                              <SelectTrigger className="flex-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {months.map((month, index) => (
-                                  <SelectItem key={index} value={index.toString()}>
-                                    {month}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                              <SelectTrigger className="flex-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-48">
-                                {years.map((year) => (
-                                  <SelectItem key={year} value={year.toString()}>
-                                    {year}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                    <div className="flex gap-2">
+                      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.dob && "text-muted-foreground",
+                              errors.dob && "border-destructive"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData.dob ? format(formData.dob, "PPP") : <span>Select date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <div className="p-3 border-b space-y-2">
+                            <div className="flex gap-2">
+                              <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {months.map((month, index) => <SelectItem key={index} value={index.toString()}>{month}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                              <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                <SelectContent className="max-h-48">
+                                  {years.map((year) => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                        </div>
-                        <Calendar
-                          mode="single"
-                          selected={formData.dob}
-                          onSelect={handleDateChange}
-                          month={calendarDate}
-                          onMonthChange={setCalendarDate}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
+                          <Calendar
+                            mode="single"
+                            selected={formData.dob}
+                            onSelect={handleDateChange}
+                            month={calendarDate}
+                            onMonthChange={setCalendarDate}
+                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                            initialFocus
+                            className="p-3"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <div className="space-y-2">
+                        <Input
+                          id="age"
+                          type="number"
+                          value={age}
+                          onChange={handleAgeChange}
+                          placeholder="Age"
+                          className="w-24"
                         />
-                      </PopoverContent>
-                    </Popover>
+                      </div>
+                    </div>
                     {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
                   </div>
                 </div>

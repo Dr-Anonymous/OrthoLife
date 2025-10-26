@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateAge } from '@/lib/age';
 
 interface Patient {
   id: number;
@@ -49,6 +50,23 @@ const PatientRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [age, setAge] = useState<number | ''>('');
+
+  useEffect(() => {
+    setAge(calculateAge(formData.dob));
+  }, [formData.dob]);
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAge = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+    setAge(newAge);
+
+    if (newAge !== '' && !isNaN(newAge)) {
+      const today = new Date();
+      const birthYear = today.getFullYear() - newAge;
+      const newDob = new Date(birthYear, formData.dob?.getMonth() ?? today.getMonth(), formData.dob?.getDate() ?? today.getDate());
+      setFormData(prev => ({ ...prev, dob: newDob }));
+    }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
@@ -169,6 +187,7 @@ const PatientRegistration = () => {
           phone: formData.phone,
           driveId: formData.driveId,
           force,
+          age,
         },
       });
 
@@ -329,8 +348,8 @@ const PatientRegistration = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
                     <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                       <PopoverTrigger asChild>
@@ -376,6 +395,16 @@ const PatientRegistration = () => {
                       </PopoverContent>
                     </Popover>
                     {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age" className="text-sm font-medium">Age (Years)</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      value={age}
+                      onChange={handleAgeChange}
+                      placeholder="e.g., 20"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="sex" className="text-sm font-medium">Sex</Label>
