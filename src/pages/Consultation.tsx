@@ -630,7 +630,7 @@ const Consultation = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-      <div className="container mx-auto max-w-4xl">
+      <div className="container mx-auto max-w-7xl">
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <CardHeader className="text-center pb-8">
             <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
@@ -642,7 +642,7 @@ const Consultation = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div className="md:col-span-1 space-y-4">
                     <div>
                         <div className="flex justify-between items-center mb-2">
@@ -693,7 +693,7 @@ const Consultation = () => {
                     </div>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="md:col-span-3">
                 {selectedConsultation && editablePatientDetails ? (
                     <form onSubmit={submitForm} className="space-y-6">
                         <div className="space-y-4">
