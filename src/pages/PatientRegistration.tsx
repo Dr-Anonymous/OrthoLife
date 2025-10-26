@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -41,6 +42,8 @@ const PatientRegistration = () => {
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [matchingPatients, setMatchingPatients] = useState<Patient[]>([]);
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,8 +116,8 @@ const PatientRegistration = () => {
     }
   };
 
-  const handlePatientSelection = (patientId: string) => {
-    const selected = searchResults.find(p => p.id.toString() === patientId);
+  const handlePatientSelection = (patientId: string, patientList: Patient[] = searchResults) => {
+    const selected = patientList.find(p => p.id.toString() === patientId);
     setSelectedPatientId(patientId);
 
     if (selected) {
@@ -152,10 +155,11 @@ const PatientRegistration = () => {
     setCalendarDate(newDate);
   };
 
-  const submitForm = async (e: React.FormEvent) => {
+  const submitForm = async (e: React.FormEvent, force = false) => {
     e.preventDefault();
     if (!validateForm()) return;
     setIsSubmitting(true);
+
     try {
       const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
         body: {
@@ -164,24 +168,46 @@ const PatientRegistration = () => {
           sex: formData.sex,
           phone: formData.phone,
           driveId: formData.driveId,
+          force,
         },
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (error) { // Network or unexpected function error
+        throw new Error(error.message);
+      }
 
-      toast({
-        title: 'Patient Registered for Consultation',
-        description: `${formData.name} has been successfully registered.`,
-      });
-
-      setFormData({ name: '', dob: undefined, sex: 'M', phone: '', driveId: null });
-      setSearchResults([]);
-      setSelectedPatientId('');
+      // Handle structured responses from the function
+      if (data.status === 'partial_match') {
+        setMatchingPatients(data.matches);
+        setShowConfirmation(true);
+      } else if (data.status === 'exact_match') {
+        toast({
+          variant: 'destructive',
+          title: 'Patient Exists',
+          description: data.message,
+        });
+        // Optionally, auto-fill form with exact match data
+        handlePatientSelection(data.patient.id.toString(), [data.patient]);
+      } else if (data.status === 'success') {
+        toast({
+          title: 'Patient Registered for Consultation',
+          description: `${formData.name} has been successfully registered.`,
+        });
+        setFormData({ name: '', dob: undefined, sex: 'M', phone: '', driveId: null });
+        setSearchResults([]);
+        setSelectedPatientId('');
+        setShowConfirmation(false);
+      } else { // Generic error from the function's own catch block
+        throw new Error(data.error || 'An unexpected error occurred.');
+      }
 
     } catch (error) {
       console.error('Error:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Registration failed. Please try again.' });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Registration failed. Please try again.'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -192,9 +218,42 @@ const PatientRegistration = () => {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                   'August', 'September', 'October', 'November', 'December'];
 
+  const handleSelectFromModal = (patientId: string) => {
+    handlePatientSelection(patientId, matchingPatients);
+    setShowConfirmation(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="container mx-auto max-w-4xl">
+        <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Patient Identity</DialogTitle>
+              <DialogDescription>
+                A patient with a similar name is already registered. Please select the correct patient, or register as a new patient.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-2 max-h-60 overflow-y-auto">
+              {matchingPatients.map(p => (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-auto"
+                  key={p.id}
+                  onClick={() => handleSelectFromModal(p.id.toString())}
+                >
+                  <div className="text-left">
+                    <p className="font-semibold">{p.name}</p>
+                    <p className="text-sm text-muted-foreground">{p.phone} - DOB: {format(new Date(p.dob), 'PPP')}</p>
+                  </div>
+                </Button>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button className="w-full" onClick={() => submitForm(new Event('submit') as any, true)}>Register as New Patient</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <CardHeader className="text-center pb-8">
             <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
