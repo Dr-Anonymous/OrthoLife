@@ -63,6 +63,7 @@ serve(async (req) => {
       .select(`
         id,
         status,
+        created_at,
         patient:patients (
           id,
           name,
