@@ -21,8 +21,12 @@ if [ $GIT_DIFF_EXIT_CODE -ne 0 ]; then
   exit 1
 fi
 
-# Filter for files in the supabase/functions directory and get the unique function names, excluding _shared
+# Filter for files in the supabase/functions directory and get the unique function names, excluding _shared.
+# Temporarily disable 'exit on error' for this pipeline, as `grep` will exit with code 1 if no matches are found,
+# which is an expected outcome when no function files have been changed.
+set +e
 CHANGED_FUNCTIONS=$(echo "$FILES_CHANGED" | grep -oE 'supabase/functions/([^/]+)' | sort -u | sed 's/supabase\/functions\///g' | grep -v '^_shared$')
+set -e
 
 if [ -z "$CHANGED_FUNCTIONS" ]; then
   echo "No functions to deploy or delete."
