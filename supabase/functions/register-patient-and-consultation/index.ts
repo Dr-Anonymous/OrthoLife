@@ -35,71 +35,131 @@ serve(async (req) => {
   }
 
   try {
-    const { name, dob, sex, phone, driveId: existingDriveId } = await req.json();
+    const { name, dob, sex, phone, driveId: existingDriveId, force = false } = await req.json();
 
-    let patient;
+    // Sanitize phone to last 10 digits
+    const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
 
+    // If a driveId is provided, we're updating an existing patient.
     if (existingDriveId) {
-      // Logic for an existing patient whose details might have been edited
       const { data: updatedPatient, error: updateError } = await supabase
         .from('patients')
-        .update({ name, dob, sex, phone })
+        .update({ name, dob, sex, phone: sanitizedPhone })
         .eq('drive_id', existingDriveId)
         .select('id, created_at, drive_id')
         .single();
-
       if (updateError) throw updateError;
-      patient = updatedPatient;
 
-    } else {
-      // Logic for a new patient or a patient being looked up for the first time
-      const { data: existingPatient, error: patientError } = await supabase
-        .from('patients')
-        .select('id, created_at, drive_id')
-        .eq('phone', phone)
-        .eq('name', name)
+      // Proceed to create a consultation for the updated patient
+      const { data: consultation, error: newConsultationError } = await supabase
+        .from('consultations')
+        .insert({ patient_id: updatedPatient.id, status: 'pending' })
+        .select()
         .single();
 
-      if (patientError && patientError.code !== 'PGRST116') {
-        throw patientError;
-      }
+      if (newConsultationError) throw newConsultationError;
 
-      if (existingPatient) {
-        patient = existingPatient;
-      } else { // New patient registration
-        const accessToken = await getGoogleAccessToken();
-        let driveId = null;
-        if (accessToken) {
-          driveId = await createOrGetPatientFolder({
-            patientName: name,
-            accessToken,
-            templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4", // Prescription template
-          });
-        } else {
-          console.error("Failed to get Google Access Token. Cannot create Drive folder.");
+      return new Response(JSON.stringify({
+        status: 'success',
+        consultation,
+        driveId: updatedPatient.drive_id
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    // Check for existing patients with the same phone number
+    const { data: existingPatients, error: patientError } = await supabase
+      .from('patients')
+      .select('id, name, dob, sex, phone, drive_id')
+      .eq('phone', sanitizedPhone);
+
+    if (patientError) throw patientError;
+
+    const newNameLower = name.toLowerCase();
+    const newNameParts = newNameLower.split(/\s+/).filter(p => p.length > 0);
+
+    let exactMatch = null;
+    const partialMatches: any[] = [];
+
+    if (existingPatients && existingPatients.length > 0) {
+      for (const patient of existingPatients) {
+        const existingNameLower = patient.name.toLowerCase();
+
+        if (newNameLower === existingNameLower) {
+          exactMatch = patient;
+          break;
         }
 
-        const newPatientId = await generateIncrementalId(supabase);
-        const { data: newPatient, error: newPatientError } = await supabase
-          .from('patients')
-          .insert({ id: newPatientId, name, dob, sex, phone, drive_id: driveId })
-          .select('id, created_at, drive_id')
-          .single();
+        const existingNameParts = existingNameLower.split(/\s+/).filter(p => p.length > 0);
 
-        if (newPatientError) throw newPatientError;
-        patient = newPatient;
+        const isPartialMatch = newNameParts.some(newPart =>
+          existingNameParts.some(existingPart =>
+            (newPart.length >= 4 && existingPart.startsWith(newPart)) ||
+            (existingPart.length >= 4 && newPart.startsWith(existingPart))
+          )
+        );
+
+        if (isPartialMatch) {
+          partialMatches.push(patient);
+        }
       }
     }
 
-    if (!patient) {
-      throw new Error("Patient could not be found or created.");
+    if (exactMatch) {
+      return new Response(JSON.stringify({
+        status: 'exact_match',
+        message: 'A patient with this exact name and phone number already exists.',
+        patient: exactMatch
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 409,
+      });
     }
 
-    // Create the consultation record
+    if (partialMatches.length > 0 && !force) {
+      return new Response(JSON.stringify({
+        status: 'partial_match',
+        message: 'Found patients with similar names. Please confirm if this is a new patient.',
+        matches: partialMatches
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    // No matches or user confirmed new patient, proceed with registration
+    const accessToken = await getGoogleAccessToken();
+    let driveId = null;
+    if (accessToken) {
+      driveId = await createOrGetPatientFolder({
+        patientName: name,
+        accessToken,
+        templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4", // Prescription template
+      });
+    } else {
+      console.error("Failed to get Google Access Token. Cannot create Drive folder.");
+    }
+
+    const newPatientId = await generateIncrementalId(supabase);
+    const { data: newPatient, error: newPatientError } = await supabase
+      .from('patients')
+      .insert({ id: newPatientId, name, dob, sex, phone: sanitizedPhone, drive_id: driveId })
+      .select('id, created_at, drive_id')
+      .single();
+
+    if (newPatientError) throw newPatientError;
+
+    if (!newPatient) {
+      throw new Error("Patient could not be created.");
+    }
+
+    // Create the consultation record for the new patient
     const { data: consultation, error: newConsultationError } = await supabase
       .from('consultations')
       .insert({
-        patient_id: patient.id,
+        patient_id: newPatient.id,
         status: 'pending',
       })
       .select()
@@ -107,7 +167,11 @@ serve(async (req) => {
 
     if (newConsultationError) throw newConsultationError;
 
-    return new Response(JSON.stringify({ consultation, driveId: patient.drive_id }), {
+    return new Response(JSON.stringify({
+      status: 'success',
+      consultation,
+      driveId: newPatient.drive_id
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
