@@ -56,18 +56,12 @@ serve(async (req) => {
     const copyData = await copyResponse.json();
     const docId = copyData.id;
 
-    let age = '';
-    if (dob) {
-      const birthDate = new Date(dob);
-      age = (today.getFullYear() - birthDate.getFullYear() - (today < new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate()) ? 1 : 0)).toString();
-    }
-
     const replacements = [
       { replaceAllText: { containsText: { text: '{{name}}' }, replaceText: name || '' } },
       { replaceAllText: { containsText: { text: '{{dob}}' }, replaceText: dob || '' } },
       { replaceAllText: { containsText: { text: '{{sex}}' }, replaceText: sex || '' } },
       { replaceAllText: { containsText: { text: '{{phone}}' }, replaceText: phone || '' } },
-      { replaceAllText: { containsText: { text: '{{age}}' }, replaceText: age } },
+      { replaceAllText: { containsText: { text: '{{age}}' }, replaceText: data.age || '' } },
       { replaceAllText: { containsText: { text: '{{id}}' }, replaceText: myId } },
       { replaceAllText: { containsText: { text: '{{date}}' }, replaceText: today.toLocaleDateString('en-GB') } },
       { replaceAllText: { containsText: { text: '{{complaints}}' }, replaceText: complaints || '' } },
