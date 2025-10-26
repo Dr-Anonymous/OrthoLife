@@ -2,6 +2,8 @@
 
 # Exit if any command fails
 set -e
+# Enable command tracing for debugging in CI
+set -x
 
 echo "Detecting changed functions..."
 
