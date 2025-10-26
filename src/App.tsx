@@ -15,6 +15,7 @@ const WhatsAppMe = lazy(() => import("./pages/WhatsAppMe"));
 const EMR = lazy(() => import("./pages/EMR"));
 const PatientRegistration = lazy(() => import("./pages/PatientRegistration"));
 const Consultation = lazy(() => import("./pages/Consultation"));
+const ConsultationStats = lazy(() => import("./pages/ConsultationStats"));
 const PharmacyPage = lazy(() => import("./pages/PharmacyPage"));
 const DiagnosticsPage = lazy(() => import("./pages/DiagnosticsPage"));
 const UploadPrescriptionPage = lazy(() => import("./pages/UploadPrescriptionPage"));
@@ -66,6 +67,7 @@ const App = () => {
                 <Route path="/emr" element={<EMR />} />
                 <Route path="/patient-registration" element={<PatientRegistration />} />
                 <Route path="/consultation" element={<Consultation />} />
+                <Route path="/consultation-stats" element={<ConsultationStats />} />
 
                 {/* Pharmacy Routes */}
                 <Route path="/pharmacy" element={<PharmacyPage />} />
