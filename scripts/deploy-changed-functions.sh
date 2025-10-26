@@ -5,8 +5,19 @@ set -e
 
 echo "Detecting changed functions..."
 
-# Get a list of all changed files in the push
+# Get a list of all changed files in the push.
+# We capture the output and exit code separately because 'set -e' would exit immediately on failure.
+# This allows us to provide a more specific error message.
+set +e
 FILES_CHANGED=$(git diff --name-only $1 $2)
+GIT_DIFF_EXIT_CODE=$?
+set -e
+
+if [ $GIT_DIFF_EXIT_CODE -ne 0 ]; then
+  echo "Error: 'git diff --name-only $1 $2' failed with exit code $GIT_DIFF_EXIT_CODE." >&2
+  echo "This can happen in CI environments with shallow clones. Please ensure the full git history is available." >&2
+  exit 1
+fi
 
 # Filter for files in the supabase/functions directory and get the unique function names, excluding _shared
 CHANGED_FUNCTIONS=$(echo "$FILES_CHANGED" | grep -oE 'supabase/functions/([^/]+)' | sort -u | sed 's/supabase\/functions\///g' | grep -v '^_shared$')
