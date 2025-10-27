@@ -46,10 +46,13 @@ const ActivityLogger = () => {
 
   useEffect(() => {
     const logActivity = async () => {
-      if (!loading && user) {
+      if (!loading && user && user.phone) {
         try {
           await supabase.functions.invoke('log-user-activity', {
-            body: { page_visited: location.pathname },
+            body: {
+              page_visited: location.pathname,
+              user_phone: user.phone
+            },
           });
         } catch (error) {
           console.error("Error logging user activity:", error);
