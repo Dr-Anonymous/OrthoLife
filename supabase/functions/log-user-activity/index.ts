@@ -113,9 +113,7 @@ serve(async (req) => {
     if (!kid) throw new Error("Invalid token: 'kid' not found in header.");
 
     const publicKey = await getGooglePublicKey(kid);
-    const projectId = Deno.env.get("FIREBASE_PROJECT_ID");
-    if (!projectId) throw new Error("FIREBASE_PROJECT_ID environment variable is not set.");
-
+    const projectId = "ortholife-otp-auth";
     const verifiedPayload = await verify(userToken, publicKey, {
         issuer: `https://securetoken.google.com/${projectId}`,
         audience: projectId,
