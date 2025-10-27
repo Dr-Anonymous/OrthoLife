@@ -3,10 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PageLoader from "./components/PageLoader";
 import { usePWAInstall } from "./hooks/usePWAInstall";
+import { supabase } from "./integrations/supabase/client";
+import { useAuth } from "./hooks/useAuth";
 
 const Index = lazy(() => import("./pages/Index"));
 const AppointmentPage = lazy(() => import("./pages/AppointmentPage"));
@@ -38,6 +40,24 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+const ActivityLogger = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const logActivity = async () => {
+      if (user) {
+        await supabase.functions.invoke('log-user-activity', {
+          body: { page_visited: location.pathname },
+        });
+      }
+    };
+    logActivity();
+  }, [location.pathname, user]);
+
+  return null;
+};
+
 const App = () => {
   const { installPrompt, handleInstallClick } = usePWAInstall();
 
@@ -58,6 +78,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ActivityLogger />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
