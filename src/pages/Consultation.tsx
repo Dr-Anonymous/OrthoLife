@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
@@ -265,9 +266,14 @@ const Consultation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [age, setAge] = useState<number | ''>('');
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
+
+  useEffect(() => {
+    setAge(calculateAge(editablePatientDetails.dob));
+  }, [editablePatientDetails.dob]);
 
   useEffect(() => {
     const autofillMeds = async (text: string) => {
@@ -547,6 +553,7 @@ const Consultation = () => {
         patientId: selectedConsultation.patient.id,
         name: editablePatientDetails.name,
         dob: editablePatientDetails.dob,
+        age: age,
         sex: editablePatientDetails.sex,
         phone: editablePatientDetails.phone,
         complaints: extraData.complaints,
@@ -583,6 +590,7 @@ const Consultation = () => {
         patientId: selectedConsultation.patient.id,
         name: editablePatientDetails.name,
         dob: editablePatientDetails.dob,
+        age: age,
         sex: editablePatientDetails.sex,
         phone: editablePatientDetails.phone,
         complaints: extraData.complaints,

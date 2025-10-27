@@ -435,6 +435,7 @@ const EMR = () => {
           ...prev,
           name: patientData.name || prev.name,
           dob: patientData.dob ? new Date(patientData.dob) : prev.dob,
+          age: age,
           sex: patientData.sex || prev.sex,
         }));
 
@@ -641,7 +642,7 @@ const EMR = () => {
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
         sex: formData.sex,
         phone: formData.phone,
-        age,
+        age: age,
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
@@ -678,7 +679,7 @@ const EMR = () => {
         dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : '',
         sex: formData.sex,
         phone: formData.phone,
-        age,
+        age: age,
         complaints: extraData.complaints,
         findings: extraData.findings,
         investigations: extraData.investigations,
