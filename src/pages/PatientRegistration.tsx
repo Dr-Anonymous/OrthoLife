@@ -276,7 +276,7 @@ const PatientRegistration = () => {
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <CardHeader className="text-center pb-8">
             <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
-              <User className="w-7 h-7" />
+              <img src="/badam-logo.png" alt="Logo" className="w-8 h-8" />
               Patient Registration
             </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
@@ -348,63 +348,65 @@ const PatientRegistration = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
-                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !formData.dob && "text-muted-foreground",
-                            errors.dob && "border-destructive"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.dob ? format(formData.dob, "PPP") : <span>Select date of birth</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <div className="p-3 border-b space-y-2">
-                          <div className="flex gap-2">
-                            <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {months.map((month, index) => <SelectItem key={index} value={index.toString()}>{month}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                              <SelectContent className="max-h-48">
-                                {years.map((year) => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <Calendar
-                          mode="single"
-                          selected={formData.dob}
-                          onSelect={handleDateChange}
-                          month={calendarDate}
-                          onMonthChange={setCalendarDate}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus
-                          className="p-3"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="age" className="text-sm font-medium">Age (Years)</Label>
-                    <Input
-                      id="age"
-                      type="number"
-                      value={age}
-                      onChange={handleAgeChange}
-                      placeholder="e.g., 20"
-                    />
+                    <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
+                    <div className="flex gap-2">
+                      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.dob && "text-muted-foreground",
+                              errors.dob && "border-destructive"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData.dob ? format(formData.dob, "PPP") : <span>Select date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <div className="p-3 border-b space-y-2">
+                            <div className="flex gap-2">
+                              <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {months.map((month, index) => <SelectItem key={index} value={index.toString()}>{month}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                              <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                <SelectContent className="max-h-48">
+                                  {years.map((year) => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <Calendar
+                            mode="single"
+                            selected={formData.dob}
+                            onSelect={handleDateChange}
+                            month={calendarDate}
+                            onMonthChange={setCalendarDate}
+                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                            initialFocus
+                            className="p-3"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <div className="space-y-2">
+                        <Input
+                          id="age"
+                          type="number"
+                          value={age}
+                          onChange={handleAgeChange}
+                          placeholder="Age"
+                          className="w-24"
+                        />
+                      </div>
+                    </div>
+                    {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="sex" className="text-sm font-medium">Sex</Label>
