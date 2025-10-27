@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
@@ -265,6 +266,7 @@ const Consultation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [age, setAge] = useState<number | ''>('');
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
@@ -384,6 +386,26 @@ const Consultation = () => {
         setEditablePatientDetails(null);
     }
   }, [selectedConsultation]);
+
+  useEffect(() => {
+    if (editablePatientDetails?.dob) {
+      setAge(calculateAge(new Date(editablePatientDetails.dob)));
+    } else {
+      setAge('');
+    }
+  }, [editablePatientDetails?.dob]);
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAge = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+    setAge(newAge);
+    if (editablePatientDetails && newAge !== '' && !isNaN(newAge)) {
+      const today = new Date();
+      const birthYear = today.getFullYear() - newAge;
+      const currentDob = editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : today;
+      const newDob = new Date(birthYear, currentDob.getMonth(), currentDob.getDate());
+      handlePatientDetailsChange('dob', format(newDob, 'yyyy-MM-dd'));
+    }
+  };
 
   const handlePatientDetailsChange = (field: keyof Omit<Patient, 'drive_id'>, value: string) => {
     if (editablePatientDetails) {
@@ -549,6 +571,7 @@ const Consultation = () => {
         dob: editablePatientDetails.dob,
         sex: editablePatientDetails.sex,
         phone: editablePatientDetails.phone,
+        age: String(age),
         complaints: extraData.complaints,
         investigations: extraData.investigations,
         diagnosis: extraData.diagnosis,
@@ -585,6 +608,7 @@ const Consultation = () => {
         dob: editablePatientDetails.dob,
         sex: editablePatientDetails.sex,
         phone: editablePatientDetails.phone,
+        age: String(age),
         complaints: extraData.complaints,
         findings: extraData.findings,
         investigations: extraData.investigations,
@@ -722,23 +746,33 @@ const Consultation = () => {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                <Label htmlFor="dob">Date of Birth</Label>
-                                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                                    <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
-                                    </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
-                                        onSelect={handleDateChange}
-                                        initialFocus
+                                  <Label htmlFor="dob">Date of Birth</Label>
+                                  <div className="flex gap-2">
+                                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                                      <PopoverTrigger asChild>
+                                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
+                                          <CalendarIcon className="mr-2 h-4 w-4" />
+                                          {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                          mode="single"
+                                          selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
+                                          onSelect={handleDateChange}
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    <Input
+                                      id="age"
+                                      type="number"
+                                      placeholder="Age"
+                                      value={age}
+                                      onChange={handleAgeChange}
+                                      className="w-24"
                                     />
-                                    </PopoverContent>
-                                </Popover>
+                                  </div>
                                 </div>
                                 <div className="space-y-2">
                                 <Label htmlFor="sex">Sex</Label>
