@@ -42,18 +42,22 @@ const queryClient = new QueryClient();
 
 const ActivityLogger = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const logActivity = async () => {
-      if (user) {
-        await supabase.functions.invoke('log-user-activity', {
-          body: { page_visited: location.pathname },
-        });
+      if (!loading && user) {
+        try {
+          await supabase.functions.invoke('log-user-activity', {
+            body: { page_visited: location.pathname },
+          });
+        } catch (error) {
+          console.error("Error logging user activity:", error);
+        }
       }
     };
     logActivity();
-  }, [location.pathname, user]);
+  }, [location.pathname, user, loading]);
 
   return null;
 };
