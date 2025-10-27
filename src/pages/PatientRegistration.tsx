@@ -352,16 +352,6 @@ const PatientRegistration = () => {
                   <div className="space-y-2">
                     <Label htmlFor="dob" className="text-sm font-medium">Date of Birth</Label>
                     <div className="flex gap-2">
-                      <div className="space-y-2">
-                        <Input
-                          id="age"
-                          type="number"
-                          value={age}
-                          onChange={handleAgeChange}
-                          placeholder="Age"
-                          className="w-24"
-                        />
-                      </div>
                       <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                         <PopoverTrigger asChild>
                           <Button
@@ -405,6 +395,16 @@ const PatientRegistration = () => {
                           />
                         </PopoverContent>
                       </Popover>
+                      <div className="space-y-2">
+                        <Input
+                          id="age"
+                          type="number"
+                          value={age}
+                          onChange={handleAgeChange}
+                          placeholder="Age"
+                          className="w-24"
+                        />
+                      </div>
                     </div>
                     {errors.dob && <p className="text-sm text-destructive">{errors.dob}</p>}
                   </div>

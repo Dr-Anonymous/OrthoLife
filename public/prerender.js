@@ -24,8 +24,7 @@ window.reactSnap = {
       '/faq',
       '/legal-policies',
       '/blog',
-      '/guides',
-      '/symptom-checker'
+      '/guides'
     ],
     
     // Enable discovery of dynamic routes through crawling

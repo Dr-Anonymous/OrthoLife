@@ -65,7 +65,7 @@ const App = () => {
                 <Route path="/legal" element={<LegalPoliciesPage />} />
                 <Route path="/wa" element={<WhatsAppMe />} />
                 <Route path="/emr" element={<EMR />} />
-                <Route path="/badam" element={<PatientRegistration />} />
+                <Route path="/patient-registration" element={<PatientRegistration />} />
                 <Route path="/consultation" element={<Consultation />} />
                 <Route path="/consultation-stats" element={<ConsultationStats />} />
 
@@ -91,13 +91,19 @@ const App = () => {
                 <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
                 <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
                 <Route path="/faqs" element={<FAQPage />} />
-                <Route path="/resources" element={<ResourcesPage installPrompt={installPrompt} handleInstallClick={handleInstallClick} />} />
+                <Route
+                  path="/resources"
+                  element={
+                    <ResourcesPage
+                      installPrompt={installPrompt}
+                      handleInstallClick={handleInstallClick}
+                    />
+                  }
+                />
+                <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
-                
-                {/* login routes */}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/my-space" element={<MySpace />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
