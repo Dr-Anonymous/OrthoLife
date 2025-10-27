@@ -187,7 +187,7 @@ const PatientRegistration = () => {
           phone: formData.phone,
           driveId: formData.driveId,
           force,
-          age,
+          age: String(age),
         },
       });
 
