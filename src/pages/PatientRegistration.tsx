@@ -276,7 +276,7 @@ const PatientRegistration = () => {
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <CardHeader className="text-center pb-8">
             <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
-              <img src="/badam-logo.png" alt="Logo" className="w-8 h-8" />
+              <img src="/badam-logo.png" alt="Logo" className="h-16" />
               Patient Registration
             </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
