@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { Loader2, ChevronsRight } from 'lucide-react';
+import { Loader2, ChevronsRight, ArrowRight } from 'lucide-react';
 import { format, getMonth, getYear } from 'date-fns';
 
 interface UserActivity {
@@ -23,7 +24,35 @@ const AnalyticsPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
   const [isActivityLoading, setIsActivityLoading] = useState(false);
-  const [showActivityDetails, setShowActivityDetails] = useState(false);
+  const [viewMode, setViewMode] = useState<'day' | 'month'>('day');
+  const [monthlyViewType, setMonthlyViewType] = useState<'date' | 'user'>('date');
+
+  const processedTrails = useMemo(() => {
+    if (!userActivity || userActivity.length === 0) {
+      return {};
+    }
+
+    return userActivity.reduce((acc, activity) => {
+      const date = format(new Date(activity.created_at), 'yyyy-MM-dd');
+      const user = activity.user_phone;
+
+      if (viewMode === 'day') {
+        if (!acc[user]) acc[user] = [];
+        acc[user].push(activity);
+      } else { // month view
+        if (monthlyViewType === 'date') {
+          if (!acc[date]) acc[date] = {};
+          if (!acc[date][user]) acc[date][user] = [];
+          acc[date][user].push(activity);
+        } else { // user-wise
+          if (!acc[user]) acc[user] = {};
+          if (!acc[user][date]) acc[user][date] = [];
+          acc[user][date].push(activity);
+        }
+      }
+      return acc;
+    }, {} as any);
+  }, [userActivity, viewMode, monthlyViewType]);
 
   useEffect(() => {
     const fetchAnalyticsData = async () => {
@@ -49,27 +78,27 @@ const AnalyticsPage = () => {
 
   useEffect(() => {
     if (selectedDate) {
-      fetchUserActivity(selectedDate);
+      fetchUserActivity(selectedDate, viewMode);
     }
-  }, [selectedDate]);
+  }, [selectedDate, viewMode]);
 
-  const fetchUserActivity = async (date: Date) => {
+  const fetchUserActivity = async (date: Date, mode: 'day' | 'month') => {
     setIsActivityLoading(true);
-    setShowActivityDetails(false);
     try {
       const { data, error } = await supabase.functions.invoke('get-user-activity', {
         body: {
           year: getYear(date),
           month: getMonth(date),
           day: date.getDate(),
+          view: mode,
         },
       });
 
       if (error) throw error;
-      setUserActivity(data.data);
-      setShowActivityDetails(true);
+      setUserActivity(data.data || []);
     } catch (error) {
       console.error('Error fetching user activity:', error);
+      setUserActivity([]);
     } finally {
       setIsActivityLoading(false);
     }
@@ -182,7 +211,21 @@ const AnalyticsPage = () => {
 
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>User Activity</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>User Activity</CardTitle>
+                <ToggleGroup type="single" value={viewMode} onValueChange={(value: 'day' | 'month') => value && setViewMode(value)}>
+                  <ToggleGroupItem value="day">Day View</ToggleGroupItem>
+                  <ToggleGroupItem value="month">Month View</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              {viewMode === 'month' && (
+                <div className="flex justify-end mt-2">
+                  <ToggleGroup type="single" value={monthlyViewType} onValueChange={(value: 'date' | 'user') => value && setMonthlyViewType(value)}>
+                    <ToggleGroupItem value="date">Date Wise</ToggleGroupItem>
+                    <ToggleGroupItem value="user">User Wise</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -193,28 +236,35 @@ const AnalyticsPage = () => {
                   {isActivityLoading ? (
                     <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
                   ) : (
-                    <div>
-                      <h3 className="text-xl font-semibold mb-4">Activity for {selectedDate ? format(selectedDate, 'PPP') : ''}</h3>
-                      <div className="overflow-x-auto h-64">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {userActivity.map((activity) => (
-                              <tr key={activity.created_at}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(activity.created_at), 'p')}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{activity.user_phone}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{activity.page_visited}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                    <div className="overflow-y-auto h-[400px] pr-4">
+                      {viewMode === 'day' && Object.keys(processedTrails).map(user => (
+                        <div key={user} className="mb-4 p-2 border rounded">
+                          <h4 className="font-semibold">{user}</h4>
+                          <Trail trail={processedTrails[user]} />
+                        </div>
+                      ))}
+                      {viewMode === 'month' && monthlyViewType === 'date' && Object.keys(processedTrails).map(date => (
+                        <div key={date} className="mb-4">
+                          <h3 className="text-lg font-bold my-2">{format(new Date(date), 'PPP')}</h3>
+                          {Object.keys(processedTrails[date]).map(user => (
+                            <div key={user} className="mb-2 p-2 border rounded">
+                              <h4 className="font-semibold">{user}</h4>
+                              <Trail trail={processedTrails[date][user]} />
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                      {viewMode === 'month' && monthlyViewType === 'user' && Object.keys(processedTrails).map(user => (
+                        <div key={user} className="mb-4 p-2 border rounded">
+                          <h3 className="text-lg font-bold my-2">{user}</h3>
+                          {Object.keys(processedTrails[user]).map(date => (
+                             <div key={date} className="mb-2">
+                               <h4 className="font-semibold text-sm text-muted-foreground">{format(new Date(date), 'PPP')}</h4>
+                               <Trail trail={processedTrails[user][date]} />
+                             </div>
+                          ))}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -253,6 +303,18 @@ const AnalyticsPage = () => {
       <Footer />
     </div>
   );
-};
+const Trail = ({ trail }: { trail: UserActivity[] }) => (
+  <div className="flex flex-wrap items-center gap-2 text-sm">
+    {trail.map((activity, index) => (
+      <React.Fragment key={activity.created_at}>
+        <div className="flex flex-col items-center">
+          <span className="px-2 py-1 bg-muted rounded">{activity.page_visited}</span>
+          <span className="text-xs text-muted-foreground">{format(new Date(activity.created_at), 'p')}</span>
+        </div>
+        {index < trail.length - 1 && <ArrowRight className="w-4 h-4" />}
+      </React.Fragment>
+    ))}
+  </div>
+);
 
 export default AnalyticsPage;
