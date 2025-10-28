@@ -303,6 +303,8 @@ const AnalyticsPage = () => {
       <Footer />
     </div>
   );
+};
+
 const Trail = ({ trail }: { trail: UserActivity[] }) => (
   <div className="flex flex-wrap items-center gap-2 text-sm">
     {trail.map((activity, index) => (
