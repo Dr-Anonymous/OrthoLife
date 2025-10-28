@@ -13,17 +13,24 @@ serve(async (req) => {
   }
 
   try {
-    const { year, month, day } = await req.json();
+    const { year, month, day, view = 'day' } = await req.json();
 
-    const startDate = new Date(year, month, day).toISOString();
-    const endDate = new Date(year, month, day + 1).toISOString();
+    let startDate, endDate;
+
+    if (view === 'month') {
+      startDate = new Date(year, month, 1).toISOString();
+      endDate = new Date(year, month + 1, 1).toISOString();
+    } else { // default to 'day' view
+      startDate = new Date(year, month, day).toISOString();
+      endDate = new Date(year, month, day + 1).toISOString();
+    }
 
     const { data, error } = await supabaseAdmin
       .from('user_activity')
       .select('created_at, user_phone, page_visited')
       .gte('created_at', startDate)
       .lt('created_at', endDate)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true }); // Order ascending to build trails correctly
 
     if (error) throw error;
 
