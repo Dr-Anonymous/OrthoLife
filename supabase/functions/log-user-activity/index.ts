@@ -29,7 +29,9 @@ serve(async (req) => {
         page_visited,
       });
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      throw insertError;
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
