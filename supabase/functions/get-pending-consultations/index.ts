@@ -22,6 +22,7 @@ serve(async (req) => {
       .from('consultations')
       .select(`
         id,
+        draft_data,
         patient:patients (
           id,
           name,
@@ -39,6 +40,7 @@ serve(async (req) => {
 
     const consultations = data.map((c) => ({
       id: c.id,
+      draft_data: c.draft_data,
       patient: c.patient,
     }))
 
