@@ -303,6 +303,7 @@ const EMR = () => {
       const birthYear = today.getFullYear() - newAge;
       const newDob = new Date(birthYear, formData.dob?.getMonth() ?? today.getMonth(), formData.dob?.getDate() ?? today.getDate());
       setFormData(prev => ({ ...prev, dob: newDob }));
+      setCalendarDate(newDob);
     }
   };
 

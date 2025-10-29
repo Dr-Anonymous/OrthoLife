@@ -227,6 +227,7 @@ const Consultation = () => {
 
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
 
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
@@ -389,7 +390,11 @@ const Consultation = () => {
 
   useEffect(() => {
     if (editablePatientDetails?.dob) {
-      setAge(calculateAge(new Date(editablePatientDetails.dob)));
+      const dobDate = new Date(editablePatientDetails.dob);
+      if (!isNaN(dobDate.getTime())) {
+        setAge(calculateAge(dobDate));
+        setCalendarDate(dobDate);
+      }
     } else {
       setAge('');
     }
@@ -404,7 +409,20 @@ const Consultation = () => {
       const currentDob = editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : today;
       const newDob = new Date(birthYear, currentDob.getMonth(), currentDob.getDate());
       handlePatientDetailsChange('dob', format(newDob, 'yyyy-MM-dd'));
+      setCalendarDate(newDob);
     }
+  };
+
+  const handleYearChange = (year: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setFullYear(parseInt(year));
+    setCalendarDate(newDate);
+  };
+
+  const handleMonthChange = (month: string) => {
+    const newDate = new Date(calendarDate);
+    newDate.setMonth(parseInt(month));
+    setCalendarDate(newDate);
   };
 
   const handlePatientDetailsChange = (field: keyof Omit<Patient, 'drive_id'>, value: string) => {
@@ -755,12 +773,38 @@ const Consultation = () => {
                                           {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
                                         </Button>
                                       </PopoverTrigger>
-                                      <PopoverContent className="w-auto p-0">
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <div className="p-3 border-b space-y-2">
+                                          <div className="flex gap-2">
+                                            <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from({ length: 12 }).map((_, index) => (
+                                                  <SelectItem key={index} value={index.toString()}>
+                                                    {format(new Date(2000, index), 'MMMM')}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                              <SelectContent className="max-h-48">
+                                                {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                                                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
                                         <Calendar
                                           mode="single"
                                           selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
                                           onSelect={handleDateChange}
+                                          month={calendarDate}
+                                          onMonthChange={setCalendarDate}
+                                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                                           initialFocus
+                                          className="p-3"
                                         />
                                       </PopoverContent>
                                     </Popover>
