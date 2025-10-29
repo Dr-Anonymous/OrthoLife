@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,9 +17,12 @@ interface CalendarEvent {
   attachments?: string;
 }
 
+import { formatDistanceToNow } from 'date-fns';
+
 interface RecentCall {
   number: string;
   name: string;
+  timestamp: number;
 }
 
 const WhatsAppMe = () => {
@@ -44,11 +48,13 @@ const WhatsAppMe = () => {
     const params = new URLSearchParams(window.location.search);
     const numbers = params.getAll('numbers[]');
     const names = params.getAll('names[]');
+    const timestamps = params.getAll('timestamps[]');
 
     if (numbers.length > 0) {
       const calls = numbers.map((number, index) => ({
         number: formatPhoneNumber(number),
         name: names[index] || `Number ${index + 1}`,
+        timestamp: parseInt(timestamps[index], 10),
       }));
       setRecentCalls(calls);
       if (calls.length > 0) {
@@ -302,24 +308,35 @@ const WhatsAppMe = () => {
         )}
 
         {recentCalls.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <History className="w-4 h-4" /> Recent Calls
-            </h3>
-            <div className="space-y-2">
-              {recentCalls.map(call => (
-                <Card key={call.number} className="p-4 flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold">{call.name}</p>
-                    <p className="text-sm text-gray-500">{call.number}</p>
-                  </div>
-                  <Button onClick={() => setPhone(call.number)}>
-                    Select
-                  </Button>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <Accordion type="single" collapsible>
+            <AccordionItem value="recent-calls">
+              <AccordionTrigger>
+                <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <History className="w-4 h-4" /> Recent Calls
+                </h3>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  {recentCalls.map(call => (
+                    <Card key={call.number} className="p-4 flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">{call.name}</p>
+                        <p className="text-sm text-gray-500">{call.number}</p>
+                      </div>
+                      <div className="text-right">
+                        <Button onClick={() => setPhone(call.number)} className="mb-1">
+                          Select
+                        </Button>
+                        <p className="text-xs text-gray-400">
+                          {formatDistanceToNow(new Date(call.timestamp), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
 
         <div className="space-y-3">
