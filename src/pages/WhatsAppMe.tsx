@@ -82,10 +82,19 @@ const WhatsAppMe = () => {
         name: names[index] || `Number ${index + 1}`,
         timestamp: parseInt(timestamps[index], 10),
       }));
-      setRecentCalls(calls);
-      if (calls.length > 0) {
-        setPhone(calls[0].number);
-        setDisplayName(calls[0].name);
+
+      const uniqueCalls = calls.reduce((acc, current) => {
+        const existing = acc.find(item => item.number === current.number);
+        if (!existing || current.timestamp > existing.timestamp) {
+          return acc.filter(item => item.number !== current.number).concat(current);
+        }
+        return acc;
+      }, [] as RecentCall[]);
+
+      setRecentCalls(uniqueCalls);
+      if (uniqueCalls.length > 0) {
+        setPhone(uniqueCalls[0].number);
+        setDisplayName(uniqueCalls[0].name);
       }
     } else {
       const numberFromURL = params.get('number');
