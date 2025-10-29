@@ -25,13 +25,33 @@ interface RecentCall {
   timestamp: number;
 }
 
+interface RecentChat {
+  number: string;
+  name: string;
+  timestamp: number;
+}
+
 const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [nameFromUrl, setNameFromUrl] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
+  const [recentChats, setRecentChats] = useState<RecentChat[]>([]);
+
+  const getRecentChats = (): RecentChat[] => {
+    const chats = localStorage.getItem('recentChats');
+    return chats ? JSON.parse(chats) : [];
+  };
+
+  const addRecentChat = (chat: RecentChat) => {
+    const chats = getRecentChats();
+    const updatedChats = [chat, ...chats.filter(c => c.number !== chat.number)].slice(0, 5);
+    localStorage.setItem('recentChats', JSON.stringify(updatedChats));
+  };
 
   const formatPhoneNumber = (input: string) => {
     // Remove all non-digit characters
@@ -45,10 +65,16 @@ const WhatsAppMe = () => {
   };
 
   useEffect(() => {
+    setRecentChats(getRecentChats());
     const params = new URLSearchParams(window.location.search);
     const numbers = params.getAll('numbers[]');
     const names = params.getAll('names[]');
     const timestamps = params.getAll('timestamps[]');
+    const nameFromUrl = params.get('name');
+
+    if (nameFromUrl) {
+      setNameFromUrl(nameFromUrl);
+    }
 
     if (numbers.length > 0) {
       const calls = numbers.map((number, index) => ({
@@ -59,11 +85,15 @@ const WhatsAppMe = () => {
       setRecentCalls(calls);
       if (calls.length > 0) {
         setPhone(calls[0].number);
+        setDisplayName(calls[0].name);
       }
     } else {
       const numberFromURL = params.get('number');
       if (numberFromURL) {
         setPhone(formatPhoneNumber(numberFromURL));
+        if (nameFromUrl) {
+          setDisplayName(nameFromUrl);
+        }
       }
     }
   }, []);
@@ -99,6 +129,13 @@ const WhatsAppMe = () => {
       return;
     }
     
+    addRecentChat({
+      number: phone,
+      name: displayName || nameFromUrl || phone,
+      timestamp: Date.now(),
+    });
+    setRecentChats(getRecentChats());
+
     const formattedPhone = formatPhoneNumber(phone);
     if (!formattedPhone) {
       showError('Please enter a valid phone number');
@@ -188,7 +225,8 @@ const WhatsAppMe = () => {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(e.target.value);
+    setPhone(formatPhoneNumber(e.target.value));
+    setDisplayName('');
   };
 
   const showError = (message: string) => {
@@ -226,7 +264,7 @@ const WhatsAppMe = () => {
             <input
               type="tel"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={phone}
+              value={displayName || phone}
               onChange={handlePhoneChange}
               placeholder="Enter phone number"
             />
@@ -324,11 +362,49 @@ const WhatsAppMe = () => {
                         <p className="text-sm text-gray-500">{call.number}</p>
                       </div>
                       <div className="text-right">
-                        <Button onClick={() => setPhone(call.number)} className="mb-1">
+                        <Button onClick={() => {
+                          setPhone(call.number);
+                          setDisplayName(call.name);
+                        }} className="mb-1">
                           Select
                         </Button>
                         <p className="text-xs text-gray-400">
                           {formatDistanceToNow(new Date(call.timestamp), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
+
+        {recentChats.length > 0 && (
+          <Accordion type="single" collapsible>
+            <AccordionItem value="recent-chats">
+              <AccordionTrigger>
+                <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <History className="w-4 h-4" /> Recent Chats
+                </h3>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  {recentChats.map(chat => (
+                    <Card key={chat.number} className="p-4 flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">{chat.name}</p>
+                        <p className="text-sm text-gray-500">{chat.number}</p>
+                      </div>
+                      <div className="text-right">
+                        <Button onClick={() => {
+                          setPhone(chat.number);
+                          setDisplayName(chat.name);
+                        }} className="mb-1">
+                          Select
+                        </Button>
+                        <p className="text-xs text-gray-400">
+                          {formatDistanceToNow(new Date(chat.timestamp), { addSuffix: true })}
                         </p>
                       </div>
                     </Card>
@@ -412,10 +488,6 @@ const WhatsAppMe = () => {
           </div>
         </div>
 
-        <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start gap-2">
-          <Clipboard className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <p>Click the clipboard icon to paste a phone number</p>
-        </div>
       </CardContent>
     </Card>
   );
