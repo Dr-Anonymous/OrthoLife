@@ -27,7 +27,7 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
     navigate(`/diagnostics?q=${encodeURIComponent(query)}`);
   };
 
-  if (!filteredInvestigations) {
+  if (!investigations) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center space-x-3">
@@ -35,7 +35,7 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
           <CardTitle>Order Tests for {patientName}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-center py-4">No investigations prescribed in the latest prescription.</p>
+          <p className="text-gray-500 text-center py-4">No Investigations prescribed in the latest prescription.</p>
           <Button onClick={() => navigate('/diagnostics')} className="w-full mt-4">
             Order New
           </Button>
