@@ -12,18 +12,26 @@ interface OrderTestsCardProps {
 
 const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patientName }) => {
   const navigate = useNavigate();
-  const [editableInvestigations, setEditableInvestigations] = useState('');
+  const [labInvestigations, setLabInvestigations] = useState('');
+  const [radiologicalInvestigations, setRadiologicalInvestigations] = useState<string[]>([]);
 
   useEffect(() => {
-    const filteredInvestigations = investigations
-      .split('\n')
-      .filter(line => !line.trim().toLowerCase().startsWith('xray'))
-      .join('\n');
-    setEditableInvestigations(filteredInvestigations);
+    const radiologicalKeywords = ['xray', 'usg', 'mri', 'ct'];
+    const allInvestigations = investigations.split('\n').filter(line => line.trim());
+
+    const lab = allInvestigations.filter(line =>
+      !radiologicalKeywords.some(keyword => line.toLowerCase().includes(keyword))
+    );
+    const radiological = allInvestigations.filter(line =>
+      radiologicalKeywords.some(keyword => line.toLowerCase().includes(keyword))
+    );
+
+    setLabInvestigations(lab.join('\n'));
+    setRadiologicalInvestigations(radiological);
   }, [investigations]);
 
   const handleOrderNow = () => {
-    const query = editableInvestigations.replace(/\n/g, ',');
+    const query = labInvestigations.replace(/\n/g, ',');
     navigate(`/diagnostics?q=${encodeURIComponent(query)}`);
   };
 
@@ -51,16 +59,31 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
         <CardTitle>Order Tests for {patientName}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p>Lab tests from the latest prescription (you can edit the list below):</p>
-        <Textarea
-          value={editableInvestigations}
-          onChange={(e) => setEditableInvestigations(e.target.value)}
-          className="mt-2"
-          rows={5}
-        />
-        <Button onClick={handleOrderNow} className="w-full mt-4">
-          Order Now
-        </Button>
+        {labInvestigations && (
+          <>
+            <p>Lab tests from the latest prescription (you can edit the list below):</p>
+            <Textarea
+              value={labInvestigations}
+              onChange={(e) => setLabInvestigations(e.target.value)}
+              className="mt-2"
+              rows={5}
+            />
+            <Button onClick={handleOrderNow} className="w-full mt-4">
+              Order Now
+            </Button>
+          </>
+        )}
+
+        {radiologicalInvestigations.length > 0 && (
+          <div className="mt-4">
+            <h3 className="font-semibold text-gray-800">Radiological Investigations:</h3>
+            <div className="mt-2 text-sm text-gray-700">
+              {radiologicalInvestigations.map((investigation, index) => (
+                <p key={index} className="py-1">{investigation}</p>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
