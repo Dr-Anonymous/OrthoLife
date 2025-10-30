@@ -72,7 +72,7 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, 
           <CardTitle>Order Medication for {patientName}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-center py-4">No Medications prescribed in the latest prescription.</p>
+          <p className="text-gray-500 text-center py-4">No medicine prescribed in the latest prescription.</p>
           <Button onClick={() => navigate('/pharmacy')} className="w-full mt-4">
             Order New
           </Button>
