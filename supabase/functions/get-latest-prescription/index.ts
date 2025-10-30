@@ -49,7 +49,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({
         medications: patientData.medications || [],
         investigations: patientData.investigations,
-        patientName: patientData.name
+        patientName: patientData.name,
+        advice: patientData.advice,
     }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -112,8 +113,8 @@ function extractTextFromTable(table: any): string {
     return tableText;
 }
 
-function parsePatientData(documentText: string): { medications?: any[], investigations?: string, name?: string } {
-    const data: { medications?: any[], investigations?: string, name?: string } = {};
+function parsePatientData(documentText: string): { medications?: any[], investigations?: string, name?: string, advice?: string } {
+    const data: { medications?: any[], investigations?: string, name?: string, advice?: string } = {};
     const nameMatch = documentText.match(/Name:\s*(?:{{name}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:D\.O\.B)/i);
     if (nameMatch && nameMatch[1] && !nameMatch[1].includes('{{')) {
         data.name = nameMatch[1].trim();
@@ -122,6 +123,11 @@ function parsePatientData(documentText: string): { medications?: any[], investig
     const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([\s\S]*?))(?=\s*(?:→|Diagnosis:|Advice:|[A-Z][A-Za-z\s]+:|$))/i);
     if (investigationsMatch && investigationsMatch[1] && !investigationsMatch[1].includes('{{')) {
         data.investigations = investigationsMatch[1].trim();
+    }
+
+    const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Medication|Get free|Followup|$)/i);
+    if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
+        data.advice = adviceMatch[1].trim();
     }
 
     try {
