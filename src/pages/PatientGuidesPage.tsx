@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Download, Eye, Clock, Share2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,6 +46,8 @@ const PatientGuidesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [noResults, setNoResults] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
 
@@ -53,7 +56,13 @@ const PatientGuidesPage = () => {
       eventType: "page_view",
       path: location.pathname,
     });
-  }, [location.pathname]);
+
+    const params = new URLSearchParams(location.search);
+    const query = params.get('q');
+    if (query) {
+      setSearchTerm(query);
+    }
+  }, [location.pathname, location.search]);
 
   const handleDownloadPdf = async (guideId: number) => {
     setDownloadingId(guideId);
@@ -181,6 +190,58 @@ const PatientGuidesPage = () => {
     };
   };
 
+  const filteredGuides = React.useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) {
+      setNoResults(false);
+      return guides;
+    }
+
+    const searchWords = term.split(/\s+/).filter(w => w.length > 0 && !['exercises', 'diet'].includes(w));
+    if (searchWords.length === 0) {
+      setNoResults(false);
+      return guides;
+    }
+
+    const titleMatches: Guide[] = [];
+    const descriptionMatches: Guide[] = [];
+    const categoryMatches: Guide[] = [];
+    const matchedIds = new Set<number>();
+
+    guides.forEach(guide => {
+      const title = guide.title.toLowerCase();
+      const description = guide.description.toLowerCase();
+      const category = guide.categories.name.toLowerCase();
+
+      if (searchWords.some(word => title.includes(word))) {
+        if (!matchedIds.has(guide.id)) {
+          titleMatches.push(guide);
+          matchedIds.add(guide.id);
+        }
+      } else if (searchWords.some(word => description.includes(word))) {
+        if (!matchedIds.has(guide.id)) {
+          descriptionMatches.push(guide);
+          matchedIds.add(guide.id);
+        }
+      } else if (searchWords.some(word => category.includes(word))) {
+        if (!matchedIds.has(guide.id)) {
+          categoryMatches.push(guide);
+          matchedIds.add(guide.id);
+        }
+      }
+    });
+
+    const results = [...titleMatches, ...descriptionMatches, ...categoryMatches];
+
+    if (results.length === 0 && term) {
+      setNoResults(true);
+      return guides; // Show all guides if no results
+    } else {
+      setNoResults(false);
+      return results;
+    }
+  }, [searchTerm, guides]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -199,6 +260,24 @@ const PatientGuidesPage = () => {
                 {t('learn.guides.subtitle', 'Comprehensive guides for better health management')}
               </p>
             </div>
+
+            <div className="max-w-md mx-auto mb-8">
+              <Input
+                type="text"
+                placeholder="Search by title, description, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            {noResults && (
+              <div className="text-center mb-4">
+                <p className="text-muted-foreground">
+                  No guides found matching your search. So displaying all available guides.
+                </p>
+              </div>
+            )}
 
             {/* Categories */}
             <div className="flex flex-wrap justify-center gap-2 mb-8">
@@ -277,7 +356,7 @@ const PatientGuidesPage = () => {
             )}
 
             {/* Empty State */}
-            {!loading && guides.length === 0 && (
+            {!loading && filteredGuides.length === 0 && !noResults && (
               <div className="text-center py-16">
                 <BookOpen className="mx-auto mb-4 text-primary" size={48} />
                 <h2 className="text-2xl font-semibold mb-2">No guides found</h2>
@@ -288,15 +367,15 @@ const PatientGuidesPage = () => {
             )}
 
             {/* Featured Guide & Grid */}
-            {guides.length > 0 && (
+            {filteredGuides.length > 0 && (
               <>
-                <Link to={`/guides/${guides[0].id}`} className="group block">
+                <Link to={`/guides/${filteredGuides[0].id}`} className="group block">
                   <Card className="mb-8 overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 hover:shadow-lg transition-shadow">
                     <div className="md:flex">
                       <div className="md:w-1/3">
                         <img
-                          src={guides[0].cover_image_url}
-                          alt={getTranslatedGuide(guides[0], i18n.language).title}
+                          src={filteredGuides[0].cover_image_url}
+                          alt={getTranslatedGuide(filteredGuides[0], i18n.language).title}
                           className="w-full h-64 md:h-full object-cover"
                           loading="lazy"
                         />
@@ -304,37 +383,37 @@ const PatientGuidesPage = () => {
                       <div className="md:w-2/3 p-6 flex flex-col">
                         <div className="flex-grow">
                           <div className="flex items-center gap-2 mb-3">
-                            <Badge>{guides[0].categories.name}</Badge>
+                            <Badge>{filteredGuides[0].categories.name}</Badge>
                             <span className="text-sm text-muted-foreground">{t('guides.featured')}</span>
                           </div>
                           <h2 className="text-2xl font-heading font-bold mb-3">
-                            {getTranslatedGuide(guides[0], i18n.language).title}
+                            {getTranslatedGuide(filteredGuides[0], i18n.language).title}
                           </h2>
                           <p className="text-muted-foreground mb-4">
-                            {getTranslatedGuide(guides[0], i18n.language).description}
+                            {getTranslatedGuide(filteredGuides[0], i18n.language).description}
                           </p>
                           <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
                             <div className="flex items-center">
                               <BookOpen size={16} className="mr-1" />
-                              <span>{guides[0].pages} pages</span>
+                              <span>{filteredGuides[0].pages} pages</span>
                             </div>
                             <div className="flex items-center">
                               <Clock size={16} className="mr-1" />
-                              <span>{guides[0].estimated_time}</span>
+                              <span>{filteredGuides[0].estimated_time}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex gap-2 mt-auto">
                           <Button asChild className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Link to={`/guides/${guides[0].id}`}>
+                            <Link to={`/guides/${filteredGuides[0].id}`}>
                               <Eye size={16} className="md:mr-2" />
                               <span className="hidden md:inline">{t('guides.readOnline')}</span>
                             </Link>
                           </Button>
-                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guides[0].id); }} disabled={downloadingId === guides[0].id}>
-                            {downloadingId === guides[0].id ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf')}</span></>}
+                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(filteredGuides[0].id); }} disabled={downloadingId === filteredGuides[0].id}>
+                            {downloadingId === filteredGuides[0].id ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf')}</span></>}
                           </Button>
-                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(guides[0]); }}>
+                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(filteredGuides[0]); }}>
                             <Share2 size={16} className="md:mr-2" />
                             <span className="hidden md:inline">{t('guides.share', 'Share')}</span>
                           </Button>
@@ -345,7 +424,7 @@ const PatientGuidesPage = () => {
                 </Link>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {guides.slice(1).map((guide) => (
+                  {filteredGuides.slice(1).map((guide) => (
                     <Link to={`/guides/${guide.id}`} key={guide.id} className="group">
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
