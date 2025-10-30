@@ -34,7 +34,7 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, pat
       <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
         <div className="flex items-center mb-4">
           <ClipboardList className="h-6 w-6 text-blue-500 mr-3" />
-          <h2 className="text-xl font-semibold text-gray-800">Diet and Exercises for {patientName}</h2>
+          <h2 className="text-2xl font-semibold leading-none tracking-tight">Diet and Exercises for {patientName}</h2>
         </div>
         <div className="flex-grow">
           {adviceLines.length > 0 ? (
