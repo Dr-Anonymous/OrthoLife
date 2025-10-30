@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
@@ -9,17 +9,57 @@ import Footer from '@/components/Footer';
 import AppointmentsCard from '@/components/AppointmentsCard';
 import PrescriptionsCard from '@/components/PrescriptionsCard';
 import TestResultsCard from '@/components/TestResultsCard';
-import PrescriptionOrders from '@/components/PrescriptionOrders';
+import { supabase } from '@/integrations/supabase/client';
+import OrderMedicationCard from '@/components/OrderMedicationCard';
+import OrderTestsCard from '@/components/OrderTestsCard';
+import DietAndExercisesCard from '@/components/DietAndExercisesCard';
 
 const MySpace = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  const [medications, setMedications] = useState<any[]>([]);
+  const [investigations, setInvestigations] = useState<string>('');
+  const [advice, setAdvice] = useState<string>('');
+  const [patientName, setPatientName] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    const fetchPrescription = async () => {
+      if (user?.phoneNumber) {
+        try {
+          setLoading(true);
+          const phoneNumber = user.phoneNumber.slice(-10);
+          const { data, error } = await supabase.functions.invoke('get-latest-prescription', {
+            body: { phoneNumber },
+          });
+
+          if (error) throw new Error(`Error fetching prescription: ${error.message}`);
+
+          setMedications(data?.medications || []);
+          setInvestigations(data?.investigations || '');
+          setAdvice(data?.advice || '');
+          setPatientName(data?.patientName || '');
+
+        } catch (err: any) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      } else if (!authLoading) {
+        setLoading(false);
+      }
+    };
+
+    fetchPrescription();
+  }, [user, authLoading]);
 
   const handleLogout = async () => {
     await signOut();
@@ -48,7 +88,20 @@ const MySpace = () => {
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
             <AppointmentsCard />
             <PrescriptionsCard />
-            <PrescriptionOrders />
+            {loading ? (
+              <>
+                <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
+                <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
+              </>
+            ) : error ? (
+              <p className="text-red-500">{error}</p>
+            ) : (
+              <>
+                <OrderMedicationCard medications={medications} patientName={patientName} />
+                <OrderTestsCard investigations={investigations} patientName={patientName} />
+                <DietAndExercisesCard advice={advice} />
+              </>
+            )}
             <TestResultsCard />
           </div>
         </div>
