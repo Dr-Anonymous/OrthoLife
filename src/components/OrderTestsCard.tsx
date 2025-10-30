@@ -35,7 +35,7 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
           <CardTitle>Order Tests for {patientName}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-center py-4">No Investigations prescribed in the latest prescription.</p>
+          <p className="text-gray-500 text-center py-4">No investigations prescribed in the latest prescription.</p>
           <Button onClick={() => navigate('/diagnostics')} className="w-full mt-4">
             Order New
           </Button>
@@ -51,7 +51,7 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
         <CardTitle>Order Tests for {patientName}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p>From the latest prescription (you can edit the list below):</p>
+        <p>Lab tests from the latest prescription (you can edit the list below):</p>
         <Textarea
           value={editableInvestigations}
           onChange={(e) => setEditableInvestigations(e.target.value)}
