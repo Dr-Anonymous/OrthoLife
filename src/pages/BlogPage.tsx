@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -123,12 +125,6 @@ const BlogPage = () => {
     setHasMore(true);
   };
 
-  const loadMorePosts = () => {
-    if (!loading) {
-      setPage(prevPage => prevPage + 1);
-    }
-  };
-
   const getTranslatedPost = (post: Post, lang: string) => {
     if (lang === 'en') {
       return { title: post.title, excerpt: post.excerpt };
@@ -139,6 +135,18 @@ const BlogPage = () => {
       excerpt: translation?.excerpt || post.excerpt,
     };
   };
+
+  const loadMorePosts = () => {
+    if (!loading) {
+      setPage(prevPage => prevPage + 1);
+    }
+  };
+
+  const { lastElementRef } = useInfiniteScroll({
+    onLoadMore: loadMorePosts,
+    isLoading: loading,
+    hasNextPage: hasMore,
+  });
   
   const featuredPost = posts[0];
   const otherPosts = posts.slice(1);
@@ -299,14 +307,19 @@ const BlogPage = () => {
                   ))}
                 </div>
 
-                {/* Load More */}
-                {hasMore && (
-                  <div className="text-center mt-12">
-                    <Button variant="outline" size="lg" onClick={loadMorePosts} disabled={loading}>
-                      {loading ? 'Loading...' : 'Load More Articles'}
-                    </Button>
-                  </div>
-                )}
+                {/* Infinite Scroll Trigger */}
+                <div ref={lastElementRef} className="text-center mt-12">
+                  {loading && posts.length > 0 && <Spinner />}
+                  {!hasMore && (
+                    <p>
+                      You've read all our articles. Check out our{' '}
+                      <Link to="/patient-guides" className="text-primary hover:underline">
+                        patient guides
+                      </Link>
+                      .
+                    </p>
+                  )}
+                </div>
               </>
             )}
           </div>

@@ -11,6 +11,8 @@ import { BookOpen, Download, Eye, Clock, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { Spinner } from '@/components/ui/spinner';
 import { generatePdf } from '@/lib/pdfUtils';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -44,6 +46,8 @@ const PatientGuidesPage = () => {
   const [categories, setCategories] = useState<GuideCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const { toast } = useToast();
   const location = useLocation();
@@ -124,6 +128,8 @@ const PatientGuidesPage = () => {
     fetchCategories();
   }, []);
 
+  const GUIDES_PER_PAGE = 4; // 1 featured + 3 in grid
+
   // Fetch guides
   useEffect(() => {
     const fetchGuides = async () => {
@@ -131,27 +137,37 @@ const PatientGuidesPage = () => {
 
       let query = supabase
         .from('guides')
-        .select('*, categories(name), guide_translations(*)');
+        .select('*, categories(name), guide_translations(*)', { count: 'exact' });
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
       }
 
-      query = query.order('last_updated', { ascending: false });
+      const from = (page - 1) * GUIDES_PER_PAGE;
+      const to = from + GUIDES_PER_PAGE - 1;
+      query = query.range(from, to).order('last_updated', { ascending: false });
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
 
       if (error) {
         console.error('Error fetching guides:', error);
         setGuides([]);
+        setHasMore(false);
       } else {
-        setGuides(data || []);
+        const newGuides = data || [];
+        setGuides(prevGuides => page === 1 ? newGuides : [...prevGuides, ...newGuides]);
+
+        if (count !== null) {
+          setHasMore(guides.length + newGuides.length < count);
+        } else {
+          setHasMore(newGuides.length === GUIDES_PER_PAGE);
+        }
       }
       setLoading(false);
     };
 
     fetchGuides();
-  }, [selectedCategory]);
+  }, [selectedCategory, page]);
 
   const handleCategoryClick = (categoryId: number | null) => {
     if (categoryId === null) {
@@ -167,8 +183,22 @@ const PatientGuidesPage = () => {
       setSelectedCategory(categoryId);
     }
     
-    setGuides([]); // Clear old guides immediately
+    setPage(1);
+    setGuides([]);
+    setHasMore(true);
   };
+
+  const loadMoreGuides = () => {
+    if (!loading) {
+      setPage(prevPage => prevPage + 1);
+    }
+  };
+
+  const { lastElementRef } = useInfiniteScroll({
+    onLoadMore: loadMoreGuides,
+    isLoading: loading,
+    hasNextPage: hasMore,
+  });
 
   const getTranslatedGuide = (guide: Guide, lang: string) => {
     if (lang === 'en') {
@@ -399,6 +429,20 @@ const PatientGuidesPage = () => {
                       </Card>
                     </Link>
                   ))}
+                </div>
+
+                {/* Infinite Scroll Trigger */}
+                <div ref={lastElementRef} className="text-center mt-12">
+                  {loading && guides.length > 0 && <Spinner />}
+                  {!hasMore && (
+                    <p>
+                      You've viewed all our guides. Discover more in our{' '}
+                      <Link to="/blog" className="text-primary hover:underline">
+                        health blog
+                      </Link>
+                      .
+                    </p>
+                  )}
                 </div>
               </>
             )}
