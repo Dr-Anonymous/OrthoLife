@@ -65,7 +65,20 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, 
   };
 
   if (medications.length === 0) {
-    return null;
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center space-x-3">
+          <Pill className="h-6 w-6 text-primary" />
+          <CardTitle>Order Medication for {patientName}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 text-center py-4">No Medications prescribed in the latest prescription.</p>
+          <Button onClick={() => navigate('/pharmacy')} className="w-full mt-4">
+            Order New
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

@@ -28,7 +28,20 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
   };
 
   if (!investigations) {
-    return null;
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center space-x-3">
+          <Beaker className="h-6 w-6 text-primary" />
+          <CardTitle>Order Tests for {patientName}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 text-center py-4">No Investigations prescribed in the latest prescription.</p>
+          <Button onClick={() => navigate('/diagnostics')} className="w-full mt-4">
+            Order New
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
