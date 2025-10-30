@@ -313,8 +313,8 @@ const BlogPage = () => {
                   {!hasMore && (
                     <p>
                       You've read all our articles. Check out our{' '}
-                      <Link to="/patient-guides" className="text-primary hover:underline">
-                        patient guides
+                      <Link to="/guides" className="text-primary hover:underline">
+                        health guides
                       </Link>
                       .
                     </p>

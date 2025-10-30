@@ -99,7 +99,7 @@ const MySpace = () => {
               <>
                 <OrderMedicationCard medications={medications} patientName={patientName} />
                 <OrderTestsCard investigations={investigations} patientName={patientName} />
-                <DietAndExercisesCard advice={advice} />
+                <DietAndExercisesCard advice={advice} patientName={patientName} />
               </>
             )}
             <TestResultsCard />

@@ -3,9 +3,10 @@ import { ClipboardList } from 'lucide-react';
 
 interface DietAndExercisesCardProps {
   advice?: string;
+  patientName: string;  
 }
 
-const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) => {
+const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, patientName }) => {
   if (!advice || advice.trim() === '') {
     return null;
   }
@@ -17,7 +18,7 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) =
       <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
         <div className="flex items-center mb-4">
           <ClipboardList className="h-6 w-6 text-blue-500 mr-3" />
-          <h2 className="text-xl font-semibold text-gray-800">Diet and Exercises</h2>
+          <h2 className="text-xl font-semibold text-gray-800">Diet and Exercises for {patientName}</h2>
         </div>
         <div className="flex-grow">
           {adviceLines.length > 0 ? (
