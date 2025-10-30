@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import { Spinner } from '@/components/ui/spinner';
+import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { generatePdf } from '@/lib/pdfUtils';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -433,7 +433,7 @@ const PatientGuidesPage = () => {
 
                 {/* Infinite Scroll Trigger */}
                 <div ref={lastElementRef} className="text-center mt-12">
-                  {loading && guides.length > 0 && <Spinner />}
+                  {loading && guides.length > 0 && <ThinkingAnimation />}
                   {!hasMore && (
                     <p>
                       You've viewed all our guides. Discover more in our{' '}

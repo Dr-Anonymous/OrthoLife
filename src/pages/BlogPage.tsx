@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Clock, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import { Spinner } from '@/components/ui/spinner';
+import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -309,7 +309,7 @@ const BlogPage = () => {
 
                 {/* Infinite Scroll Trigger */}
                 <div ref={lastElementRef} className="text-center mt-12">
-                  {loading && posts.length > 0 && <Spinner />}
+                  {loading && posts.length > 0 && <ThinkingAnimation />}
                   {!hasMore && (
                     <p>
                       You've read all our articles. Check out our{' '}
