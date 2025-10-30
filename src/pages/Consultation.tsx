@@ -651,6 +651,15 @@ const Consultation = () => {
         folderId: editablePatientDetails.drive_id,
       };
 
+      const { error: updateError } = await supabase
+        .from('consultations')
+        .update({ draft_data: extraData })
+        .eq('id', selectedConsultation.id);
+
+      if (updateError) {
+        throw new Error(`Failed to save draft: ${updateError.message}`);
+      }
+
       const { data, error } = await supabase.functions.invoke('create-docs-prescription', {
         body: payload,
       });
@@ -662,11 +671,11 @@ const Consultation = () => {
       if (data?.error) {
         throw new Error(data.error);
       }
+
       if (data?.url) {
         window.open(data.url, '_blank');
+        await supabase.from('consultations').update({ status: 'completed' }).eq('id', selectedConsultation.id);
       }
-
-      await supabase.from('consultations').update({ status: 'completed', draft_data: extraData }).eq('id', selectedConsultation.id);
 
       toast({
         title: "Prescription Generated",
