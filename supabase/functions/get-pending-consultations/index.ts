@@ -38,11 +38,31 @@ serve(async (req) => {
 
     if (error) throw error
 
-    const consultations = data.map((c) => ({
-      id: c.id,
-      draft_data: c.draft_data,
-      patient: c.patient,
-    }))
+    const consultations = await Promise.all(data.map(async (c) => {
+      let draft_data = c.draft_data;
+      if (!draft_data && c.patient) {
+        const { data: lastConsultation, error: lastConsultationError } = await supabase
+          .from('consultations')
+          .select('draft_data')
+          .eq('patient_id', c.patient.id)
+          .eq('status', 'completed')
+          .not('draft_data', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (lastConsultationError) {
+          console.error(`Error fetching last consultation for patient ${c.patient.id}:`, lastConsultationError);
+        } else if (lastConsultation) {
+          draft_data = lastConsultation.draft_data;
+        }
+      }
+      return {
+        id: c.id,
+        draft_data: draft_data,
+        patient: c.patient,
+      };
+    }));
 
     return new Response(JSON.stringify({ consultations }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

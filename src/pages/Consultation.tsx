@@ -666,7 +666,7 @@ const Consultation = () => {
         window.open(data.url, '_blank');
       }
 
-      await supabase.from('consultations').update({ status: 'completed', draft_data: null }).eq('id', selectedConsultation.id);
+      await supabase.from('consultations').update({ status: 'completed', draft_data: extraData }).eq('id', selectedConsultation.id);
 
       toast({
         title: "Prescription Generated",
