@@ -193,54 +193,54 @@ const PatientGuidesPage = () => {
   const filteredGuides = React.useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) {
-      setNoResults(false);
       return guides;
     }
 
     const searchWords = term.split(/\s+/).filter(w => w.length > 0 && !['exercises', 'diet'].includes(w));
     if (searchWords.length === 0) {
-      setNoResults(false);
       return guides;
     }
 
-    const titleMatches: Guide[] = [];
-    const descriptionMatches: Guide[] = [];
-    const categoryMatches: Guide[] = [];
-    const matchedIds = new Set<number>();
-
-    guides.forEach(guide => {
+    const scoredGuides = guides.map(guide => {
+      let score = 0;
       const title = guide.title.toLowerCase();
       const description = guide.description.toLowerCase();
       const category = guide.categories.name.toLowerCase();
 
-      if (searchWords.some(word => title.includes(word))) {
-        if (!matchedIds.has(guide.id)) {
-          titleMatches.push(guide);
-          matchedIds.add(guide.id);
-        }
-      } else if (searchWords.some(word => description.includes(word))) {
-        if (!matchedIds.has(guide.id)) {
-          descriptionMatches.push(guide);
-          matchedIds.add(guide.id);
-        }
-      } else if (searchWords.some(word => category.includes(word))) {
-        if (!matchedIds.has(guide.id)) {
-          categoryMatches.push(guide);
-          matchedIds.add(guide.id);
-        }
-      }
+      // Exact phrase match (highest score)
+      if (title.includes(term)) score += 100;
+      if (description.includes(term)) score += 50;
+
+      // Count matching words
+      searchWords.forEach(word => {
+        if (title.includes(word)) score += 10;
+        if (description.includes(word)) score += 5;
+        if (category.includes(word)) score += 2;
+      });
+
+      return { guide, score };
     });
 
-    const results = [...titleMatches, ...descriptionMatches, ...categoryMatches];
+    // Filter and sort by score
+    const results = scoredGuides
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.guide);
 
-    if (results.length === 0 && term) {
+    return results;
+  }, [searchTerm, guides]);
+
+  useEffect(() => {
+    const hasSearch = searchTerm.trim() !== '';
+    const hasResults = filteredGuides.length > 0;
+    if (hasSearch && !hasResults) {
       setNoResults(true);
-      return guides; // Show all guides if no results
     } else {
       setNoResults(false);
-      return results;
     }
-  }, [searchTerm, guides]);
+  }, [searchTerm, filteredGuides]);
+
+  const guidesToDisplay = noResults ? guides : filteredGuides;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -356,7 +356,7 @@ const PatientGuidesPage = () => {
             )}
 
             {/* Empty State */}
-            {!loading && filteredGuides.length === 0 && !noResults && (
+            {!loading && guidesToDisplay.length === 0 && (
               <div className="text-center py-16">
                 <BookOpen className="mx-auto mb-4 text-primary" size={48} />
                 <h2 className="text-2xl font-semibold mb-2">No guides found</h2>
@@ -367,15 +367,15 @@ const PatientGuidesPage = () => {
             )}
 
             {/* Featured Guide & Grid */}
-            {filteredGuides.length > 0 && (
+            {guidesToDisplay.length > 0 && (
               <>
-                <Link to={`/guides/${filteredGuides[0].id}`} className="group block">
+                <Link to={`/guides/${guidesToDisplay[0].id}`} className="group block">
                   <Card className="mb-8 overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 hover:shadow-lg transition-shadow">
                     <div className="md:flex">
                       <div className="md:w-1/3">
                         <img
-                          src={filteredGuides[0].cover_image_url}
-                          alt={getTranslatedGuide(filteredGuides[0], i18n.language).title}
+                          src={guidesToDisplay[0].cover_image_url}
+                          alt={getTranslatedGuide(guidesToDisplay[0], i18n.language).title}
                           className="w-full h-64 md:h-full object-cover"
                           loading="lazy"
                         />
@@ -383,37 +383,37 @@ const PatientGuidesPage = () => {
                       <div className="md:w-2/3 p-6 flex flex-col">
                         <div className="flex-grow">
                           <div className="flex items-center gap-2 mb-3">
-                            <Badge>{filteredGuides[0].categories.name}</Badge>
+                            <Badge>{guidesToDisplay[0].categories.name}</Badge>
                             <span className="text-sm text-muted-foreground">{t('guides.featured')}</span>
                           </div>
                           <h2 className="text-2xl font-heading font-bold mb-3">
-                            {getTranslatedGuide(filteredGuides[0], i18n.language).title}
+                            {getTranslatedGuide(guidesToDisplay[0], i18n.language).title}
                           </h2>
                           <p className="text-muted-foreground mb-4">
-                            {getTranslatedGuide(filteredGuides[0], i18n.language).description}
+                            {getTranslatedGuide(guidesToDisplay[0], i18n.language).description}
                           </p>
                           <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
                             <div className="flex items-center">
                               <BookOpen size={16} className="mr-1" />
-                              <span>{filteredGuides[0].pages} pages</span>
+                              <span>{guidesToDisplay[0].pages} pages</span>
                             </div>
                             <div className="flex items-center">
                               <Clock size={16} className="mr-1" />
-                              <span>{filteredGuides[0].estimated_time}</span>
+                              <span>{guidesToDisplay[0].estimated_time}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex gap-2 mt-auto">
                           <Button asChild className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Link to={`/guides/${filteredGuides[0].id}`}>
+                            <Link to={`/guides/${guidesToDisplay[0].id}`}>
                               <Eye size={16} className="md:mr-2" />
                               <span className="hidden md:inline">{t('guides.readOnline')}</span>
                             </Link>
                           </Button>
-                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(filteredGuides[0].id); }} disabled={downloadingId === filteredGuides[0].id}>
-                            {downloadingId === filteredGuides[0].id ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf')}</span></>}
+                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guidesToDisplay[0].id); }} disabled={downloadingId === guidesToDisplay[0].id}>
+                            {downloadingId === guidesToDisplay[0].id ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf')}</span></>}
                           </Button>
-                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(filteredGuides[0]); }}>
+                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(guidesToDisplay[0]); }}>
                             <Share2 size={16} className="md:mr-2" />
                             <span className="hidden md:inline">{t('guides.share', 'Share')}</span>
                           </Button>
@@ -424,7 +424,7 @@ const PatientGuidesPage = () => {
                 </Link>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredGuides.slice(1).map((guide) => (
+                  {guidesToDisplay.slice(1).map((guide) => (
                     <Link to={`/guides/${guide.id}`} key={guide.id} className="group">
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
