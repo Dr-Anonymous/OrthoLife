@@ -215,6 +215,7 @@ const WhatsAppMe = () => {
       }
       const formattedNumber = formatPhoneNumber(text);
       setPhone(formattedNumber);
+      setDisplayName('');
       showSuccess('Phone number pasted from clipboard');
     } catch (error) {
       showError('Failed to read clipboard. Please paste manually.');
