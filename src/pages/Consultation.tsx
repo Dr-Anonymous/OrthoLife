@@ -49,7 +49,7 @@ interface Patient {
 interface Consultation {
   id: string;
   patient: Patient;
-  draft_data: any;
+  consultation_data: any;
 }
 
 const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
@@ -375,8 +375,8 @@ const Consultation = () => {
   useEffect(() => {
     if (selectedConsultation) {
         setEditablePatientDetails(selectedConsultation.patient);
-        if (selectedConsultation.draft_data) {
-            setExtraData(selectedConsultation.draft_data);
+        if (selectedConsultation.consultation_data) {
+            setExtraData(selectedConsultation.consultation_data);
         } else {
             setExtraData({
                 complaints: '',
@@ -589,7 +589,7 @@ const Consultation = () => {
     try {
        const { error: updateError } = await supabase
         .from('consultations')
-        .update({ draft_data: extraData })
+        .update({ consultation_data: extraData })
         .eq('id', selectedConsultation.id);
 
       if (updateError) {
@@ -653,7 +653,7 @@ const Consultation = () => {
 
       const { error: updateError } = await supabase
         .from('consultations')
-        .update({ draft_data: extraData })
+        .update({ consultation_data: extraData })
         .eq('id', selectedConsultation.id);
 
       if (updateError) {
