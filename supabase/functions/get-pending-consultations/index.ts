@@ -59,6 +59,7 @@ serve(async (req) => {
       }
       return {
         id: c.id,
+        status: c.status,
         consultation_data: consultation_data,
         patient: c.patient,
       };
