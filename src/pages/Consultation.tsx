@@ -271,7 +271,6 @@ const Consultation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [age, setAge] = useState<number | ''>('');
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
@@ -352,7 +351,7 @@ const Consultation = () => {
     setCompletedConsultations([]);
     setSelectedConsultation(null);
     try {
-      const { data, error } = await supabase.functions.invoke('get-pending-consultations', {
+      const { data, error } = await supabase.functions.invoke('get-consultations-by-date', {
         body: { date: format(date, 'yyyy-MM-dd') },
       });
 
@@ -596,6 +595,22 @@ const Consultation = () => {
     if (!selectedConsultation || !editablePatientDetails) return;
     setIsOrdering(true);
     try {
+      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
+        const { error: patientUpdateError } = await supabase
+          .from('patients')
+          .update({
+            name: editablePatientDetails.name,
+            dob: editablePatientDetails.dob,
+            sex: editablePatientDetails.sex,
+            phone: editablePatientDetails.phone,
+          })
+          .eq('id', editablePatientDetails.id);
+
+        if (patientUpdateError) {
+          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+        }
+      }
+
        const { error: updateError } = await supabase
         .from('consultations')
         .update({ consultation_data: extraData })
@@ -637,68 +652,11 @@ const Consultation = () => {
     }
   };
 
-  const handleSaveDraft = async () => {
-    if (!selectedConsultation || !editablePatientDetails) return;
-    setIsSavingDraft(true);
-    try {
-      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
-        const { error: patientUpdateError } = await supabase
-          .from('patients')
-          .update({
-            name: editablePatientDetails.name,
-            dob: editablePatientDetails.dob,
-            sex: editablePatientDetails.sex,
-            phone: editablePatientDetails.phone,
-          })
-          .eq('id', editablePatientDetails.id);
-
-        if (patientUpdateError) {
-          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-        }
-      }
-
-      const { error: updateError } = await supabase
-        .from('consultations')
-        .update({ consultation_data: extraData })
-        .eq('id', selectedConsultation.id);
-
-      if (updateError) {
-        throw new Error(`Failed to save draft: ${updateError.message}`);
-      }
-
-      toast({
-        title: 'Draft Saved',
-        description: 'Your changes have been saved successfully.',
-      });
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save draft. Please try again.' });
-    } finally {
-      setIsSavingDraft(false);
-    }
-  };
-
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedConsultation || !editablePatientDetails) return;
     setIsSubmitting(true);
     try {
-      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
-        const { error: patientUpdateError } = await supabase
-          .from('patients')
-          .update({
-            name: editablePatientDetails.name,
-            dob: editablePatientDetails.dob,
-            sex: editablePatientDetails.sex,
-            phone: editablePatientDetails.phone,
-          })
-          .eq('id', editablePatientDetails.id);
-
-        if (patientUpdateError) {
-          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-        }
-      }
-
       const payload = {
         templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
         patientId: selectedConsultation.patient.id,
@@ -1030,11 +988,8 @@ const Consultation = () => {
                             </div>
                         </div>
 
-                        <div className="pt-6 flex gap-4">
-                            <Button type="button" onClick={handleSaveDraft} className="w-full h-12 text-lg font-semibold" variant="outline" disabled={isSubmitting || isSavingDraft}>
-                                {isSavingDraft ? 'Saving...' : 'Save Draft'}
-                            </Button>
-                            <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting || isSavingDraft}>
+                        <div className="pt-6">
+                            <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
