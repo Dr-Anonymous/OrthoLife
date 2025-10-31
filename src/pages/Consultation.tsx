@@ -50,6 +50,7 @@ interface Consultation {
   id: string;
   patient: Patient;
   consultation_data: any;
+  status: 'pending' | 'completed';
 }
 
 const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
@@ -222,7 +223,9 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
 
 const Consultation = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
+  const [completedConsultations, setCompletedConsultations] = useState<Consultation[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
 
@@ -268,6 +271,7 @@ const Consultation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [age, setAge] = useState<number | ''>('');
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
@@ -343,7 +347,9 @@ const Consultation = () => {
 
   const fetchConsultations = async (date: Date) => {
     setIsFetchingConsultations(true);
+    setAllConsultations([]);
     setPendingConsultations([]);
+    setCompletedConsultations([]);
     setSelectedConsultation(null);
     try {
       const { data, error } = await supabase.functions.invoke('get-pending-consultations', {
@@ -353,7 +359,10 @@ const Consultation = () => {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      setPendingConsultations(data.consultations || []);
+      const consultations = data.consultations || [];
+      setAllConsultations(consultations);
+      setPendingConsultations(consultations.filter(c => c.status === 'pending'));
+      setCompletedConsultations(consultations.filter(c => c.status === 'completed'));
     } catch (error) {
       console.error('Error fetching consultations:', error);
       toast({
@@ -628,11 +637,68 @@ const Consultation = () => {
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!selectedConsultation || !editablePatientDetails) return;
+    setIsSavingDraft(true);
+    try {
+      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
+        const { error: patientUpdateError } = await supabase
+          .from('patients')
+          .update({
+            name: editablePatientDetails.name,
+            dob: editablePatientDetails.dob,
+            sex: editablePatientDetails.sex,
+            phone: editablePatientDetails.phone,
+          })
+          .eq('id', editablePatientDetails.id);
+
+        if (patientUpdateError) {
+          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('consultations')
+        .update({ consultation_data: extraData })
+        .eq('id', selectedConsultation.id);
+
+      if (updateError) {
+        throw new Error(`Failed to save draft: ${updateError.message}`);
+      }
+
+      toast({
+        title: 'Draft Saved',
+        description: 'Your changes have been saved successfully.',
+      });
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save draft. Please try again.' });
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedConsultation || !editablePatientDetails) return;
     setIsSubmitting(true);
     try {
+      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
+        const { error: patientUpdateError } = await supabase
+          .from('patients')
+          .update({
+            name: editablePatientDetails.name,
+            dob: editablePatientDetails.dob,
+            sex: editablePatientDetails.sex,
+            phone: editablePatientDetails.phone,
+          })
+          .eq('id', editablePatientDetails.id);
+
+        if (patientUpdateError) {
+          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+        }
+      }
+
       const payload = {
         templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
         patientId: selectedConsultation.patient.id,
@@ -739,22 +805,44 @@ const Consultation = () => {
                             </PopoverContent>
                         </Popover>
                     </div>
-                    <div>
-                        <Label>Pending Consultations</Label>
-                        {isFetchingConsultations ? (
-                            <div className="flex justify-center items-center h-32">
-                                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                            </div>
-                        ) : (
-                            <div className="space-y-2 mt-2">
-                                {pendingConsultations.map(c => (
-                                    <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
-                                        {c.patient.name}
-                                    </Button>
-                                ))}
-                                {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations for this date.</p>}
-                            </div>
-                        )}
+                    <div className="space-y-4">
+                        <div className="font-semibold">
+                            Total Consultations: {allConsultations.length}
+                        </div>
+                        <div>
+                            <Label>Pending Consultations: {pendingConsultations.length}</Label>
+                            {isFetchingConsultations ? (
+                                <div className="flex justify-center items-center h-32">
+                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                </div>
+                            ) : (
+                                <div className="space-y-2 mt-2">
+                                    {pendingConsultations.map(c => (
+                                        <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
+                                            {c.patient.name}
+                                        </Button>
+                                    ))}
+                                    {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <Label>Completed Consultations: {completedConsultations.length}</Label>
+                             {isFetchingConsultations ? (
+                                <div className="flex justify-center items-center h-32">
+                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                </div>
+                            ) : (
+                                <div className="space-y-2 mt-2">
+                                    {completedConsultations.map(c => (
+                                        <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
+                                            {c.patient.name}
+                                        </Button>
+                                    ))}
+                                    {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -942,8 +1030,11 @@ const Consultation = () => {
                             </div>
                         </div>
 
-                        <div className="pt-6">
-                            <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting}>
+                        <div className="pt-6 flex gap-4">
+                            <Button type="button" onClick={handleSaveDraft} className="w-full h-12 text-lg font-semibold" variant="outline" disabled={isSubmitting || isSavingDraft}>
+                                {isSavingDraft ? 'Saving...' : 'Save Draft'}
+                            </Button>
+                            <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting || isSavingDraft}>
                             {isSubmitting ? (
                                 <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
