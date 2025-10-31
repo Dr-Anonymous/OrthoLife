@@ -22,6 +22,7 @@ serve(async (req) => {
       .from('consultations')
       .select(`
         id,
+        status,
         consultation_data,
         patient:patients (
           id,
@@ -32,7 +33,6 @@ serve(async (req) => {
           drive_id
         )
       `)
-      .eq('status', 'pending')
       .gte('created_at', targetDate.toISOString())
       .lt('created_at', nextDay.toISOString())
 
