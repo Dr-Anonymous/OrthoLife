@@ -404,15 +404,9 @@ const Consultation = () => {
   useEffect(() => {
     if (selectedConsultation) {
         if (selectedConsultation.consultation_data?.patient && selectedConsultation.consultation_data?.medical) {
-            // New format with patient and medical data
             setEditablePatientDetails(selectedConsultation.consultation_data.patient);
             setExtraData(selectedConsultation.consultation_data.medical);
-        } else if (selectedConsultation.consultation_data) {
-            // Old format with only medical data
-            setEditablePatientDetails(selectedConsultation.patient);
-            setExtraData(selectedConsultation.consultation_data);
         } else {
-            // No data, initialize with fresh state
             setEditablePatientDetails(selectedConsultation.patient);
             setExtraData({
                 complaints: '',
