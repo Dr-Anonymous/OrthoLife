@@ -31,6 +31,7 @@ interface AppointmentBookingProps {
   onBack: () => void;
   paymentOption: 'online' | 'offline';
   onPaymentOptionChange: (option: 'online' | 'offline') => void;
+  rescheduleData?: any;
 }
 
 const services: ServiceType[] = [
@@ -44,10 +45,17 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
   onComplete, 
   onBack, 
   paymentOption, 
-  onPaymentOptionChange 
+  onPaymentOptionChange,
+  rescheduleData
 }) => {
-  const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedService, setSelectedService] = useState<string>(services[0].name);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(rescheduleData ? new Date(rescheduleData.start) : undefined);
+  const [selectedService, setSelectedService] = useState<string>(() => {
+    if (rescheduleData?.description) {
+      const serviceMatch = services.find(service => rescheduleData.description.includes(service.name));
+      return serviceMatch ? serviceMatch.name : services[0].name;
+    }
+    return services[0].name;
+  });
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(false);
