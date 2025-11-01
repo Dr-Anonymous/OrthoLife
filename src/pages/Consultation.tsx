@@ -276,7 +276,6 @@ const Consultation = () => {
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const debouncedExtraData = useDebounce(extraData, 2000);
-  const debouncedPatientDetails = useDebounce(editablePatientDetails, 2000);
 
   useEffect(() => {
     const autofillMeds = async (text: string) => {
@@ -330,14 +329,10 @@ const Consultation = () => {
 
   useEffect(() => {
     const autoSave = async () => {
-      if (selectedConsultation && editablePatientDetails) {
-        const saveData = {
-          patient: editablePatientDetails,
-          medical: extraData,
-        };
+      if (selectedConsultation && extraData) {
         const { error } = await supabase
           .from('consultations')
-          .update({ consultation_data: saveData })
+          .update({ consultation_data: extraData })
           .eq('id', selectedConsultation.id);
         if (error) {
           console.error("Autosave error:", error);
@@ -345,7 +340,7 @@ const Consultation = () => {
       }
     };
     autoSave();
-  }, [debouncedExtraData, debouncedPatientDetails, selectedConsultation]);
+  }, [debouncedExtraData, selectedConsultation]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
@@ -403,11 +398,10 @@ const Consultation = () => {
 
   useEffect(() => {
     if (selectedConsultation) {
-        if (selectedConsultation.consultation_data?.patient && selectedConsultation.consultation_data?.medical) {
-            setEditablePatientDetails(selectedConsultation.consultation_data.patient);
-            setExtraData(selectedConsultation.consultation_data.medical);
+        setEditablePatientDetails(selectedConsultation.patient);
+        if (selectedConsultation.consultation_data) {
+            setExtraData(selectedConsultation.consultation_data);
         } else {
-            setEditablePatientDetails(selectedConsultation.patient);
             setExtraData({
                 complaints: '',
                 findings: '',
