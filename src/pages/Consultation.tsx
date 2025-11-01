@@ -275,6 +275,7 @@ const Consultation = () => {
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
+  const debouncedExtraData = useDebounce(extraData, 2000);
 
   useEffect(() => {
     const autofillMeds = async (text: string) => {
@@ -325,6 +326,21 @@ const Consultation = () => {
     autofillMeds(debouncedComplaints);
     autofillMeds(debouncedDiagnosis);
   }, [debouncedComplaints, debouncedDiagnosis]);
+
+  useEffect(() => {
+    const autoSave = async () => {
+      if (selectedConsultation && extraData) {
+        const { error } = await supabase
+          .from('consultations')
+          .update({ consultation_data: extraData })
+          .eq('id', selectedConsultation.id);
+        if (error) {
+          console.error("Autosave error:", error);
+        }
+      }
+    };
+    autoSave();
+  }, [debouncedExtraData, selectedConsultation]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
@@ -657,6 +673,22 @@ const Consultation = () => {
     if (!selectedConsultation || !editablePatientDetails) return;
     setIsSubmitting(true);
     try {
+      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
+        const { error: patientUpdateError } = await supabase
+          .from('patients')
+          .update({
+            name: editablePatientDetails.name,
+            dob: editablePatientDetails.dob,
+            sex: editablePatientDetails.sex,
+            phone: editablePatientDetails.phone,
+          })
+          .eq('id', editablePatientDetails.id);
+
+        if (patientUpdateError) {
+          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+        }
+      }
+
       const payload = {
         templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
         patientId: selectedConsultation.patient.id,
