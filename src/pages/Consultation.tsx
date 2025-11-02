@@ -1042,8 +1042,8 @@ const Consultation = () => {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
-                                    {suggestedAdvice.map((advice, index) => (
-                                        <Button key={index} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
+                                    {suggestedAdvice.map((advice) => (
+                                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
                                             {advice}
                                         </Button>
                                     ))}
