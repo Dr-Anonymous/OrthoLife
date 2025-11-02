@@ -273,13 +273,14 @@ const Consultation = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [age, setAge] = useState<number | ''>('');
+  const [autofillActive, setAutofillActive] = useState(false);
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
 
   useEffect(() => {
     const autofillMeds = async (text: string) => {
-      if (text.trim() === '') return;
+      if (text.trim() === '' || !autofillActive) return;
 
       try {
         const { data, error } = await supabase.functions.invoke('get-autofill-medications', {
@@ -383,6 +384,7 @@ const Consultation = () => {
 
   useEffect(() => {
     if (selectedConsultation) {
+      setAutofillActive(false);
       setEditablePatientDetails(selectedConsultation.patient);
       if (selectedConsultation.consultation_data) {
         setExtraData(selectedConsultation.consultation_data);
@@ -941,7 +943,7 @@ const Consultation = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
-                                <Textarea id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value)} placeholder="Patient complaints..." className="min-h-[100px]" />
+                                <Textarea id="complaints" value={extraData.complaints} onFocus={() => setAutofillActive(true)} onChange={e => handleExtraChange('complaints', e.target.value)} placeholder="Patient complaints..." className="min-h-[100px]" />
                             </div>
 
                             <div className="space-y-2">
@@ -964,7 +966,7 @@ const Consultation = () => {
 
                             <div className="space-y-2">
                                 <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
-                                <Textarea id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
+                                <Textarea id="diagnosis" value={extraData.diagnosis} onFocus={() => setAutofillActive(true)} onChange={e => handleExtraChange('diagnosis', e.target.value)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
                             </div>
                             </div>
 

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,26 +21,16 @@ interface PatientData {
 
 interface PatientRegistrationProps {
   onComplete: (data: PatientData) => void;
-  initialData?: Partial<PatientData>;
 }
 
-const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, initialData }) => {
+const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete }) => {
   const [formData, setFormData] = useState<PatientData>({
-    name: initialData?.name || '',
-    email: initialData?.email || '',
-    phone: initialData?.phone || '',
-    address: initialData?.address || '',
-    dateOfBirth: initialData?.dateOfBirth || undefined
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    dateOfBirth: undefined
   });
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData(prev => ({
-        ...prev,
-        ...initialData
-      }));
-    }
-  }, [initialData]);
 
   const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));

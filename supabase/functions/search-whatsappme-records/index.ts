@@ -156,7 +156,6 @@ async function searchCalendarEvents(accessToken, phoneNumber) {
     const searchData = await searchResponse.json();
     const matchingEvents = searchData.items || [];
     return matchingEvents.map((event)=>({
-        id: event.id,
         start: event.start?.dateTime || event.start?.date,
         description: event.description,
         attachments: event.attachments?.[0]?.fileUrl

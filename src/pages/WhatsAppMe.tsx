@@ -214,7 +214,6 @@ const WhatsAppMe = () => {
         text = await navigator.clipboard.readText();
       }
       const formattedNumber = formatPhoneNumber(text);
-      setDisplayName('');
       setPhone(formattedNumber);
       showSuccess('Phone number pasted from clipboard');
     } catch (error) {

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import PatientRegistration from './PatientRegistration';
 import AppointmentBooking from './AppointmentBooking';
@@ -28,43 +27,6 @@ const AppointmentBookingSection: React.FC = () => {
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [appointmentData, setAppointmentData] = useState<AppointmentData | null>(null);
   const [paymentOption, setPaymentOption] = useState<'online' | 'offline'>('offline');
-  const [rescheduleData, setRescheduleData] = useState<any>(null);
-  const location = useLocation();
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('reschedule')) {
-      const eventId = params.get('eventId');
-      const start = params.get('start');
-      const description = params.get('description');
-
-      // Basic parsing of name and phone from description
-      const nameMatch = description?.match(/Name:\s*(.*?)\s*Phone:/);
-      const phoneMatch = description?.match(/Phone:\s*([\d\s\+]+)/);
-      const name = nameMatch ? nameMatch[1].trim() : '';
-      const phone = phoneMatch ? phoneMatch[1].trim() : '';
-
-      const data = {
-        eventId,
-        start,
-        description,
-        patient: { name, phone }
-      };
-      setRescheduleData(data);
-
-      // Pre-fill patient data and skip to the appointment step
-      if (data.patient.name && data.patient.phone) {
-        setPatientData({
-          name: data.patient.name,
-          phone: data.patient.phone,
-          email: '', // Not available from event
-          address: '', // Not available from event
-          dateOfBirth: '', // Not available from event
-        });
-        setCurrentStep('appointment');
-      }
-    }
-  }, [location]);
 
   // Accepts patient from PatientRegistration, possibly with Date type, converts to correct shape
   const handlePatientRegistration = (data: {
@@ -111,8 +73,7 @@ const AppointmentBookingSection: React.FC = () => {
             paymentData: {
               paymentMethod: 'offline',
               paymentStatus: 'pending'
-            },
-            eventId: rescheduleData?.eventId
+            }
           }
         }
       );
@@ -189,10 +150,7 @@ const AppointmentBookingSection: React.FC = () => {
           {/* Step Content */}
           <div className="flex justify-center">
             {currentStep === 'registration' && (
-              <PatientRegistration
-                onComplete={handlePatientRegistration}
-                initialData={rescheduleData?.patient}
-              />
+              <PatientRegistration onComplete={handlePatientRegistration} />
             )}
             
             {currentStep === 'appointment' && (
@@ -201,7 +159,6 @@ const AppointmentBookingSection: React.FC = () => {
                 onBack={goBackToRegistration}
                 paymentOption={paymentOption}
                 onPaymentOptionChange={setPaymentOption}
-                rescheduleData={rescheduleData}
               />
             )}
             

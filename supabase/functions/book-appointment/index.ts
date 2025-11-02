@@ -12,8 +12,7 @@ serve(async (req)=>{
     });
   }
   try {
-    const { patientData, appointmentData, paymentData, eventId } = await req.json();
-    const isReschedule = !!eventId;
+    const { patientData, appointmentData, paymentData } = await req.json();
     //console.log('Booking appointment for:', patientData.name, 'at', appointmentData.start);
     const paymentStatus = paymentData.paymentMethod === 'offline' ? 'pending' : 'paid';
     const dob = patientData.dateOfBirth ? '\nDOB: ' + new Date(patientData.dateOfBirth).toLocaleDateString('en-GB', {
@@ -47,15 +46,8 @@ SMS: <a href="sms:${patientData.phone}?body=` + message + `">Send</a>`,
           dateTime: addMinutes(appointmentData.end)
         }
       };
-
-      const apiUrl = isReschedule
-        ? `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`
-        : `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
-
-      const method = isReschedule ? 'PUT' : 'POST';
-
-      const calendarResponse = await fetch(apiUrl, {
-        method: method,
+      const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -64,11 +56,11 @@ SMS: <a href="sms:${patientData.phone}?body=` + message + `">Send</a>`,
       });
       if (!calendarResponse.ok) {
         const errorText = await calendarResponse.text();
-        console.error(`Failed to ${isReschedule ? 'update' : 'create'} calendar event:`, errorText);
+        console.error('Failed to create calendar event:', errorText);
       // Continue response even if calendar fails
       } else {
         const calendarEventData = await calendarResponse.json();
-        console.log(`Google Calendar event ${isReschedule ? 'updated' : 'created'}:`, calendarEventData.id);
+        console.log('Google Calendar event created:', calendarEventData.id);
       }
     } else {
       console.log('No Google Calendar access token available, skipping event creation');

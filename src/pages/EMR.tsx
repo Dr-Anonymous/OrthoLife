@@ -289,6 +289,7 @@ const EMR = () => {
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [age, setAge] = useState<number | ''>('');
+  const [autofillActive, setAutofillActive] = useState(false);
 
   useEffect(() => {
     setAge(calculateAge(formData.dob));
@@ -312,7 +313,7 @@ const EMR = () => {
 
   useEffect(() => {
     const autofillMeds = async (text: string) => {
-      if (text.trim() === '') return;
+      if (text.trim() === '' || !autofillActive) return;
 
       try {
         const { data, error } = await supabase.functions.invoke('get-autofill-medications', {
@@ -378,6 +379,7 @@ const EMR = () => {
     if (field === 'phone') {
       setPatientFolders([]);
       setSelectedPatient('');
+      setAutofillActive(false);
     }
   };
 
@@ -890,6 +892,7 @@ const EMR = () => {
                     <Textarea 
                       id="complaints"
                       value={extraData.complaints} 
+                      onFocus={() => setAutofillActive(true)}
                       onChange={e => handleExtraChange('complaints', e.target.value)} 
                       placeholder="Patient complaints..."
                       onKeyDown={e => e.key === 'Enter' && e.stopPropagation()}
@@ -934,6 +937,7 @@ const EMR = () => {
                     <Textarea 
                       id="diagnosis"
                       value={extraData.diagnosis} 
+                      onFocus={() => setAutofillActive(true)}
                       onChange={e => handleExtraChange('diagnosis', e.target.value)} 
                       placeholder="Clinical diagnosis..."
                       onKeyDown={e => e.key === 'Enter' && e.stopPropagation()}
