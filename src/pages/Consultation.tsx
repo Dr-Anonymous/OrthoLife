@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -53,7 +53,7 @@ interface Consultation {
   status: 'pending' | 'completed';
 }
 
-const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null> }) => {
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void }) => {
   const {
     attributes,
     listeners,
@@ -68,10 +68,56 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
   };
 
   const [isCustom, setIsCustom] = useState(!!med.frequency);
+  const [isSavingFavorite, setIsSavingFavorite] = useState(false);
 
   useEffect(() => {
     setIsCustom(!!med.frequency);
   }, [med.frequency]);
+
+  const isFavorite = savedMedications.some(savedMed => savedMed.name.toLowerCase() === med.name.toLowerCase());
+
+  const handleFavoriteClick = async () => {
+    if (!med.name) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot save favorite',
+        description: 'Please enter a name for the medication.',
+      });
+      return;
+    }
+    setIsSavingFavorite(true);
+    try {
+      const { data, error } = await supabase
+        .from('saved_medications')
+        .insert([{
+          name: med.name,
+          dose: med.dose,
+          freq_morning: med.freqMorning,
+          freq_noon: med.freqNoon,
+          freq_night: med.freqNight,
+          frequency: med.frequency,
+          duration: med.duration,
+          instructions: med.instructions,
+          notes: med.notes,
+        }]);
+
+      if (error) throw error;
+      toast({
+        title: 'Favorite saved',
+        description: `${med.name} has been added to your saved medications.`,
+      });
+      fetchSavedMedications();
+    } catch (error) {
+      console.error('Error saving favorite medication:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error saving favorite',
+        description: (error as Error).message,
+      });
+    } finally {
+      setIsSavingFavorite(false);
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
@@ -79,6 +125,17 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
         <div {...listeners} className="absolute top-1/2 -left-6 -translate-y-1/2 p-2 cursor-grab text-muted-foreground">
           <GripVertical className="h-5 w-5" />
         </div>
+        <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 left-2 h-6 w-6 text-muted-foreground hover:text-yellow-500"
+            onClick={handleFavoriteClick}
+            disabled={isSavingFavorite || isFavorite}
+          >
+            {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
+            <span className="sr-only">Save as favorite</span>
+        </Button>
         <Button
           type="button"
           variant="ghost"
@@ -227,6 +284,7 @@ const Consultation = () => {
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
   const [completedConsultations, setCompletedConsultations] = useState<Consultation[]>([]);
+  const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
 
@@ -434,6 +492,16 @@ const Consultation = () => {
     if (selectedDate) {
         fetchConsultations(selectedDate);
     }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (selectedDate) {
+        fetchConsultations(selectedDate);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
   }, [selectedDate]);
 
   useEffect(() => {
@@ -886,13 +954,16 @@ const Consultation = () => {
                             )}
                         </div>
                         <div>
-                            <Label>Completed Consultations: {completedConsultations.length}</Label>
+                            <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent" onClick={() => setIsCompletedCollapsed(!isCompletedCollapsed)}>
+                                <Label className="cursor-pointer">Completed Consultations: {completedConsultations.length}</Label>
+                                <ChevronDown className={cn("w-4 h-4 transition-transform", !isCompletedCollapsed && "rotate-180")} />
+                            </Button>
                              {isFetchingConsultations ? (
                                 <div className="flex justify-center items-center h-32">
                                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                                 </div>
                             ) : (
-                                <div className="space-y-2 mt-2">
+                                <div className={cn("space-y-2 mt-2 transition-all overflow-hidden", isCompletedCollapsed ? "max-h-0" : "max-h-screen")}>
                                     {completedConsultations.map(c => (
                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
                                             {c.patient.name}
@@ -1087,6 +1158,7 @@ const Consultation = () => {
                                     savedMedications={savedMedications}
                                     setExtraData={setExtraData}
                                     medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
+                                    fetchSavedMedications={fetchSavedMedications}
                                     />
                                 ))}
                                 </SortableContext>
