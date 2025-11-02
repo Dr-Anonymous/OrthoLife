@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -270,6 +270,7 @@ const Consultation = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [age, setAge] = useState<number | ''>('');
 
@@ -591,10 +592,14 @@ const Consultation = () => {
     }
   };
 
-  const handleOrderNow = async () => {
-    if (!selectedConsultation || !editablePatientDetails) return;
-    setIsOrdering(true);
+  const saveChanges = async () => {
+    if (!selectedConsultation || !editablePatientDetails) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No consultation selected.' });
+      return false;
+    }
+    setIsSaving(true);
     try {
+      // 1. Update patient details if they have changed
       if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
         const { error: patientUpdateError } = await supabase
           .from('patients')
@@ -611,7 +616,8 @@ const Consultation = () => {
         }
       }
 
-       const { error: updateError } = await supabase
+      // 2. Save the consultation form data
+      const { error: updateError } = await supabase
         .from('consultations')
         .update({ consultation_data: extraData })
         .eq('id', selectedConsultation.id);
@@ -619,6 +625,24 @@ const Consultation = () => {
       if (updateError) {
         throw new Error(`Failed to save draft: ${updateError.message}`);
       }
+
+      toast({ title: 'Success', description: 'Your changes have been saved.' });
+      return true;
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save changes. Please try again.' });
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleOrderNow = async () => {
+    if (!selectedConsultation || !editablePatientDetails) return;
+    setIsOrdering(true);
+    try {
+      const saved = await saveChanges();
+      if (!saved) return;
 
       const payload = {
         templateId: "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0",
@@ -657,21 +681,8 @@ const Consultation = () => {
     if (!selectedConsultation || !editablePatientDetails) return;
     setIsSubmitting(true);
     try {
-      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
-        const { error: patientUpdateError } = await supabase
-          .from('patients')
-          .update({
-            name: editablePatientDetails.name,
-            dob: editablePatientDetails.dob,
-            sex: editablePatientDetails.sex,
-            phone: editablePatientDetails.phone,
-          })
-          .eq('id', editablePatientDetails.id);
-
-        if (patientUpdateError) {
-          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-        }
-      }
+      const saved = await saveChanges();
+      if (!saved) return;
 
       const payload = {
         templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
@@ -1004,16 +1015,20 @@ const Consultation = () => {
                             </div>
                         </div>
 
-                        <div className="pt-6">
-                            <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting}>
+                        <div className="pt-6 flex items-center gap-2">
+                            <Button type="submit" className="flex-grow h-12 text-lg font-semibold" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Generating Prescription...
+                                Generating...
                                 </>
                             ) : (
                                 'Generate Prescription'
                             )}
+                            </Button>
+                             <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
+                                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                <span className="sr-only">Save Changes</span>
                             </Button>
                         </div>
                     </form>
