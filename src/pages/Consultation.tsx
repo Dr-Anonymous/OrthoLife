@@ -277,16 +277,18 @@ const Consultation = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [age, setAge] = useState<number | ''>('');
+  const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
 
   useEffect(() => {
-    if (medicationNameInputRef.current) {
+    if (focusLastMedication && medicationNameInputRef.current) {
       medicationNameInputRef.current.focus();
+      setFocusLastMedication(false);
     }
-  }, [extraData.medications.length]);
+  }, [focusLastMedication, extraData.medications]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -564,6 +566,7 @@ const Consultation = () => {
         { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '', notes: '' }
       ]
     }));
+    setFocusLastMedication(true);
   };
 
   const removeMedication = (index: number) => {
