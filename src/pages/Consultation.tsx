@@ -275,8 +275,6 @@ const Consultation = () => {
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
-  const debouncedExtraData = useDebounce(extraData, 2000);
-  const debouncedPatientDetails = useDebounce(editablePatientDetails, 2000);
 
   useEffect(() => {
     const autofillMeds = async (text: string) => {
@@ -327,25 +325,6 @@ const Consultation = () => {
     autofillMeds(debouncedComplaints);
     autofillMeds(debouncedDiagnosis);
   }, [debouncedComplaints, debouncedDiagnosis]);
-
-  useEffect(() => {
-    const autoSave = async () => {
-      if (selectedConsultation && editablePatientDetails) {
-        const saveData = {
-          patient: editablePatientDetails,
-          medical: extraData,
-        };
-        const { error } = await supabase
-          .from('consultations')
-          .update({ consultation_data: saveData })
-          .eq('id', selectedConsultation.id);
-        if (error) {
-          console.error("Autosave error:", error);
-        }
-      }
-    };
-    autoSave();
-  }, [debouncedExtraData, debouncedPatientDetails, selectedConsultation]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
@@ -403,29 +382,22 @@ const Consultation = () => {
 
   useEffect(() => {
     if (selectedConsultation) {
-        if (selectedConsultation.consultation_data?.patient && selectedConsultation.consultation_data?.medical) {
-            // New format with patient and medical data
-            setEditablePatientDetails(selectedConsultation.consultation_data.patient);
-            setExtraData(selectedConsultation.consultation_data.medical);
-        } else if (selectedConsultation.consultation_data) {
-            // Old format with only medical data
-            setEditablePatientDetails(selectedConsultation.patient);
-            setExtraData(selectedConsultation.consultation_data);
-        } else {
-            // No data, initialize with fresh state
-            setEditablePatientDetails(selectedConsultation.patient);
-            setExtraData({
-                complaints: '',
-                findings: '',
-                investigations: '',
-                diagnosis: '',
-                advice: '',
-                followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-                medications: [ ],
-            });
-        }
+      setEditablePatientDetails(selectedConsultation.patient);
+      if (selectedConsultation.consultation_data) {
+        setExtraData(selectedConsultation.consultation_data);
+      } else {
+        setExtraData({
+          complaints: '',
+          findings: '',
+          investigations: '',
+          diagnosis: '',
+          advice: '',
+          followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+          medications: [ ],
+        });
+      }
     } else {
-        setEditablePatientDetails(null);
+      setEditablePatientDetails(null);
     }
   }, [selectedConsultation]);
 
