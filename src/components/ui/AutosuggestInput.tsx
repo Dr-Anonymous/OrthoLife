@@ -15,13 +15,13 @@ interface AutosuggestInputProps {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
-const AutosuggestInput = ({
+const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProps>(({
   value,
   onChange,
   onSuggestionSelected,
   suggestions,
   onKeyDown,
-}: AutosuggestInputProps) => {
+}, ref) => {
   const [filteredSuggestions, setFilteredSuggestions] = useState<Suggestion[]>([]);
   const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
@@ -74,6 +74,7 @@ const AutosuggestInput = ({
   return (
     <div className="relative">
       <Input
+        ref={ref}
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
@@ -98,6 +99,6 @@ const AutosuggestInput = ({
       )}
     </div>
   );
-};
+});
 
 export default AutosuggestInput;
