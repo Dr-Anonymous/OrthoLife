@@ -261,6 +261,9 @@ const EMR = () => {
     medications: [ ] as Medication[]
   });
 
+  const [suggestedMedications, setSuggestedMedications] = useState<Medication[]>([]);
+  const [suggestedAdvice, setSuggestedAdvice] = useState<string[]>([]);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -311,7 +314,7 @@ const EMR = () => {
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
 
   useEffect(() => {
-    const autofillMeds = async (text: string) => {
+    const fetchSuggestions = async (text: string) => {
       if (text.trim() === '') return;
 
       try {
@@ -320,6 +323,7 @@ const EMR = () => {
         });
 
         if (error) throw error;
+        if (!data) return;
 
         const { medications, advice } = data;
 
@@ -334,30 +338,36 @@ const EMR = () => {
             notes: med.notes,
           }));
 
-          setExtraData(prev => {
-            const existingMedNames = new Set(prev.medications.map(m => m.name));
-            const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
-            const newAdvice = prev.advice.includes(advice) ? prev.advice : [prev.advice, advice].filter(Boolean).join('\n');
+          const existingMedNames = new Set(extraData.medications.map(m => m.name));
+          const uniqueNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
 
-            return {
-              ...prev,
-              advice: newAdvice,
-              medications: [...prev.medications, ...filteredNewMeds],
-            };
+          setSuggestedMedications(prev => {
+            const suggestedMedNames = new Set(prev.map(m => m.name));
+            const finalNewMeds = uniqueNewMeds.filter(m => !suggestedMedNames.has(m.name));
+            return [...prev, ...finalNewMeds];
           });
-        } else if (advice) {
-          setExtraData(prev => ({
-            ...prev,
-            advice: prev.advice.includes(advice) ? prev.advice : [prev.advice, advice].filter(Boolean).join('\n'),
-          }));
+        }
+
+        if (advice) {
+          if (!extraData.advice.includes(advice)) {
+            setSuggestedAdvice(prev => {
+              if (!prev.includes(advice)) {
+                return [...prev, advice];
+              }
+              return prev;
+            });
+          }
         }
       } catch (error) {
-        console.error('Error autofilling medications:', error);
+        console.error('Error fetching suggestions:', error);
       }
     };
 
-    autofillMeds(debouncedComplaints);
-    autofillMeds(debouncedDiagnosis);
+    setSuggestedMedications([]);
+    setSuggestedAdvice([]);
+
+    fetchSuggestions(debouncedComplaints);
+    fetchSuggestions(debouncedDiagnosis);
   }, [debouncedComplaints, debouncedDiagnosis]);
 
   const validateForm = (): boolean => {
@@ -494,6 +504,22 @@ const EMR = () => {
   
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAdviceSuggestionClick = (advice: string) => {
+    setExtraData(prev => ({
+        ...prev,
+        advice: [prev.advice, advice].filter(Boolean).join('\n'),
+    }));
+    setSuggestedAdvice(prev => prev.filter(item => item !== advice));
+  };
+
+  const handleMedicationSuggestionClick = (med: Medication) => {
+      setExtraData(prev => ({
+          ...prev,
+          medications: [...prev.medications, med],
+      }));
+      setSuggestedMedications(prev => prev.filter(item => item.id !== med.id));
   };
 
   const handleMedChange = (index: number, field: keyof Medication, value: string | boolean) => {
@@ -944,7 +970,14 @@ const EMR = () => {
 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                    <div className="flex items-center gap-2 flex-wrap">
+                                    <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                                    {suggestedAdvice.map((advice) => (
+                                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
+                                            {advice}
+                                        </Button>
+                                    ))}
+                                </div>
                   </div>
                   <Textarea 
                     id="advice"
@@ -973,10 +1006,17 @@ const EMR = () => {
               {/* Medications Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Stethoscope className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold text-foreground">Medications</h3>
-                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <Stethoscope className="w-5 h-5 text-primary" />
+                                        <h3 className="text-lg font-semibold text-foreground">Medications</h3>
+                                    </div>
+                                    {suggestedMedications.map((med) => (
+                                        <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleMedicationSuggestionClick(med)}>
+                                            {med.name}
+                                        </Button>
+                                    ))}
+                                </div>
                 </div>
                 
                 <div className="space-y-4 pl-6">
