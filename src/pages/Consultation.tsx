@@ -53,7 +53,7 @@ interface Consultation {
   status: 'pending' | 'completed';
 }
 
-const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null> }) => {
   const {
     attributes,
     listeners,
@@ -94,6 +94,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
             <div className="space-y-2">
               <Label className="text-sm font-medium">Medicine Name</Label>
               <AutosuggestInput
+                ref={medicationNameInputRef}
                 value={med.name}
                 onChange={value => handleMedChange(index, 'name', value)}
                 suggestions={savedMedications.map(m => ({ id: m.id, name: m.name }))}
@@ -273,9 +274,51 @@ const Consultation = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [age, setAge] = useState<number | ''>('');
+  const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
+
+  useEffect(() => {
+    if (medicationNameInputRef.current) {
+      medicationNameInputRef.current.focus();
+    }
+  }, [extraData.medications.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
+
+      if (ctrlKey && selectedConsultation) {
+        switch (event.key.toLowerCase()) {
+          case 'p':
+            event.preventDefault();
+            submitForm();
+            break;
+          case 'o':
+            event.preventDefault();
+            handleOrderNow();
+            break;
+          case 's':
+            event.preventDefault();
+            saveChanges();
+            break;
+          case 'm':
+            event.preventDefault();
+            addMedication();
+            break;
+          default:
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedConsultation, extraData, editablePatientDetails]);
 
   useEffect(() => {
     const autofillMeds = async (text: string) => {
@@ -676,8 +719,8 @@ const Consultation = () => {
     }
   };
 
-  const submitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitForm = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!selectedConsultation || !editablePatientDetails) return;
     setIsSubmitting(true);
     try {
@@ -998,6 +1041,7 @@ const Consultation = () => {
                                     removeMedication={removeMedication}
                                     savedMedications={savedMedications}
                                     setExtraData={setExtraData}
+                                    medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
                                     />
                                 ))}
                                 </SortableContext>
