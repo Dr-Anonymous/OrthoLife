@@ -126,17 +126,6 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
           <GripVertical className="h-5 w-5" />
         </div>
         <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 left-2 h-6 w-6 text-muted-foreground hover:text-yellow-500"
-            onClick={handleFavoriteClick}
-            disabled={isSavingFavorite || isFavorite}
-          >
-            {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
-            <span className="sr-only">Save as favorite</span>
-        </Button>
-        <Button
           type="button"
           variant="ghost"
           size="icon"
@@ -149,7 +138,20 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Medicine Name</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Medicine Name</Label>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-yellow-500"
+                    onClick={handleFavoriteClick}
+                    disabled={isSavingFavorite || isFavorite}
+                  >
+                    {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
+                    <span className="sr-only">Save as favorite</span>
+                </Button>
+              </div>
               <AutosuggestInput
                 ref={medicationNameInputRef}
                 value={med.name}
@@ -577,6 +579,11 @@ const Consultation = () => {
     setIsDatePickerOpen(false);
     };
 
+  const handleConsultationDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setIsDatePickerOpen(false);
+    };
+
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
   };
@@ -887,21 +894,21 @@ const Consultation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
       <div className="container mx-auto max-w-7xl">
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <CardHeader className="text-center pb-8">
-            <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
-              <Stethoscope className="w-7 h-7" />
+          <CardHeader className="text-center pb-6 sm:pb-8">
+            <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
+              <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
               Doctor's Consultation
             </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">
+            <CardDescription className="text-base sm:text-lg text-muted-foreground">
               View pending consultations and manage prescriptions
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="md:col-span-1 space-y-4">
+          <CardContent className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+                <div className="lg:col-span-1 space-y-4">
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <Label>Consultation Date</Label>
@@ -909,7 +916,7 @@ const Consultation = () => {
                                 <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
                             </Link>
                         </div>
-                        <Popover>
+                        <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                 variant="outline"
@@ -926,7 +933,7 @@ const Consultation = () => {
                                 <Calendar
                                 mode="single"
                                 selected={selectedDate}
-                                onSelect={setSelectedDate}
+                                onSelect={handleConsultationDateChange}
                                 initialFocus
                                 />
                             </PopoverContent>
@@ -993,7 +1000,7 @@ const Consultation = () => {
                                     </a>
                                 )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                 <Label htmlFor="name">Full Name</Label>
                                 <Input id="name" value={editablePatientDetails.name} onChange={e => handlePatientDetailsChange('name', e.target.value)} />
@@ -1003,7 +1010,7 @@ const Consultation = () => {
                                 <Input id="phone" value={editablePatientDetails.phone} onChange={e => handlePatientDetailsChange('phone', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="dob">Date of Birth</Label>
                                   <div className="flex gap-2">
@@ -1083,7 +1090,7 @@ const Consultation = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
                                 <Textarea id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value)} placeholder="Patient complaints..." className="min-h-[100px]" />
@@ -1095,7 +1102,7 @@ const Consultation = () => {
                             </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
                                   <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
