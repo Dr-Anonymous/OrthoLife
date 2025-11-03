@@ -71,9 +71,6 @@ serve(async (req) => {
         {replaceAllText: { containsText: { text: '{{followup}}'}, replaceText: data.followup || ''}}
     ];
 
-    const waData = `https://ortho.life/auth?phone=${data.phone}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=76x76&data=${encodeURIComponent(waData)}`;
-
     try {
         const qrDocResponse = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
         if (!qrDocResponse.ok) throw new Error('Failed to fetch document for QR code placement');
@@ -95,21 +92,25 @@ serve(async (req) => {
             return null;
         };
         const qrLoc = findTextInContent(qrDoc.body.content, '{{waqr}}');
-        const qrResponse = await fetch(qrUrl);
-        if (qrResponse.ok && qrLoc) {
-            const qrArrayBuffer = await qrResponse.arrayBuffer();
-            const qrBase64 = btoa(String.fromCharCode(...new Uint8Array(qrArrayBuffer)));
-            replacements.unshift({
-                deleteContentRange: { range: { startIndex: qrLoc.index, endIndex: qrLoc.index + qrLoc.length } }
-            }, {
-                insertInlineImage: {
-                    location: { index: qrLoc.index },
-                    uri: `data:image/png;base64,${qrBase64}`,
-                    objectSize: { height: { magnitude: 76, unit: 'PT' }, width: { magnitude: 76, unit: 'PT' } }
-                }
-            });
-        } else {
-            replacements.push({ replaceAllText: { containsText: { text: '{{waqr}}' }, replaceText: 'QR Code' } });
+        if(qrLoc) {
+            const waData = `https://ortho.life/auth?phone=${data.phone}`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=76x76&data=${encodeURIComponent(waData)}`;
+            const qrResponse = await fetch(qrUrl);
+            if (qrResponse.ok && qrLoc) {
+                const qrArrayBuffer = await qrResponse.arrayBuffer();
+                const qrBase64 = btoa(String.fromCharCode(...new Uint8Array(qrArrayBuffer)));
+                replacements.unshift({
+                    deleteContentRange: { range: { startIndex: qrLoc.index, endIndex: qrLoc.index + qrLoc.length } }
+                }, {
+                    insertInlineImage: {
+                        location: { index: qrLoc.index },
+                        uri: `data:image/png;base64,${qrBase64}`,
+                        objectSize: { height: { magnitude: 76, unit: 'PT' }, width: { magnitude: 76, unit: 'PT' } }
+                    }
+                });
+            } else {
+                replacements.push({ replaceAllText: { containsText: { text: '{{waqr}}' }, replaceText: 'QR Code' } });
+            }
         }
     } catch(qrError) {
         console.error('Error handling QR code:', qrError);
