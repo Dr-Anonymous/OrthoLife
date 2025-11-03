@@ -307,6 +307,7 @@ const Consultation = () => {
     diagnosis: '',
     advice: '',
     followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+    personalNote: '',
     medications: [ ] as Medication[]
   });
 
@@ -502,7 +503,11 @@ const Consultation = () => {
     if (selectedConsultation) {
       setEditablePatientDetails(selectedConsultation.patient);
       if (selectedConsultation.consultation_data) {
-        setExtraData(selectedConsultation.consultation_data);
+        setExtraData(prev => ({
+          ...prev,
+          ...selectedConsultation.consultation_data,
+          personalNote: selectedConsultation.consultation_data.personalNote || '',
+        }));
       } else {
         setExtraData({
           complaints: '',
@@ -511,6 +516,7 @@ const Consultation = () => {
           diagnosis: '',
           advice: '',
           followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+          personalNote: '',
           medications: [ ],
         });
       }
@@ -1133,6 +1139,11 @@ const Consultation = () => {
                             <div className="space-y-2">
                             <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
                             <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="personalNote" className="text-sm font-medium">Personal Note (Only visible to you)</Label>
+                                <Textarea id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
                             </div>
                         </div>
                         <div className="space-y-4">
