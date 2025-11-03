@@ -125,32 +125,34 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
         <div {...listeners} className="absolute top-1/2 -left-6 -translate-y-1/2 p-2 cursor-grab text-muted-foreground">
           <GripVertical className="h-5 w-5" />
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
-          onClick={() => removeMedication(index)}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Remove medication</span>
-        </Button>
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Medicine Name</Label>
-                <Button
+                <div className="flex items-center">
+                  <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-yellow-500"
+                      onClick={handleFavoriteClick}
+                      disabled={isSavingFavorite || isFavorite}
+                    >
+                      {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
+                      <span className="sr-only">Save as favorite</span>
+                  </Button>
+                  <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-yellow-500"
-                    onClick={handleFavoriteClick}
-                    disabled={isSavingFavorite || isFavorite}
+                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeMedication(index)}
                   >
-                    {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
-                    <span className="sr-only">Save as favorite</span>
-                </Button>
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove medication</span>
+                  </Button>
+                </div>
               </div>
               <AutosuggestInput
                 ref={medicationNameInputRef}
