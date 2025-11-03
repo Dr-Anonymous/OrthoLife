@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 
 const AppointmentsCard = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -87,16 +89,16 @@ const AppointmentsCard = () => {
     <Card className="lg:col-span-1">
       <CardHeader className="flex flex-row items-center space-x-3">
         <Calendar className="h-6 w-6 text-primary" />
-        <CardTitle>My Appointments</CardTitle>
+        <CardTitle>{t('appointmentsCard.title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        {loading && <p>Loading appointments...</p>}
+        {loading && <p>{t('appointmentsCard.loading')}</p>}
         {error && <p className="text-red-500">{error}</p>}
         {!loading && !error && (
           appointments.length > 0 ? (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">Upcoming Appointments</h3>
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">{t('appointmentsCard.upcoming')}</h3>
                 {upcomingAppointments.length > 0 ? (
                   <ul className="space-y-3">
                     {upcomingAppointments.map((event: any, index: number) => (
@@ -106,32 +108,32 @@ const AppointmentsCard = () => {
                           className="text-gray-600 mt-1"
                           dangerouslySetInnerHTML={{ __html: formatAppointmentDescription(event.description) }}
                         />
-                        {event.attachments && <a href={event.attachments} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 inline-block">View Attachment</a>}
+                        {event.attachments && <a href={event.attachments} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 inline-block">{t('appointmentsCard.viewAttachment')}</a>}
                         <div className="flex space-x-2 mt-4">
                           <Button variant="outline" size="sm" onClick={() => navigate(`/appointment?reschedule=true&eventId=${event.id}&start=${event.start}&description=${encodeURIComponent(event.description)}`)}>
-                            Reschedule
+                            {t('appointmentsCard.reschedule')}
                           </Button>
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">Cancel</Button>
+                              <Button variant="outline" size="sm">{t('appointmentsCard.cancel')}</Button>
                             </DialogTrigger>
                             <DialogContent>
                               <DialogHeader>
-                                <DialogTitle>Are you sure?</DialogTitle>
+                                <DialogTitle>{t('appointmentsCard.cancelDialog.title')}</DialogTitle>
                                 <DialogDescription>
-                                  This action cannot be undone. This will permanently cancel your appointment.
+                                  {t('appointmentsCard.cancelDialog.description')}
                                 </DialogDescription>
                               </DialogHeader>
                               <DialogFooter>
                                 <DialogClose asChild>
-                                  <Button variant="outline">Back</Button>
+                                  <Button variant="outline">{t('appointmentsCard.cancelDialog.back')}</Button>
                                 </DialogClose>
                                 <Button
                                   variant="destructive"
                                   onClick={() => handleCancelAppointment(event.id)}
                                   disabled={isCancelling}
                                 >
-                                  {isCancelling ? 'Cancelling...' : 'Confirm'}
+                                  {isCancelling ? t('appointmentsCard.cancelDialog.cancelling') : t('appointmentsCard.cancelDialog.confirm')}
                                 </Button>
                               </DialogFooter>
                             </DialogContent>
@@ -141,11 +143,11 @@ const AppointmentsCard = () => {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-gray-500">No upcoming appointments.</p>
+                  <p className="text-gray-500">{t('appointmentsCard.noUpcoming')}</p>
                 )}
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">Past Appointments</h3>
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">{t('appointmentsCard.past')}</h3>
                 {pastAppointments.length > 0 ? (
                   <ul className="space-y-3">
                     {pastAppointments.map((event: any, index: number) => (
@@ -155,20 +157,20 @@ const AppointmentsCard = () => {
                           className="text-gray-600 mt-1"
                           dangerouslySetInnerHTML={{ __html: formatAppointmentDescription(event.description) }}
                         />
-                        {event.attachments && <a href={event.attachments} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 inline-block">View Attachment</a>}
+                        {event.attachments && <a href={event.attachments} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 inline-block">{t('appointmentsCard.viewAttachment')}</a>}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                   <p className="text-gray-500">No past appointments.</p>
+                   <p className="text-gray-500">{t('appointmentsCard.noPast')}</p>
                 )}
               </div>
             </div>
           ) : (
             <>
-              <p className="text-gray-500">No appointments found.</p>
+              <p className="text-gray-500">{t('appointmentsCard.noAppointments')}</p>
               <Button onClick={bookAppointment} className="w-full mt-4">
-                Book an Appointment
+                {t('appointmentsCard.bookAppointment')}
               </Button>
             </>
           )

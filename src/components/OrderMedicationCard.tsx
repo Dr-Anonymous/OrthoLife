@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ interface OrderMedicationCardProps {
 }
 
 const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, patientName }) => {
+  const { t } = useTranslation();
   const [medicationQuantities, setMedicationQuantities] = useState<Record<string, number>>({});
   const navigate = useNavigate();
 
@@ -69,12 +71,12 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, 
       <Card>
         <CardHeader className="flex flex-row items-center space-x-3">
           <Pill className="h-6 w-6 text-primary" />
-          <CardTitle>Order Medication for {patientName}</CardTitle>
+          <CardTitle>{t('orderMedicationCard.title', { patientName })}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-center py-4">No medicine prescribed in the latest prescription.</p>
+          <p className="text-gray-500 text-center py-4">{t('orderMedicationCard.noMedication')}</p>
           <Button onClick={() => navigate('/pharmacy')} className="w-full mt-4">
-            Order New
+            {t('orderMedicationCard.orderNew')}
           </Button>
         </CardContent>
       </Card>
@@ -85,15 +87,15 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, 
     <Card>
       <CardHeader className="flex flex-row items-center space-x-3">
         <Pill className="h-6 w-6 text-primary" />
-        <CardTitle>Order Medication for {patientName}</CardTitle>
+        <CardTitle>{t('orderMedicationCard.title', { patientName })}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p>From the latest prescription:</p>
+        <p>{t('orderMedicationCard.fromLatestPrescription')}</p>
         <table className="w-full">
           <thead>
             <tr>
-              <th className="text-left">Medicine</th>
-              <th className="text-right">Quantity</th>
+              <th className="text-left">{t('orderMedicationCard.medicine')}</th>
+              <th className="text-right">{t('orderMedicationCard.quantity')}</th>
             </tr>
           </thead>
           <tbody>
@@ -113,7 +115,7 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, 
           </tbody>
         </table>
         <Button onClick={handleOrderNow} className="w-full mt-4">
-          Order Now
+          {t('orderMedicationCard.orderNow')}
         </Button>
       </CardContent>
     </Card>

@@ -32,9 +32,12 @@ const LanguagePreferenceModal: React.FC<LanguagePreferenceModalProps> = ({ isOpe
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-around mt-4">
-          <Button onClick={() => handleLanguageChange('te')}>Telugu</Button>
+          <Button onClick={() => handleLanguageChange('te')}>తెలుగు</Button>
           <Button onClick={() => handleLanguageChange('en')}>English</Button>
         </div>
+        <p className="text-center text-sm text-muted-foreground mt-2">
+          మెరుగైన అనుభవం కోసం దయచేసి మీకు నచ్చిన భాషను ఎంచుకోండి.
+        </p>
       </DialogContent>
     </Dialog>
   );

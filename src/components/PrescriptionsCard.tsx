@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Briefcase, Upload } from 'lucide-react';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 const PrescriptionsCard = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [records, setRecords] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -82,10 +84,10 @@ const PrescriptionsCard = () => {
     <Card className="lg:col-span-1">
       <CardHeader className="flex flex-row items-center space-x-3">
         <Briefcase className="h-6 w-6 text-primary" />
-        <CardTitle>My Prescriptions and Records</CardTitle>
+        <CardTitle>{t('prescriptionsCard.title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        {loading && <p>Loading records...</p>}
+        {loading && <p>{t('prescriptionsCard.loading')}</p>}
         {error && <p className="text-red-500">{error}</p>}
         {!loading && !error && (
           records?.patientFolders?.length > 0 ? (
@@ -119,7 +121,7 @@ const PrescriptionsCard = () => {
                                           rel="noopener noreferrer"
                                           className="text-blue-600 hover:underline"
                                         >
-                                          View
+                                          {t('prescriptionsCard.view')}
                                         </a>
                                       </div>
                                     </li>
@@ -146,7 +148,7 @@ const PrescriptionsCard = () => {
                                   rel="noopener noreferrer"
                                   className="text-blue-600 hover:underline"
                                 >
-                                  View
+                                  {t('prescriptionsCard.view')}
                                 </a>
                               </div>
                             </li>
@@ -159,11 +161,11 @@ const PrescriptionsCard = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">No prescriptions/records found.</p>
+            <p className="text-gray-500">{t('prescriptionsCard.noRecords')}</p>
           )
         )}
         <div className="mt-4 pt-4 border-t">
-          <h3 className="text-lg font-medium text-gray-800 mb-2">Upload New Record</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-2">{t('prescriptionsCard.uploadTitle')}</h3>
           <div className="flex items-center space-x-2">
             <Input
               ref={fileInputRef}
@@ -176,7 +178,7 @@ const PrescriptionsCard = () => {
               disabled={!selectedFile || uploading}
             >
               <Upload className="mr-2 h-4 w-4" />
-              {uploading ? 'Uploading...' : 'Upload'}
+              {uploading ? t('prescriptionsCard.uploading') : t('prescriptionsCard.upload')}
             </Button>
           </div>
         </div>

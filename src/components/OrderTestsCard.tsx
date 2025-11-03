@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +12,7 @@ interface OrderTestsCardProps {
 }
 
 const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patientName }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [labInvestigations, setLabInvestigations] = useState('');
   const [radiologicalInvestigations, setRadiologicalInvestigations] = useState<string[]>([]);
@@ -40,12 +42,12 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
       <Card>
         <CardHeader className="flex flex-row items-center space-x-3">
           <Beaker className="h-6 w-6 text-primary" />
-          <CardTitle>Order Tests for {patientName}</CardTitle>
+          <CardTitle>{t('orderTestsCard.title', { patientName })}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-center py-4">No investigations prescribed in the latest prescription.</p>
+          <p className="text-gray-500 text-center py-4">{t('orderTestsCard.noInvestigations')}</p>
           <Button onClick={() => navigate('/diagnostics')} className="w-full mt-4">
-            Order New
+            {t('orderTestsCard.orderNew')}
           </Button>
         </CardContent>
       </Card>
@@ -56,12 +58,12 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
     <Card>
       <CardHeader className="flex flex-row items-center space-x-3">
         <Beaker className="h-6 w-6 text-primary" />
-        <CardTitle>Order Tests for {patientName}</CardTitle>
+        <CardTitle>{t('orderTestsCard.title', { patientName })}</CardTitle>
       </CardHeader>
       <CardContent>
         {labInvestigations && (
           <>
-            <p>Lab tests from the latest prescription (you can edit the list below):</p>
+            <p>{t('orderTestsCard.labTestsFromPrescription')}</p>
             <Textarea
               value={labInvestigations}
               onChange={(e) => setLabInvestigations(e.target.value)}
@@ -69,14 +71,14 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patient
               rows={5}
             />
             <Button onClick={handleOrderNow} className="w-full mt-4">
-              Order Now
+              {t('orderTestsCard.orderNow')}
             </Button>
           </>
         )}
 
         {radiologicalInvestigations.length > 0 && (
           <div className="mt-4">
-            <h3 className="font-semibold text-gray-800">Radiological Investigations:</h3>
+            <h3 className="font-semibold text-gray-800">{t('orderTestsCard.radiologicalInvestigations')}</h3>
             <div className="mt-2 text-sm text-gray-700">
               {radiologicalInvestigations.map((investigation, index) => (
                 <p key={index} className="py-1">{investigation}</p>

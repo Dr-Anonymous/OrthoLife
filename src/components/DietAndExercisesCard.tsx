@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +10,7 @@ interface DietAndExercisesCardProps {
 }
 
 const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, patientName }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const adviceLines = advice ? advice.split('\n').filter(line => line.trim() !== '') : [];
 
@@ -18,13 +20,13 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, pat
     const hasExercises = lowerLine.includes('exercise');
 
     if (hasDiet && hasExercises) {
-      return { text: 'View Guide', query: line };
+      return { text: t('dietAndExercisesCard.viewGuide'), query: line };
     }
     if (hasDiet) {
-      return { text: 'View Diet', query: line };
+      return { text: t('dietAndExercisesCard.viewDiet'), query: line };
     }
     if (hasExercises) {
-      return { text: 'View Exercise', query: line };
+      return { text: t('dietAndExercisesCard.viewExercise'), query: line };
     }
     return null;
   };
@@ -34,7 +36,7 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, pat
       <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
         <div className="flex items-center mb-4">
           <ClipboardList className="h-6 w-6 text-blue-500 mr-3" />
-          <h2 className="text-2xl font-semibold leading-none tracking-tight">Diet and Exercises for {patientName}</h2>
+          <h2 className="text-2xl font-semibold leading-none tracking-tight">{t('dietAndExercisesCard.title', { patientName })}</h2>
         </div>
         <div className="flex-grow">
           {adviceLines.length > 0 ? (
@@ -59,7 +61,7 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, pat
               })}
             </ul>
           ) : (
-            <p className="text-gray-500 text-center py-4">No specific advice provided.</p>
+            <p className="text-gray-500 text-center py-4">{t('dietAndExercisesCard.noAdvice')}</p>
           )}
         </div>
       </div>
