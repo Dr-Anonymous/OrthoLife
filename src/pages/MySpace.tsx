@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
@@ -17,6 +18,7 @@ import OrderTestsCard from '@/components/OrderTestsCard';
 import DietAndExercisesCard from '@/components/DietAndExercisesCard';
 
 const MySpace = () => {
+  const { t } = useTranslation();
   const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -92,13 +94,13 @@ const MySpace = () => {
         <div className="container mx-auto p-4 sm:p-6 md:p-8">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Welcome to My Space</h1>
-              {user?.phoneNumber && <p className="mt-1 text-lg text-gray-600">Your personal health dashboard (<strong>{user.phoneNumber}</strong>).</p>}
+              <h1 className="text-3xl font-bold text-gray-800">{t('mySpace.welcome')}</h1>
+              {user?.phoneNumber && <p className="mt-1 text-lg text-gray-600">{t('mySpace.dashboardDescription')} (<strong>{user.phoneNumber}</strong>).</p>}
             </div>
             <div className="flex items-center gap-4 mt-4 sm:mt-0">
               <LanguageSwitcher />
               <Button onClick={handleLogout} variant="outline">
-                <LogOut className="mr-2 h-4 w-4" /> Logout
+                <LogOut className="mr-2 h-4 w-4" /> {t('mySpace.logout')}
               </Button>
             </div>
           </header>

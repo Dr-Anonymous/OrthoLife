@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Beaker, User, Download, Clock } from 'lucide-react';
@@ -27,6 +28,7 @@ interface TestResult {
 }
 
 const TestResultsCard = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [testResults, setTestResults] = useState<Record<string, TestResult[]>>({});
   const [loading, setLoading] = useState(true);
@@ -131,13 +133,13 @@ const TestResultsCard = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Completed</Badge>;
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{t('testResultsCard.status.completed')}</Badge>;
       case 'processing':
-        return <Badge variant="secondary">Processing</Badge>;
+        return <Badge variant="secondary">{t('testResultsCard.status.processing')}</Badge>;
       case 'collected':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Sample Collected</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{t('testResultsCard.status.collected')}</Badge>;
       case 'awaiting':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Awaiting Collection</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{t('testResultsCard.status.awaiting')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -147,10 +149,10 @@ const TestResultsCard = () => {
     <Card className="lg:col-span-1">
       <CardHeader className="flex flex-row items-center space-x-3">
         <Beaker className="h-6 w-6 text-primary" />
-        <CardTitle>My Test Results</CardTitle>
+        <CardTitle>{t('testResultsCard.title')}</CardTitle>
       </CardHeader>
       <CardContent>
-        {loading && <p>Loading test results...</p>}
+        {loading && <p>{t('testResultsCard.loading')}</p>}
         {error && <p className="text-red-500">{error}</p>}
         {!loading && !error && (
           Object.keys(testResults).length > 0 ? (
@@ -178,23 +180,23 @@ const TestResultsCard = () => {
                           <DialogHeader>
                             <DialogTitle>{result.testType}</DialogTitle>
                             <DialogDescription>
-                              Test result for {result.patientName}
+                              {t('testResultsCard.dialog.description', { patientName: result.patientName })}
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4 py-4">
                             <div className="flex justify-between items-center">
-                              <p className="text-sm text-muted-foreground">Test Date</p>
+                              <p className="text-sm text-muted-foreground">{t('testResultsCard.dialog.testDate')}</p>
                               <p className="font-medium">{result.testDate}</p>
                             </div>
                             <div className="flex justify-between items-center">
-                              <p className="text-sm text-muted-foreground">Report Date</p>
-                              <p className="font-medium">{result.reportDate || 'Pending'}</p>
+                              <p className="text-sm text-muted-foreground">{t('testResultsCard.dialog.reportDate')}</p>
+                              <p className="font-medium">{result.reportDate || t('testResultsCard.dialog.pending')}</p>
                             </div>
                             <div className="border-t border-muted my-4"></div>
                             <div className="grid grid-cols-3 items-center text-center font-semibold">
-                              <p>Test</p>
-                              <p>Result</p>
-                              <p>Normal Range</p>
+                              <p>{t('testResultsCard.dialog.test')}</p>
+                              <p>{t('testResultsCard.dialog.result')}</p>
+                              <p>{t('testResultsCard.dialog.normalRange')}</p>
                             </div>
                             <div className="grid grid-cols-3 items-center text-center">
                               <p className="font-medium">{result.testType}</p>
@@ -207,7 +209,7 @@ const TestResultsCard = () => {
                               <>
                                 <div className="border-t border-muted my-4"></div>
                                 <div>
-                                  <p className="font-semibold mb-2">Comments</p>
+                                  <p className="font-semibold mb-2">{t('testResultsCard.dialog.comments')}</p>
                                   <div
                                     className="text-sm text-muted-foreground whitespace-pre-wrap"
                                     dangerouslySetInnerHTML={{ __html: result.comments }}
@@ -223,12 +225,12 @@ const TestResultsCard = () => {
                               disabled={isDownloading}
                             >
                               <Download size={16} />
-                              {isDownloading ? 'Downloading...' : 'Download Report'}
+                              {isDownloading ? t('testResultsCard.dialog.downloading') : t('testResultsCard.dialog.downloadReport')}
                             </Button>
                           ) : (
                             <Button variant="outline" disabled className="flex items-center gap-2">
                               <Clock size={16} />
-                              Final Report Pending
+                              {t('testResultsCard.dialog.reportPending')}
                             </Button>
                           )}
                         </DialogContent>
@@ -239,7 +241,7 @@ const TestResultsCard = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No test results found.</p>
+            <p className="text-gray-500">{t('testResultsCard.noResults')}</p>
           )
         )}
       </CardContent>
