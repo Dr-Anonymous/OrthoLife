@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -53,7 +53,7 @@ interface Consultation {
   status: 'pending' | 'completed';
 }
 
-const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null> }) => {
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void }) => {
   const {
     attributes,
     listeners,
@@ -68,10 +68,56 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
   };
 
   const [isCustom, setIsCustom] = useState(!!med.frequency);
+  const [isSavingFavorite, setIsSavingFavorite] = useState(false);
 
   useEffect(() => {
     setIsCustom(!!med.frequency);
   }, [med.frequency]);
+
+  const isFavorite = savedMedications.some(savedMed => savedMed.name.toLowerCase() === med.name.toLowerCase());
+
+  const handleFavoriteClick = async () => {
+    if (!med.name) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot save favorite',
+        description: 'Please enter a name for the medication.',
+      });
+      return;
+    }
+    setIsSavingFavorite(true);
+    try {
+      const { data, error } = await supabase
+        .from('saved_medications')
+        .insert([{
+          name: med.name,
+          dose: med.dose,
+          freq_morning: med.freqMorning,
+          freq_noon: med.freqNoon,
+          freq_night: med.freqNight,
+          frequency: med.frequency,
+          duration: med.duration,
+          instructions: med.instructions,
+          notes: med.notes,
+        }]);
+
+      if (error) throw error;
+      toast({
+        title: 'Favorite saved',
+        description: `${med.name} has been added to your saved medications.`,
+      });
+      fetchSavedMedications();
+    } catch (error) {
+      console.error('Error saving favorite medication:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error saving favorite',
+        description: (error as Error).message,
+      });
+    } finally {
+      setIsSavingFavorite(false);
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
@@ -79,20 +125,35 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
         <div {...listeners} className="absolute top-1/2 -left-6 -translate-y-1/2 p-2 cursor-grab text-muted-foreground">
           <GripVertical className="h-5 w-5" />
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
-          onClick={() => removeMedication(index)}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Remove medication</span>
-        </Button>
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Medicine Name</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Medicine Name</Label>
+                <div className="flex items-center">
+                  <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-yellow-500"
+                      onClick={handleFavoriteClick}
+                      disabled={isSavingFavorite || isFavorite}
+                    >
+                      {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
+                      <span className="sr-only">Save as favorite</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeMedication(index)}
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove medication</span>
+                  </Button>
+                </div>
+              </div>
               <AutosuggestInput
                 ref={medicationNameInputRef}
                 value={med.name}
@@ -227,6 +288,7 @@ const Consultation = () => {
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
   const [completedConsultations, setCompletedConsultations] = useState<Consultation[]>([]);
+  const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
 
@@ -277,16 +339,18 @@ const Consultation = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [age, setAge] = useState<number | ''>('');
+  const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
 
   useEffect(() => {
-    if (medicationNameInputRef.current) {
+    if (focusLastMedication && medicationNameInputRef.current) {
       medicationNameInputRef.current.focus();
+      setFocusLastMedication(false);
     }
-  }, [extraData.medications.length]);
+  }, [focusLastMedication, extraData.medications]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -434,6 +498,16 @@ const Consultation = () => {
   }, [selectedDate]);
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      if (selectedDate) {
+        fetchConsultations(selectedDate);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [selectedDate]);
+
+  useEffect(() => {
     if (selectedConsultation) {
       setEditablePatientDetails(selectedConsultation.patient);
       if (selectedConsultation.consultation_data) {
@@ -506,6 +580,11 @@ const Consultation = () => {
     setIsDatePickerOpen(false);
     };
 
+  const handleConsultationDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setIsDatePickerOpen(false);
+    };
+
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
   };
@@ -563,6 +642,7 @@ const Consultation = () => {
         { id: crypto.randomUUID(), name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '', notes: '' }
       ]
     }));
+    setFocusLastMedication(true);
   };
 
   const removeMedication = (index: number) => {
@@ -815,21 +895,21 @@ const Consultation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
       <div className="container mx-auto max-w-7xl">
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <CardHeader className="text-center pb-8">
-            <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
-              <Stethoscope className="w-7 h-7" />
+          <CardHeader className="text-center pb-6 sm:pb-8">
+            <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
+              <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
               Doctor's Consultation
             </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">
+            <CardDescription className="text-base sm:text-lg text-muted-foreground">
               View pending consultations and manage prescriptions
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="md:col-span-1 space-y-4">
+          <CardContent className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+                <div className="lg:col-span-1 space-y-4">
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <Label>Consultation Date</Label>
@@ -837,7 +917,7 @@ const Consultation = () => {
                                 <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
                             </Link>
                         </div>
-                        <Popover>
+                        <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                 variant="outline"
@@ -854,7 +934,7 @@ const Consultation = () => {
                                 <Calendar
                                 mode="single"
                                 selected={selectedDate}
-                                onSelect={setSelectedDate}
+                                onSelect={handleConsultationDateChange}
                                 initialFocus
                                 />
                             </PopoverContent>
@@ -882,13 +962,16 @@ const Consultation = () => {
                             )}
                         </div>
                         <div>
-                            <Label>Completed Consultations: {completedConsultations.length}</Label>
+                            <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent" onClick={() => setIsCompletedCollapsed(!isCompletedCollapsed)}>
+                                <Label className="cursor-pointer">Completed Consultations: {completedConsultations.length}</Label>
+                                <ChevronDown className={cn("w-4 h-4 transition-transform", !isCompletedCollapsed && "rotate-180")} />
+                            </Button>
                              {isFetchingConsultations ? (
                                 <div className="flex justify-center items-center h-32">
                                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                                 </div>
                             ) : (
-                                <div className="space-y-2 mt-2">
+                                <div className={cn("space-y-2 mt-2 transition-all overflow-hidden", isCompletedCollapsed ? "max-h-0" : "max-h-screen")}>
                                     {completedConsultations.map(c => (
                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
                                             {c.patient.name}
@@ -918,7 +1001,7 @@ const Consultation = () => {
                                     </a>
                                 )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                 <Label htmlFor="name">Full Name</Label>
                                 <Input id="name" value={editablePatientDetails.name} onChange={e => handlePatientDetailsChange('name', e.target.value)} />
@@ -928,7 +1011,7 @@ const Consultation = () => {
                                 <Input id="phone" value={editablePatientDetails.phone} onChange={e => handlePatientDetailsChange('phone', e.target.value)} />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="dob">Date of Birth</Label>
                                   <div className="flex gap-2">
@@ -1008,7 +1091,7 @@ const Consultation = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
                                 <Textarea id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value)} placeholder="Patient complaints..." className="min-h-[100px]" />
@@ -1020,7 +1103,7 @@ const Consultation = () => {
                             </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
                                   <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
@@ -1083,6 +1166,7 @@ const Consultation = () => {
                                     savedMedications={savedMedications}
                                     setExtraData={setExtraData}
                                     medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
+                                    fetchSavedMedications={fetchSavedMedications}
                                     />
                                 ))}
                                 </SortableContext>
