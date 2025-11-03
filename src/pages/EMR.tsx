@@ -349,14 +349,13 @@ const EMR = () => {
         }
 
         if (advice) {
-          if (!extraData.advice.includes(advice)) {
-            setSuggestedAdvice(prev => {
-              if (!prev.includes(advice)) {
-                return [...prev, advice];
-              }
-              return prev;
-            });
-          }
+          const adviceItems = advice.split('\n').filter(item => item.trim() !== '');
+          const uniqueAdviceItems = adviceItems.filter(item => !extraData.advice.includes(item));
+
+          setSuggestedAdvice(prev => {
+            const newItems = uniqueAdviceItems.filter(item => !prev.includes(item));
+            return [...prev, ...newItems];
+          });
         }
       } catch (error) {
         console.error('Error fetching suggestions:', error);
