@@ -248,6 +248,9 @@ const Consultation = () => {
     medications: [ ] as Medication[]
   });
 
+  const [suggestedMedications, setSuggestedMedications] = useState<Medication[]>([]);
+  const [suggestedAdvice, setSuggestedAdvice] = useState<string[]>([]);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -321,7 +324,7 @@ const Consultation = () => {
   }, [selectedConsultation, extraData, editablePatientDetails]);
 
   useEffect(() => {
-    const autofillMeds = async (text: string) => {
+    const fetchSuggestions = async (text: string) => {
       if (text.trim() === '') return;
 
       try {
@@ -330,6 +333,7 @@ const Consultation = () => {
         });
 
         if (error) throw error;
+        if (!data) return;
 
         const { medications, advice } = data;
 
@@ -344,30 +348,35 @@ const Consultation = () => {
             notes: med.notes,
           }));
 
-          setExtraData(prev => {
-            const existingMedNames = new Set(prev.medications.map(m => m.name));
-            const filteredNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
-            const newAdvice = prev.advice.includes(advice) ? prev.advice : [prev.advice, advice].filter(Boolean).join('\n');
+          const existingMedNames = new Set(extraData.medications.map(m => m.name));
+          const uniqueNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
 
-            return {
-              ...prev,
-              advice: newAdvice,
-              medications: [...prev.medications, ...filteredNewMeds],
-            };
+          setSuggestedMedications(prev => {
+              const suggestedMedNames = new Set(prev.map(m => m.name));
+              const finalNewMeds = uniqueNewMeds.filter(m => !suggestedMedNames.has(m.name));
+              return [...prev, ...finalNewMeds];
           });
-        } else if (advice) {
-          setExtraData(prev => ({
-            ...prev,
-            advice: prev.advice.includes(advice) ? prev.advice : [prev.advice, advice].filter(Boolean).join('\n'),
-          }));
+        }
+
+        if (advice) {
+          const adviceItems = advice.split('\n').filter(item => item.trim() !== '');
+          const uniqueAdviceItems = adviceItems.filter(item => !extraData.advice.includes(item));
+
+          setSuggestedAdvice(prev => {
+            const newItems = uniqueAdviceItems.filter(item => !prev.includes(item));
+            return [...prev, ...newItems];
+          });
         }
       } catch (error) {
-        console.error('Error autofilling medications:', error);
+        console.error('Error fetching suggestions:', error);
       }
     };
 
-    autofillMeds(debouncedComplaints);
-    autofillMeds(debouncedDiagnosis);
+    setSuggestedMedications([]);
+    setSuggestedAdvice([]);
+
+    fetchSuggestions(debouncedComplaints);
+    fetchSuggestions(debouncedDiagnosis);
   }, [debouncedComplaints, debouncedDiagnosis]);
 
   const fetchSavedMedications = async () => {
@@ -440,6 +449,8 @@ const Consultation = () => {
           medications: [ ],
         });
       }
+      setSuggestedMedications([]);
+      setSuggestedAdvice([]);
     } else {
       setEditablePatientDetails(null);
     }
@@ -497,6 +508,22 @@ const Consultation = () => {
 
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAdviceSuggestionClick = (advice: string) => {
+    setExtraData(prev => ({
+        ...prev,
+        advice: [prev.advice, advice].filter(Boolean).join('\n'),
+    }));
+    setSuggestedAdvice(prev => prev.filter(item => item !== advice));
+  };
+
+  const handleMedicationSuggestionClick = (med: Medication) => {
+      setExtraData(prev => ({
+          ...prev,
+          medications: [...prev.medications, med],
+      }));
+      setSuggestedMedications(prev => prev.filter(item => item.id !== med.id));
   };
 
   const handleMedChange = (index: number, field: keyof Medication, value: string | boolean) => {
@@ -1012,8 +1039,15 @@ const Consultation = () => {
                             </div>
 
                             <div className="space-y-2">
-                            <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
-                            <Textarea id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value)} placeholder="Medical advice..." className="min-h-[80px]" />
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                                    {suggestedAdvice.map((advice) => (
+                                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
+                                            {advice}
+                                        </Button>
+                                    ))}
+                                </div>
+                                <Textarea id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value)} placeholder="Medical advice..." className="min-h-[80px]" />
                             </div>
 
                             <div className="space-y-2">
@@ -1023,10 +1057,17 @@ const Consultation = () => {
                         </div>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Stethoscope className="w-5 h-5 text-primary" />
-                                <h3 className="text-lg font-semibold text-foreground">Medications</h3>
-                            </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <Stethoscope className="w-5 h-5 text-primary" />
+                                        <h3 className="text-lg font-semibold text-foreground">Medications</h3>
+                                    </div>
+                                    {suggestedMedications.map((med) => (
+                                        <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleMedicationSuggestionClick(med)}>
+                                            {med.name}
+                                        </Button>
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="space-y-4 pl-6">
