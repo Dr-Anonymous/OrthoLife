@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import PageLoader from '@/components/PageLoader';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import LanguagePreferenceModal from '@/components/LanguagePreferenceModal';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import AppointmentsCard from '@/components/AppointmentsCard';
 import PrescriptionsCard from '@/components/PrescriptionsCard';
 import TestResultsCard from '@/components/TestResultsCard';
@@ -24,6 +26,19 @@ const MySpace = () => {
   const [patientName, setPatientName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+
+  useEffect(() => {
+    const hasSetLanguage = localStorage.getItem('languageSet');
+    if (!hasSetLanguage) {
+      setIsLanguageModalOpen(true);
+    }
+  }, []);
+
+  const handleModalClose = () => {
+    localStorage.setItem('languageSet', 'true');
+    setIsLanguageModalOpen(false);
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -80,10 +95,15 @@ const MySpace = () => {
               <h1 className="text-3xl font-bold text-gray-800">Welcome to My Space</h1>
               {user?.phoneNumber && <p className="mt-1 text-lg text-gray-600">Your personal health dashboard (<strong>{user.phoneNumber}</strong>).</p>}
             </div>
-            <Button onClick={handleLogout} variant="outline" className="mt-4 sm:mt-0">
-              <LogOut className="mr-2 h-4 w-4" /> Logout
-            </Button>
+            <div className="flex items-center gap-4 mt-4 sm:mt-0">
+              <LanguageSwitcher />
+              <Button onClick={handleLogout} variant="outline">
+                <LogOut className="mr-2 h-4 w-4" /> Logout
+              </Button>
+            </div>
           </header>
+
+          <LanguagePreferenceModal isOpen={isLanguageModalOpen} onClose={handleModalClose} />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
             <PrescriptionsCard />
