@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -497,15 +497,6 @@ const Consultation = () => {
     }
   }, [selectedDate]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (selectedDate) {
-        fetchConsultations(selectedDate);
-      }
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => clearInterval(interval);
-  }, [selectedDate]);
 
   useEffect(() => {
     if (selectedConsultation) {
@@ -913,9 +904,15 @@ const Consultation = () => {
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <Label>Consultation Date</Label>
-                            <Link to="/consultation-stats">
-                                <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
-                            </Link>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => selectedDate && fetchConsultations(selectedDate)} disabled={isFetchingConsultations}>
+                                    {isFetchingConsultations ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                    <span className="sr-only">Refresh</span>
+                                </Button>
+                                <Link to="/consultation-stats">
+                                    <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
+                                </Link>
+                            </div>
                         </div>
                         <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                             <PopoverTrigger asChild>
@@ -951,7 +948,7 @@ const Consultation = () => {
                                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                                 </div>
                             ) : (
-                                <div className="space-y-2 mt-2">
+                                <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
                                     {pendingConsultations.map(c => (
                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
                                             {c.patient.name}
@@ -971,7 +968,7 @@ const Consultation = () => {
                                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                                 </div>
                             ) : (
-                                <div className={cn("space-y-2 mt-2 transition-all overflow-hidden", isCompletedCollapsed ? "max-h-0" : "max-h-screen")}>
+                                <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
                                     {completedConsultations.map(c => (
                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
                                             {c.patient.name}

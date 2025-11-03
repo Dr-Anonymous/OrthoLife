@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, User, Phone, Calendar as CalendarIcon, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages } from 'lucide-react';
+import { Loader2, User, Phone, Calendar as CalendarIcon, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Star } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -46,7 +46,7 @@ interface Medication {
   notes: string;
 }
 
-const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>> }) => {
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, fetchSavedMedications }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, fetchSavedMedications: () => void }) => {
   const {
     attributes,
     listeners,
@@ -60,6 +60,52 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
     transition,
   };
   const [isCustom, setIsCustom] = useState(!!med.frequency);
+  const [isSavingFavorite, setIsSavingFavorite] = useState(false);
+
+  const isFavorite = savedMedications.some(savedMed => savedMed.name.toLowerCase() === med.name.toLowerCase());
+
+  const handleFavoriteClick = async () => {
+    if (!med.name) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot save favorite',
+        description: 'Please enter a name for the medication.',
+      });
+      return;
+    }
+    setIsSavingFavorite(true);
+    try {
+      const { data, error } = await supabase
+        .from('saved_medications')
+        .insert([{
+          name: med.name,
+          dose: med.dose,
+          freq_morning: med.freqMorning,
+          freq_noon: med.freqNoon,
+          freq_night: med.freqNight,
+          frequency: med.frequency,
+          duration: med.duration,
+          instructions: med.instructions,
+          notes: med.notes,
+        }]);
+
+      if (error) throw error;
+      toast({
+        title: 'Favorite saved',
+        description: `${med.name} has been added to your saved medications.`,
+      });
+      fetchSavedMedications();
+    } catch (error) {
+      console.error('Error saving favorite medication:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error saving favorite',
+        description: (error as Error).message,
+      });
+    } finally {
+      setIsSavingFavorite(false);
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
@@ -67,20 +113,35 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
         <div {...listeners} className="absolute top-1/2 -left-6 -translate-y-1/2 p-2 cursor-grab text-muted-foreground">
           <GripVertical className="h-5 w-5" />
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive"
-          onClick={() => removeMedication(index)}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Remove medication</span>
-        </Button>
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Medicine Name</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Medicine Name</Label>
+                <div className="flex items-center">
+                  <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-yellow-500"
+                      onClick={handleFavoriteClick}
+                      disabled={isSavingFavorite || isFavorite}
+                    >
+                      {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
+                      <span className="sr-only">Save as favorite</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeMedication(index)}
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove medication</span>
+                  </Button>
+                </div>
+              </div>
               <AutosuggestInput
                 value={med.name}
                 onChange={value => handleMedChange(index, 'name', value)}
@@ -745,19 +806,19 @@ const EMR = () => {
                   'August', 'September', 'October', 'November', 'December'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
       <div className="container mx-auto max-w-4xl">
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <CardHeader className="text-center pb-8">
-            <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-primary">
-              <Stethoscope className="w-7 h-7" />
+          <CardHeader className="text-center pb-6 sm:pb-8">
+            <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
+              <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
               Electronic Medical Records
             </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">
+            <CardDescription className="text-base sm:text-lg text-muted-foreground">
               Patient Registration & Prescription Management System
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
+          <CardContent className="space-y-6 sm:space-y-8">
             <form onSubmit={submitForm} className="space-y-6">
               {/* Patient Information Section */}
               <div className="space-y-4">
@@ -766,7 +827,7 @@ const EMR = () => {
                   <h3 className="text-lg font-semibold text-foreground">Patient Information</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
                     <div className="relative">
@@ -843,7 +904,7 @@ const EMR = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="sex" className="text-sm font-medium">Sex</Label>
                     <Select value={formData.sex} onValueChange={handleSexChange}>
@@ -909,7 +970,7 @@ const EMR = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
                     <Textarea 
@@ -935,7 +996,7 @@ const EMR = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
@@ -1030,6 +1091,7 @@ const EMR = () => {
                           removeMedication={removeMedication}
                           savedMedications={savedMedications}
                           setExtraData={setExtraData}
+                          fetchSavedMedications={fetchSavedMedications}
                         />
                       ))}
                     </SortableContext>
