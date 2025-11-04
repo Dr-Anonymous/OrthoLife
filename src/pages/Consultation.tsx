@@ -7,18 +7,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 import KeywordManagementModal from '@/components/KeywordManagementModal';
+import UnsavedChangesModal from '@/components/UnsavedChangesModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -291,9 +292,17 @@ const Consultation = () => {
   const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
+  const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
+  const [formInitialState, setFormInitialState] = useState<any>(null);
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
+  const [nextConsultation, setNextConsultation] = useState<Consultation | null>(null);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerVisible, setIsTimerVisible] = useState(true);
 
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
+  const [isPatientDatePickerOpen, setIsPatientDatePickerOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
 
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
@@ -342,6 +351,7 @@ const Consultation = () => {
   const [age, setAge] = useState<number | ''>('');
   const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
+  const patientSelectionCounter = useRef(0);
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
@@ -500,8 +510,45 @@ const Consultation = () => {
 
 
   useEffect(() => {
+    const fetchLastVisitDate = async (patientId: string) => {
+      const { data, error } = await supabase
+        .from('consultations')
+        .select('created_at')
+        .eq('patient_id', patientId)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error || !data) {
+        setLastVisitDate('First Consultation');
+      } else {
+        setLastVisitDate(formatDistanceToNow(new Date(data.created_at), { addSuffix: true }));
+      }
+    };
+
     if (selectedConsultation) {
+      patientSelectionCounter.current += 1;
+      if (patientSelectionCounter.current >= 3) {
+        if (selectedDate) fetchConsultations(selectedDate);
+        patientSelectionCounter.current = 0;
+      }
       setEditablePatientDetails(selectedConsultation.patient);
+      fetchLastVisitDate(selectedConsultation.patient.id);
+      const initialState = {
+        ...extraData,
+        ...(selectedConsultation.consultation_data || {
+          complaints: '',
+          findings: '',
+          investigations: '',
+          diagnosis: '',
+          advice: '',
+          followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+          personalNote: '',
+          medications: [],
+        }),
+        ...selectedConsultation.patient,
+      };
       if (selectedConsultation.consultation_data) {
         setExtraData(prev => ({
           ...prev,
@@ -520,12 +567,33 @@ const Consultation = () => {
           medications: [ ],
         });
       }
+      setFormInitialState(JSON.stringify(initialState));
+      setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
     } else {
       setEditablePatientDetails(null);
+      setLastVisitDate(null);
     }
   }, [selectedConsultation]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (selectedConsultation && isTimerVisible) {
+      setTimerSeconds(0);
+      timer = setInterval(() => {
+        setTimerSeconds(prevSeconds => prevSeconds + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [selectedConsultation, isTimerVisible]);
+
+  useEffect(() => {
+    if (formInitialState) {
+      const isDirty = JSON.stringify({ ...extraData, ...editablePatientDetails }) !== formInitialState;
+      setIsFormDirty(isDirty);
+    }
+  }, [extraData, editablePatientDetails, formInitialState]);
 
   useEffect(() => {
     if (editablePatientDetails?.dob) {
@@ -574,16 +642,42 @@ const Consultation = () => {
     if (editablePatientDetails && date) {
         setEditablePatientDetails(prev => prev ? { ...prev, dob: format(date, 'yyyy-MM-dd') } : null);
     }
-    setIsDatePickerOpen(false);
+    setIsPatientDatePickerOpen(false);
     };
 
   const handleConsultationDateChange = (date: Date | undefined) => {
     setSelectedDate(date);
-    setIsDatePickerOpen(false);
+    setIsConsultationDatePickerOpen(false);
     };
 
   const handleExtraChange = (field: string, value: string) => {
     setExtraData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSelectConsultation = (consultation: Consultation) => {
+    if (isFormDirty) {
+      setNextConsultation(consultation);
+      setIsUnsavedModalOpen(true);
+    } else {
+      setSelectedConsultation(consultation);
+    }
+  };
+
+  const handleConfirmSave = async () => {
+    const success = await saveChanges();
+    if (success) {
+      setIsUnsavedModalOpen(false);
+      if (nextConsultation) {
+        setSelectedConsultation(nextConsultation);
+      }
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setIsUnsavedModalOpen(false);
+    if (nextConsultation) {
+      setSelectedConsultation(nextConsultation);
+    }
   };
 
   const handleAdviceSuggestionClick = (advice: string) => {
@@ -823,6 +917,12 @@ const Consultation = () => {
     }
   };
 
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  };
+
   const submitForm = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedConsultation || !editablePatientDetails) return;
@@ -920,7 +1020,7 @@ const Consultation = () => {
                                 </Link>
                             </div>
                         </div>
-                        <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                        <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                 variant="outline"
@@ -956,7 +1056,7 @@ const Consultation = () => {
                             ) : (
                                 <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
                                     {pendingConsultations.map(c => (
-                                        <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
+                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
                                             {c.patient.name}
                                         </Button>
                                     ))}
@@ -976,13 +1076,23 @@ const Consultation = () => {
                             ) : (
                                 <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
                                     {completedConsultations.map(c => (
-                                        <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => setSelectedConsultation(c)}>
+                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
                                             {c.patient.name}
                                         </Button>
                                     ))}
                                     {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
                                 </div>
                             )}
+                        </div>
+                        <div className="flex justify-between items-center mt-4">
+                            {isTimerVisible && (
+                                <div className="text-lg font-semibold">
+                                    {formatTime(timerSeconds)}
+                                </div>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => setIsTimerVisible(!isTimerVisible)}>
+                                {isTimerVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -997,6 +1107,11 @@ const Consultation = () => {
                                   <h3 className="text-lg font-semibold text-foreground">
                                     Medical Information for {editablePatientDetails.name}
                                   </h3>
+                                  {lastVisitDate && (
+                                    <span className="text-sm text-muted-foreground">
+                                      (Last visit: {lastVisitDate})
+                                    </span>
+                                  )}
                                 </div>
                                 {editablePatientDetails.drive_id && (
                                     <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
@@ -1018,7 +1133,7 @@ const Consultation = () => {
                                 <div className="space-y-2">
                                   <Label htmlFor="dob">Date of Birth</Label>
                                   <div className="flex gap-2">
-                                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                                    <Popover open={isPatientDatePickerOpen} onOpenChange={setIsPatientDatePickerOpen}>
                                       <PopoverTrigger asChild>
                                         <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
                                           <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1227,6 +1342,11 @@ const Consultation = () => {
       <KeywordManagementModal
         isOpen={isKeywordModalOpen}
         onClose={() => setIsKeywordModalOpen(false)}
+      />
+      <UnsavedChangesModal
+        isOpen={isUnsavedModalOpen}
+        onConfirm={handleConfirmSave}
+        onDiscard={handleDiscardChanges}
       />
     </div>
   );
