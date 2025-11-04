@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -22,6 +22,8 @@ import KeywordManagementModal from '@/components/KeywordManagementModal';
 import UnsavedChangesModal from '@/components/UnsavedChangesModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { useDebounce } from '@/hooks/useDebounce';
+import PatientHistoryModal from '@/components/PatientHistoryModal';
+import SaveBundleModal from '@/components/SaveBundleModal';
 
 interface Medication {
   id: string;
@@ -307,6 +309,8 @@ const Consultation = () => {
 
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isSaveBundleModalOpen, setIsSaveBundleModalOpen] = useState(false);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
 
   const [extraData, setExtraData] = useState({
@@ -1131,6 +1135,10 @@ const Consultation = () => {
                                       ({lastVisitDate === 'First Consultation' ? 'First Consultation' : `Last visit: ${lastVisitDate}`})
                                     </span>
                                   )}
+                                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsHistoryModalOpen(true)}>
+                                    <History className="h-4 w-4" />
+                                    <span className="sr-only">View Patient History</span>
+                                  </Button>
                                 </div>
                                 {editablePatientDetails.drive_id && (
                                     <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
@@ -1327,6 +1335,9 @@ const Consultation = () => {
                         </div>
 
                         <div className="pt-6 flex items-center gap-2">
+                            <Button type="button" variant="outline" className="h-12" onClick={() => setIsSaveBundleModalOpen(true)}>
+                                Save as Bundle
+                            </Button>
                             <Button type="submit" className="flex-grow h-12 text-lg font-semibold" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
@@ -1366,6 +1377,17 @@ const Consultation = () => {
         isOpen={isUnsavedModalOpen}
         onConfirm={handleConfirmSave}
         onDiscard={handleDiscardChanges}
+      />
+      <PatientHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        patientId={selectedConsultation?.patient.id || null}
+      />
+      <SaveBundleModal
+        isOpen={isSaveBundleModalOpen}
+        onClose={() => setIsSaveBundleModalOpen(false)}
+        medications={extraData.medications}
+        advice={extraData.advice}
       />
     </div>
   );
