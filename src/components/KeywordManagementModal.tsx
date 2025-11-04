@@ -68,36 +68,54 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       return;
     }
 
-    const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice };
+    try {
+      if (editingKeyword) {
+        const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice };
+        const { error } = await supabase.functions.invoke('update-autofill-keyword', {
+          body: { id: editingKeyword.id, payload },
+        });
+        if (error) throw error;
+      } else {
+        const selectedMedicationObjects = selectedMeds.map(id => {
+            const med = medications.find(m => m.id === id);
+            return { id: med?.id, name: med?.name };
+        });
 
-    let error;
-    if (editingKeyword) {
-      ({ error } = await supabase.from('autofill_keywords').update(payload).eq('id', editingKeyword.id));
-    } else {
-      ({ error } = await supabase.from('autofill_keywords').insert(payload));
-    }
+        const { error } = await supabase.functions.invoke('save-autofill-bundle', {
+          body: {
+            keywords: keywordsArray,
+            medications: selectedMedicationObjects,
+            advice: advice,
+          },
+        });
+        if (error) throw error;
+      }
 
-    if (error) {
-      toast({ variant: 'destructive', title: `Error ${editingKeyword ? 'updating' : 'adding'} keyword`, description: error.message });
-    } else {
       toast({ title: `Keyword ${editingKeyword ? 'updated' : 'added'} successfully` });
       setNewKeywords('');
       setSelectedMeds([]);
       setAdvice('');
       setEditingKeyword(null);
       fetchKeywords();
+
+    } catch (error) {
+      toast({ variant: 'destructive', title: `Error ${editingKeyword ? 'updating' : 'adding'} keyword`, description: (error as Error).message });
     }
   };
 
   const handleDeleteKeyword = async (id: number) => {
-    const { error } = await supabase.from('autofill_keywords').delete().eq('id', id);
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error deleting keyword', description: error.message });
-    } else {
+    try {
+      const { error } = await supabase.functions.invoke('delete-autofill-keyword', {
+        body: { id },
+      });
+      if (error) throw error;
       toast({ title: 'Keyword deleted successfully' });
       fetchKeywords();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error deleting keyword', description: (error as Error).message });
     }
   };
+
 
   const handleEdit = (keyword: Keyword) => {
     setEditingKeyword(keyword);

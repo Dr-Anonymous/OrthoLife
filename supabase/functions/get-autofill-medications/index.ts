@@ -14,7 +14,7 @@ serve(async (req) => {
 
   try {
     const { text } = await req.json();
-    const words = text.toLowerCase().split(/\s+/);
+    const cleanedText = text.toLowerCase().replace(/[.,]/g, '');
     const medicationIds = new Set<number>();
     const adviceTexts = new Set<string>();
 
@@ -24,21 +24,24 @@ serve(async (req) => {
 
     if (keywordsError) {
       console.error('Error fetching keywords:', keywordsError);
-      // Return empty array for medications, and empty string for advice
       return new Response(JSON.stringify({ medications: [], advice: '' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (keywordMappings) {
-      for (const word of words) {
-        for (const mapping of keywordMappings) {
-          if (mapping.keywords && mapping.keywords.map(kw => kw.toLowerCase()).includes(word)) {
-            for (const id of mapping.medication_ids) {
-              medicationIds.add(id);
-            }
-            if (mapping.advice) {
-              adviceTexts.add(mapping.advice);
+      for (const mapping of keywordMappings) {
+        if (mapping.keywords) {
+          for (const keyword of mapping.keywords) {
+            const cleanedKeyword = keyword.toLowerCase().replace(/[.,]/g, '');
+            if (cleanedText.includes(cleanedKeyword)) {
+              for (const id of mapping.medication_ids) {
+                medicationIds.add(id);
+              }
+              if (mapping.advice) {
+                adviceTexts.add(mapping.advice);
+              }
+              break;
             }
           }
         }
