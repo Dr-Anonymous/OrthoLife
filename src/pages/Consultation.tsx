@@ -472,12 +472,14 @@ const Consultation = () => {
     fetchSavedMedications();
   }, []);
 
-  const fetchConsultations = async (date: Date) => {
+  const fetchConsultations = async (date: Date, patientIdToRestore?: string) => {
     setIsFetchingConsultations(true);
-    setAllConsultations([]);
-    setPendingConsultations([]);
-    setCompletedConsultations([]);
-    setSelectedConsultation(null);
+    if (!patientIdToRestore) {
+      setAllConsultations([]);
+      setPendingConsultations([]);
+      setCompletedConsultations([]);
+      setSelectedConsultation(null);
+    }
     try {
       const { data, error } = await supabase.functions.invoke('get-consultations-by-date', {
         body: { date: format(date, 'yyyy-MM-dd') },
@@ -490,6 +492,12 @@ const Consultation = () => {
       setAllConsultations(consultations);
       setPendingConsultations(consultations.filter(c => c.status === 'pending'));
       setCompletedConsultations(consultations.filter(c => c.status === 'completed'));
+      if (patientIdToRestore) {
+        const restoredConsultation = consultations.find(c => c.patient.id === patientIdToRestore);
+        if (restoredConsultation) {
+          setSelectedConsultation(restoredConsultation);
+        }
+      }
     } catch (error) {
       console.error('Error fetching consultations:', error);
       toast({
@@ -530,7 +538,7 @@ const Consultation = () => {
     if (selectedConsultation) {
       patientSelectionCounter.current += 1;
       if (patientSelectionCounter.current >= 3) {
-        if (selectedDate) fetchConsultations(selectedDate);
+        if (selectedDate) fetchConsultations(selectedDate, selectedConsultation.patient.id);
         patientSelectionCounter.current = 0;
       }
       setEditablePatientDetails(selectedConsultation.patient);
@@ -574,6 +582,17 @@ const Consultation = () => {
     } else {
       setEditablePatientDetails(null);
       setLastVisitDate(null);
+      setExtraData({
+        complaints: '',
+        findings: '',
+        investigations: '',
+        diagnosis: '',
+        advice: '',
+        followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+        personalNote: '',
+        medications: [],
+      });
+      setIsFormDirty(false);
     }
   }, [selectedConsultation]);
 
@@ -1109,7 +1128,7 @@ const Consultation = () => {
                                   </h3>
                                   {lastVisitDate && (
                                     <span className="text-sm text-muted-foreground">
-                                      (Last visit: {lastVisitDate})
+                                      ({lastVisitDate === 'First Consultation' ? 'First Consultation' : `Last visit: ${lastVisitDate}`})
                                     </span>
                                   )}
                                 </div>
