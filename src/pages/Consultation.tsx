@@ -541,7 +541,7 @@ const Consultation = () => {
 
     if (selectedConsultation) {
       patientSelectionCounter.current += 1;
-      if (patientSelectionCounter.current >= 3) {
+      if (patientSelectionCounter.current >= 5) {
         if (selectedDate) fetchConsultations(selectedDate, selectedConsultation.patient.id);
         patientSelectionCounter.current = 0;
       }
@@ -1128,7 +1128,7 @@ const Consultation = () => {
                                 <div className="flex items-center gap-2">
                                   <User className="w-5 h-5 text-primary" />
                                   <h3 className="text-lg font-semibold text-foreground">
-                                    Medical Information for {editablePatientDetails.name}
+                                    Demographic details of {editablePatientDetails.name}
                                   </h3>
                                   {lastVisitDate && (
                                     <span className="text-sm text-muted-foreground">
@@ -1284,7 +1284,7 @@ const Consultation = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="personalNote" className="text-sm font-medium">Personal Note (Only visible to you)</Label>
+                                <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
                                 <Textarea id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
                             </div>
                         </div>
