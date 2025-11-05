@@ -543,39 +543,22 @@ const Consultation = () => {
       }
       setEditablePatientDetails(selectedConsultation.patient);
       fetchLastVisitDate(selectedConsultation.patient.id);
-      const initialState = {
+      const newExtraData = selectedConsultation.consultation_data ? {
         ...extraData,
-        ...(selectedConsultation.consultation_data || {
-          complaints: '',
-          findings: '',
-          investigations: '',
-          diagnosis: '',
-          advice: '',
-          followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-          personalNote: '',
-          medications: [],
-        }),
-        ...selectedConsultation.patient,
+        ...selectedConsultation.consultation_data,
+        personalNote: selectedConsultation.consultation_data.personalNote || '',
+      } : {
+        complaints: '',
+        findings: '',
+        investigations: '',
+        diagnosis: '',
+        advice: '',
+        followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+        personalNote: '',
+        medications: [],
       };
-      if (selectedConsultation.consultation_data) {
-        setExtraData(prev => ({
-          ...prev,
-          ...selectedConsultation.consultation_data,
-          personalNote: selectedConsultation.consultation_data.personalNote || '',
-        }));
-      } else {
-        setExtraData({
-          complaints: '',
-          findings: '',
-          investigations: '',
-          diagnosis: '',
-          advice: '',
-          followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-          personalNote: '',
-          medications: [ ],
-        });
-      }
-      setFormInitialState(JSON.stringify(initialState));
+      setExtraData(newExtraData);
+      setFormInitialState(JSON.stringify({ ...newExtraData, ...selectedConsultation.patient }));
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
@@ -593,6 +576,7 @@ const Consultation = () => {
         medications: [],
       });
       setIsFormDirty(false);
+      setFormInitialState(null);
     }
   }, [selectedConsultation]);
 
