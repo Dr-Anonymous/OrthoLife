@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,7 +130,7 @@ const SaveBundleModal: React.FC<SaveBundleModalProps> = ({ isOpen, onClose, medi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Save as Prescription Bundle</DialogTitle>
           <DialogDescription>

@@ -12,6 +12,9 @@ export const LanguageSwitcher = () => {
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     const currentPath = location.pathname;
+    if (currentPath.includes('/consultation') || currentPath.includes('/emr')) {
+      return;
+    }
     let newPath;
 
     if (lng === 'te') {

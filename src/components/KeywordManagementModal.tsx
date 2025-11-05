@@ -155,7 +155,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Manage Autofill Keywords</DialogTitle>
         </DialogHeader>
