@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { keywords, medications, advice } = await req.json();
+    const { keywords, medications, advice, advice_te } = await req.json();
 
     if (!keywords || keywords.length === 0 || !medications || medications.length === 0) {
       return new Response(JSON.stringify({ error: 'Keywords and medications are required.' }), {
@@ -51,6 +51,9 @@ serve(async (req) => {
             duration: med.duration,
             instructions: med.instructions,
             notes: med.notes,
+            instructions_te: med.instructions_te,
+            frequency_te: med.frequency_te,
+            notes_te: med.notes_te,
           })
           .select('id')
           .single();
@@ -67,6 +70,7 @@ serve(async (req) => {
         keywords: keywords,
         medication_ids: savedMedicationIds,
         advice: advice,
+         advice_te: advice_te,
       });
 
     if (error) throw error;

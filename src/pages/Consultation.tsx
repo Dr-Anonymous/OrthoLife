@@ -23,6 +23,8 @@ import UnsavedChangesModal from '@/components/UnsavedChangesModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { useDebounce } from '@/hooks/useDebounce';
 import PatientHistoryModal from '@/components/PatientHistoryModal';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 import SaveBundleModal from '@/components/SaveBundleModal';
 
 interface Medication {
@@ -36,6 +38,9 @@ interface Medication {
   duration: string;
   instructions: string;
   notes: string;
+  instructions_te?: string;
+  frequency_te?: string;
+  notes_te?: string;
 }
 
 import { User, Phone, Calendar as CalendarIcon } from 'lucide-react';
@@ -165,9 +170,18 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
                 onSuggestionSelected={suggestion => {
                   const savedMed = savedMedications.find(m => m.id === suggestion.id);
                   if (savedMed) {
+                    const medToAdd = i18n.language === 'te' ? {
+                      ...savedMed,
+                      id: crypto.randomUUID(),
+                      name: savedMed.name,
+                      instructions: savedMed.instructions_te || savedMed.instructions,
+                      frequency: savedMed.frequency_te || savedMed.frequency,
+                      notes: savedMed.notes_te || savedMed.notes,
+                    } : { ...savedMed, id: crypto.randomUUID(), name: savedMed.name };
+
                     setExtraData(prev => {
                       const newMeds = [...prev.medications];
-                      newMeds[index] = { ...savedMed, id: crypto.randomUUID(), name: savedMed.name };
+                      newMeds[index] = medToAdd;
                       return { ...prev, medications: newMeds };
                     });
                   }
@@ -287,6 +301,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
 };
 
 const Consultation = () => {
+  const { i18n } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
@@ -359,6 +374,76 @@ const Consultation = () => {
 
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
+  const translationCache = useRef<any>({ en: {}, te: {} });
+
+  useEffect(() => {
+    handleLanguageChange(i18n.language);
+  }, [i18n.language]);
+
+  const handleLanguageChange = async (lang: string) => {
+    const fromLang = lang === 'en' ? 'te' : 'en';
+
+    // Cache the current language's values
+    translationCache.current[fromLang] = {
+      advice: extraData.advice,
+      medications: extraData.medications.map(m => ({
+        id: m.id,
+        instructions: m.instructions,
+        frequency: m.frequency,
+        notes: m.notes,
+      })),
+    };
+
+    // Restore from cache if available
+    if (translationCache.current[lang].advice !== undefined) {
+      setExtraData(prev => ({
+        ...prev,
+        advice: translationCache.current[lang].advice,
+        medications: prev.medications.map(med => {
+          const cachedMed = translationCache.current[lang].medications.find(m => m.id === med.id);
+          return cachedMed ? { ...med, ...cachedMed } : med;
+        }),
+      }));
+      return;
+    }
+
+    // Translate if not in cache
+    if (lang === 'te') {
+      setIsTranslating(true);
+      try {
+        const translate = async (text: string) => {
+          if (!text || !text.trim()) return text;
+          const { data, error } = await supabase.functions.invoke('translate-content', {
+            body: { text, targetLanguage: 'te' },
+          });
+          if (error) throw error;
+          return data?.translatedText || text;
+        };
+
+        const newAdvice = await translate(extraData.advice);
+        const newMedications = await Promise.all(
+          extraData.medications.map(async (med) => ({
+            ...med,
+            instructions: await translate(med.instructions),
+            frequency: await translate(med.frequency),
+            notes: await translate(med.notes),
+          }))
+        );
+
+        setExtraData(prev => ({
+          ...prev,
+          advice: newAdvice,
+          medications: newMedications,
+        }));
+
+      } catch (error) {
+        console.error('Translation error:', error);
+        toast({ variant: 'destructive', title: 'Translation Error', description: (error as Error).message });
+      } finally {
+        setIsTranslating(false);
+      }
+    }
+  };
 
   useEffect(() => {
     if (focusLastMedication && medicationNameInputRef.current) {
@@ -566,6 +651,10 @@ const Consultation = () => {
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
+      if (selectedConsultation.consultation_data?.language) {
+        i18n.changeLanguage(selectedConsultation.consultation_data.language);
+      }
+      translationCache.current = { en: {}, te: {} };
     } else {
       setEditablePatientDetails(null);
       setLastVisitDate(null);
@@ -696,9 +785,16 @@ const Consultation = () => {
   };
 
   const handleMedicationSuggestionClick = (med: Medication) => {
+    const medToAdd = i18n.language === 'te' ? {
+      ...med,
+      instructions: med.instructions_te || med.instructions,
+      frequency: med.frequency_te || med.frequency,
+      notes: med.notes_te || med.notes,
+    } : med;
+
       setExtraData(prev => ({
           ...prev,
-          medications: [...prev.medications, med],
+          medications: [...prev.medications, medToAdd],
       }));
       setSuggestedMedications(prev => prev.filter(item => item.id !== med.id));
   };
@@ -750,96 +846,6 @@ const Consultation = () => {
     }));
   };
 
-  const handleTranslateAll = async () => {
-    const textsToTranslate = {
-      advice: extraData.advice,
-      followup: extraData.followup,
-      medications: extraData.medications.map(med => ({
-        instructions: med.instructions,
-        frequency: med.frequency,
-        notes: med.notes,
-      })),
-    };
-
-    if (
-      !(textsToTranslate.advice || '').trim() &&
-      !(textsToTranslate.followup || '').trim() &&
-      textsToTranslate.medications.every(
-        med =>
-          !(med.instructions || '').trim() &&
-          !(med.frequency || '').trim() &&
-          !(med.notes || '').trim()
-      )
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Nothing to translate',
-        description:
-          'Please enter some text in Advice, Follow-up, or Medication fields before translating.',
-      });
-      return;
-    }
-
-    setIsTranslating(true);
-
-    try {
-      const translate = (text: string | null | undefined) => {
-        const textToTranslate = text || '';
-        if (!textToTranslate.trim()) return Promise.resolve(text);
-        return supabase.functions
-          .invoke('translate-content', {
-            body: { text: textToTranslate, targetLanguage: 'te' },
-          })
-          .then(result => {
-            if (result.error) throw new Error(result.error.message);
-            if (result.data?.error) throw new Error(result.data.error);
-            return result.data?.translatedText || text;
-          });
-      };
-
-      const [translatedAdvice, translatedFollowup] = await Promise.all([
-        translate(textsToTranslate.advice),
-        translate(textsToTranslate.followup),
-      ]);
-
-      const translatedMedications = await Promise.all(
-        textsToTranslate.medications.map(async med => ({
-          instructions: await translate(med.instructions),
-          frequency: await translate(med.frequency),
-          notes: await translate(med.notes),
-        }))
-      );
-
-      setExtraData(prev => ({
-        ...prev,
-        advice: translatedAdvice,
-        followup: translatedFollowup,
-        medications: prev.medications.map((med, index) => ({
-          ...med,
-          instructions: translatedMedications[index].instructions,
-          frequency: translatedMedications[index].frequency,
-          notes: translatedMedications[index].notes,
-        })),
-      }));
-
-      toast({
-        title: 'Translation Successful',
-        description: 'The relevant fields have been translated to Telugu.',
-      });
-    } catch (error) {
-      console.error('Translation error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Translation Error',
-        description:
-          (error as Error).message ||
-          'Could not translate the text. Please try again.',
-      });
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
   const saveChanges = async () => {
     if (!selectedConsultation || !editablePatientDetails) {
       toast({ variant: 'destructive', title: 'Error', description: 'No consultation selected.' });
@@ -867,7 +873,7 @@ const Consultation = () => {
       // 2. Save the consultation form data
       const { error: updateError } = await supabase
         .from('consultations')
-        .update({ consultation_data: extraData })
+        .update({ consultation_data: { ...extraData, language: i18n.language } })
         .eq('id', selectedConsultation.id);
 
       if (updateError) {
@@ -1272,6 +1278,10 @@ const Consultation = () => {
                                 <Textarea id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <Label>Prescription Language</Label>
+                            <LanguageSwitcher />
+                        </div>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -1307,10 +1317,6 @@ const Consultation = () => {
                             </DndContext>
                             </div>
                             <div className="flex justify-end items-center gap-2">
-                                <Button type="button" size="icon" variant="ghost" onClick={handleTranslateAll} disabled={isTranslating}>
-                                    {isTranslating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Languages className="w-4 h-4" />}
-                                    <span className="sr-only">Translate to Telugu</span>
-                                </Button>
                                 <Button type="button" onClick={addMedication} variant="outline" size="icon" className="rounded-full">
                                     <Plus className="h-4 w-4" />
                                     <span className="sr-only">Add Medication</span>
