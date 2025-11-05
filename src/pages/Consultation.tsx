@@ -386,6 +386,7 @@ const Consultation = () => {
     // Cache the current language's values
     translationCache.current[fromLang] = {
       advice: extraData.advice,
+      followup: extraData.followup,
       medications: extraData.medications.map(m => ({
         id: m.id,
         instructions: m.instructions,
@@ -399,6 +400,7 @@ const Consultation = () => {
       setExtraData(prev => ({
         ...prev,
         advice: translationCache.current[lang].advice,
+          followup: translationCache.current[lang].followup,
         medications: prev.medications.map(med => {
           const cachedMed = translationCache.current[lang].medications.find(m => m.id === med.id);
           return cachedMed ? { ...med, ...cachedMed } : med;
@@ -421,6 +423,7 @@ const Consultation = () => {
         };
 
         const newAdvice = await translate(extraData.advice);
+        const newFollowup = await translate(extraData.followup);
         const newMedications = await Promise.all(
           extraData.medications.map(async (med) => ({
             ...med,
@@ -433,6 +436,7 @@ const Consultation = () => {
         setExtraData(prev => ({
           ...prev,
           advice: newAdvice,
+          followup: newFollowup,
           medications: newMedications,
         }));
 
@@ -460,8 +464,10 @@ const Consultation = () => {
       if (ctrlKey && selectedConsultation) {
         switch (event.key.toLowerCase()) {
           case 'p':
-            event.preventDefault();
-            submitForm();
+            if (ctrlKey) {
+              event.preventDefault();
+              submitForm();
+            }
             break;
           case 'o':
             event.preventDefault();
