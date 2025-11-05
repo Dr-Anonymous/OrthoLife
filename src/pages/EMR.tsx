@@ -20,6 +20,9 @@ import SavedMedicationsModal from '@/components/SavedMedicationsModal';
 import KeywordManagementModal from '@/components/KeywordManagementModal';
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { useDebounce } from '@/hooks/useDebounce';
+import PatientHistoryModal from '@/components/PatientHistoryModal';
+import SaveBundleModal from '@/components/SaveBundleModal';
+import { History } from 'lucide-react';
 
 interface FormData {
   name: string;
@@ -292,6 +295,8 @@ const EMR = () => {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isSaveBundleModalOpen, setIsSaveBundleModalOpen] = useState(false);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
 
   const fetchSavedMedications = async () => {
@@ -967,6 +972,12 @@ const EMR = () => {
                   <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
                     <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                    {patientId && (
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsHistoryModalOpen(true)}>
+                        <History className="h-4 w-4" />
+                        <span className="sr-only">View Patient History</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
@@ -1110,7 +1121,10 @@ const EMR = () => {
               </div>
 
               {/* Submit Button */}
-              <div className="pt-6">
+              <div className="pt-6 flex items-center gap-2">
+                <Button type="button" variant="outline" className="h-12" onClick={() => setIsSaveBundleModalOpen(true)}>
+                  Save as Bundle
+                </Button>
                 <Button 
                   type="submit" 
                   className="w-full h-12 text-lg font-semibold" 
@@ -1138,6 +1152,17 @@ const EMR = () => {
       <KeywordManagementModal
         isOpen={isKeywordModalOpen}
         onClose={() => setIsKeywordModalOpen(false)}
+      />
+      <PatientHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        patientId={patientId}
+      />
+      <SaveBundleModal
+        isOpen={isSaveBundleModalOpen}
+        onClose={() => setIsSaveBundleModalOpen(false)}
+        medications={extraData.medications}
+        advice={extraData.advice}
       />
     </div>
   );
