@@ -13,6 +13,7 @@ interface Keyword {
   keywords: string[];
   medication_ids: number[];
   advice?: string;
+  advice_te?: string;
 }
 
 interface Medication {
@@ -32,7 +33,32 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [newKeywords, setNewKeywords] = useState('');
   const [selectedMeds, setSelectedMeds] = useState<number[]>([]);
   const [advice, setAdvice] = useState('');
+  const [adviceTe, setAdviceTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  useEffect(() => {
+    if (editingKeyword && advice) {
+      const translateAdvice = async () => {
+        setIsTranslating(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('translate-content', {
+            body: { text: advice, targetLanguage: 'te' },
+          });
+          if (error) throw error;
+          setAdviceTe(data?.translatedText || '');
+        } catch (err) {
+          console.error('Translation error:', err);
+          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
+        } finally {
+          setIsTranslating(false);
+        }
+      };
+      if (!adviceTe) {
+        translateAdvice();
+      }
+    }
+  }, [editingKeyword, advice]);
 
   const fetchKeywords = async () => {
     setIsLoading(true);
@@ -70,7 +96,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
     try {
       if (editingKeyword) {
-        const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice };
+        const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice, advice_te: adviceTe };
         const { error } = await supabase.functions.invoke('update-autofill-keyword', {
           body: { id: editingKeyword.id, payload },
         });
@@ -86,6 +112,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             keywords: keywordsArray,
             medications: selectedMedicationObjects,
             advice: advice,
+            advice_te: adviceTe,
           },
         });
         if (error) throw error;
@@ -95,6 +122,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       setNewKeywords('');
       setSelectedMeds([]);
       setAdvice('');
+      setAdviceTe('');
       setEditingKeyword(null);
       fetchKeywords();
 
@@ -122,6 +150,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
     setNewKeywords(keyword.keywords.join(', '));
     setSelectedMeds(keyword.medication_ids);
     setAdvice(keyword.advice || '');
+    setAdviceTe(keyword.advice_te || '');
   };
 
   return (
@@ -165,12 +194,16 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
               <Label htmlFor="advice">Advice</Label>
               <Textarea id="advice" value={advice} onChange={(e) => setAdvice(e.target.value)} placeholder="e.g., Drink plenty of fluids" />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="advice-te">Advice (Telugu)</Label>
+              <Textarea id="advice-te" value={adviceTe} onChange={(e) => setAdviceTe(e.target.value)} placeholder="e.g., Drink plenty of fluids" disabled={isTranslating} />
+            </div>
             <Button onClick={handleSaveKeyword} size="sm">
               {editingKeyword ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
               {editingKeyword ? 'Save Changes' : 'Add Keyword'}
             </Button>
             {editingKeyword && (
-              <Button variant="ghost" size="sm" onClick={() => { setEditingKeyword(null); setNewKeywords(''); setSelectedMeds([]); setAdvice(''); }}>
+              <Button variant="ghost" size="sm" onClick={() => { setEditingKeyword(null); setNewKeywords(''); setSelectedMeds([]); setAdvice(''); setAdviceTe(''); }}>
                 Cancel Edit
               </Button>
             )}
