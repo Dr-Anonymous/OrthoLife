@@ -887,6 +887,24 @@ const Consultation = () => {
       }
 
       toast({ title: 'Success', description: 'Your changes have been saved.' });
+
+      // After a successful save, update the local state to reflect the changes
+      // This prevents incorrect "unsaved changes" warnings.
+      const updatedConsultation = {
+        ...selectedConsultation,
+        patient: { ...editablePatientDetails },
+        consultation_data: { ...extraData, language: i18n.language },
+      };
+      setSelectedConsultation(updatedConsultation);
+
+      const updateInList = (list: Consultation[]) => list.map(c => c.id === updatedConsultation.id ? updatedConsultation : c);
+      setAllConsultations(prev => updateInList(prev));
+      setPendingConsultations(prev => updateInList(prev));
+      setCompletedConsultations(prev => updateInList(prev));
+
+      // Reset the form's initial state to the current state to prevent false dirty flags.
+      setFormInitialState(JSON.stringify({ ...extraData, ...editablePatientDetails }));
+
       return true;
     } catch (error) {
       console.error('Error saving changes:', error);
