@@ -46,6 +46,7 @@ export const LanguageSwitcher = () => {
             variant={i18n.language === code ? "default" : "ghost"}
             className="h-6 px-2 text-xs"
             onClick={() => changeLanguage(code)}
+            type="button"
           >
             {label}
           </Button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,7 +61,7 @@ interface Consultation {
   status: 'pending' | 'completed';
 }
 
-const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void }) => {
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications, i18n }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void, i18n: any }) => {
   const {
     attributes,
     listeners,
@@ -376,6 +376,34 @@ const Consultation = () => {
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const translationCache = useRef<any>({ en: {}, te: {} });
 
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
+
+    if (ctrlKey && selectedConsultation) {
+      switch (event.key.toLowerCase()) {
+        case 'p':
+          event.preventDefault();
+          submitForm();
+          break;
+        case 'o':
+          event.preventDefault();
+          handleOrderNow();
+          break;
+        case 's':
+          event.preventDefault();
+          saveChanges();
+          break;
+        case 'm':
+          event.preventDefault();
+          addMedication();
+          break;
+        default:
+          break;
+      }
+    }
+  }, [selectedConsultation, extraData, editablePatientDetails]);
+
   useEffect(() => {
     handleLanguageChange(i18n.language);
   }, [i18n.language]);
@@ -457,41 +485,11 @@ const Consultation = () => {
   }, [focusLastMedication, extraData.medications]);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
-
-      if (ctrlKey && selectedConsultation) {
-        switch (event.key.toLowerCase()) {
-          case 'p':
-            if (ctrlKey) {
-              event.preventDefault();
-              submitForm();
-            }
-            break;
-          case 'o':
-            event.preventDefault();
-            handleOrderNow();
-            break;
-          case 's':
-            event.preventDefault();
-            saveChanges();
-            break;
-          case 'm':
-            event.preventDefault();
-            addMedication();
-            break;
-          default:
-            break;
-        }
-      }
-    };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedConsultation, extraData, editablePatientDetails]);
+  }, [handleKeyDown]);
 
   useEffect(() => {
     const fetchSuggestions = async (text: string) => {
@@ -1317,6 +1315,7 @@ const Consultation = () => {
                                     setExtraData={setExtraData}
                                     medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
                                     fetchSavedMedications={fetchSavedMedications}
+                                    i18n={i18n}
                                     />
                                 ))}
                                 </SortableContext>
