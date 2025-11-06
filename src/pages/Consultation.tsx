@@ -618,13 +618,15 @@ const Consultation = () => {
         .eq('patient_id', patientId)
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error || !data) {
+      if (error) {
+        console.error('Error fetching last visit date:', error);
+        setLastVisitDate('First Consultation');
+      } else if (!data || data.length === 0) {
         setLastVisitDate('First Consultation');
       } else {
-        setLastVisitDate(formatDistanceToNow(new Date(data.created_at), { addSuffix: true }));
+        setLastVisitDate(formatDistanceToNow(new Date(data[0].created_at), { addSuffix: true }));
       }
     };
 
