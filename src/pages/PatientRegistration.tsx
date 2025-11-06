@@ -247,6 +247,7 @@ const PatientRegistration = () => {
         setSearchResults([]);
         setSelectedPatientId('');
         setShowConfirmation(false);
+        fetchTodaysConsultations();
       } else { // Generic error from the function's own catch block
         throw new Error(data.error || 'An unexpected error occurred.');
       }
