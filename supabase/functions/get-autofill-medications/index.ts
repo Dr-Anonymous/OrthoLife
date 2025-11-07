@@ -13,14 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json();
+    const { text, language = 'en' } = await req.json();
     const cleanedText = text.toLowerCase().replace(/[.,]/g, '');
     const medicationIds = new Set<number>();
     const adviceTexts = new Set<string>();
 
+    const adviceColumn = language === 'te' ? 'advice_te' : 'advice';
     const { data: keywordMappings, error: keywordsError } = await supabase
       .from('autofill_keywords')
-      .select('keywords, medication_ids, advice');
+      .select(`keywords, medication_ids, ${adviceColumn}`);
 
     if (keywordsError) {
       console.error('Error fetching keywords:', keywordsError);
@@ -35,11 +36,14 @@ serve(async (req) => {
           for (const keyword of mapping.keywords) {
             const cleanedKeyword = keyword.toLowerCase().replace(/[.,]/g, '');
             if (cleanedText.includes(cleanedKeyword)) {
-              for (const id of mapping.medication_ids) {
-                medicationIds.add(id);
+              if (mapping.medication_ids) {
+                  for (const id of mapping.medication_ids) {
+                    medicationIds.add(id);
+                  }
               }
-              if (mapping.advice) {
-                adviceTexts.add(mapping.advice);
+              const advice = mapping[adviceColumn];
+              if (advice) {
+                adviceTexts.add(advice);
               }
               break;
             }
@@ -50,9 +54,13 @@ serve(async (req) => {
 
     let medications = [];
     if (medicationIds.size > 0) {
+      const medicationColumns = language === 'te'
+        ? 'id, name, dose, freq_morning, freq_noon, freq_night, duration, instructions:instructions_te, frequency:frequency_te, notes:notes_te'
+        : 'id, name, dose, freq_morning, freq_noon, freq_night, duration, instructions, frequency, notes';
+
       const { data, error } = await supabase
         .from('saved_medications')
-        .select('*')
+        .select(medicationColumns)
         .in('id', Array.from(medicationIds));
 
       if (error) {

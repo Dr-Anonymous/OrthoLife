@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,9 @@ interface Medication {
   duration: string;
   instructions: string;
   notes: string;
+  instructions_te?: string;
+  frequency_te?: string;
+  notes_te?: string;
 }
 
 interface SavedMedicationsModalProps {
@@ -48,7 +52,79 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     duration: '',
     instructions: '',
     notes: '',
+    instructions_te: '',
+    frequency_te: '',
+    notes_te: '',
   });
+  const [isTranslating, setIsTranslating] = useState(false);
+  const debouncedInstructions = useDebounce(newMed.instructions, 500);
+  const debouncedFrequency = useDebounce(newMed.frequency, 500);
+  const debouncedNotes = useDebounce(newMed.notes, 500);
+
+
+  useEffect(() => {
+    const translateField = async (text: string, field: keyof Medication) => {
+      if (!text || !text.trim()) return;
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-content', {
+          body: { text, targetLanguage: 'te' },
+        });
+        if (error) throw error;
+        if (data?.translatedText) {
+          setNewMed(prev => ({ ...prev, [field]: data.translatedText }));
+        }
+      } catch (err) {
+        console.error(`Translation error for ${field}:`, err);
+        toast({ variant: 'destructive', title: `Translation Error`, description: `Could not translate ${field}.` });
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+
+    if (!isEditing) {
+      if (debouncedInstructions !== newMed.instructions_te) translateField(debouncedInstructions, 'instructions_te');
+      if (debouncedFrequency !== newMed.frequency_te) translateField(debouncedFrequency, 'frequency_te');
+      if (debouncedNotes !== newMed.notes_te) translateField(debouncedNotes, 'notes_te');
+    }
+  }, [debouncedInstructions, debouncedFrequency, debouncedNotes, isEditing]);
+
+
+  useEffect(() => {
+    if (isEditing && newMed.id) {
+      const translateFields = async () => {
+        setIsTranslating(true);
+        try {
+          const translate = async (text: string) => {
+            if (!text || !text.trim()) return '';
+            const { data, error } = await supabase.functions.invoke('translate-content', {
+              body: { text, targetLanguage: 'te' },
+            });
+            if (error) throw error;
+            return data?.translatedText || '';
+          };
+
+          const [instructions_te, frequency_te, notes_te] = await Promise.all([
+            newMed.instructions ? translate(newMed.instructions) : Promise.resolve(''),
+            newMed.frequency ? translate(newMed.frequency) : Promise.resolve(''),
+            newMed.notes ? translate(newMed.notes) : Promise.resolve(''),
+          ]);
+
+          setNewMed(prev => ({ ...prev, instructions_te, frequency_te, notes_te }));
+
+        } catch (err) {
+          console.error('Translation error:', err);
+          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
+        } finally {
+          setIsTranslating(false);
+        }
+      };
+
+      if (!newMed.instructions_te && !newMed.frequency_te && !newMed.notes_te) {
+        translateFields();
+      }
+    }
+  }, [isEditing, newMed.id]);
 
   const fetchMedications = async () => {
     setIsLoading(true);
@@ -89,6 +165,9 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           duration: newMed.duration,
           instructions: newMed.instructions,
           notes: newMed.notes,
+          instructions_te: newMed.instructions_te,
+          frequency_te: newMed.frequency_te,
+          notes_te: newMed.notes_te,
         }).eq('id', isEditing)
       : await supabase.from('saved_medications').insert([{
           name: newMed.name,
@@ -100,6 +179,9 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           duration: newMed.duration,
           instructions: newMed.instructions,
           notes: newMed.notes,
+          instructions_te: newMed.instructions_te,
+          frequency_te: newMed.frequency_te,
+          notes_te: newMed.notes_te,
         }]);
 
     if (error) {
@@ -134,13 +216,13 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const resetForm = () => {
     setIsEditing(null);
-    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '', notes: '' });
+    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
     setIsCustom(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Manage Saved Medications</DialogTitle>
         </DialogHeader>
@@ -207,6 +289,18 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
             <div className="space-y-2">
               <Label htmlFor="med-notes">Notes</Label>
               <Input id="med-notes" value={newMed.notes} onChange={e => handleInputChange('notes', e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="med-instructions-te">Instructions (Telugu)</Label>
+              <Input id="med-instructions-te" value={newMed.instructions_te} onChange={e => handleInputChange('instructions_te', e.target.value)} disabled={isTranslating} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="med-frequency-te">Frequency (Telugu)</Label>
+              <Input id="med-frequency-te" value={newMed.frequency_te} onChange={e => handleInputChange('frequency_te', e.target.value)} disabled={isTranslating} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="med-notes-te">Notes (Telugu)</Label>
+              <Input id="med-notes-te" value={newMed.notes_te} onChange={e => handleInputChange('notes_te', e.target.value)} disabled={isTranslating} />
             </div>
             <div className="flex justify-end space-x-2">
               {isEditing && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}

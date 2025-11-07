@@ -12,6 +12,9 @@ export const LanguageSwitcher = () => {
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     const currentPath = location.pathname;
+    if (currentPath.includes('/consultation') || currentPath.includes('/emr')) {
+      return;
+    }
     let newPath;
 
     if (lng === 'te') {
@@ -43,6 +46,7 @@ export const LanguageSwitcher = () => {
             variant={i18n.language === code ? "default" : "ghost"}
             className="h-6 px-2 text-xs"
             onClick={() => changeLanguage(code)}
+            type="button"
           >
             {label}
           </Button>
