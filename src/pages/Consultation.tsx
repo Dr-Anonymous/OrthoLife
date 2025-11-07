@@ -302,7 +302,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
 };
 
 const Consultation = () => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
@@ -335,7 +335,7 @@ const Consultation = () => {
     investigations: '',
     diagnosis: '',
     advice: '',
-    followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+    followup: t('default_followup_message'),
     personalNote: '',
     medications: [ ] as Medication[]
   });
@@ -647,7 +647,7 @@ const Consultation = () => {
         investigations: '',
         diagnosis: '',
         advice: '',
-        followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+        followup: t('default_followup_message'),
         personalNote: '',
         medications: [],
       };
@@ -669,7 +669,7 @@ const Consultation = () => {
         investigations: '',
         diagnosis: '',
         advice: '',
-        followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+        followup: t('default_followup_message'),
         personalNote: '',
         medications: [],
       });
@@ -779,6 +779,14 @@ const Consultation = () => {
     if (nextConsultation) {
       setSelectedConsultation(nextConsultation);
     }
+  };
+
+  const handleFollowupSuggestionClick = (unit: string) => {
+    setExtraData(prev => {
+      const currentFollowup = prev.followup;
+      const newFollowup = currentFollowup.replace(/days|weeks|months|వారాల|రోజుల|నెలల/g, t(unit));
+      return { ...prev, followup: newFollowup };
+    });
   };
 
   const handleAdviceSuggestionClick = (advice: string) => {
@@ -1292,7 +1300,14 @@ const Consultation = () => {
                             </div>
 
                             <div className="space-y-2">
-                            <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                                {['days', 'weeks', 'months'].map((unit) => (
+                                    <Button key={unit} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(unit)}>
+                                        {t(unit)}
+                                    </Button>
+                                ))}
+                            </div>
                             <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
                             </div>
 

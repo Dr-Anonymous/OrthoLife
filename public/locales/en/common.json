@@ -216,5 +216,9 @@
   "appointmentsCard.cancelDialog.description": "This action cannot be undone. This will permanently cancel your appointment.",
   "appointmentsCard.cancelDialog.back": "Back",
   "appointmentsCard.cancelDialog.cancelling": "Cancelling...",
-  "appointmentsCard.cancelDialog.confirm": "Confirm"
+  "appointmentsCard.cancelDialog.confirm": "Confirm",
+  "default_followup_message": "after 2 weeks/immediately- if worsening of any symptoms.",
+  "days": "days",
+  "weeks": "weeks",
+  "months": "months"
 }
