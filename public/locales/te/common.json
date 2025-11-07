@@ -215,5 +215,9 @@
   "appointmentsCard.cancelDialog.description": "ఈ చర్యను రద్దు చేయడం సాధ్యపడదు. ఇది మీ అపాయింట్‌మెంట్‌ను శాశ్వతంగా రద్దు చేస్తుంది.",
   "appointmentsCard.cancelDialog.back": "వెనుకకు",
   "appointmentsCard.cancelDialog.cancelling": "రద్దు చేస్తోంది...",
-  "appointmentsCard.cancelDialog.confirm": "నిర్ధారించండి"
+  "appointmentsCard.cancelDialog.confirm": "నిర్ధారించండి",
+  "default_followup_message": "2 వారాల తర్వాత/వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే.",
+  "days": "రోజుల",
+  "weeks": "వారాల",
+  "months": "నెలల"
 }
