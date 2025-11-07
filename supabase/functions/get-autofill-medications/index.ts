@@ -15,7 +15,6 @@ serve(async (req) => {
   try {
     const { text, language = 'en' } = await req.json();
     const cleanedText = text.toLowerCase().replace(/[.,]/g, '');
-    const inputTextWords = cleanedText.split(/\s+/);
     const medicationIds = new Set<number>();
     const adviceTexts = new Set<string>();
 
@@ -36,23 +35,11 @@ serve(async (req) => {
         if (mapping.keywords) {
           for (const keyword of mapping.keywords) {
             const cleanedKeyword = keyword.toLowerCase().replace(/[.,]/g, '');
-            let isMatch = false;
-
-            if (cleanedKeyword.includes(' ')) {
-              // Multi-word phrase matching
-              if (cleanedText.includes(cleanedKeyword)) {
-                isMatch = true;
-              }
-            } else {
-              // Single-word exact matching
-              if (inputTextWords.includes(cleanedKeyword)) {
-                isMatch = true;
-              }
-            }
-
-            if (isMatch) {
-              for (const id of mapping.medication_ids) {
-                medicationIds.add(id);
+            if (cleanedText.includes(cleanedKeyword)) {
+              if (mapping.medication_ids) {
+                  for (const id of mapping.medication_ids) {
+                    medicationIds.add(id);
+                  }
               }
               const advice = mapping[adviceColumn];
               if (advice) {

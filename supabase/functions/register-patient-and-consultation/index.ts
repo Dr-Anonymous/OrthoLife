@@ -108,22 +108,13 @@ serve(async (req) => {
     }
 
     if (exactMatch) {
-      // If an exact match is found, create a new consultation for that patient
-      const { data: consultation, error: newConsultationError } = await supabase
-        .from('consultations')
-        .insert({ patient_id: exactMatch.id, status: 'pending' })
-        .select()
-        .single();
-
-      if (newConsultationError) throw newConsultationError;
-
       return new Response(JSON.stringify({
-        status: 'success',
-        consultation,
-        driveId: exactMatch.drive_id
+        status: 'exact_match',
+        message: 'A patient with this exact name and phone number already exists.',
+        patient: exactMatch
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 409,
       });
     }
 

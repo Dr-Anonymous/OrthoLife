@@ -51,8 +51,8 @@ serve(async (req) => {
             duration: med.duration,
             instructions: med.instructions,
             notes: med.notes,
-            instructions_te: med.instructions_te,
             frequency_te: med.frequency_te,
+            instructions_te: med.instructions_te,
             notes_te: med.notes_te,
           })
           .select('id')
@@ -70,7 +70,7 @@ serve(async (req) => {
         keywords: keywords,
         medication_ids: savedMedicationIds,
         advice: advice,
-         advice_te: advice_te,
+        advice_te: advice_te,
       });
 
     if (error) throw error;

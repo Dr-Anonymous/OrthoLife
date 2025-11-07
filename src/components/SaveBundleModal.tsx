@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useEffect } from 'react';
 
 interface Medication {
   id: string;
@@ -19,9 +21,6 @@ interface Medication {
   duration: string;
   instructions: string;
   notes: string;
-  instructions_te?: string;
-  frequency_te?: string;
-  notes_te?: string;
 }
 
 interface SaveBundleModalProps {
@@ -33,58 +32,39 @@ interface SaveBundleModalProps {
 
 const SaveBundleModal: React.FC<SaveBundleModalProps> = ({ isOpen, onClose, medications, advice }) => {
   const [keywords, setKeywords] = useState('');
-  const [adviceTe, setAdviceTe] = useState('');
-  const [translatedMedications, setTranslatedMedications] = useState<Medication[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [localAdvice, setLocalAdvice] = useState(advice);
+  const [adviceTe, setAdviceTe] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
 
+  const debouncedAdvice = useDebounce(localAdvice, 500);
+
   useEffect(() => {
-    if (isOpen && (advice || medications.length > 0)) {
-      const translateAll = async () => {
+    setLocalAdvice(advice);
+  }, [advice]);
+
+  useEffect(() => {
+    const translateAdvice = async () => {
+      if (debouncedAdvice) {
         setIsTranslating(true);
         try {
-          const translate = async (text: string) => {
-            if (!text || !text.trim()) return '';
-            const { data, error } = await supabase.functions.invoke('translate-content', {
-              body: { text, targetLanguage: 'te' },
-            });
-            if (error) throw error;
-            return data?.translatedText || '';
-          };
-
-          if (advice) {
-            const translatedAdvice = await translate(advice);
-            setAdviceTe(translatedAdvice);
-          }
-
-          const newTranslatedMedications = await Promise.all(
-            medications.map(async (med) => ({
-              ...med,
-              instructions_te: await translate(med.instructions),
-              frequency_te: await translate(med.frequency),
-              notes_te: await translate(med.notes),
-            }))
-          );
-          setTranslatedMedications(newTranslatedMedications);
-
-        } catch (err) {
-          console.error('Translation error:', err);
-          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
+          const { data, error } = await supabase.functions.invoke('translate-content', {
+            body: { text: debouncedAdvice, targetLanguage: 'te' },
+          });
+          if (error) throw error;
+          if (data.error) throw new Error(data.error);
+          setAdviceTe(data.translatedText);
+        } catch (error) {
+          console.error('Translation error:', error);
+          toast({ variant: 'destructive', title: 'Translation failed' });
         } finally {
           setIsTranslating(false);
         }
-      };
-      translateAll();
-    }
-  }, [isOpen, advice, medications]);
+      }
+    };
+    translateAdvice();
+  }, [debouncedAdvice]);
 
-  const handleMedicationChange = (index: number, field: keyof Medication, value: string) => {
-    setTranslatedMedications(prev => {
-      const newMeds = [...prev];
-      newMeds[index][field] = value as never;
-      return newMeds;
-    });
-  };
 
   const handleSave = async () => {
     const keywordsArray = keywords.split(',').map(kw => kw.trim()).filter(Boolean);
@@ -102,8 +82,8 @@ const SaveBundleModal: React.FC<SaveBundleModalProps> = ({ isOpen, onClose, medi
       const { data, error } = await supabase.functions.invoke('save-autofill-bundle', {
         body: {
           keywords: keywordsArray,
-          medications: translatedMedications,
-          advice,
+          medications,
+          advice: localAdvice,
           advice_te: adviceTe,
         },
       });
@@ -130,7 +110,7 @@ const SaveBundleModal: React.FC<SaveBundleModalProps> = ({ isOpen, onClose, medi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="overflow-y-auto max-h-[90vh]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Save as Prescription Bundle</DialogTitle>
           <DialogDescription>
@@ -140,44 +120,32 @@ const SaveBundleModal: React.FC<SaveBundleModalProps> = ({ isOpen, onClose, medi
         <div className="py-4 space-y-4">
           <div>
             <h4 className="font-medium mb-2">Medications in this bundle:</h4>
-            <div className="space-y-4">
-              {translatedMedications.map((med, index) => (
-                <div key={med.id} className="p-4 border rounded-md">
-                  <h5 className="font-semibold">{med.name}</h5>
-                  <div className="space-y-2 mt-2">
-                    <Label htmlFor={`med-instructions-te-${index}`}>Instructions (Telugu)</Label>
-                    <Input id={`med-instructions-te-${index}`} value={med.instructions_te} onChange={(e) => handleMedicationChange(index, 'instructions_te', e.target.value)} disabled={isTranslating} />
-                  </div>
-                  <div className="space-y-2 mt-2">
-                    <Label htmlFor={`med-frequency-te-${index}`}>Frequency (Telugu)</Label>
-                    <Input id={`med-frequency-te-${index}`} value={med.frequency_te} onChange={(e) => handleMedicationChange(index, 'frequency_te', e.target.value)} disabled={isTranslating} />
-                  </div>
-                  <div className="space-y-2 mt-2">
-                    <Label htmlFor={`med-notes-te-${index}`}>Notes (Telugu)</Label>
-                    <Input id={`med-notes-te-${index}`} value={med.notes_te} onChange={(e) => handleMedicationChange(index, 'notes_te', e.target.value)} disabled={isTranslating} />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ul className="text-sm text-muted-foreground list-disc pl-5">
+              {medications.map(med => <li key={med.id}>{med.name}</li>)}
+            </ul>
           </div>
-          {advice && (
+          {
             <div>
-              <h4 className="font-medium mb-2">Advice in this bundle:</h4>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{advice}</p>
-            </div>
-          )}
-          {advice && (
-            <div className="space-y-2">
-              <Label htmlFor="bundle-advice-te">Advice in Telugu</Label>
+              <Label htmlFor="bundle-advice">Advice</Label>
               <Textarea
-                id="bundle-advice-te"
-                value={adviceTe}
-                onChange={(e) => setAdviceTe(e.target.value)}
-                placeholder="Telugu advice..."
-                disabled={isTranslating}
+                id="bundle-advice"
+                value={localAdvice}
+                onChange={(e) => setLocalAdvice(e.target.value)}
+                placeholder="Medical advice for this bundle"
+                className="mb-2"
               />
+               {isTranslating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Textarea
+                  id="bundle-advice-te"
+                  value={adviceTe}
+                  onChange={(e) => setAdviceTe(e.target.value)}
+                  placeholder="Telugu advice for this bundle"
+                />
+              )}
             </div>
-          )}
+          }
           <div className="space-y-2">
             <Label htmlFor="bundle-keywords">Keywords (comma-separated)</Label>
             <Textarea

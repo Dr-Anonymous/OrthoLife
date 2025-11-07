@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, X, Plus, Edit, Save } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Keyword {
   id: number;
@@ -37,39 +37,31 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [adviceTe, setAdviceTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+
   const debouncedAdvice = useDebounce(advice, 500);
 
   useEffect(() => {
     const translateAdvice = async () => {
-        if (!advice || !advice.trim()) {
-            setAdviceTe('');
-            return;
-        };
+      if (debouncedAdvice) {
         setIsTranslating(true);
         try {
           const { data, error } = await supabase.functions.invoke('translate-content', {
-            body: { text: advice, targetLanguage: 'te' },
+            body: { text: debouncedAdvice, targetLanguage: 'te' },
           });
           if (error) throw error;
-          setAdviceTe(data?.translatedText || '');
-        } catch (err) {
-          console.error('Translation error:', err);
-          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
+          if (data.error) throw new Error(data.error);
+          setAdviceTe(data.translatedText);
+        } catch (error) {
+          console.error('Translation error:', error);
+          toast({ variant: 'destructive', title: 'Translation failed' });
         } finally {
           setIsTranslating(false);
         }
-    };
-
-    if (editingKeyword) {
-      if (!adviceTe) { // Only auto-translate when editing if Te field is empty
-        translateAdvice();
       }
-    } else { // Always auto-translate when creating new
-        if (debouncedAdvice) {
-            translateAdvice();
-        }
-    }
-  }, [debouncedAdvice, editingKeyword]);
+    };
+    translateAdvice();
+  }, [debouncedAdvice]);
+
 
   const fetchKeywords = async () => {
     setIsLoading(true);
@@ -166,7 +158,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] overflow-y-auto max-h-[90vh]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Manage Autofill Keywords</DialogTitle>
         </DialogHeader>
@@ -204,10 +196,16 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             <div className="space-y-2">
               <Label htmlFor="advice">Advice</Label>
               <Textarea id="advice" value={advice} onChange={(e) => setAdvice(e.target.value)} placeholder="e.g., Drink plenty of fluids" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="advice-te">Advice (Telugu)</Label>
-              <Textarea id="advice-te" value={adviceTe} onChange={(e) => setAdviceTe(e.target.value)} placeholder="e.g., Drink plenty of fluids" disabled={isTranslating} />
+              {isTranslating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Textarea
+                  id="advice-te"
+                  value={adviceTe}
+                  onChange={(e) => setAdviceTe(e.target.value)}
+                  placeholder="Telugu Advice"
+                />
+              )}
             </div>
             <Button onClick={handleSaveKeyword} size="sm">
               {editingKeyword ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
