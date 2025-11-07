@@ -26,6 +26,7 @@ import PatientHistoryModal from '@/components/PatientHistoryModal';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import SaveBundleModal from '@/components/SaveBundleModal';
+import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
 
 interface Medication {
   id: string;
@@ -406,24 +407,6 @@ const Consultation = () => {
 
   useEffect(() => {
     handleLanguageChange(i18n.language);
-
-    const translateFollowUp = async () => {
-        const defaultFollowupEn = 'after 2 weeks/immediately- if worsening of any symptoms.';
-        if (i18n.language === 'te' && extraData.followup === defaultFollowupEn) {
-            try {
-                const { data, error } = await supabase.functions.invoke('translate-content', {
-                    body: { text: defaultFollowupEn, targetLanguage: 'te' },
-                });
-                if (error) throw error;
-                if (data?.translatedText) {
-                    setExtraData(prev => ({ ...prev, followup: data.translatedText }));
-                }
-            } catch (error) {
-                console.error('Failed to translate default follow-up:', error);
-            }
-        }
-    };
-    translateFollowUp();
   }, [i18n.language]);
 
   const handleLanguageChange = async (lang: string) => {
@@ -939,7 +922,7 @@ const Consultation = () => {
       if (!saved) return;
 
       const payload = {
-        templateId: "1lcWQlx9YdMPBed6HbZKm8cPrFGghS43AmPXGhf9lBG0",
+        templateId: GOOGLE_DOCS_TEMPLATE_IDS.INVESTIGATIONS,
         patientId: selectedConsultation.patient.id,
         name: editablePatientDetails.name,
         dob: editablePatientDetails.dob,
@@ -985,7 +968,7 @@ const Consultation = () => {
       if (!saved) return;
 
       const payload = {
-        templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4",
+        templateId: GOOGLE_DOCS_TEMPLATE_IDS.PRESCRIPTION,
         patientId: selectedConsultation.patient.id,
         name: editablePatientDetails.name,
         dob: editablePatientDetails.dob,
