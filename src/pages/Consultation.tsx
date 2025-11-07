@@ -634,13 +634,15 @@ const Consultation = () => {
         .eq('patient_id', patientId)
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error || !data) {
+      if (error) {
+        console.error('Error fetching last visit date:', error);
+        setLastVisitDate('First Consultation');
+      } else if (!data || data.length === 0) {
         setLastVisitDate('First Consultation');
       } else {
-        setLastVisitDate(formatDistanceToNow(new Date(data.created_at), { addSuffix: true }));
+        setLastVisitDate(formatDistanceToNow(new Date(data[0].created_at), { addSuffix: true }));
       }
     };
 
@@ -652,39 +654,22 @@ const Consultation = () => {
       }
       setEditablePatientDetails(selectedConsultation.patient);
       fetchLastVisitDate(selectedConsultation.patient.id);
-      const initialState = {
+      const newExtraData = selectedConsultation.consultation_data ? {
         ...extraData,
-        ...(selectedConsultation.consultation_data || {
-          complaints: '',
-          findings: '',
-          investigations: '',
-          diagnosis: '',
-          advice: '',
-          followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-          personalNote: '',
-          medications: [],
-        }),
-        ...selectedConsultation.patient,
+        ...selectedConsultation.consultation_data,
+        personalNote: selectedConsultation.consultation_data.personalNote || '',
+      } : {
+        complaints: '',
+        findings: '',
+        investigations: '',
+        diagnosis: '',
+        advice: '',
+        followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
+        personalNote: '',
+        medications: [],
       };
-      if (selectedConsultation.consultation_data) {
-        setExtraData(prev => ({
-          ...prev,
-          ...selectedConsultation.consultation_data,
-          personalNote: selectedConsultation.consultation_data.personalNote || '',
-        }));
-      } else {
-        setExtraData({
-          complaints: '',
-          findings: '',
-          investigations: '',
-          diagnosis: '',
-          advice: '',
-          followup: 'after 2 weeks/immediately- if worsening of any symptoms.',
-          personalNote: '',
-          medications: [ ],
-        });
-      }
-      setFormInitialState(JSON.stringify(initialState));
+      setExtraData(newExtraData);
+      setFormInitialState(JSON.stringify({ ...newExtraData, ...selectedConsultation.patient }));
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
@@ -706,6 +691,7 @@ const Consultation = () => {
         medications: [],
       });
       setIsFormDirty(false);
+      setFormInitialState(null);
     }
   }, [selectedConsultation]);
 
@@ -917,6 +903,24 @@ const Consultation = () => {
       }
 
       toast({ title: 'Success', description: 'Your changes have been saved.' });
+
+      // After a successful save, update the local state to reflect the changes
+      // This prevents incorrect "unsaved changes" warnings.
+      const updatedConsultation = {
+        ...selectedConsultation,
+        patient: { ...editablePatientDetails },
+        consultation_data: { ...extraData, language: i18n.language },
+      };
+      setSelectedConsultation(updatedConsultation);
+
+      const updateInList = (list: Consultation[]) => list.map(c => c.id === updatedConsultation.id ? updatedConsultation : c);
+      setAllConsultations(prev => updateInList(prev));
+      setPendingConsultations(prev => updateInList(prev));
+      setCompletedConsultations(prev => updateInList(prev));
+
+      // Reset the form's initial state to the current state to prevent false dirty flags.
+      setFormInitialState(JSON.stringify({ ...extraData, ...editablePatientDetails }));
+
       return true;
     } catch (error) {
       console.error('Error saving changes:', error);

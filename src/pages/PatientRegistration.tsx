@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
+import { Badge } from '@/components/ui/badge';
 
 interface Patient {
   id: number;
@@ -51,6 +52,35 @@ const PatientRegistration = () => {
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [age, setAge] = useState<number | ''>('');
+  const [todaysConsultations, setTodaysConsultations] = useState<any[]>([]);
+  const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
+
+  const fetchTodaysConsultations = async () => {
+    setIsFetchingConsultations(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-consultations-by-date', {
+        body: { date: format(new Date(), 'yyyy-MM-dd') },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setTodaysConsultations(data.consultations || []);
+    } catch (error) {
+      console.error('Error fetching today\'s consultations:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error fetching consultations',
+        description: error.message,
+      });
+    } finally {
+      setIsFetchingConsultations(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodaysConsultations();
+  }, []);
 
   useEffect(() => {
     setAge(calculateAge(formData.dob));
@@ -217,6 +247,7 @@ const PatientRegistration = () => {
         setSearchResults([]);
         setSelectedPatientId('');
         setShowConfirmation(false);
+        fetchTodaysConsultations();
       } else { // Generic error from the function's own catch block
         throw new Error(data.error || 'An unexpected error occurred.');
       }
@@ -435,6 +466,35 @@ const PatientRegistration = () => {
             </form>
           </CardContent>
         </Card>
+
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold mb-4 text-center">Today's Consultations ({todaysConsultations.length})</h3>
+          {isFetchingConsultations ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : todaysConsultations.length > 0 ? (
+            <div className="flex flex-wrap justify-center gap-3">
+              {todaysConsultations.map(c => (
+                <div key={c.id} className="bg-card border p-3 rounded-lg shadow-sm w-full max-w-sm">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-lg">{c.patient.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} / {c.patient.phone}
+                      </p>
+                    </div>
+                    <Badge variant={c.status === 'completed' ? 'secondary' : 'default'}>
+                      {c.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground">No consultations scheduled for today.</p>
+          )}
+        </div>
       </div>
     </div>
   );
