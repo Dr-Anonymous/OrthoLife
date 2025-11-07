@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,38 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     notes_te: '',
   });
   const [isTranslating, setIsTranslating] = useState(false);
+  const debouncedInstructions = useDebounce(newMed.instructions, 500);
+  const debouncedFrequency = useDebounce(newMed.frequency, 500);
+  const debouncedNotes = useDebounce(newMed.notes, 500);
+
+
+  useEffect(() => {
+    const translateField = async (text: string, field: keyof Medication) => {
+      if (!text || !text.trim()) return;
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-content', {
+          body: { text, targetLanguage: 'te' },
+        });
+        if (error) throw error;
+        if (data?.translatedText) {
+          setNewMed(prev => ({ ...prev, [field]: data.translatedText }));
+        }
+      } catch (err) {
+        console.error(`Translation error for ${field}:`, err);
+        toast({ variant: 'destructive', title: `Translation Error`, description: `Could not translate ${field}.` });
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+
+    if (!isEditing) {
+      if (debouncedInstructions !== newMed.instructions_te) translateField(debouncedInstructions, 'instructions_te');
+      if (debouncedFrequency !== newMed.frequency_te) translateField(debouncedFrequency, 'frequency_te');
+      if (debouncedNotes !== newMed.notes_te) translateField(debouncedNotes, 'notes_te');
+    }
+  }, [debouncedInstructions, debouncedFrequency, debouncedNotes, isEditing]);
+
 
   useEffect(() => {
     if (isEditing && newMed.id) {
@@ -72,9 +105,9 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           };
 
           const [instructions_te, frequency_te, notes_te] = await Promise.all([
-            translate(newMed.instructions),
-            translate(newMed.frequency),
-            translate(newMed.notes),
+            newMed.instructions ? translate(newMed.instructions) : Promise.resolve(''),
+            newMed.frequency ? translate(newMed.frequency) : Promise.resolve(''),
+            newMed.notes ? translate(newMed.notes) : Promise.resolve(''),
           ]);
 
           setNewMed(prev => ({ ...prev, instructions_te, frequency_te, notes_te }));

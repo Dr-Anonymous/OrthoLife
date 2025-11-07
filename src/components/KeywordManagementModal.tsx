@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,10 +37,14 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [adviceTe, setAdviceTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const debouncedAdvice = useDebounce(advice, 500);
 
   useEffect(() => {
-    if (editingKeyword && advice) {
-      const translateAdvice = async () => {
+    const translateAdvice = async () => {
+        if (!advice || !advice.trim()) {
+            setAdviceTe('');
+            return;
+        };
         setIsTranslating(true);
         try {
           const { data, error } = await supabase.functions.invoke('translate-content', {
@@ -53,12 +58,18 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         } finally {
           setIsTranslating(false);
         }
-      };
-      if (!adviceTe) {
+    };
+
+    if (editingKeyword) {
+      if (!adviceTe) { // Only auto-translate when editing if Te field is empty
         translateAdvice();
       }
+    } else { // Always auto-translate when creating new
+        if (debouncedAdvice) {
+            translateAdvice();
+        }
     }
-  }, [editingKeyword, advice]);
+  }, [debouncedAdvice, editingKeyword]);
 
   const fetchKeywords = async () => {
     setIsLoading(true);

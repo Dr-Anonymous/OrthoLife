@@ -406,6 +406,24 @@ const Consultation = () => {
 
   useEffect(() => {
     handleLanguageChange(i18n.language);
+
+    const translateFollowUp = async () => {
+        const defaultFollowupEn = 'after 2 weeks/immediately- if worsening of any symptoms.';
+        if (i18n.language === 'te' && extraData.followup === defaultFollowupEn) {
+            try {
+                const { data, error } = await supabase.functions.invoke('translate-content', {
+                    body: { text: defaultFollowupEn, targetLanguage: 'te' },
+                });
+                if (error) throw error;
+                if (data?.translatedText) {
+                    setExtraData(prev => ({ ...prev, followup: data.translatedText }));
+                }
+            } catch (error) {
+                console.error('Failed to translate default follow-up:', error);
+            }
+        }
+    };
+    translateFollowUp();
   }, [i18n.language]);
 
   const handleLanguageChange = async (lang: string) => {
@@ -497,7 +515,7 @@ const Consultation = () => {
 
       try {
         const { data, error } = await supabase.functions.invoke('get-autofill-medications', {
-          body: { text },
+          body: { text, language: i18n.language },
         });
 
         if (error) throw error;
@@ -512,8 +530,6 @@ const Consultation = () => {
             freqMorning: med.freq_morning,
             freqNoon: med.freq_noon,
             freqNight: med.freq_night,
-            frequency: med.frequency,
-            notes: med.notes,
           }));
 
           const existingMedNames = new Set(extraData.medications.map(m => m.name));
@@ -545,7 +561,7 @@ const Consultation = () => {
 
     fetchSuggestions(debouncedComplaints);
     fetchSuggestions(debouncedDiagnosis);
-  }, [debouncedComplaints, debouncedDiagnosis]);
+  }, [debouncedComplaints, debouncedDiagnosis, i18n.language]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
