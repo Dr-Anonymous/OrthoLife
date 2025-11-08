@@ -335,7 +335,7 @@ const Consultation = () => {
     investigations: '',
     diagnosis: '',
     advice: '',
-    followup: t('default_followup_message'),
+    followup: '',
     personalNote: '',
     medications: [ ] as Medication[]
   });
@@ -647,7 +647,7 @@ const Consultation = () => {
         investigations: '',
         diagnosis: '',
         advice: '',
-        followup: t('default_followup_message'),
+        followup: '',
         personalNote: '',
         medications: [],
       };
@@ -669,7 +669,7 @@ const Consultation = () => {
         investigations: '',
         diagnosis: '',
         advice: '',
-        followup: t('default_followup_message'),
+        followup: '',
         personalNote: '',
         medications: [],
       });
@@ -752,6 +752,37 @@ const Consultation = () => {
     };
 
   const handleExtraChange = (field: string, value: string) => {
+    if (field === 'followup') {
+      const shortcutRegex = /(\d+)([dwm])\./i; // d=day, w=week, m=month. Dot is required.
+      const match = value.match(shortcutRegex);
+
+      if (match) {
+        const shortcut = match[0]; // e.g., "2w."
+        const count = parseInt(match[1], 10);
+        const unitChar = match[2].toLowerCase();
+        let unitKey = '';
+
+        switch (unitChar) {
+          case 'd':
+            unitKey = count === 1 ? 'day' : 'day_plural';
+            break;
+          case 'w':
+            unitKey = count === 1 ? 'week' : 'week_plural';
+            break;
+          case 'm':
+            unitKey = count === 1 ? 'month' : 'month_plural';
+            break;
+        }
+
+        if (unitKey) {
+          const unitText = t(unitKey);
+          const replacementText = t('followup_message_structure', { count, unit: unitText });
+          const newValue = value.replace(shortcut, replacementText);
+          setExtraData(prev => ({ ...prev, followup: newValue }));
+          return;
+        }
+      }
+    }
     setExtraData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -779,14 +810,6 @@ const Consultation = () => {
     if (nextConsultation) {
       setSelectedConsultation(nextConsultation);
     }
-  };
-
-  const handleFollowupSuggestionClick = (unit: string) => {
-    setExtraData(prev => {
-      const currentFollowup = prev.followup;
-      const newFollowup = currentFollowup.replace(/days|weeks|months|వారాల|రోజుల|నెలల/g, t(unit));
-      return { ...prev, followup: newFollowup };
-    });
   };
 
   const handleAdviceSuggestionClick = (advice: string) => {
@@ -1300,14 +1323,7 @@ const Consultation = () => {
                             </div>
 
                             <div className="space-y-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
-                                {['days', 'weeks', 'months'].map((unit) => (
-                                    <Button key={unit} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(unit)}>
-                                        {t(unit)}
-                                    </Button>
-                                ))}
-                            </div>
+                            <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
                             <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
                             </div>
 

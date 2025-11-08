@@ -217,8 +217,11 @@
   "appointmentsCard.cancelDialog.back": "Back",
   "appointmentsCard.cancelDialog.cancelling": "Cancelling...",
   "appointmentsCard.cancelDialog.confirm": "Confirm",
-  "default_followup_message": "after 2 weeks/immediately- if worsening of any symptoms.",
-  "days": "days",
-  "weeks": "weeks",
-  "months": "months"
+  "day": "day",
+  "day_plural": "days",
+  "week": "week",
+  "week_plural": "weeks",
+  "month": "month",
+  "month_plural": "months",
+  "followup_message_structure": "after {{count}} {{unit}}, or immediately if symptoms worsen."
 }

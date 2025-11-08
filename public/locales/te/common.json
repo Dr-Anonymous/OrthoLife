@@ -216,8 +216,11 @@
   "appointmentsCard.cancelDialog.back": "వెనుకకు",
   "appointmentsCard.cancelDialog.cancelling": "రద్దు చేస్తోంది...",
   "appointmentsCard.cancelDialog.confirm": "నిర్ధారించండి",
-  "default_followup_message": "2 వారాల తర్వాత/వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే.",
-  "days": "రోజుల",
-  "weeks": "వారాల",
-  "months": "నెలల"
+  "followup_message_structure": "{{count}} {{unit}} / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే.",
+  "day": "రోజు తర్వాత",
+  "day_plural": "రోజుల తర్వాత",
+  "week": "వారం తర్వాత",
+  "week_plural": "వారాల తర్వాత",
+  "month": "నెల తర్వాత",
+  "month_plural": "నెలల తర్వాత"
 }
