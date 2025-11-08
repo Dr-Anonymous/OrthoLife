@@ -786,16 +786,27 @@ const Consultation = () => {
     }
 
     // Handle shortcut replacement for complaints and diagnosis
-    if ((field === 'complaints' || field === 'diagnosis') && value.endsWith('.')) {
-        const lastWord = value.slice(0, -1).split(' ').pop();
-        if (lastWord) {
-            const matchingShortcut = textShortcuts.find(sc => sc.shortcut.toLowerCase() === lastWord.toLowerCase());
-            if (matchingShortcut) {
-                const newValue = value.substring(0, value.length - lastWord.length - 1) + matchingShortcut.expansion;
-                setExtraData(prev => ({ ...prev, [field]: newValue }));
-                return;
-            }
+    if (field === 'complaints' || field === 'diagnosis') {
+      const shortcutRegex = /(\s|^)(\w+)\.\s*$/; // Matches a word preceded by space or start, followed by a dot
+      const match = value.match(shortcutRegex);
+
+      if (match) {
+        const shortcutText = match[2];
+        const matchingShortcut = textShortcuts.find(sc => sc.shortcut.toLowerCase() === shortcutText.toLowerCase());
+
+        if (matchingShortcut) {
+          const isStartOfSentence = /^\s*$/.test(value.substring(0, match.index));
+          let expansion = matchingShortcut.expansion;
+
+          if (isStartOfSentence) {
+            expansion = expansion.charAt(0).toUpperCase() + expansion.slice(1);
+          }
+
+          const newValue = value.replace(shortcutRegex, match[1] + expansion + ' ');
+          setExtraData(prev => ({ ...prev, [field]: newValue }));
+          return;
         }
+      }
     }
 
 
