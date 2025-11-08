@@ -26,7 +26,14 @@ import PatientHistoryModal from '@/components/PatientHistoryModal';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import SaveBundleModal from '@/components/SaveBundleModal';
+import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
 import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
+
+interface TextShortcut {
+  id: string;
+  shortcut: string;
+  expansion: string;
+}
 
 interface Medication {
   id: string;
@@ -327,7 +334,9 @@ const Consultation = () => {
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isSaveBundleModalOpen, setIsSaveBundleModalOpen] = useState(false);
+  const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
+  const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -562,7 +571,23 @@ const Consultation = () => {
 
   useEffect(() => {
     fetchSavedMedications();
+    fetchTextShortcuts();
   }, []);
+
+  const fetchTextShortcuts = async () => {
+    const { data, error } = await supabase
+      .from('text_shortcuts')
+      .select('id, shortcut, expansion');
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error fetching text shortcuts',
+        description: error.message,
+      });
+    } else {
+      setTextShortcuts(data || []);
+    }
+  };
 
   const fetchConsultations = async (date: Date, patientIdToRestore?: string) => {
     setIsFetchingConsultations(true);
@@ -752,6 +777,28 @@ const Consultation = () => {
     };
 
   const handleExtraChange = (field: string, value: string) => {
+    // Open shortcut modal
+    if ((field === 'complaints' || field === 'diagnosis') && value.includes('//')) {
+      setIsShortcutModalOpen(true);
+      // Remove the trigger characters from the input
+      setExtraData(prev => ({ ...prev, [field]: value.replace('//', '') }));
+      return;
+    }
+
+    // Handle shortcut replacement for complaints and diagnosis
+    if ((field === 'complaints' || field === 'diagnosis') && value.endsWith('.')) {
+        const lastWord = value.slice(0, -1).split(' ').pop();
+        if (lastWord) {
+            const matchingShortcut = textShortcuts.find(sc => sc.shortcut.toLowerCase() === lastWord.toLowerCase());
+            if (matchingShortcut) {
+                const newValue = value.substring(0, value.length - lastWord.length - 1) + matchingShortcut.expansion;
+                setExtraData(prev => ({ ...prev, [field]: newValue }));
+                return;
+            }
+        }
+    }
+
+
     if (field === 'followup') {
       const shortcutRegex = /(\d+)([dwm])\./i; // d=day, w=week, m=month. Dot is required.
       const match = value.match(shortcutRegex);
@@ -1433,6 +1480,11 @@ const Consultation = () => {
         onClose={() => setIsSaveBundleModalOpen(false)}
         medications={extraData.medications}
         advice={extraData.advice}
+      />
+      <TextShortcutManagementModal
+        isOpen={isShortcutModalOpen}
+        onClose={() => setIsShortcutModalOpen(false)}
+        onUpdate={fetchTextShortcuts}
       />
     </div>
   );
