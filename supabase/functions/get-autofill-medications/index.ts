@@ -14,7 +14,7 @@ serve(async (req) => {
 
   try {
     const { text, language = 'en' } = await req.json();
-    const cleanedText = text.toLowerCase().replace(/[.,]/g, '');
+    const cleanedText = text.toLowerCase().replace(/[.,?;]/g, '');
     const inputTextWords = cleanedText.split(/\s+/);
     const medicationIds = new Set<number>();
     const adviceTexts = new Set<string>();
@@ -35,7 +35,7 @@ serve(async (req) => {
       for (const mapping of keywordMappings) {
         if (mapping.keywords) {
           for (const keyword of mapping.keywords) {
-            const cleanedKeyword = keyword.toLowerCase().replace(/[.,?]/g, '');
+            const cleanedKeyword = keyword.toLowerCase().replace(/[.,?;]/g, '');
             let isMatch = false;
 
             if (cleanedKeyword.includes(' ')) {
