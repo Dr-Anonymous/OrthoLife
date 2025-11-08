@@ -35,7 +35,7 @@ serve(async (req) => {
       for (const mapping of keywordMappings) {
         if (mapping.keywords) {
           for (const keyword of mapping.keywords) {
-            const cleanedKeyword = keyword.toLowerCase().replace(/[.,]/g, '');
+            const cleanedKeyword = keyword.toLowerCase().replace(/[.,?]/g, '');
             let isMatch = false;
 
             if (cleanedKeyword.includes(' ')) {
