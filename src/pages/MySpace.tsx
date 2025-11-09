@@ -33,6 +33,7 @@ const MySpace = () => {
   const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
   const [patientList, setPatientList] = useState<any[]>([]);
   const [selectionSource, setSelectionSource] = useState<'database' | 'gdrive' | null>(null);
+  const [isSelectionPending, setIsSelectionPending] = useState(true);
 
   useEffect(() => {
     const hasSetLanguage = localStorage.getItem('languageSet');
@@ -72,6 +73,7 @@ const MySpace = () => {
           setInvestigations(data?.investigations || '');
           setAdvice(data?.advice || '');
           setPatientName(data?.patientName || '');
+          setIsSelectionPending(false);
         }
 
       } catch (err: any) {
@@ -81,6 +83,7 @@ const MySpace = () => {
       }
     } else if (!authLoading) {
       setLoading(false);
+      setIsSelectionPending(false);
     }
   };
 
@@ -133,9 +136,10 @@ const MySpace = () => {
           />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-            <PrescriptionsCard patientName={patientName} />
-            {loading ? (
+            <AppointmentsCard />
+            {loading || isSelectionPending ? (
               <>
+                <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
@@ -144,13 +148,13 @@ const MySpace = () => {
               <p className="text-red-500">{error}</p>
             ) : (
               <>
+                <PrescriptionsCard patientName={patientName} />
+                <TestResultsCard />
                 <DietAndExercisesCard advice={advice} patientName={patientName} />
                 <OrderMedicationCard medications={medications} patientName={patientName} />
                 <OrderTestsCard investigations={investigations} patientName={patientName} />
               </>
             )}
-            <TestResultsCard />
-            <AppointmentsCard />
           </div>
         </div>
       </main>
