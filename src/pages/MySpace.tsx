@@ -133,7 +133,7 @@ const MySpace = () => {
           />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-            <PrescriptionsCard patientName={patientName} fetchPrescription={fetchPrescription} />
+            <PrescriptionsCard patientName={patientName} />
             {loading ? (
               <>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
