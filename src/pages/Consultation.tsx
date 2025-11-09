@@ -1367,6 +1367,19 @@ const Consultation = () => {
                                 <Textarea id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
                             </div>
                             </div>
+                            
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                                    <LanguageSwitcher />
+                                    {suggestedAdvice.map((advice) => (
+                                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
+                                            {advice}
+                                        </Button>
+                                    ))}
+                                </div>
+                                <Textarea id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value)} placeholder="Medical advice..." className="min-h-[80px]" />
+                            </div>  
                         </div>
                         
                         <div className="space-y-4">
@@ -1411,19 +1424,6 @@ const Consultation = () => {
                                 </Button>
                             </div>
                             
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
-                                    <LanguageSwitcher />
-                                    {suggestedAdvice.map((advice) => (
-                                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
-                                            {advice}
-                                        </Button>
-                                    ))}
-                                </div>
-                                <Textarea id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value)} placeholder="Medical advice..." className="min-h-[80px]" />
-                            </div>
-
                             <div className="space-y-2">
                             <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
                             <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
