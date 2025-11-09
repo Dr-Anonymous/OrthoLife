@@ -136,9 +136,10 @@ const MySpace = () => {
           />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-            <AppointmentsCard />
+            
             {loading || isSelectionPending ? (
               <>
+                <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
@@ -149,12 +150,13 @@ const MySpace = () => {
             ) : (
               <>
                 <PrescriptionsCard patientName={patientName} />
-                <TestResultsCard />
                 <DietAndExercisesCard advice={advice} patientName={patientName} />
                 <OrderMedicationCard medications={medications} patientName={patientName} />
                 <OrderTestsCard investigations={investigations} patientName={patientName} />
+                <TestResultsCard />
               </>
             )}
+            <AppointmentsCard />
           </div>
         </div>
       </main>
