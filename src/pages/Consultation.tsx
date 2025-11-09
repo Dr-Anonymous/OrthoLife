@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -1436,9 +1436,6 @@ const Consultation = () => {
                         </div>
 
                         <div className="pt-6 flex flex-col sm:flex-row items-center gap-2">
-                            <Button type="button" variant="outline" className="h-12 w-full sm:w-auto" onClick={() => setIsSaveBundleModalOpen(true)}>
-                                Save as Bundle
-                            </Button>
                             <Button type="submit" className="flex-grow h-12 w-full sm:w-auto text-lg font-semibold" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
@@ -1449,10 +1446,16 @@ const Consultation = () => {
                                 'Generate Prescription'
                             )}
                             </Button>
-                             <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
-                                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                <span className="sr-only">Save Changes</span>
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
+                                    <PackagePlus className="w-5 h-5" />
+                                    <span className="sr-only">Save as Bundle</span>
+                                </Button>
+                                <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                    <span className="sr-only">Save Changes</span>
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 ) : (
