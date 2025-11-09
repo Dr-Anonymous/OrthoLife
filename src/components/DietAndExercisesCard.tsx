@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { isTelugu } from '../lib/languageUtils';
 
 interface DietAndExercisesCardProps {
   advice?: string;
@@ -15,18 +16,33 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, pat
   const adviceLines = advice ? advice.split('\n').filter(line => line.trim() !== '') : [];
 
   const getButtonInfo = (line: string) => {
-    const lowerLine = line.toLowerCase();
-    const hasDiet = lowerLine.includes('diet');
-    const hasExercises = lowerLine.includes('exercise');
+    if (isTelugu(line)) {
+      const hasDiet = line.includes('ఆహారం');
+      const hasExercises = line.includes('వ్యాయామం') || line.includes('వ్యాయామాలు');
 
-    if (hasDiet && hasExercises) {
-      return { text: t('dietAndExercisesCard.viewGuide'), query: line };
-    }
-    if (hasDiet) {
-      return { text: t('dietAndExercisesCard.viewDiet'), query: line };
-    }
-    if (hasExercises) {
-      return { text: t('dietAndExercisesCard.viewExercise'), query: line };
+      if (hasDiet && hasExercises) {
+        return { text: t('dietAndExercisesCard.viewGuide'), query: line };
+      }
+      if (hasDiet) {
+        return { text: t('dietAndExercisesCard.viewDiet'), query: line };
+      }
+      if (hasExercises) {
+        return { text: t('dietAndExercisesCard.viewExercise'), query: line };
+      }
+    } else {
+      const lowerLine = line.toLowerCase();
+      const hasDiet = lowerLine.includes('diet');
+      const hasExercises = lowerLine.includes('exercise');
+
+      if (hasDiet && hasExercises) {
+        return { text: t('dietAndExercisesCard.viewGuide'), query: line };
+      }
+      if (hasDiet) {
+        return { text: t('dietAndExercisesCard.viewDiet'), query: line };
+      }
+      if (hasExercises) {
+        return { text: t('dietAndExercisesCard.viewExercise'), query: line };
+      }
     }
     return null;
   };
