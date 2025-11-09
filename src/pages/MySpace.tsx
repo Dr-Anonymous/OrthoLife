@@ -52,10 +52,6 @@ const MySpace = () => {
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    fetchPrescription();
-  }, [user, authLoading]);
-
   const fetchPrescription = async (patientId?: string, folderId?: string) => {
     if (!authLoading && user?.phoneNumber) {
       try {
@@ -87,6 +83,10 @@ const MySpace = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPrescription();
+  }, [user, authLoading]);
 
   const handlePatientSelect = (selectedPatient: any) => {
     setIsPatientSelectionModalOpen(false);
@@ -133,7 +133,7 @@ const MySpace = () => {
           />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-            <PrescriptionsCard />
+            <PrescriptionsCard patientName={patientName} fetchPrescription={fetchPrescription} />
             {loading ? (
               <>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
