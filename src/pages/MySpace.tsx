@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import OrderMedicationCard from '@/components/OrderMedicationCard';
 import OrderTestsCard from '@/components/OrderTestsCard';
 import DietAndExercisesCard from '@/components/DietAndExercisesCard';
+import PatientSelectionModal from '@/components/PatientSelectionModal';
 
 const MySpace = () => {
   const { t } = useTranslation();
@@ -29,6 +30,9 @@ const MySpace = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
+  const [patientList, setPatientList] = useState<any[]>([]);
+  const [selectionSource, setSelectionSource] = useState<'database' | 'gdrive' | null>(null);
 
   useEffect(() => {
     const hasSetLanguage = localStorage.getItem('languageSet');
@@ -49,34 +53,49 @@ const MySpace = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchPrescription = async () => {
-      if (user?.phoneNumber) {
-        try {
-          setLoading(true);
-          const phoneNumber = user.phoneNumber.slice(-10);
-          const { data, error } = await supabase.functions.invoke('get-latest-prescription', {
-            body: { phoneNumber },
-          });
+    fetchPrescription();
+  }, [user, authLoading]);
 
-          if (error) throw new Error(`Error fetching prescription: ${error.message}`);
+  const fetchPrescription = async (patientId?: string, folderId?: string) => {
+    if (!authLoading && user?.phoneNumber) {
+      try {
+        setLoading(true);
+        const phoneNumber = user.phoneNumber.slice(-10);
+        const { data, error } = await supabase.functions.invoke('get-latest-prescription', {
+          body: { phoneNumber, patientId, folderId },
+        });
 
+        if (error) throw new Error(`Error fetching prescription: ${error.message}`);
+
+        if (data.patients) {
+          setPatientList(data.patients);
+          setSelectionSource(data.source);
+          setIsPatientSelectionModalOpen(true);
+        } else {
           setMedications(data?.medications || []);
           setInvestigations(data?.investigations || '');
           setAdvice(data?.advice || '');
           setPatientName(data?.patientName || '');
-
-        } catch (err: any) {
-          setError(err.message);
-        } finally {
-          setLoading(false);
         }
-      } else if (!authLoading) {
+
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
         setLoading(false);
       }
-    };
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  };
 
-    fetchPrescription();
-  }, [user, authLoading]);
+  const handlePatientSelect = (selectedPatient: any) => {
+    setIsPatientSelectionModalOpen(false);
+    if (selectionSource === 'database') {
+      fetchPrescription(selectedPatient.id, undefined);
+    } else if (selectionSource === 'gdrive') {
+      fetchPrescription(undefined, selectedPatient.id);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -106,6 +125,12 @@ const MySpace = () => {
           </header>
 
           <LanguagePreferenceModal isOpen={isLanguageModalOpen} onClose={handleModalClose} />
+          <PatientSelectionModal
+            isOpen={isPatientSelectionModalOpen}
+            onClose={() => setIsPatientSelectionModalOpen(false)}
+            patients={patientList}
+            onSelect={handlePatientSelect}
+          />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
             <PrescriptionsCard />

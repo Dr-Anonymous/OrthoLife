@@ -1,60 +1,67 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
   try {
-    const { phoneNumber } = await req.json();
+    const { phoneNumber, patientId, folderId } = await req.json();
 
-    if (!phoneNumber) {
-      return new Response(JSON.stringify({ error: 'Phone number is required' }), {
-        status: 400,
+    if (patientId) {
+      const prescription = await getLatestConsultationByPatientId(patientId);
+      return new Response(JSON.stringify(prescription), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
-
-    const accessToken = await getGoogleAccessToken();
-    if (!accessToken) {
-      return new Response(JSON.stringify({ error: 'Missing Google access token' }), {
-        status: 500,
+    } else if (folderId) {
+      const prescription = await getPrescriptionFromGoogleDrive({ folderId });
+      return new Response(JSON.stringify(prescription), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
+    } else if (phoneNumber) {
+      const last10Digits = phoneNumber.slice(-10);
+      const { data: patients, error } = await supabase
+        .from('patients')
+        .select('id, name')
+        .like('phone', `%${last10Digits}`);
 
-    const searchQuery = encodeURIComponent(`fullText contains '${phoneNumber}' and mimeType='application/vnd.google-apps.document'`);
-    const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
-    const docsData = await docsResponse.json();
-    const latestDoc = docsData.files?.[0];
+      if (error || !patients || patients.length === 0) {
+        console.warn('Database search failed or returned no results. Falling back to Google Drive.', error);
+        const prescription = await getPrescriptionFromGoogleDrive({ phoneNumber });
+        return new Response(JSON.stringify(prescription), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-    if (!latestDoc) {
-        return new Response(JSON.stringify({ medications: [] }), {
-            status: 200,
+      if (patients.length === 1) {
+        const prescription = await getLatestConsultationByPatientId(patients[0].id);
+        return new Response(JSON.stringify(prescription), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        return new Response(JSON.stringify({ patients, source: 'database' }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+        return new Response(JSON.stringify({ error: 'Phone number, patient ID, or folder ID is required' }), {
+            status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
     }
-
-    const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
-    const contentData = await contentResponse.json();
-    const documentText = extractTextFromDocument(contentData);
-    const patientData = parsePatientData(documentText);
-
-    return new Response(JSON.stringify({
-        medications: patientData.medications || [],
-        investigations: patientData.investigations,
-        patientName: patientData.name,
-        advice: patientData.advice,
-    }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
   } catch (error) {
     console.error('Error in get-latest-prescription:', error);
     return new Response(JSON.stringify({ error: error.message }), {
@@ -63,6 +70,99 @@ serve(async (req) => {
     });
   }
 });
+
+async function getLatestConsultationByPatientId(patientId: string) {
+  const { data: consultation, error } = await supabase
+    .from('consultations')
+    .select('consultation_data, patients (name)')
+    .eq('patient_id', patientId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !consultation) {
+    console.warn(`No consultation found for patientId ${patientId}.`, error);
+    return { medications: [] };
+  }
+
+  const { consultation_data, patients: patient } = consultation;
+
+  return {
+    medications: consultation_data.medications || [],
+    investigations: consultation_data.investigations,
+    patientName: patient.name,
+    advice: consultation_data.advice,
+  };
+}
+
+async function getPrescriptionFromGoogleDrive({ phoneNumber, folderId }: { phoneNumber?: string, folderId?: string }) {
+  const accessToken = await getGoogleAccessToken();
+  if (!accessToken) {
+    throw new Error("Missing Google access token");
+  }
+
+  if (folderId) {
+    // If a folderId is provided, we can directly fetch the latest prescription from it.
+    return await extractPrescriptionFromFolder(folderId, accessToken);
+  }
+
+  if (phoneNumber) {
+    const searchQuery = encodeURIComponent(`fullText contains '${phoneNumber}' and mimeType='application/vnd.google-apps.document'`);
+    const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&fields=files(id,name,parents)`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    const searchData = await searchResponse.json();
+    const matchingDocs = searchData.files || [];
+
+    if (matchingDocs.length === 0) {
+      return { medications: [] };
+    }
+
+    const parentFolderIds = new Set(matchingDocs.flatMap(doc => doc.parents || []));
+
+    if (parentFolderIds.size === 1) {
+      return await extractPrescriptionFromFolder(Array.from(parentFolderIds)[0], accessToken);
+    } else {
+      const folderPromises = Array.from(parentFolderIds).map(async (id) => {
+        const folderResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=name`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const folderData = await folderResponse.json();
+        return { id, name: folderData.name };
+      });
+      const folders = await Promise.all(folderPromises);
+      return { patients: folders.filter(f => f.name), source: 'gdrive' };
+    }
+  }
+
+  return { medications: [] };
+}
+
+async function extractPrescriptionFromFolder(folderId: string, accessToken: string) {
+  const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+  const docsData = await docsResponse.json();
+  const latestDoc = docsData.files?.[0];
+
+  if (!latestDoc) {
+    return { medications: [] };
+  }
+
+  const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+  });
+  const contentData = await contentResponse.json();
+  const documentText = extractTextFromDocument(contentData);
+  const patientData = parsePatientData(documentText);
+
+  return {
+    medications: patientData.medications || [],
+    investigations: patientData.investigations,
+    patientName: patientData.name,
+    advice: patientData.advice,
+  };
+}
 
 function extractTextFromDocument(document: any): string {
     let text = '';
