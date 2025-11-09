@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import Header from '@/components/Header';
 import { isTelugu } from '@/lib/languageUtils';
-import { useDebounce } from '@/hooks/useDebounce';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +34,7 @@ export interface Post {
 
 const BlogPage = () => {
   const { t, i18n } = useTranslation();
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -42,26 +42,19 @@ const BlogPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [noResults, setNoResults] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     trackEvent({
       eventType: "page_view",
       path: location.pathname,
     });
-  }, [location.pathname]);
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (debouncedSearchTerm) {
-      params.set('q', debouncedSearchTerm);
-    } else {
-      params.delete('q');
+    const query = params.get('q');
+    if (query) {
+      setSearchTerm(query);
     }
-    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
-  }, [debouncedSearchTerm, location.pathname, navigate]);
+  }, [location.pathname, location.search]);
 
   const POSTS_PER_PAGE = 5; // 1 featured + 4 in grid
 
@@ -87,44 +80,34 @@ const BlogPage = () => {
 
       let query = supabase
         .from('posts')
-        .select('*, categories(name), post_translations(*)');
-
-      if (selectedCategory) {
-        query = query.eq('category_id', selectedCategory);
-      }
-
-      query = query.order('created_at', { ascending: false });
+        .select('*, categories(name), post_translations(*)')
+        .order('created_at', { ascending: false });
 
       const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching posts:', error);
+        setAllPosts([]);
         setPosts([]);
       } else {
+        setAllPosts(data || []);
         setPosts(data || []);
       }
       setLoading(false);
     };
 
     fetchPosts();
-  }, [selectedCategory]);
+  }, []);
 
   const handleCategoryClick = (categoryId: number | null) => {
-    if (categoryId === null) {
-    // Already on "All" → do nothing
-    if (selectedCategory === null) return;
-    // Switching from a category → reset to All
-    setSelectedCategory(null);
-    } else if (categoryId === selectedCategory) {
-      // Clicking the same category again → reset to All
-      setSelectedCategory(null);
-    } else {
-      // Switching to a new category
-      setSelectedCategory(categoryId);
-    }
+    setSelectedCategory(categoryId);
 
-    
-    setPosts([]);
+    if (categoryId === null) {
+      setPosts(allPosts);
+    } else {
+      const filtered = allPosts.filter(post => post.category_id === categoryId);
+      setPosts(filtered);
+    }
   };
 
   const getTranslatedPost = (post: Post, lang: string) => {
@@ -139,6 +122,8 @@ const BlogPage = () => {
   };
 
   const filteredPosts = useMemo(() => {
+    const sourcePosts = searchTerm.trim() ? allPosts : posts;
+
     if (!searchTerm.trim()) {
       return posts;
     }
@@ -146,7 +131,7 @@ const BlogPage = () => {
     const searchInTelugu = isTelugu(searchTerm);
     const effectiveSearchTerm = searchInTelugu ? searchTerm : searchTerm.toLowerCase();
 
-    return posts.filter((post) => {
+    return sourcePosts.filter((post) => {
       let title = '';
       let excerpt = '';
 
@@ -174,9 +159,10 @@ const BlogPage = () => {
     }
   }, [searchTerm, filteredPosts.length]);
 
-  const displayedPosts = noResults ? posts : filteredPosts;
-  const featuredPost = displayedPosts[0];
-  const otherPosts = displayedPosts.slice(1);
+  const displayedPosts = noResults ? allPosts : filteredPosts;
+
+  const featuredPost = displayedPosts.length > 0 ? displayedPosts[0] : null;
+  const otherPosts = displayedPosts.length > 0 ? displayedPosts.slice(1) : [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -197,18 +183,14 @@ const BlogPage = () => {
               </p>
             </div>
 
-            {/* Search Bar */}
-            <div className="max-w-xl mx-auto mb-8">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder={t('learn.guides.searchPlaceholder', 'Search for a blog post...')}
-                  className="w-full pl-10 py-6 text-base"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+            <div className="max-w-md mx-auto mb-8">
+              <Input
+                type="text"
+                placeholder="Search by title, description, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
             </div>
 
             {noResults && (
@@ -285,7 +267,7 @@ const BlogPage = () => {
             )}
 
             {/* Content */}
-            {!loading && filteredPosts.length === 0 && (
+            {!loading && displayedPosts.length === 0 && !searchTerm.trim() && (
               <div className="text-center py-16">
                 <h2 className="text-2xl font-semibold mb-2">No posts found</h2>
                 <p className="text-muted-foreground">
@@ -294,9 +276,10 @@ const BlogPage = () => {
               </div>
             )}
             
-            {filteredPosts.length > 0 && (
+            {displayedPosts.length > 0 && (
               <>
                 {/* Featured Post */}
+                {featuredPost && (
                 <Card className="mb-8 overflow-hidden">
                   <div className="md:flex">
                     <div className="md:w-1/2">
@@ -328,6 +311,7 @@ const BlogPage = () => {
                     </div>
                   </div>
                 </Card>
+                )}
 
                 {/* Blog Posts Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
