@@ -1120,7 +1120,7 @@ const Consultation = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
       <div className="container mx-auto max-w-7xl">
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <CardHeader className="text-center pb-6 sm:pb-8">
+          <CardHeader className="text-center pt-6 sm:pt-8">
             <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
               <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
               Doctor's Consultation
@@ -1226,8 +1226,8 @@ const Consultation = () => {
                 {selectedConsultation && editablePatientDetails ? (
                     <form onSubmit={submitForm} className="space-y-6">
                         <div className="space-y-4">
-                             <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center justify-between mb-4">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <User className="w-5 h-5 text-primary" />
                                   <h3 className="text-lg font-semibold text-foreground">
                                     Demographic details of {editablePatientDetails.name}
@@ -1261,7 +1261,7 @@ const Consultation = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="dob">Date of Birth</Label>
-                                  <div className="flex gap-2">
+                                  <div className="flex flex-col sm:flex-row gap-2">
                                     <Popover open={isPatientDatePickerOpen} onOpenChange={setIsPatientDatePickerOpen}>
                                       <PopoverTrigger asChild>
                                         <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
@@ -1310,7 +1310,7 @@ const Consultation = () => {
                                       placeholder="Age"
                                       value={age}
                                       onChange={handleAgeChange}
-                                      className="w-24"
+                                      className="w-full sm:w-24"
                                     />
                                   </div>
                                 </div>
@@ -1435,11 +1435,11 @@ const Consultation = () => {
                             </div>
                         </div>
 
-                        <div className="pt-6 flex items-center gap-2">
-                            <Button type="button" variant="outline" className="h-12" onClick={() => setIsSaveBundleModalOpen(true)}>
+                        <div className="pt-6 flex flex-col sm:flex-row items-center gap-2">
+                            <Button type="button" variant="outline" className="h-12 w-full sm:w-auto" onClick={() => setIsSaveBundleModalOpen(true)}>
                                 Save as Bundle
                             </Button>
-                            <Button type="submit" className="flex-grow h-12 text-lg font-semibold" disabled={isSubmitting}>
+                            <Button type="submit" className="flex-grow h-12 w-full sm:w-auto text-lg font-semibold" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
