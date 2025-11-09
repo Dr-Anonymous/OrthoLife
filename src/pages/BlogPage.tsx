@@ -1,18 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import Header from '@/components/Header';
+import { isTelugu } from '@/lib/languageUtils';
+import { useDebounce } from '@/hooks/useDebounce';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 // Define types for our data
 export interface Category {
@@ -37,9 +39,10 @@ const BlogPage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [noResults, setNoResults] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     trackEvent({
@@ -47,6 +50,18 @@ const BlogPage = () => {
       path: location.pathname,
     });
   }, [location.pathname]);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (debouncedSearchTerm) {
+      params.set('q', debouncedSearchTerm);
+    } else {
+      params.delete('q');
+    }
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+  }, [debouncedSearchTerm, location.pathname, navigate]);
 
   const POSTS_PER_PAGE = 5; // 1 featured + 4 in grid
 
@@ -68,42 +83,31 @@ const BlogPage = () => {
     const fetchPosts = async () => {
       setLoading(true);
       
+      setLoading(true);
+
       let query = supabase
         .from('posts')
-        .select('*, categories(name), post_translations(*)', { count: 'exact' });
+        .select('*, categories(name), post_translations(*)');
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
       }
 
-      const from = (page - 1) * POSTS_PER_PAGE;
-      const to = from + POSTS_PER_PAGE - 1;
-      query = query.range(from, to).order('created_at', { ascending: false });
+      query = query.order('created_at', { ascending: false });
 
-      const { data, error, count } = await query;
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching posts:', error);
         setPosts([]);
-        setHasMore(false);
       } else {
-        const newPosts = data || [];
-        const currentPostCount = posts.length;
-        setPosts(prevPosts => page === 1 ? newPosts : [...prevPosts, ...newPosts]);
-
-        if (count !== null) {
-          const loadedPostsCount = currentPostCount + newPosts.length;
-          setHasMore(loadedPostsCount < count);
-        } else {
-          // Fallback if count is not available
-          setHasMore(newPosts.length === POSTS_PER_PAGE);
-        }
+        setPosts(data || []);
       }
       setLoading(false);
     };
 
     fetchPosts();
-  }, [selectedCategory, page]);
+  }, [selectedCategory]);
 
   const handleCategoryClick = (categoryId: number | null) => {
     if (categoryId === null) {
@@ -120,9 +124,7 @@ const BlogPage = () => {
     }
 
     
-    setPage(1);
     setPosts([]);
-    setHasMore(true);
   };
 
   const getTranslatedPost = (post: Post, lang: string) => {
@@ -136,20 +138,47 @@ const BlogPage = () => {
     };
   };
 
-  const loadMorePosts = () => {
-    if (!loading) {
-      setPage(prevPage => prevPage + 1);
-    }
-  };
 
-  const { lastElementRef } = useInfiniteScroll({
-    onLoadMore: loadMorePosts,
-    isLoading: loading,
-    hasNextPage: hasMore,
-  });
-  
-  const featuredPost = posts[0];
-  const otherPosts = posts.slice(1);
+  useEffect(() => {
+    if (searchTerm.trim() && filteredPosts.length === 0) {
+      setNoResults(true);
+    } else {
+      setNoResults(false);
+    }
+  }, [searchTerm, filteredPosts.length]);
+
+  const displayedPosts = noResults ? posts : filteredPosts;
+
+  const filteredPosts = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return posts;
+    }
+
+    const searchInTelugu = isTelugu(searchTerm);
+    const effectiveSearchTerm = searchInTelugu ? searchTerm : searchTerm.toLowerCase();
+
+    return posts.filter((post) => {
+      let title = '';
+      let excerpt = '';
+
+      if (searchInTelugu) {
+        const translation = post.post_translations.find((t: any) => t.language === 'te');
+        title = translation?.title || '';
+        excerpt = translation?.excerpt || '';
+      } else {
+        title = post.title.toLowerCase();
+        excerpt = post.excerpt.toLowerCase();
+      }
+
+      return (
+        title.includes(effectiveSearchTerm) ||
+        excerpt.includes(effectiveSearchTerm)
+      );
+    });
+  }, [posts, searchTerm]);
+
+  const featuredPost = displayedPosts[0];
+  const otherPosts = displayedPosts.slice(1);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -169,6 +198,31 @@ const BlogPage = () => {
                 {t('learn.blog.subtitle', 'Latest health tips and medical insights')}
               </p>
             </div>
+
+            {/* Search Bar */}
+            <div className="max-w-xl mx-auto mb-8">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder={t('learn.guides.searchPlaceholder', 'Search for a blog post...')}
+                  className="w-full pl-10 py-6 text-base"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {noResults && (
+              <div className="text-center mb-8">
+                <p className="text-lg text-red-500">
+                  {t('learn.guides.noResults', 'No results found for your search.')}
+                </p>
+                <p className="text-muted-foreground">
+                  {t('learn.guides.showingAll', 'Showing all posts instead.')}
+                </p>
+              </div>
+            )}
 
             {/* Categories */}
             <div className="flex flex-wrap justify-center gap-2 mb-8">
@@ -193,7 +247,7 @@ const BlogPage = () => {
             </div>
 
             {/* Loading Skeleton */}
-            {loading && posts.length === 0 && (
+            {loading && filteredPosts.length === 0 && (
               <div>
                 <Card className="mb-8 overflow-hidden">
                   <div className="md:flex">
@@ -233,7 +287,7 @@ const BlogPage = () => {
             )}
 
             {/* Content */}
-            {!loading && posts.length === 0 && (
+            {!loading && filteredPosts.length === 0 && (
               <div className="text-center py-16">
                 <h2 className="text-2xl font-semibold mb-2">No posts found</h2>
                 <p className="text-muted-foreground">
@@ -242,7 +296,7 @@ const BlogPage = () => {
               </div>
             )}
             
-            {posts.length > 0 && (
+            {filteredPosts.length > 0 && (
               <>
                 {/* Featured Post */}
                 <Card className="mb-8 overflow-hidden">
@@ -307,19 +361,6 @@ const BlogPage = () => {
                   ))}
                 </div>
 
-                {/* Infinite Scroll Trigger */}
-                <div ref={lastElementRef} className="text-center mt-12">
-                  {loading && posts.length > 0 && <ThinkingAnimation />}
-                  {!hasMore && (
-                    <p>
-                      You've read all our articles. Check out our{' '}
-                      <Link to="/guides" className="text-primary hover:underline">
-                        health guides
-                      </Link>
-                      .
-                    </p>
-                  )}
-                </div>
               </>
             )}
           </div>
