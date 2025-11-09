@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePdf } from '@/lib/pdfUtils';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { isTelugu } from '@/lib/languageUtils';
 
 export interface GuideCategory {
   id: number;
@@ -191,41 +192,58 @@ const PatientGuidesPage = () => {
   };
 
   const filteredGuides = React.useMemo(() => {
-    const term = searchTerm.toLowerCase().trim();
+    const term = searchTerm.trim();
     if (!term) {
       return guides;
     }
 
-    const searchWords = term.split(/\s+/).filter(w => w.length > 0 && !['exercises', 'diet'].includes(w));
+    const searchInTelugu = isTelugu(term);
+    const termLower = searchInTelugu ? term : term.toLowerCase();
+    const searchWords = term.split(/\s+/).filter(w => {
+        const lowerW = w.toLowerCase();
+        return w.length > 0 && !['exercises', 'diet'].includes(lowerW);
+    });
+
     if (searchWords.length === 0) {
       return guides;
     }
 
     const scoredGuides = guides.map(guide => {
-      let score = 0;
-      const title = guide.title.toLowerCase();
-      const description = guide.description.toLowerCase();
-      const category = guide.categories.name.toLowerCase();
+        let score = 0;
+        let title = '';
+        let description = '';
+        const category = guide.categories.name.toLowerCase();
 
-      // Exact phrase match (highest score)
-      if (title.includes(term)) score += 100;
-      if (description.includes(term)) score += 50;
+        if (searchInTelugu) {
+            const translation = guide.guide_translations.find(t => t.language === 'te');
+            if (translation) {
+                title = translation.title;
+                description = translation.description;
+            } else {
+                return { guide, score: 0 };
+            }
+        } else {
+            title = guide.title.toLowerCase();
+            description = guide.description.toLowerCase();
+        }
 
-      // Count matching words
-      searchWords.forEach(word => {
-        if (title.includes(word)) score += 10;
-        if (description.includes(word)) score += 5;
-        if (category.includes(word)) score += 2;
-      });
+        if (title.includes(termLower)) score += 100;
+        if (description.includes(termLower)) score += 50;
 
-      return { guide, score };
+        searchWords.forEach(word => {
+            const wordCompare = searchInTelugu ? word : word.toLowerCase();
+            if (title.includes(wordCompare)) score += 10;
+            if (description.includes(wordCompare)) score += 5;
+            if (category.includes(word.toLowerCase())) score += 2;
+        });
+
+        return { guide, score };
     });
 
-    // Filter and sort by score
     const results = scoredGuides
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(item => item.guide);
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.guide);
 
     return results;
   }, [searchTerm, guides]);
