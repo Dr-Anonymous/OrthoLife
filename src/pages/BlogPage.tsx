@@ -138,17 +138,6 @@ const BlogPage = () => {
     };
   };
 
-
-  useEffect(() => {
-    if (searchTerm.trim() && filteredPosts.length === 0) {
-      setNoResults(true);
-    } else {
-      setNoResults(false);
-    }
-  }, [searchTerm, filteredPosts.length]);
-
-  const displayedPosts = noResults ? posts : filteredPosts;
-
   const filteredPosts = useMemo(() => {
     if (!searchTerm.trim()) {
       return posts;
@@ -177,6 +166,15 @@ const BlogPage = () => {
     });
   }, [posts, searchTerm]);
 
+  useEffect(() => {
+    if (searchTerm.trim() && filteredPosts.length === 0) {
+      setNoResults(true);
+    } else {
+      setNoResults(false);
+    }
+  }, [searchTerm, filteredPosts.length]);
+
+  const displayedPosts = noResults ? posts : filteredPosts;
   const featuredPost = displayedPosts[0];
   const otherPosts = displayedPosts.slice(1);
 
