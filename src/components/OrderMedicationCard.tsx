@@ -47,31 +47,52 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, 
     let dailyFrequency = 0;
 
     if (med.frequency && med.frequency.trim() !== '') {
-        const freq = med.frequency.toLowerCase().trim();
+        const freq = med.frequency.trim();
+        const freqLower = freq.toLowerCase();
 
-        const numericMatch = freq.match(/(\d+)\s*\/\s*(day|week|month)/);
+        // English parsing
+        const numericMatch = freqLower.match(/(\d+)\s*\/\s*(day|week|month)/);
         if (numericMatch) {
             const num = parseInt(numericMatch[1], 10);
             const unit = numericMatch[2];
-            if (unit === 'day') {
-                dailyFrequency = num;
-            } else if (unit === 'week') {
-                dailyFrequency = num / 7;
-            } else if (unit === 'month') {
-                dailyFrequency = num / 30;
-            }
+            if (unit === 'day') dailyFrequency = num;
+            else if (unit === 'week') dailyFrequency = num / 7;
+            else if (unit === 'month') dailyFrequency = num / 30;
         } else {
             const wordMap: { [key: string]: number } = { 'once': 1, 'twice': 2, 'thrice': 3, 'four times': 4 };
-            const wordMatch = freq.match(/(once|twice|thrice|four times)\s+a\s+(day|week|month)/);
+            const wordMatch = freqLower.match(new RegExp(`(${Object.keys(wordMap).join('|')})\\s+a\\s+(day|week|month)`));
             if (wordMatch) {
                 const num = wordMap[wordMatch[1]];
                 const unit = wordMatch[2];
-                 if (unit === 'day') {
-                    dailyFrequency = num;
-                } else if (unit === 'week') {
-                    dailyFrequency = num / 7;
-                } else if (unit === 'month') {
-                    dailyFrequency = num / 30;
+                if (unit === 'day') dailyFrequency = num;
+                else if (unit === 'week') dailyFrequency = num / 7;
+                else if (unit === 'month') dailyFrequency = num / 30;
+            } else {
+                // Telugu parsing
+                const teluguUnitMap: { [key: string]: string } = { 'రోజుకు': 'day', 'వారానికి': 'week', 'నెలకు': 'month' };
+                const teluguNumMap: { [key: string]: number } = {
+                    'ఒక': 1, 'రెండు': 2, 'మూడు': 3, 'నాలుగు': 4, 'ఐదు': 5, 'ఆరు': 6, 'ఏడు': 7, 'ఎనిమిది': 8, 'తొమ్మిది': 9, 'పది': 10,
+                    'ఒకసారి': 1, 'రెండుసార్లు': 2, 'మూడు సార్లు': 3, 'నాలుగు సార్లు': 4
+                };
+
+                const teluguRegex = new RegExp(`(${Object.keys(teluguUnitMap).join('|')})\\s*(${Object.keys(teluguNumMap).join('|')})`);
+                const teluguMatch = freq.match(teluguRegex);
+
+                if (teluguMatch) {
+                    const unit = teluguUnitMap[teluguMatch[1]];
+                    let num = teluguNumMap[teluguMatch[2]];
+
+                    // Handle cases like "మూడు సార్లు" where number is part of the phrase
+                    if (teluguMatch[2].includes('సార్లు')) {
+                       const parts = teluguMatch[2].split(' ');
+                       if(parts.length > 1 && teluguNumMap[parts[0]]) {
+                           num = teluguNumMap[parts[0]];
+                       }
+                    }
+
+                    if (unit === 'day') dailyFrequency = num;
+                    else if (unit === 'week') dailyFrequency = num / 7;
+                    else if (unit === 'month') dailyFrequency = num / 30;
                 }
             }
         }
