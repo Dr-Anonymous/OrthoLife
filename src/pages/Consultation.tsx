@@ -324,6 +324,9 @@ const Consultation = () => {
   const [nextConsultation, setNextConsultation] = useState<Consultation | null>(null);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerVisible, setIsTimerVisible] = useState(true);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isTimerPausedRef = useRef<boolean>(false);
+  const activeTimerIdRef = useRef<string | null>(null);
 
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
@@ -703,16 +706,45 @@ const Consultation = () => {
     }
   }, [selectedConsultation]);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (selectedConsultation && isTimerVisible) {
-      setTimerSeconds(0);
-      timer = setInterval(() => {
-        setTimerSeconds(prevSeconds => prevSeconds + 1);
-      }, 1000);
+  const startTimer = useCallback(() => {
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    timerIntervalRef.current = setInterval(() => {
+      setTimerSeconds(prev => prev + 1);
+    }, 1000);
+  }, []);
+
+  const stopTimer = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
-    return () => clearInterval(timer);
-  }, [selectedConsultation, isTimerVisible]);
+  }, []);
+
+  useEffect(() => {
+    if (selectedConsultation && isTimerVisible) {
+      if (activeTimerIdRef.current !== selectedConsultation.id) {
+        stopTimer();
+        setTimerSeconds(0);
+        isTimerPausedRef.current = false;
+        activeTimerIdRef.current = selectedConsultation.id;
+        startTimer();
+      } else if (!timerIntervalRef.current && !isTimerPausedRef.current) {
+        startTimer();
+      }
+    } else {
+      stopTimer();
+    }
+
+    if (!selectedConsultation) {
+        setTimerSeconds(0);
+        activeTimerIdRef.current = null;
+        isTimerPausedRef.current = false;
+    }
+
+    return () => {
+      stopTimer();
+    }
+  }, [selectedConsultation, isTimerVisible, startTimer, stopTimer]);
 
   useEffect(() => {
     if (formInitialState) {
@@ -1097,6 +1129,8 @@ const Consultation = () => {
 
       if (data?.url) {
         window.open(data.url, '_blank');
+        stopTimer();
+        isTimerPausedRef.current = true;
         await supabase.from('consultations').update({ status: 'completed' }).eq('id', selectedConsultation.id);
       }
 
