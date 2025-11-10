@@ -27,6 +27,8 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import SaveBundleModal from '@/components/SaveBundleModal';
 import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
+import { useReactToPrint } from 'react-to-print';
+import { Prescription } from '@/components/Prescription';
 import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
 
 interface TextShortcut {
@@ -388,6 +390,18 @@ const Consultation = () => {
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const translationCache = useRef<any>({ en: {}, te: {} });
+
+  const prescriptionRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    content: () => prescriptionRef.current,
+  });
+
+  const handleSaveAndPrint = async () => {
+    const saved = await saveChanges();
+    if (saved) {
+      handlePrint();
+    }
+  };
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -1481,6 +1495,10 @@ const Consultation = () => {
                             )}
                             </Button>
                             <div className="flex items-center gap-2">
+                                <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={handleSaveAndPrint}>
+                                    <Printer className="w-5 h-5" />
+                                    <span className="sr-only">Save & Print</span>
+                                </Button>
                                 <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
                                     <PackagePlus className="w-5 h-5" />
                                     <span className="sr-only">Save as Bundle</span>
@@ -1501,6 +1519,17 @@ const Consultation = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+      <div style={{ display: 'none' }}>
+        {selectedConsultation && editablePatientDetails && (
+          <Prescription
+            ref={prescriptionRef}
+            patient={editablePatientDetails}
+            consultation={extraData}
+            consultationDate={selectedDate || new Date()}
+            age={age}
+          />
+        )}
       </div>
       <SavedMedicationsModal
         isOpen={isMedicationsModalOpen}
