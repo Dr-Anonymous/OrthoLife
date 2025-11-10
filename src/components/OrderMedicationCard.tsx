@@ -12,6 +12,7 @@ interface Medication {
   freqMorning: boolean;
   freqNoon: boolean;
   freqNight: boolean;
+  frequency?: string;
   duration: string;
   instructions: string;
 }
@@ -36,16 +37,51 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications, 
   }, [medications]);
 
   const calculateQuantity = (med: Medication): number => {
-    const durationMatch = med.duration.match(/(\d+)\s*(week|day)s?/i);
+    const durationMatch = med.duration.match(/(\d+)\s*(day|week|month)s?/i);
     if (!durationMatch) return 0;
 
-    const value = parseInt(durationMatch[1], 10);
-    const unit = durationMatch[2].toLowerCase();
-    const days = unit === 'week' ? value * 7 : value;
+    const durationValue = parseInt(durationMatch[1], 10);
+    const durationUnit = durationMatch[2].toLowerCase();
+    const days = durationUnit === 'week' ? durationValue * 7 : durationUnit === 'month' ? durationValue * 30 : durationValue;
 
-    const frequency = (med.freqMorning ? 1 : 0) + (med.freqNoon ? 1 : 0) + (med.freqNight ? 1 : 0);
+    let dailyFrequency = 0;
 
-    return days * frequency;
+    if (med.frequency && med.frequency.trim() !== '') {
+        const freq = med.frequency.toLowerCase().trim();
+
+        const numericMatch = freq.match(/(\d+)\s*\/\s*(day|week|month)/);
+        if (numericMatch) {
+            const num = parseInt(numericMatch[1], 10);
+            const unit = numericMatch[2];
+            if (unit === 'day') {
+                dailyFrequency = num;
+            } else if (unit === 'week') {
+                dailyFrequency = num / 7;
+            } else if (unit === 'month') {
+                dailyFrequency = num / 30;
+            }
+        } else {
+            const wordMap: { [key: string]: number } = { 'once': 1, 'twice': 2, 'thrice': 3, 'four times': 4 };
+            const wordMatch = freq.match(/(once|twice|thrice|four times)\s+a\s+(day|week|month)/);
+            if (wordMatch) {
+                const num = wordMap[wordMatch[1]];
+                const unit = wordMatch[2];
+                 if (unit === 'day') {
+                    dailyFrequency = num;
+                } else if (unit === 'week') {
+                    dailyFrequency = num / 7;
+                } else if (unit === 'month') {
+                    dailyFrequency = num / 30;
+                }
+            }
+        }
+    } else {
+        dailyFrequency = (med.freqMorning ? 1 : 0) + (med.freqNoon ? 1 : 0) + (med.freqNight ? 1 : 0);
+    }
+
+    const totalQuantity = days * dailyFrequency;
+
+    return Math.ceil(totalQuantity);
   };
 
   const handleQuantityChange = (name: string, quantity: string) => {
