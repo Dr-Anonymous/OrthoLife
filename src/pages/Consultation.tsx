@@ -1517,17 +1517,17 @@ const Consultation = () => {
           </CardContent>
         </Card>
       </div>
-      <div style={{ display: 'none' }}>
-        <div id="print-container">
-          {selectedConsultation && editablePatientDetails && (
+      <div className="print-only">
+        {selectedConsultation && editablePatientDetails && (
+          <div id="print-container">
             <Prescription
               patient={editablePatientDetails}
               consultation={extraData}
               consultationDate={selectedDate || new Date()}
               age={age}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
       <SavedMedicationsModal
         isOpen={isMedicationsModalOpen}
