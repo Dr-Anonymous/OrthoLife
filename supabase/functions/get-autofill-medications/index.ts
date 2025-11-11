@@ -18,15 +18,19 @@ serve(async (req) => {
     const inputTextWords = cleanedText.split(/\s+/);
     const medicationIds = new Set<number>();
     const adviceTexts = new Set<string>();
+    const investigationTexts = new Set<string>();
+    const followupTexts = new Set<string>();
 
     const adviceColumn = language === 'te' ? 'advice_te' : 'advice';
+    const followupColumn = language === 'te' ? 'followup_te' : 'followup';
+
     const { data: keywordMappings, error: keywordsError } = await supabase
       .from('autofill_keywords')
-      .select(`keywords, medication_ids, ${adviceColumn}`);
+      .select(`keywords, medication_ids, ${adviceColumn}, investigations, ${followupColumn}`);
 
     if (keywordsError) {
       console.error('Error fetching keywords:', keywordsError);
-      return new Response(JSON.stringify({ medications: [], advice: '' }), {
+      return new Response(JSON.stringify({ medications: [], advice: '', investigations: '', followup: '' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -58,6 +62,14 @@ serve(async (req) => {
               if (advice) {
                 adviceTexts.add(advice);
               }
+              const investigations = mapping['investigations'];
+              if (investigations) {
+                investigationTexts.add(investigations);
+              }
+              const followup = mapping[followupColumn];
+              if (followup) {
+                followupTexts.add(followup);
+              }
               break;
             }
           }
@@ -86,6 +98,8 @@ serve(async (req) => {
     const response = {
       medications,
       advice: Array.from(adviceTexts).join('\n'),
+      investigations: Array.from(investigationTexts).join('\n'),
+      followup: Array.from(followupTexts).join('\n'),
     };
 
     return new Response(JSON.stringify(response), {

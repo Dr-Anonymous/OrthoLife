@@ -29,6 +29,7 @@ import SaveBundleModal from '@/components/SaveBundleModal';
 import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
 import { Prescription } from '@/components/Prescription';
 import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
+import '@/print.css';
 
 interface TextShortcut {
   id: string;
@@ -355,6 +356,8 @@ const Consultation = () => {
 
   const [suggestedMedications, setSuggestedMedications] = useState<Medication[]>([]);
   const [suggestedAdvice, setSuggestedAdvice] = useState<string[]>([]);
+  const [suggestedInvestigations, setSuggestedInvestigations] = useState<string[]>([]);
+  const [suggestedFollowup, setSuggestedFollowup] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -396,7 +399,7 @@ const Consultation = () => {
       // Use a timeout to ensure the DOM is updated before printing
       setTimeout(() => {
         window.print();
-      }, 500);
+      }, 100);
     }
   };
 
@@ -527,7 +530,7 @@ const Consultation = () => {
         if (error) throw error;
         if (!data) return;
 
-        const { medications, advice } = data;
+        const { medications, advice, investigations, followup } = data;
 
         if (medications && medications.length > 0) {
           const newMedications = medications.map(med => ({
@@ -557,6 +560,26 @@ const Consultation = () => {
             return [...prev, ...newItems];
           });
         }
+
+        if (investigations) {
+          const investigationItems = investigations.split('\n').filter(item => item.trim() !== '');
+          const uniqueInvestigationItems = investigationItems.filter(item => !extraData.investigations.includes(item));
+
+          setSuggestedInvestigations(prev => {
+            const newItems = uniqueInvestigationItems.filter(item => !prev.includes(item));
+            return [...prev, ...newItems];
+          });
+        }
+
+        if (followup) {
+          const followupItems = followup.split('\n').filter(item => item.trim() !== '');
+          const uniqueFollowupItems = followupItems.filter(item => !extraData.followup.includes(item));
+
+          setSuggestedFollowup(prev => {
+            const newItems = uniqueFollowupItems.filter(item => !prev.includes(item));
+            return [...prev, ...newItems];
+          });
+        }
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
@@ -564,6 +587,8 @@ const Consultation = () => {
 
     setSuggestedMedications([]);
     setSuggestedAdvice([]);
+    setSuggestedInvestigations([]);
+    setSuggestedFollowup([]);
 
     fetchSuggestions(debouncedComplaints);
     fetchSuggestions(debouncedDiagnosis);
@@ -695,6 +720,8 @@ const Consultation = () => {
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
+      setSuggestedInvestigations([]);
+      setSuggestedFollowup([]);
       if (selectedConsultation.consultation_data?.language) {
         i18n.changeLanguage(selectedConsultation.consultation_data.language);
       }
@@ -829,7 +856,7 @@ const Consultation = () => {
     }
 
     // Handle shortcut replacement for complaints and diagnosis
-    if (field === 'complaints' || field === 'diagnosis') {
+    if (['complaints', 'diagnosis', 'findings', 'investigations', 'advice', 'personalNote'].includes(field)) {
       const shortcutRegex = /(\s|^)(\w+)\.\s*$/; // Matches a word preceded by space or start, followed by a dot
       const match = value.match(shortcutRegex);
 
@@ -920,6 +947,22 @@ const Consultation = () => {
     }));
     setSuggestedAdvice(prev => prev.filter(item => item !== advice));
   };
+
+  const handleInvestigationSuggestionClick = (investigation: string) => {
+    setExtraData(prev => ({
+        ...prev,
+        investigations: [prev.investigations, investigation].filter(Boolean).join('\n'),
+    }));
+    setSuggestedInvestigations(prev => prev.filter(item => item !== investigation));
+    };
+
+  const handleFollowupSuggestionClick = (followup: string) => {
+    setExtraData(prev => ({
+        ...prev,
+        followup: [prev.followup, followup].filter(Boolean).join('\n'),
+    }));
+    setSuggestedFollowup(prev => prev.filter(item => item !== followup));
+    };
 
   const handleMedicationSuggestionClick = (med: Medication) => {
     const medToAdd = i18n.language === 'te' ? {
@@ -1151,7 +1194,6 @@ const Consultation = () => {
       });
 
       if(selectedDate) fetchConsultations(selectedDate);
-      setSelectedConsultation(null);
 
     } catch (error) {
       console.error('Error:', error);
@@ -1162,11 +1204,10 @@ const Consultation = () => {
   };
 
   return (
-    <>
-      <div id="app-root" className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4 print:hidden">
-        <div className="container mx-auto max-w-7xl">
-          <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-            <CardHeader className="text-center pt-6 sm:pt-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
+      <div className="container mx-auto max-w-7xl">
+        <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+          <CardHeader className="text-center pt-6 sm:pt-8">
             <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
               <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
               Doctor's Consultation
@@ -1399,7 +1440,14 @@ const Consultation = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                  <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                      <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                      {suggestedInvestigations.map((investigation) => (
+                                          <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
+                                              {investigation}
+                                          </Button>
+                                      ))}
+                                  </div>
                                   <Button type="button" size="icon" variant="ghost" onClick={handleOrderNow} disabled={isOrdering}>
                                     {isOrdering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
                                     <span className="sr-only">Order Now</span>
@@ -1471,8 +1519,15 @@ const Consultation = () => {
                             </div>
                             
                             <div className="space-y-2">
-                            <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
-                            <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                                    {suggestedFollowup.map((followup) => (
+                                        <Button key={followup} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(followup)}>
+                                            {followup}
+                                        </Button>
+                                    ))}
+                                </div>
+                                <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
                             </div>
 
                             <div className="space-y-2">
@@ -1561,7 +1616,7 @@ const Consultation = () => {
         onClose={() => setIsShortcutModalOpen(false)}
         onUpdate={fetchTextShortcuts}
       />
-    </>
+    </div>
   );
 };
 
