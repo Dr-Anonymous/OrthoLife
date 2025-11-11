@@ -382,7 +382,6 @@ const Consultation = () => {
   const [isOrdering, setIsOrdering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
   const [age, setAge] = useState<number | ''>('');
   const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -394,24 +393,15 @@ const Consultation = () => {
 
   const prescriptionRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
-    content: () => prescriptionRef.current,
+    contentRef: prescriptionRef,
   });
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges();
     if (saved) {
-      setIsPrinting(true);
+      handlePrint();
     }
   };
-
-  useEffect(() => {
-    if (isPrinting) {
-      setTimeout(() => {
-        handlePrint();
-        setIsPrinting(false);
-      }, 0);
-    }
-  }, [isPrinting, handlePrint]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
