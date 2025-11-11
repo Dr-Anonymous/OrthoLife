@@ -1573,7 +1573,8 @@ const Consultation = () => {
           </CardContent>
         </Card>
       </div>
-      <div className="print-only">
+    </div>
+    <div className="hidden print:block">
         {selectedConsultation && editablePatientDetails && (
           <div id="print-container">
             <Prescription
