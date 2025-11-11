@@ -406,10 +406,12 @@ const Consultation = () => {
 
   useEffect(() => {
     if (isPrinting) {
-      handlePrint();
-      setIsPrinting(false);
+      setTimeout(() => {
+        handlePrint();
+        setIsPrinting(false);
+      }, 0);
     }
-  }, [isPrinting]);
+  }, [isPrinting, handlePrint]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
