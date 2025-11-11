@@ -1204,419 +1204,420 @@ const Consultation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
-      <div className="container mx-auto max-w-7xl">
-        <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <CardHeader className="text-center pt-6 sm:pt-8">
-            <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
-              <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
-              Doctor's Consultation
-            </CardTitle>
-            <CardDescription className="text-base sm:text-lg text-muted-foreground">
-              View pending consultations and manage prescriptions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 sm:space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-                <div className="lg:col-span-1 space-y-4">
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <Label>Consultation Date</Label>
-                            <div className="flex items-center gap-2">
-                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => selectedDate && fetchConsultations(selectedDate)} disabled={isFetchingConsultations}>
-                                    {isFetchingConsultations ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                                    <span className="sr-only">Refresh</span>
-                                </Button>
-                                <Link to="/consultation-stats">
-                                    <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
-                                </Link>
-                            </div>
-                        </div>
-                        <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                variant="outline"
-                                className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !selectedDate && "text-muted-foreground"
-                                )}
-                                >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={handleConsultationDateChange}
-                                initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="font-semibold">
-                            Total Consultations: {allConsultations.length}
-                        </div>
-                        <div>
-                            <Label>Pending Consultations: {pendingConsultations.length}</Label>
-                            {isFetchingConsultations ? (
-                                <div className="flex justify-center items-center h-32">
-                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                                </div>
-                            ) : (
-                                <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
-                                    {pendingConsultations.map(c => (
-                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                            {c.patient.name}
-                                        </Button>
-                                    ))}
-                                    {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent" onClick={() => setIsCompletedCollapsed(!isCompletedCollapsed)}>
-                                <Label className="cursor-pointer">Completed Consultations: {completedConsultations.length}</Label>
-                                <ChevronDown className={cn("w-4 h-4 transition-transform", !isCompletedCollapsed && "rotate-180")} />
-                            </Button>
-                             {isFetchingConsultations ? (
-                                <div className="flex justify-center items-center h-32">
-                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                                </div>
-                            ) : (
-                                <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
-                                    {completedConsultations.map(c => (
-                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                            {c.patient.name}
-                                        </Button>
-                                    ))}
-                                    {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex justify-between items-center mt-4">
-                            {isTimerVisible && (
-                                <div className="text-lg font-semibold">
-                                    {formatTime(timerSeconds)}
-                                </div>
-                            )}
-                            <Button variant="ghost" size="icon" onClick={() => setIsTimerVisible(!isTimerVisible)}>
-                                {isTimerVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="md:col-span-3">
-                {selectedConsultation && editablePatientDetails ? (
-                    <form onSubmit={submitForm} className="space-y-6">
-                        <div className="space-y-4">
-                            <div className="flex flex-wrap items-center justify-between mb-4">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <User className="w-5 h-5 text-primary" />
-                                  <h3 className="text-lg font-semibold text-foreground">
-                                    Demographic details of {editablePatientDetails.name}
-                                  </h3>
-                                  {lastVisitDate && (
-                                    <span className="text-sm text-muted-foreground">
-                                      ({lastVisitDate === 'First Consultation' ? 'First Consultation' : `Last visit: ${lastVisitDate}`})
-                                    </span>
-                                  )}
-                                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsHistoryModalOpen(true)}>
-                                    <History className="h-4 w-4" />
-                                    <span className="sr-only">View Patient History</span>
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
+        <div className="container mx-auto max-w-7xl">
+          <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+            <CardHeader className="text-center pt-6 sm:pt-8">
+              <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
+                <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
+                Doctor's Consultation
+              </CardTitle>
+              <CardDescription className="text-base sm:text-lg text-muted-foreground">
+                View pending consultations and manage prescriptions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 sm:space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+                  <div className="lg:col-span-1 space-y-4">
+                      <div>
+                          <div className="flex justify-between items-center mb-2">
+                              <Label>Consultation Date</Label>
+                              <div className="flex items-center gap-2">
+                                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => selectedDate && fetchConsultations(selectedDate)} disabled={isFetchingConsultations}>
+                                      {isFetchingConsultations ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                      <span className="sr-only">Refresh</span>
                                   </Button>
-                                </div>
-                                {editablePatientDetails.drive_id && (
-                                    <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
-                                        <Folder className="w-5 h-5 text-blue-500 hover:text-blue-700" />
-                                    </a>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input id="name" value={editablePatientDetails.name} onChange={e => handlePatientDetailsChange('name', e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                <Label htmlFor="phone">Phone Number</Label>
-                                <Input id="phone" value={editablePatientDetails.phone} onChange={e => handlePatientDetailsChange('phone', e.target.value)} />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="dob">Date of Birth</Label>
-                                  <div className="flex flex-col sm:flex-row gap-2">
-                                    <Popover open={isPatientDatePickerOpen} onOpenChange={setIsPatientDatePickerOpen}>
-                                      <PopoverTrigger asChild>
-                                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
-                                          <CalendarIcon className="mr-2 h-4 w-4" />
-                                          {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-auto p-0" align="start">
-                                        <div className="p-3 border-b space-y-2">
-                                          <div className="flex gap-2">
-                                            <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                                              <SelectContent>
-                                                {Array.from({ length: 12 }).map((_, index) => (
-                                                  <SelectItem key={index} value={index.toString()}>
-                                                    {format(new Date(2000, index), 'MMMM')}
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                            <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                                              <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                                              <SelectContent className="max-h-48">
-                                                {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                                                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                        <Calendar
-                                          mode="single"
-                                          selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
-                                          onSelect={handleDateChange}
-                                          month={calendarDate}
-                                          onMonthChange={setCalendarDate}
-                                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                                          initialFocus
-                                          className="p-3"
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                    <Input
-                                      id="age"
-                                      type="number"
-                                      placeholder="Age"
-                                      value={age}
-                                      onChange={handleAgeChange}
-                                      className="w-full sm:w-24"
-                                    />
+                                  <Link to="/consultation-stats">
+                                      <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
+                                  </Link>
+                              </div>
+                          </div>
+                          <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
+                              <PopoverTrigger asChild>
+                                  <Button
+                                  variant="outline"
+                                  className={cn(
+                                      "w-full justify-start text-left font-normal",
+                                      !selectedDate && "text-muted-foreground"
+                                  )}
+                                  >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                  <Calendar
+                                  mode="single"
+                                  selected={selectedDate}
+                                  onSelect={handleConsultationDateChange}
+                                  initialFocus
+                                  />
+                              </PopoverContent>
+                          </Popover>
+                      </div>
+                      <div className="space-y-4">
+                          <div className="font-semibold">
+                              Total Consultations: {allConsultations.length}
+                          </div>
+                          <div>
+                              <Label>Pending Consultations: {pendingConsultations.length}</Label>
+                              {isFetchingConsultations ? (
+                                  <div className="flex justify-center items-center h-32">
+                                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
                                   </div>
-                                </div>
-                                <div className="space-y-2">
-                                <Label htmlFor="sex">Sex</Label>
-                                <Select value={editablePatientDetails.sex} onValueChange={value => handlePatientDetailsChange('sex', value)}>
-                                    <SelectTrigger>
-                                    <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                    <SelectItem value="M">Male</SelectItem>
-                                    <SelectItem value="F">Female</SelectItem>
-                                    <SelectItem value="Other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                </div>
-                            </div>
-                        </div>
+                              ) : (
+                                  <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
+                                      {pendingConsultations.map(c => (
+                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
+                                              {c.patient.name}
+                                          </Button>
+                                      ))}
+                                      {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
+                                  </div>
+                              )}
+                          </div>
+                          <div>
+                              <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent" onClick={() => setIsCompletedCollapsed(!isCompletedCollapsed)}>
+                                  <Label className="cursor-pointer">Completed Consultations: {completedConsultations.length}</Label>
+                                  <ChevronDown className={cn("w-4 h-4 transition-transform", !isCompletedCollapsed && "rotate-180")} />
+                              </Button>
+                               {isFetchingConsultations ? (
+                                  <div className="flex justify-center items-center h-32">
+                                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                  </div>
+                              ) : (
+                                  <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
+                                      {completedConsultations.map(c => (
+                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
+                                              {c.patient.name}
+                                          </Button>
+                                      ))}
+                                      {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
+                                  </div>
+                              )}
+                          </div>
+                          <div className="flex justify-between items-center mt-4">
+                              {isTimerVisible && (
+                                  <div className="text-lg font-semibold">
+                                      {formatTime(timerSeconds)}
+                                  </div>
+                              )}
+                              <Button variant="ghost" size="icon" onClick={() => setIsTimerVisible(!isTimerVisible)}>
+                                  {isTimerVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                          </div>
+                      </div>
+                  </div>
 
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-primary" />
-                                    <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
-                                </div>
-                            </div>
+                  <div className="md:col-span-3">
+                  {selectedConsultation && editablePatientDetails ? (
+                      <form onSubmit={submitForm} className="space-y-6">
+                          <div className="space-y-4">
+                              <div className="flex flex-wrap items-center justify-between mb-4">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <User className="w-5 h-5 text-primary" />
+                                    <h3 className="text-lg font-semibold text-foreground">
+                                      Demographic details of {editablePatientDetails.name}
+                                    </h3>
+                                    {lastVisitDate && (
+                                      <span className="text-sm text-muted-foreground">
+                                        ({lastVisitDate === 'First Consultation' ? 'First Consultation' : `Last visit: ${lastVisitDate}`})
+                                      </span>
+                                    )}
+                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsHistoryModalOpen(true)}>
+                                      <History className="h-4 w-4" />
+                                      <span className="sr-only">View Patient History</span>
+                                    </Button>
+                                  </div>
+                                  {editablePatientDetails.drive_id && (
+                                      <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
+                                          <Folder className="w-5 h-5 text-blue-500 hover:text-blue-700" />
+                                      </a>
+                                  )}
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                  <Label htmlFor="name">Full Name</Label>
+                                  <Input id="name" value={editablePatientDetails.name} onChange={e => handlePatientDetailsChange('name', e.target.value)} />
+                                  </div>
+                                  <div className="space-y-2">
+                                  <Label htmlFor="phone">Phone Number</Label>
+                                  <Input id="phone" value={editablePatientDetails.phone} onChange={e => handlePatientDetailsChange('phone', e.target.value)} />
+                                  </div>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="dob">Date of Birth</Label>
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                      <Popover open={isPatientDatePickerOpen} onOpenChange={setIsPatientDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <div className="p-3 border-b space-y-2">
+                                            <div className="flex gap-2">
+                                              <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                  {Array.from({ length: 12 }).map((_, index) => (
+                                                    <SelectItem key={index} value={index.toString()}>
+                                                      {format(new Date(2000, index), 'MMMM')}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                              <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                                <SelectContent className="max-h-48">
+                                                  {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                                                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                          </div>
+                                          <Calendar
+                                            mode="single"
+                                            selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
+                                            onSelect={handleDateChange}
+                                            month={calendarDate}
+                                            onMonthChange={setCalendarDate}
+                                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                            initialFocus
+                                            className="p-3"
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                      <Input
+                                        id="age"
+                                        type="number"
+                                        placeholder="Age"
+                                        value={age}
+                                        onChange={handleAgeChange}
+                                        className="w-full sm:w-24"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                  <Label htmlFor="sex">Sex</Label>
+                                  <Select value={editablePatientDetails.sex} onValueChange={value => handlePatientDetailsChange('sex', value)}>
+                                      <SelectTrigger>
+                                      <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                      <SelectItem value="M">Male</SelectItem>
+                                      <SelectItem value="F">Female</SelectItem>
+                                      <SelectItem value="Other">Other</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                                  </div>
+                              </div>
+                          </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
-                                <Textarea id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value)} placeholder="Patient complaints..." className="min-h-[100px]" />
-                            </div>
+                          <div className="space-y-4">
+                              <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center gap-2">
+                                      <FileText className="w-5 h-5 text-primary" />
+                                      <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                                  </div>
+                              </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="findings" className="text-sm font-medium">Clinical Findings</Label>
-                                <Textarea id="findings" value={extraData.findings} onChange={e => handleExtraChange('findings', e.target.value)} placeholder="Clinical findings..." className="min-h-[100px]" />
-                            </div>
-                            </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                  <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
+                                  <Textarea id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value)} placeholder="Patient complaints..." className="min-h-[100px]" />
+                              </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
+                              <div className="space-y-2">
+                                  <Label htmlFor="findings" className="text-sm font-medium">Clinical Findings</Label>
+                                  <Textarea id="findings" value={extraData.findings} onChange={e => handleExtraChange('findings', e.target.value)} placeholder="Clinical findings..." className="min-h-[100px]" />
+                              </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                        {suggestedInvestigations.map((investigation) => (
+                                            <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
+                                                {investigation}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                    <Button type="button" size="icon" variant="ghost" onClick={handleOrderNow} disabled={isOrdering}>
+                                      {isOrdering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                                      <span className="sr-only">Order Now</span>
+                                    </Button>
+                                  </div>
+                                  <Textarea id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value)} placeholder="Investigations required..." className="min-h-[100px]" />
+                              </div>
+
+                              <div className="space-y-2">
+                                  <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
+                                  <Textarea id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
+                              </div>
+                              </div>
+
+                              <div className="space-y-2">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                      <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
-                                      {suggestedInvestigations.map((investigation) => (
-                                          <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
-                                              {investigation}
+                                      <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                                      <LanguageSwitcher />
+                                      {suggestedAdvice.map((advice) => (
+                                          <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
+                                              {advice}
                                           </Button>
                                       ))}
                                   </div>
-                                  <Button type="button" size="icon" variant="ghost" onClick={handleOrderNow} disabled={isOrdering}>
-                                    {isOrdering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-                                    <span className="sr-only">Order Now</span>
+                                  <Textarea id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value)} placeholder="Medical advice..." className="min-h-[80px]" />
+                              </div>
+                          </div>
+
+                          <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                      <div className="flex items-center gap-2">
+                                          <Stethoscope className="w-5 h-5 text-primary" />
+                                          <h3 className="text-lg font-semibold text-foreground">Medications</h3>
+                                      </div>
+                                      {suggestedMedications.map((med) => (
+                                          <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleMedicationSuggestionClick(med)}>
+                                              {med.name}
+                                          </Button>
+                                      ))}
+                                  </div>
+                              </div>
+
+                              <div className="space-y-4 pl-6">
+                              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                  <SortableContext items={extraData.medications.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                                  {extraData.medications.map((med, index) => (
+                                      <SortableMedicationItem
+                                      key={med.id}
+                                      med={med}
+                                      index={index}
+                                      handleMedChange={handleMedChange}
+                                      removeMedication={removeMedication}
+                                      savedMedications={savedMedications}
+                                      setExtraData={setExtraData}
+                                      medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
+                                      fetchSavedMedications={fetchSavedMedications}
+                                      i18n={i18n}
+                                      />
+                                  ))}
+                                  </SortableContext>
+                              </DndContext>
+                              </div>
+                              <div className="flex justify-end items-center gap-2">
+                                  <Button type="button" onClick={addMedication} variant="outline" size="icon" className="rounded-full">
+                                      <Plus className="h-4 w-4" />
+                                      <span className="sr-only">Add Medication</span>
                                   </Button>
-                                </div>
-                                <Textarea id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value)} placeholder="Investigations required..." className="min-h-[100px]" />
-                            </div>
+                              </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
-                                <Textarea id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
-                            </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
-                                    <LanguageSwitcher />
-                                    {suggestedAdvice.map((advice) => (
-                                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
-                                            {advice}
-                                        </Button>
-                                    ))}
-                                </div>
-                                <Textarea id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value)} placeholder="Medical advice..." className="min-h-[80px]" />
-                            </div>  
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <div className="flex items-center gap-2">
-                                        <Stethoscope className="w-5 h-5 text-primary" />
-                                        <h3 className="text-lg font-semibold text-foreground">Medications</h3>
-                                    </div>
-                                    {suggestedMedications.map((med) => (
-                                        <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleMedicationSuggestionClick(med)}>
-                                            {med.name}
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
+                              <div className="space-y-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                      <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                                      {suggestedFollowup.map((followup) => (
+                                          <Button key={followup} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(followup)}>
+                                              {followup}
+                                          </Button>
+                                      ))}
+                                  </div>
+                                  <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
+                              </div>
 
-                            <div className="space-y-4 pl-6">
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                <SortableContext items={extraData.medications.map(m => m.id)} strategy={verticalListSortingStrategy}>
-                                {extraData.medications.map((med, index) => (
-                                    <SortableMedicationItem
-                                    key={med.id}
-                                    med={med}
-                                    index={index}
-                                    handleMedChange={handleMedChange}
-                                    removeMedication={removeMedication}
-                                    savedMedications={savedMedications}
-                                    setExtraData={setExtraData}
-                                    medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
-                                    fetchSavedMedications={fetchSavedMedications}
-                                    i18n={i18n}
-                                    />
-                                ))}
-                                </SortableContext>
-                            </DndContext>
-                            </div>
-                            <div className="flex justify-end items-center gap-2">
-                                <Button type="button" onClick={addMedication} variant="outline" size="icon" className="rounded-full">
-                                    <Plus className="h-4 w-4" />
-                                    <span className="sr-only">Add Medication</span>
-                                </Button>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
-                                    {suggestedFollowup.map((followup) => (
-                                        <Button key={followup} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(followup)}>
-                                            {followup}
-                                        </Button>
-                                    ))}
-                                </div>
-                                <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
-                            </div>
+                              <div className="space-y-2">
+                                  <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
+                                  <Textarea id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
+                              </div>
+                          </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
-                                <Textarea id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
-                            </div>
-                        </div>
-
-                        <div className="pt-6 flex flex-col sm:flex-row items-center gap-2">
-                            <Button type="submit" className="flex-grow h-12 w-full sm:w-auto text-lg font-semibold" disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Generating...
-                                </>
-                            ) : (
-                                'Generate Prescription'
-                            )}
-                            </Button>
-                            <div className="flex items-center gap-2">
-                                <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={handleSaveAndPrint}>
-                                    <Printer className="w-5 h-5" />
-                                    <span className="sr-only">Save & Print</span>
-                                </Button>
-                                <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
-                                    <PackagePlus className="w-5 h-5" />
-                                    <span className="sr-only">Save as Bundle</span>
-                                </Button>
-                                <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
-                                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                    <span className="sr-only">Save Changes</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </form>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
-                        <p className="text-lg text-muted-foreground">Please select a patient to view details.</p>
-                    </div>
-                )}
-                </div>
+                          <div className="pt-6 flex flex-col sm:flex-row items-center gap-2">
+                              <Button type="submit" className="flex-grow h-12 w-full sm:w-auto text-lg font-semibold" disabled={isSubmitting}>
+                              {isSubmitting ? (
+                                  <>
+                                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                  Generating...
+                                  </>
+                              ) : (
+                                  'Generate Prescription'
+                              )}
+                              </Button>
+                              <div className="flex items-center gap-2">
+                                  <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={handleSaveAndPrint}>
+                                      <Printer className="w-5 h-5" />
+                                      <span className="sr-only">Save & Print</span>
+                                  </Button>
+                                  <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
+                                      <PackagePlus className="w-5 h-5" />
+                                      <span className="sr-only">Save as Bundle</span>
+                                  </Button>
+                                  <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
+                                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                      <span className="sr-only">Save Changes</span>
+                                  </Button>
+                              </div>
+                          </div>
+                      </form>
+                  ) : (
+                      <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
+                          <p className="text-lg text-muted-foreground">Please select a patient to view details.</p>
+                      </div>
+                  )}
+                  </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      <div className="hidden print:block">
+          {selectedConsultation && editablePatientDetails && (
+            <div id="print-container">
+              <Prescription
+                patient={editablePatientDetails}
+                consultation={extraData}
+                consultationDate={selectedDate || new Date()}
+                age={age}
+              />
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-    <div className="hidden print:block">
-        {selectedConsultation && editablePatientDetails && (
-          <div id="print-container">
-            <Prescription
-              patient={editablePatientDetails}
-              consultation={extraData}
-              consultationDate={selectedDate || new Date()}
-              age={age}
-            />
-          </div>
-        )}
-      </div>
-      <SavedMedicationsModal
-        isOpen={isMedicationsModalOpen}
-        onClose={() => setIsMedicationsModalOpen(false)}
-        onMedicationsUpdate={fetchSavedMedications}
-      />
-      <KeywordManagementModal
-        isOpen={isKeywordModalOpen}
-        onClose={() => setIsKeywordModalOpen(false)}
-      />
-      <UnsavedChangesModal
-        isOpen={isUnsavedModalOpen}
-        onConfirm={handleConfirmSave}
-        onDiscard={handleDiscardChanges}
-      />
-      <PatientHistoryModal
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
-        patientId={selectedConsultation?.patient.id || null}
-      />
-      <SaveBundleModal
-        isOpen={isSaveBundleModalOpen}
-        onClose={() => setIsSaveBundleModalOpen(false)}
-        medications={extraData.medications}
-        advice={extraData.advice}
-      />
-      <TextShortcutManagementModal
-        isOpen={isShortcutModalOpen}
-        onClose={() => setIsShortcutModalOpen(false)}
-        onUpdate={fetchTextShortcuts}
-      />
-    </div>
+          )}
+        </div>
+        <SavedMedicationsModal
+          isOpen={isMedicationsModalOpen}
+          onClose={() => setIsMedicationsModalOpen(false)}
+          onMedicationsUpdate={fetchSavedMedications}
+        />
+        <KeywordManagementModal
+          isOpen={isKeywordModalOpen}
+          onClose={() => setIsKeywordModalOpen(false)}
+        />
+        <UnsavedChangesModal
+          isOpen={isUnsavedModalOpen}
+          onConfirm={handleConfirmSave}
+          onDiscard={handleDiscardChanges}
+        />
+        <PatientHistoryModal
+          isOpen={isHistoryModalOpen}
+          onClose={() => setIsHistoryModalOpen(false)}
+          patientId={selectedConsultation?.patient.id || null}
+        />
+        <SaveBundleModal
+          isOpen={isSaveBundleModalOpen}
+          onClose={() => setIsSaveBundleModalOpen(false)}
+          medications={extraData.medications}
+          advice={extraData.advice}
+        />
+        <TextShortcutManagementModal
+          isOpen={isShortcutModalOpen}
+          onClose={() => setIsShortcutModalOpen(false)}
+          onUpdate={fetchTextShortcuts}
+        />
+    </>
   );
 };
 
