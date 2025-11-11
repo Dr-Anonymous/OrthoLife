@@ -1140,7 +1140,6 @@ const Consultation = () => {
       });
 
       if(selectedDate) fetchConsultations(selectedDate);
-      setSelectedConsultation(null);
 
     } catch (error) {
       console.error('Error:', error);
