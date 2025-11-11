@@ -1,16 +1,21 @@
+/* Default screen styles */
+.print-only {
+  display: none;
+}
+
 @media print {
   /* Hide everything in the body by default */
-  body > * {
+  body > *:not(.print-only) {
     display: none !important;
   }
 
   /* Display only the print container and its children */
-  #print-container, #print-container * {
+  .print-only {
     display: block !important;
   }
 
-  /* Position the print container at the top of the page */
   #print-container {
+    display: block !important;
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
