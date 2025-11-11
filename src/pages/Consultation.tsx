@@ -356,6 +356,8 @@ const Consultation = () => {
 
   const [suggestedMedications, setSuggestedMedications] = useState<Medication[]>([]);
   const [suggestedAdvice, setSuggestedAdvice] = useState<string[]>([]);
+  const [suggestedInvestigations, setSuggestedInvestigations] = useState<string[]>([]);
+  const [suggestedFollowup, setSuggestedFollowup] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -528,7 +530,7 @@ const Consultation = () => {
         if (error) throw error;
         if (!data) return;
 
-        const { medications, advice } = data;
+        const { medications, advice, investigations, followup } = data;
 
         if (medications && medications.length > 0) {
           const newMedications = medications.map(med => ({
@@ -558,6 +560,26 @@ const Consultation = () => {
             return [...prev, ...newItems];
           });
         }
+
+        if (investigations) {
+          const investigationItems = investigations.split('\n').filter(item => item.trim() !== '');
+          const uniqueInvestigationItems = investigationItems.filter(item => !extraData.investigations.includes(item));
+
+          setSuggestedInvestigations(prev => {
+            const newItems = uniqueInvestigationItems.filter(item => !prev.includes(item));
+            return [...prev, ...newItems];
+          });
+        }
+
+        if (followup) {
+          const followupItems = followup.split('\n').filter(item => item.trim() !== '');
+          const uniqueFollowupItems = followupItems.filter(item => !extraData.followup.includes(item));
+
+          setSuggestedFollowup(prev => {
+            const newItems = uniqueFollowupItems.filter(item => !prev.includes(item));
+            return [...prev, ...newItems];
+          });
+        }
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
@@ -565,6 +587,8 @@ const Consultation = () => {
 
     setSuggestedMedications([]);
     setSuggestedAdvice([]);
+    setSuggestedInvestigations([]);
+    setSuggestedFollowup([]);
 
     fetchSuggestions(debouncedComplaints);
     fetchSuggestions(debouncedDiagnosis);
@@ -696,6 +720,8 @@ const Consultation = () => {
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
+      setSuggestedInvestigations([]);
+      setSuggestedFollowup([]);
       if (selectedConsultation.consultation_data?.language) {
         i18n.changeLanguage(selectedConsultation.consultation_data.language);
       }
@@ -830,7 +856,7 @@ const Consultation = () => {
     }
 
     // Handle shortcut replacement for complaints and diagnosis
-    if (field === 'complaints' || field === 'diagnosis') {
+    if (['complaints', 'diagnosis', 'findings', 'investigations', 'advice', 'personalNote'].includes(field)) {
       const shortcutRegex = /(\s|^)(\w+)\.\s*$/; // Matches a word preceded by space or start, followed by a dot
       const match = value.match(shortcutRegex);
 
@@ -921,6 +947,22 @@ const Consultation = () => {
     }));
     setSuggestedAdvice(prev => prev.filter(item => item !== advice));
   };
+
+  const handleInvestigationSuggestionClick = (investigation: string) => {
+    setExtraData(prev => ({
+        ...prev,
+        investigations: [prev.investigations, investigation].filter(Boolean).join('\n'),
+    }));
+    setSuggestedInvestigations(prev => prev.filter(item => item !== investigation));
+    };
+
+  const handleFollowupSuggestionClick = (followup: string) => {
+    setExtraData(prev => ({
+        ...prev,
+        followup: [prev.followup, followup].filter(Boolean).join('\n'),
+    }));
+    setSuggestedFollowup(prev => prev.filter(item => item !== followup));
+    };
 
   const handleMedicationSuggestionClick = (med: Medication) => {
     const medToAdd = i18n.language === 'te' ? {
@@ -1398,7 +1440,14 @@ const Consultation = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                  <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                      <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                      {suggestedInvestigations.map((investigation) => (
+                                          <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
+                                              {investigation}
+                                          </Button>
+                                      ))}
+                                  </div>
                                   <Button type="button" size="icon" variant="ghost" onClick={handleOrderNow} disabled={isOrdering}>
                                     {isOrdering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
                                     <span className="sr-only">Order Now</span>
@@ -1470,8 +1519,15 @@ const Consultation = () => {
                             </div>
                             
                             <div className="space-y-2">
-                            <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
-                            <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                                    {suggestedFollowup.map((followup) => (
+                                        <Button key={followup} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(followup)}>
+                                            {followup}
+                                        </Button>
+                                    ))}
+                                </div>
+                                <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
                             </div>
 
                             <div className="space-y-2">
