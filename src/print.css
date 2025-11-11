@@ -4,16 +4,25 @@
 }
 
 @media print {
-  /* Hide everything in the body by default */
-  body > *:not(.print-only) {
-    display: none !important;
+  
+  /* 1. Hide EVERYTHING on the page by default */
+  body * {
+    visibility: hidden !important;
   }
 
-  /* Display only the print container and its children */
-  .print-only {
-    display: block !important;
+  /* 2. Make ONLY the print-container, its children, and its parents visible.
+     This "un-hides" the #print-container and its path back to the <html> tag.
+  */
+  #print-container, 
+  #print-container *,
+  #print-container *::before, 
+  #print-container *::after {
+    visibility: visible !important;
   }
 
+  /* 3. Position the container to fill the page, 
+     so it sits on top of the hidden, blank-space-taking elements.
+  */
   #print-container {
     display: block !important;
     position: absolute !important;
@@ -24,7 +33,13 @@
     margin: 0 !important;
   }
 
-  /* Optional: remove box shadows and other print-unfriendly styles */
+  /* 4. Set page styles */
+  @page {
+    size: A4;
+    margin: 20mm; /* You can adjust this margin */
+  }
+
+  /* 5. Clean up helper styles */
   * {
     box-shadow: none !important;
     text-shadow: none !important;
