@@ -5,26 +5,24 @@
 
 @media print {
   
-  /* 1. Hide EVERYTHING on the page by default */
+  /* 1. Hide EVERY element on the page by default.
+     This removes them from the layout, so they don't take up space.
+  */
   body * {
-    visibility: hidden !important;
+    display: none !important;
   }
 
-  /* 2. Make ONLY the print-container, its children, and its parents visible.
-     This "un-hides" the #print-container and its path back to the <html> tag.
+  /* 2. Make ONLY the #print-container and its children visible.
+     This re-adds them to the layout.
   */
   #print-container, 
-  #print-container *,
-  #print-container *::before, 
-  #print-container *::after {
-    visibility: visible !important;
+  #print-container * {
+    display: block !important;
   }
 
-  /* 3. Position the container to fill the page, 
-     so it sits on top of the hidden, blank-space-taking elements.
+  /* 3. Position the container at the top-left of the blank page.
   */
   #print-container {
-    display: block !important;
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
@@ -36,12 +34,14 @@
   /* 4. Set page styles */
   @page {
     size: A4;
-    margin: 20mm; /* You can adjust this margin */
+    margin: 20mm; /* Adjust this margin as needed */
   }
 
   /* 5. Clean up helper styles */
   * {
     box-shadow: none !important;
     text-shadow: none !important;
+    color: #000 !important; /* Force black text, just in case */
+    background: #fff !important; /* Force white background */
   }
 }
