@@ -399,7 +399,7 @@ const Consultation = () => {
       // Use a timeout to ensure the DOM is updated before printing
       setTimeout(() => {
         window.print();
-      }, 100);
+      }, 500);
     }
   };
 
