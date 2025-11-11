@@ -27,9 +27,9 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import SaveBundleModal from '@/components/SaveBundleModal';
 import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
-import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/Prescription';
 import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
+import '@/print.css';
 
 interface TextShortcut {
   id: string;
@@ -391,15 +391,13 @@ const Consultation = () => {
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const translationCache = useRef<any>({ en: {}, te: {} });
 
-  const prescriptionRef = useRef<HTMLDivElement>(null);
-  const handlePrint = useReactToPrint({
-    contentRef: prescriptionRef,
-  });
-
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges();
     if (saved) {
-      handlePrint();
+      // Use a timeout to ensure the DOM is updated before printing
+      setTimeout(() => {
+        window.print();
+      }, 100);
     }
   };
 
@@ -1521,15 +1519,16 @@ const Consultation = () => {
         </Card>
       </div>
       <div style={{ display: 'none' }}>
-        {selectedConsultation && editablePatientDetails && (
-          <Prescription
-            ref={prescriptionRef}
-            patient={editablePatientDetails}
-            consultation={extraData}
-            consultationDate={selectedDate || new Date()}
-            age={age}
-          />
-        )}
+        <div id="print-container">
+          {selectedConsultation && editablePatientDetails && (
+            <Prescription
+              patient={editablePatientDetails}
+              consultation={extraData}
+              consultationDate={selectedDate || new Date()}
+              age={age}
+            />
+          )}
+        </div>
       </div>
       <SavedMedicationsModal
         isOpen={isMedicationsModalOpen}
