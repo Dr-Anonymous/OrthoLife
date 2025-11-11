@@ -29,7 +29,6 @@ import SaveBundleModal from '@/components/SaveBundleModal';
 import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
 import { Prescription } from '@/components/Prescription';
 import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
-import '@/print.css';
 
 interface TextShortcut {
   id: string;
@@ -399,7 +398,7 @@ const Consultation = () => {
       // Use a timeout to ensure the DOM is updated before printing
       setTimeout(() => {
         window.print();
-      }, 100);
+      }, 500);
     }
   };
 
@@ -1204,10 +1203,11 @@ const Consultation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
-      <div className="container mx-auto max-w-7xl">
-        <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <CardHeader className="text-center pt-6 sm:pt-8">
+    <>
+      <div id="app-root" className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4 print:hidden">
+        <div className="container mx-auto max-w-7xl">
+          <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+            <CardHeader className="text-center pt-6 sm:pt-8">
             <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
               <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
               Doctor's Consultation
@@ -1573,7 +1573,7 @@ const Consultation = () => {
           </CardContent>
         </Card>
       </div>
-      <div className="print-only">
+      <div className="hidden print:block">
         {selectedConsultation && editablePatientDetails && (
           <div id="print-container">
             <Prescription
@@ -1615,7 +1615,7 @@ const Consultation = () => {
         onClose={() => setIsShortcutModalOpen(false)}
         onUpdate={fetchTextShortcuts}
       />
-    </div>
+    </>
   );
 };
 
