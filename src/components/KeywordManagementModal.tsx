@@ -15,9 +15,6 @@ interface Keyword {
   medication_ids: number[];
   advice?: string;
   advice_te?: string;
-  investigations?: string;
-  followup?: string;
-  followup_te?: string;
 }
 
 interface Medication {
@@ -38,13 +35,9 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [selectedMeds, setSelectedMeds] = useState<number[]>([]);
   const [advice, setAdvice] = useState('');
   const [adviceTe, setAdviceTe] = useState('');
-  const [investigations, setInvestigations] = useState('');
-  const [followup, setFollowup] = useState('');
-  const [followupTe, setFollowupTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const debouncedAdvice = useDebounce(advice, 500);
-  const debouncedFollowup = useDebounce(followup, 500);
 
   useEffect(() => {
     const translateAdvice = async () => {
@@ -77,38 +70,6 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         }
     }
   }, [debouncedAdvice, editingKeyword]);
-
-  useEffect(() => {
-    const translateFollowup = async () => {
-        if (!followup || !followup.trim()) {
-            setFollowupTe('');
-            return;
-        };
-        setIsTranslating(true);
-        try {
-          const { data, error } = await supabase.functions.invoke('translate-content', {
-            body: { text: followup, targetLanguage: 'te' },
-          });
-          if (error) throw error;
-          setFollowupTe(data?.translatedText || '');
-        } catch (err) {
-          console.error('Translation error:', err);
-          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
-        } finally {
-          setIsTranslating(false);
-        }
-    };
-
-    if (editingKeyword) {
-      if (!followupTe) { // Only auto-translate when editing if Te field is empty
-        translateFollowup();
-      }
-    } else { // Always auto-translate when creating new
-        if (debouncedFollowup) {
-            translateFollowup();
-        }
-    }
-    }, [debouncedFollowup, editingKeyword]);
 
   const fetchKeywords = async () => {
     setIsLoading(true);
@@ -146,7 +107,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
     try {
       if (editingKeyword) {
-        const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice, advice_te: adviceTe, investigations, followup, followup_te: followupTe };
+        const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice, advice_te: adviceTe };
         const { error } = await supabase.functions.invoke('update-autofill-keyword', {
           body: { id: editingKeyword.id, payload },
         });
@@ -163,9 +124,6 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             medications: selectedMedicationObjects,
             advice: advice,
             advice_te: adviceTe,
-            investigations: investigations,
-            followup: followup,
-            followup_te: followupTe,
           },
         });
         if (error) throw error;
@@ -176,9 +134,6 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       setSelectedMeds([]);
       setAdvice('');
       setAdviceTe('');
-      setInvestigations('');
-      setFollowup('');
-      setFollowupTe('');
       setEditingKeyword(null);
       fetchKeywords();
 
@@ -207,9 +162,6 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
     setSelectedMeds(keyword.medication_ids);
     setAdvice(keyword.advice || '');
     setAdviceTe(keyword.advice_te || '');
-    setInvestigations(keyword.investigations || '');
-    setFollowup(keyword.followup || '');
-    setFollowupTe(keyword.followup_te || '');
   };
 
   return (
@@ -257,24 +209,12 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
               <Label htmlFor="advice-te">Advice (Telugu)</Label>
               <Textarea id="advice-te" value={adviceTe} onChange={(e) => setAdviceTe(e.target.value)} placeholder="e.g., Drink plenty of fluids" disabled={isTranslating} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="investigations">Investigations</Label>
-              <Textarea id="investigations" value={investigations} onChange={(e) => setInvestigations(e.target.value)} placeholder="e.g., X-ray, Blood Test" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="followup">Follow-up</Label>
-              <Textarea id="followup" value={followup} onChange={(e) => setFollowup(e.target.value)} placeholder="e.g., Review after 1 week" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="followup-te">Follow-up (Telugu)</Label>
-              <Textarea id="followup-te" value={followupTe} onChange={(e) => setFollowupTe(e.target.value)} placeholder="e.g., Review after 1 week" disabled={isTranslating} />
-            </div>
             <Button onClick={handleSaveKeyword} size="sm">
               {editingKeyword ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
               {editingKeyword ? 'Save Changes' : 'Add Keyword'}
             </Button>
             {editingKeyword && (
-              <Button variant="ghost" size="sm" onClick={() => { setEditingKeyword(null); setNewKeywords(''); setSelectedMeds([]); setAdvice(''); setAdviceTe(''); setInvestigations(''); setFollowup(''); setFollowupTe(''); }}>
+              <Button variant="ghost" size="sm" onClick={() => { setEditingKeyword(null); setNewKeywords(''); setSelectedMeds([]); setAdvice(''); setAdviceTe(''); }}>
                 Cancel Edit
               </Button>
             )}
@@ -293,8 +233,6 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                         Meds: {(kw.medication_ids || []).map(id => medications.find(m => m.id === id)?.name).join(', ')}
                       </p>
                       {kw.advice && <p className="text-sm text-muted-foreground mt-1">Advice: {kw.advice}</p>}
-                      {kw.investigations && <p className="text-sm text-muted-foreground mt-1">Investigations: {kw.investigations}</p>}
-                      {kw.followup && <p className="text-sm text-muted-foreground mt-1">Follow-up: {kw.followup}</p>}
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEdit(kw)}>
