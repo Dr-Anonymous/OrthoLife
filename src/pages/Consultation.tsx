@@ -27,9 +27,9 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import SaveBundleModal from '@/components/SaveBundleModal';
 import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
+import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/Prescription';
 import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
-import '@/print.css';
 
 interface TextShortcut {
   id: string;
@@ -384,7 +384,6 @@ const Consultation = () => {
   const [isOrdering, setIsOrdering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
   const [age, setAge] = useState<number | ''>('');
   const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -393,18 +392,16 @@ const Consultation = () => {
   const debouncedComplaints = useDebounce(extraData.complaints, 500);
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const translationCache = useRef<any>({ en: {}, te: {} });
+  const printRef = useRef(null);
 
-  useEffect(() => {
-    if (isPrinting) {
-      window.print();
-      setIsPrinting(false);
-    }
-  }, [isPrinting]);
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges();
     if (saved) {
-      setIsPrinting(true);
+      handlePrint();
     }
   };
 
@@ -1580,18 +1577,18 @@ const Consultation = () => {
           </Card>
         </div>
       </div>
-      <div className="hidden print:block">
-          {isPrinting && selectedConsultation && editablePatientDetails && (
-            <div id="print-container">
-              <Prescription
-                patient={editablePatientDetails}
-                consultation={extraData}
-                consultationDate={selectedDate || new Date()}
-                age={age}
-              />
-            </div>
-          )}
-        </div>
+      <div className="hidden">
+          <div ref={printRef}>
+              {selectedConsultation && editablePatientDetails && (
+                  <Prescription
+                      patient={editablePatientDetails}
+                      consultation={extraData}
+                      consultationDate={selectedDate || new Date()}
+                      age={age}
+                  />
+              )}
+          </div>
+      </div>
         <SavedMedicationsModal
           isOpen={isMedicationsModalOpen}
           onClose={() => setIsMedicationsModalOpen(false)}
