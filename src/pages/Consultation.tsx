@@ -407,9 +407,39 @@ const Consultation = () => {
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const translationCache = useRef<any>({ en: {}, te: {} });
   const printRef = useRef(null);
+  
+  const markAsCompleted = async () => {
+    if (!selectedConsultation) return;
+    try {
+      stopTimer();
+      isTimerPausedRef.current = true;
+      const { error } = await supabase
+        .from('consultations')
+        .update({ status: 'completed' })
+        .eq('id', selectedConsultation.id);
+      
+      if (error) throw error;
+
+      toast({
+        title: "Consultation Completed",
+        description: `${selectedConsultation.patient.name}'s consultation has been marked as completed.`,
+      });
+
+      if (selectedDate) fetchConsultations(selectedDate);
+
+    } catch (error) {
+      console.error('Error marking consultation as completed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to mark consultation as completed.',
+      });
+    }
+  };
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
+    onAfterPrint: markAsCompleted,
   });
 
   useEffect(() => {
@@ -1220,9 +1250,6 @@ const Consultation = () => {
 
       if (data?.url) {
         window.open(data.url, '_blank');
-        stopTimer();
-        isTimerPausedRef.current = true;
-        await supabase.from('consultations').update({ status: 'completed' }).eq('id', selectedConsultation.id);
       }
 
       toast({
@@ -1586,22 +1613,23 @@ const Consultation = () => {
                               </label>
 
                               <div className="flex items-center gap-2">
-                                  <Button type="submit" size="icon" className="h-12 w-12" disabled={isSubmitting}>
+                                  <Button type="submit" size="icon" className="outline" disabled={isSubmitting}>
                                       {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
                                       <span className="sr-only">Generate Google Doc</span>
                                   </Button>
-                                  <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={handleSaveAndPrint}>
+                                  <Button type="button" size="icon" variant="h-12 w-12" className="h-12 w-12" onClick={handleSaveAndPrint}>
                                       <Printer className="w-5 h-5" />
                                       <span className="sr-only">Save & Print</span>
-                                  </Button>
-                                  <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
-                                      <PackagePlus className="w-5 h-5" />
-                                      <span className="sr-only">Save as Bundle</span>
                                   </Button>
                                   <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
                                       {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                                       <span className="sr-only">Save Changes</span>
                                   </Button>
+                                  <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
+                                      <PackagePlus className="w-5 h-5" />
+                                      <span className="sr-only">Save as Bundle</span>
+                                  </Button>
+                                  
                               </div>
                           </div>
                       </form>
