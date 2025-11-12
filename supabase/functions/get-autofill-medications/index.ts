@@ -21,12 +21,17 @@ serve(async (req) => {
     const investigationTexts = new Set<string>();
     const followupTexts = new Set<string>();
 
-    const adviceColumn = language === 'te' ? 'advice_te' : 'advice';
-    const followupColumn = language === 'te' ? 'followup_te' : 'followup';
+    const selectColumns = [
+      'keywords',
+      'medication_ids',
+      'investigations',
+      language === 'te' ? 'advice:advice_te' : 'advice',
+      language === 'te' ? 'followup:followup_te' : 'followup',
+    ];
 
     const { data: keywordMappings, error: keywordsError } = await supabase
       .from('autofill_keywords')
-      .select(`keywords, medication_ids, ${adviceColumn}, investigations, ${followupColumn}`);
+      .select(selectColumns.join(', '));
 
     if (keywordsError) {
       console.error('Error fetching keywords:', keywordsError);
@@ -58,17 +63,14 @@ serve(async (req) => {
               for (const id of mapping.medication_ids) {
                 medicationIds.add(id);
               }
-              const advice = mapping[adviceColumn];
-              if (advice) {
-                adviceTexts.add(advice);
+              if (mapping.advice) {
+                adviceTexts.add(mapping.advice);
               }
-              const investigations = mapping['investigations'];
-              if (investigations) {
-                investigationTexts.add(investigations);
+              if (mapping.investigations) {
+                investigationTexts.add(mapping.investigations);
               }
-              const followup = mapping[followupColumn];
-              if (followup) {
-                followupTexts.add(followup);
+              if (mapping.followup) {
+                followupTexts.add(mapping.followup);
               }
               break;
             }
