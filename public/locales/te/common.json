@@ -225,7 +225,6 @@
   "month_plural": "నెలల తర్వాత",
   "prescription.advice": "సలహా",
   "prescription.medication": "మందులు",
-  "prescription.med_n": "సంఖ్య",
   "prescription.med_name": "పేరు",
   "prescription.med_dose": "మోతాదు",
   "prescription.med_frequency": "తరచుదనం",
@@ -234,6 +233,6 @@
   "prescription.med_morning": "ఉదయం",
   "prescription.med_noon": "మధ్యాహ్నం",
   "prescription.med_night": "రాత్రి",
-  "prescription.followup": "ఫాలో-అప్",
-  "prescription.footer_text": "మీ ప్రిస్క్రిప్షన్లు, డైట్లు, మరియు వ్యాయామాలను ఎప్పుడైనా యాక్సెస్ చేయడానికి ortho.life/my-spaceని సందర్శించండి."
+  "prescription.followup": "తదుపరి",
+  "prescription.footer_text": "మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా యాక్సెస్ చేయడానికి ortho.life/my-space సందర్శించండి."
 }

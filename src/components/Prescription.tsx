@@ -78,11 +78,11 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         <section className="flex justify-between py-4 border-b border-border">
           <div>
             <p><span className="font-semibold">Name:</span> {patient.name}</p>
-            <p><span className="font-semibold">Phone:</span> {patient.phone}</p>
-            <p><span className="font-semibold">ID No:</span> {patient.id.substring(0, 8)}</p>
+            <p><span className="font-semibold">Age/Sex:</span> {age}/{patient.sex}</p>
           </div>
           <div className="text-right">
-            <p><span className="font-semibold">Age/Sex:</span> {age}/{patient.sex}</p>
+            <p><span className="font-semibold">Phone:</span> {patient.phone}</p>
+            <p><span className="font-semibold">ID:</span> {patient.id}</p>
           </div>
         </section>
 
@@ -132,7 +132,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
             <table className="w-full border-collapse border border-border">
               <thead>
                 <tr className="bg-muted">
-                  <th className="border border-border p-2 text-left">{t('prescription.med_n')}</th>
+                  <th className="border border-border p-2 text-left">#</th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_name')}</th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_dose')}</th>
                   <th className="border border-border p-2 text-center" colSpan={3}>{t('prescription.med_frequency')}</th>

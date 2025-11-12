@@ -226,7 +226,6 @@
   "followup_message_structure": "after {{count}} {{unit}}, or immediately if symptoms worsen.",
   "prescription.advice": "Advice",
   "prescription.medication": "Medication",
-  "prescription.med_n": "N",
   "prescription.med_name": "Name",
   "prescription.med_dose": "Dose",
   "prescription.med_frequency": "Frequency",
