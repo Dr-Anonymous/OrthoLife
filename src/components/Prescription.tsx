@@ -96,25 +96,25 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           {consultation.complaints && (
             <div>
               <h3 className="font-heading font-semibold">Complaints:</h3>
-              <p>{consultation.complaints}</p>
+              <p className="whitespace-pre-wrap">{consultation.complaints}</p>
             </div>
           )}
           {consultation.findings && (
             <div>
               <h3 className="font-heading font-semibold">Findings:</h3>
-              <p>{consultation.findings}</p>
+              <p className="whitespace-pre-wrap">{consultation.findings}</p>
             </div>
           )}
           {consultation.investigations && (
             <div>
               <h3 className="font-heading font-semibold">Investigations:</h3>
-              <p>{consultation.investigations}</p>
+              <p className="whitespace-pre-wrap">{consultation.investigations}</p>
             </div>
           )}
           {consultation.diagnosis && (
             <div>
               <h3 className="font-heading font-semibold">Diagnosis:</h3>
-              <p>{consultation.diagnosis}</p>
+              <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
             </div>
           )}
           {consultation.advice && (
@@ -189,7 +189,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {consultation.followup && (
           <section className="mt-6">
             <h3 className="font-heading font-semibold">{t('prescription.followup')}:</h3>
-            <p>{consultation.followup}</p>
+            <p className="whitespace-pre-wrap">{consultation.followup}</p>
           </section>
         )}
       </main>

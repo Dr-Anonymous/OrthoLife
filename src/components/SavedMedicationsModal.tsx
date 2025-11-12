@@ -276,31 +276,44 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                   Custom
                 </Label>
               </div>
-              {isCustom && <Input id="med-frequency" value={newMed.frequency} onChange={e => handleInputChange('frequency', e.target.value)} placeholder="e.g., once a week" />}
+              {isCustom && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="med-frequency">Frequency</Label>
+                    <Input id="med-frequency" value={newMed.frequency} onChange={e => handleInputChange('frequency', e.target.value)} placeholder="e.g., once a week" />
+                  </div>
+                  {isCustom && (
+                    <div className="space-y-2">
+                      <Label htmlFor="med-frequency-te">Frequency (Telugu)</Label>
+                      <Input id="med-frequency-te" value={newMed.frequency_te} onChange={e => handleInputChange('frequency_te', e.target.value)} disabled={isTranslating} />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="med-duration">Duration</Label>
               <Input id="med-duration" value={newMed.duration} onChange={e => handleInputChange('duration', e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="med-instructions">Instructions</Label>
-              <Input id="med-instructions" value={newMed.instructions} onChange={e => handleInputChange('instructions', e.target.value)} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="med-instructions">Instructions</Label>
+                <Input id="med-instructions" value={newMed.instructions} onChange={e => handleInputChange('instructions', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="med-instructions-te">Instructions (Telugu)</Label>
+                <Input id="med-instructions-te" value={newMed.instructions_te} onChange={e => handleInputChange('instructions_te', e.target.value)} disabled={isTranslating} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="med-notes">Notes</Label>
-              <Input id="med-notes" value={newMed.notes} onChange={e => handleInputChange('notes', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="med-instructions-te">Instructions (Telugu)</Label>
-              <Input id="med-instructions-te" value={newMed.instructions_te} onChange={e => handleInputChange('instructions_te', e.target.value)} disabled={isTranslating} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="med-frequency-te">Frequency (Telugu)</Label>
-              <Input id="med-frequency-te" value={newMed.frequency_te} onChange={e => handleInputChange('frequency_te', e.target.value)} disabled={isTranslating} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="med-notes-te">Notes (Telugu)</Label>
-              <Input id="med-notes-te" value={newMed.notes_te} onChange={e => handleInputChange('notes_te', e.target.value)} disabled={isTranslating} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="med-notes">Notes</Label>
+                <Input id="med-notes" value={newMed.notes} onChange={e => handleInputChange('notes', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="med-notes-te">Notes (Telugu)</Label>
+                <Input id="med-notes-te" value={newMed.notes_te} onChange={e => handleInputChange('notes_te', e.target.value)} disabled={isTranslating} />
+              </div>
             </div>
             <div className="flex justify-end space-x-2">
               {isEditing && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}
