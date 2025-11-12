@@ -384,6 +384,7 @@ const Consultation = () => {
   const [isOrdering, setIsOrdering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [age, setAge] = useState<number | ''>('');
   const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -393,13 +394,17 @@ const Consultation = () => {
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const translationCache = useRef<any>({ en: {}, te: {} });
 
+  useEffect(() => {
+    if (isPrinting) {
+      window.print();
+      setIsPrinting(false);
+    }
+  }, [isPrinting]);
+
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges();
     if (saved) {
-      // Use a timeout to ensure the DOM is updated before printing
-      setTimeout(() => {
-        window.print();
-      }, 500);
+      setIsPrinting(true);
     }
   };
 
@@ -1576,7 +1581,7 @@ const Consultation = () => {
         </div>
       </div>
       <div className="hidden print:block">
-          {selectedConsultation && editablePatientDetails && (
+          {isPrinting && selectedConsultation && editablePatientDetails && (
             <div id="print-container">
               <Prescription
                 patient={editablePatientDetails}
