@@ -1593,6 +1593,7 @@ const Consultation = () => {
                       consultation={extraData}
                       consultationDate={selectedDate || new Date()}
                       age={age}
+                      language={i18n.language}
                   />
               )}
           </div>
