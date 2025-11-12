@@ -384,6 +384,7 @@ const Consultation = () => {
   const [isOrdering, setIsOrdering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isReadyToPrint, setIsReadyToPrint] = useState(false);
   const [age, setAge] = useState<number | ''>('');
   const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -395,13 +396,20 @@ const Consultation = () => {
   const printRef = useRef(null);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
   });
+
+  useEffect(() => {
+    if (isReadyToPrint) {
+      handlePrint();
+      setIsReadyToPrint(false);
+    }
+  }, [isReadyToPrint, handlePrint]);
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges();
     if (saved) {
-      handlePrint();
+      setIsReadyToPrint(true);
     }
   };
 
@@ -1577,7 +1585,7 @@ const Consultation = () => {
           </Card>
         </div>
       </div>
-      <div className="hidden">
+      <div style={{ position: 'absolute', left: '-9999px' }}>
           <div ref={printRef}>
               {selectedConsultation && editablePatientDetails && (
                   <Prescription
