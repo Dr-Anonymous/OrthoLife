@@ -320,7 +320,8 @@ const Consultation = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
-  const [formInitialState, setFormInitialState] = useState<any>(null);
+  const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
+  const [initialExtraData, setInitialExtraData] = useState<any>(null);
   const [isFormDirty, setIsFormDirty] = useState(false);
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [nextConsultation, setNextConsultation] = useState<Consultation | null>(null);
@@ -384,6 +385,18 @@ const Consultation = () => {
   const [isOrdering, setIsOrdering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(true);
+
+  useEffect(() => {
+    const storedValue = localStorage.getItem('isGenerateDocEnabled');
+    if (storedValue !== null) {
+      setIsGenerateDocEnabled(JSON.parse(storedValue));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('isGenerateDocEnabled', JSON.stringify(isGenerateDocEnabled));
+  }, [isGenerateDocEnabled]);
   const [isReadyToPrint, setIsReadyToPrint] = useState(false);
   const [age, setAge] = useState<number | ''>('');
   const [focusLastMedication, setFocusLastMedication] = useState(false);
@@ -410,6 +423,9 @@ const Consultation = () => {
     const saved = await saveChanges();
     if (saved) {
       setIsReadyToPrint(true);
+      if (isGenerateDocEnabled) {
+        submitForm(undefined, { skipSave: true });
+      }
     }
   };
 
@@ -421,7 +437,7 @@ const Consultation = () => {
       switch (event.key.toLowerCase()) {
         case 'p':
           event.preventDefault();
-          submitForm();
+          handleSaveAndPrint();
           break;
         case 'o':
           event.preventDefault();
@@ -726,7 +742,8 @@ const Consultation = () => {
         medications: [],
       };
       setExtraData(newExtraData);
-      setFormInitialState(JSON.stringify({ ...newExtraData, ...selectedConsultation.patient }));
+      setInitialExtraData(newExtraData);
+      setInitialPatientDetails(selectedConsultation.patient);
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
@@ -750,7 +767,8 @@ const Consultation = () => {
         medications: [],
       });
       setIsFormDirty(false);
-      setFormInitialState(null);
+      setInitialPatientDetails(null);
+      setInitialExtraData(null);
     }
   }, [selectedConsultation]);
 
@@ -795,11 +813,12 @@ const Consultation = () => {
   }, [selectedConsultation, isTimerVisible, startTimer, stopTimer]);
 
   useEffect(() => {
-    if (formInitialState) {
-      const isDirty = JSON.stringify({ ...extraData, ...editablePatientDetails }) !== formInitialState;
+    if (initialPatientDetails && initialExtraData) {
+      const isDirty = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails) ||
+                      JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
       setIsFormDirty(isDirty);
     }
-  }, [extraData, editablePatientDetails, formInitialState]);
+  }, [extraData, editablePatientDetails, initialPatientDetails, initialExtraData]);
 
   useEffect(() => {
     if (editablePatientDetails?.dob) {
@@ -1041,10 +1060,18 @@ const Consultation = () => {
       toast({ variant: 'destructive', title: 'Error', description: 'No consultation selected.' });
       return false;
     }
+
+    const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
+    const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
+
+    if (!patientDetailsChanged && !extraDataChanged) {
+      toast({ title: 'No Changes', description: 'No new changes to save.' });
+      return true; // No changes, but operation is "successful"
+    }
+
     setIsSaving(true);
     try {
-      // 1. Update patient details if they have changed
-      if (JSON.stringify(selectedConsultation.patient) !== JSON.stringify(editablePatientDetails)) {
+      if (patientDetailsChanged) {
         const { error: patientUpdateError } = await supabase
           .from('patients')
           .update({
@@ -1055,39 +1082,34 @@ const Consultation = () => {
           })
           .eq('id', editablePatientDetails.id);
 
-        if (patientUpdateError) {
-          throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-        }
+        if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
       }
 
-      // 2. Save the consultation form data
-      const { error: updateError } = await supabase
-        .from('consultations')
-        .update({ consultation_data: { ...extraData, language: i18n.language } })
-        .eq('id', selectedConsultation.id);
+      if (extraDataChanged) {
+        const { error: updateError } = await supabase
+          .from('consultations')
+          .update({ consultation_data: { ...extraData, language: i18n.language } })
+          .eq('id', selectedConsultation.id);
 
-      if (updateError) {
-        throw new Error(`Failed to save draft: ${updateError.message}`);
+        if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
       }
 
       toast({ title: 'Success', description: 'Your changes have been saved.' });
 
-      // After a successful save, update the local state to reflect the changes
-      // This prevents incorrect "unsaved changes" warnings.
       const updatedConsultation = {
         ...selectedConsultation,
         patient: { ...editablePatientDetails },
         consultation_data: { ...extraData, language: i18n.language },
       };
+
       setSelectedConsultation(updatedConsultation);
+      setInitialPatientDetails(editablePatientDetails);
+      setInitialExtraData(extraData);
 
       const updateInList = (list: Consultation[]) => list.map(c => c.id === updatedConsultation.id ? updatedConsultation : c);
       setAllConsultations(prev => updateInList(prev));
       setPendingConsultations(prev => updateInList(prev));
       setCompletedConsultations(prev => updateInList(prev));
-
-      // Reset the form's initial state to the current state to prevent false dirty flags.
-      setFormInitialState(JSON.stringify({ ...extraData, ...editablePatientDetails }));
 
       return true;
     } catch (error) {
@@ -1144,13 +1166,18 @@ const Consultation = () => {
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
-  const submitForm = async (e?: React.FormEvent) => {
+  const submitForm = async (e?: React.FormEvent, options: { skipSave?: boolean } = {}) => {
     if (e) e.preventDefault();
-    if (!selectedConsultation || !editablePatientDetails) return;
+    if (!selectedConsultation || !editablePatientDetails || !isGenerateDocEnabled) return;
     setIsSubmitting(true);
     try {
-      const saved = await saveChanges();
-      if (!saved) return;
+      if (!options.skipSave) {
+        const saved = await saveChanges();
+        if (!saved) {
+            setIsSubmitting(false);
+            return;
+        }
+      }
 
       const payload = {
         templateId: GOOGLE_DOCS_TEMPLATE_IDS.PRESCRIPTION,
@@ -1548,16 +1575,23 @@ const Consultation = () => {
                           </div>
 
                           <div className="pt-6 flex flex-col sm:flex-row items-center gap-2">
-                              <Button type="submit" className="flex-grow h-12 w-full sm:w-auto text-lg font-semibold" disabled={isSubmitting}>
-                              {isSubmitting ? (
-                                  <>
-                                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                  Generating...
-                                  </>
-                              ) : (
-                                  'Generate Prescription'
-                              )}
-                              </Button>
+                              <div className="flex-grow w-full sm:w-auto">
+                                <div className="flex items-center gap-2">
+                                    <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-md hover:bg-muted/50 flex-grow justify-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={isGenerateDocEnabled}
+                                            onChange={e => setIsGenerateDocEnabled(e.target.checked)}
+                                            className="h-5 w-5 rounded border-border"
+                                        />
+                                        <span className="sr-only">Enable Google Doc Generation</span>
+                                    </label>
+                                    <Button type="submit" size="icon" className="h-12 w-12" disabled={isSubmitting}>
+                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+                                        <span className="sr-only">Generate Google Doc</span>
+                                    </Button>
+                                </div>
+                              </div>
                               <div className="flex items-center gap-2">
                                   <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={handleSaveAndPrint}>
                                       <Printer className="w-5 h-5" />
