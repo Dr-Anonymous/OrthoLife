@@ -419,14 +419,7 @@ const Consultation = () => {
         .eq('id', selectedConsultation.id);
       
       if (error) throw error;
-
-      toast({
-        title: "Consultation Completed",
-        description: `${selectedConsultation.patient.name}'s consultation has been marked as completed.`,
-      });
-
       if (selectedDate) fetchConsultations(selectedDate);
-
     } catch (error) {
       console.error('Error marking consultation as completed:', error);
       toast({
@@ -1611,7 +1604,6 @@ const Consultation = () => {
                                   />
                                   <span className="sr-only">Enable Google Doc Generation</span>
                               </label>
-
                               <div className="flex items-center gap-2">
                                   <Button type="submit" size="icon" className="outline" disabled={isSubmitting}>
                                       {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
