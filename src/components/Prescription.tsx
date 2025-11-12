@@ -41,12 +41,17 @@ interface PrescriptionProps {
 export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age }, ref) => {
   const hasMedications = consultation.medications && consultation.medications.length > 0;
 
+  const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
+
   return (
     <div ref={ref} className="p-8 font-sans text-sm bg-white text-gray-900">
       {/* Header */}
-      <header className="flex justify-between items-start pb-4 border-b-2 border-gray-200">
+      <header
+        className="flex justify-between items-start pb-4 border-b-2 border-blue-100 rounded-t-lg"
+        style={{ backgroundImage: backgroundPattern }}
+      >
         <div className="flex items-center">
-          <img src="/badam-logo.png" alt="Clinic Logo" className="h-20 w-auto" />
+          <img src="/badam-logo.png" alt="Clinic Logo" className="h-40 w-auto" />
         </div>
         <div className="text-right">
           <h2 className="text-xl font-bold text-blue-600">Dr Samuel Manoj Cherukuri</h2>
@@ -145,9 +150,17 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                     <td className="border border-gray-300 p-2">{index + 1}</td>
                     <td className="border border-gray-300 p-2">{med.name}</td>
                     <td className="border border-gray-300 p-2">{med.dose}</td>
-                    <td className="border border-gray-300 p-2 text-center">{med.freqMorning ? '✔' : ''}</td>
-                    <td className="border border-gray-300 p-2 text-center">{med.freqNoon ? '✔' : ''}</td>
-                    <td className="border border-gray-300 p-2 text-center">{med.freqNight ? '✔' : ''}</td>
+                    {med.frequency ? (
+                      <td colSpan={3} className="border border-gray-300 p-2 text-center">
+                        {med.frequency}
+                      </td>
+                    ) : (
+                      <>
+                        <td className="border border-gray-300 p-2 text-center">{med.freqMorning ? '✔' : ''}</td>
+                        <td className="border border-gray-300 p-2 text-center">{med.freqNoon ? '✔' : ''}</td>
+                        <td className="border border-gray-300 p-2 text-center">{med.freqNight ? '✔' : ''}</td>
+                      </>
+                    )}
                     <td className="border border-gray-300 p-2">{med.duration}</td>
                     <td className="border border-gray-300 p-2">{med.instructions}</td>
                   </tr>
@@ -157,13 +170,6 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                         {med.notes}
                       </td>
                     </tr>
-                  )}
-                   {med.frequency && (
-                      <tr>
-                          <td colSpan={8} className="border border-gray-300 p-2 text-xs">
-                          <strong>Frequency:</strong> {med.frequency}
-                          </td>
-                      </tr>
                   )}
                 </React.Fragment>
               ))}
@@ -181,8 +187,11 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
       )}
 
       {/* Footer */}
-      <footer className="mt-20 pt-4 border-t-2 border-gray-200 flex justify-between items-center">
-        <p className="text-blue-600 font-semibold">Visit ortho.life/my-space to access your prescriptions, diets, and exercises anytime.</p>
+      <footer
+        className="mt-20 p-4 border-t-2 border-blue-100 rounded-b-lg flex justify-between items-center"
+        style={{ backgroundImage: backgroundPattern }}
+      >
+        <p className="text-blue-700 font-semibold text-xs">Visit ortho.life/my-space to access your prescriptions, diets, and exercises anytime.</p>
         <img src="/qr-code.png" alt="QR Code" className="h-16 w-16" />
       </footer>
     </div>
