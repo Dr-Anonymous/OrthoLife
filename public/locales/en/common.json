@@ -223,5 +223,18 @@
   "week_plural": "weeks",
   "month": "month",
   "month_plural": "months",
-  "followup_message_structure": "after {{count}} {{unit}}, or immediately if symptoms worsen."
+  "followup_message_structure": "after {{count}} {{unit}}, or immediately if symptoms worsen.",
+  "prescription.advice": "Advice",
+  "prescription.medication": "Medication",
+  "prescription.med_n": "N",
+  "prescription.med_name": "Name",
+  "prescription.med_dose": "Dose",
+  "prescription.med_frequency": "Frequency",
+  "prescription.med_duration": "Duration",
+  "prescription.med_instructions": "Instructions",
+  "prescription.med_morning": "Morning",
+  "prescription.med_noon": "A.Noon",
+  "prescription.med_night": "Night",
+  "prescription.followup": "Follow-up",
+  "prescription.footer_text": "Visit ortho.life/my-space to access your prescriptions, diets, and exercises anytime."
 }

@@ -77,12 +77,12 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {/* Patient Info */}
         <section className="flex justify-between py-4 border-b border-border">
           <div>
-            <p><span className="font-semibold">{t('prescription.name')}:</span> {patient.name}</p>
-            <p><span className="font-semibold">{t('prescription.phone')}:</span> {patient.phone}</p>
-            <p><span className="font-semibold">{t('prescription.id_no')}:</span> {patient.id.substring(0, 8)}</p>
+            <p><span className="font-semibold">Name:</span> {patient.name}</p>
+            <p><span className="font-semibold">Phone:</span> {patient.phone}</p>
+            <p><span className="font-semibold">ID No:</span> {patient.id.substring(0, 8)}</p>
           </div>
           <div className="text-right">
-            <p><span className="font-semibold">{t('prescription.age_sex')}:</span> {age}/{patient.sex}</p>
+            <p><span className="font-semibold">Age/Sex:</span> {age}/{patient.sex}</p>
           </div>
         </section>
 
@@ -95,25 +95,25 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         <section className="space-y-4">
           {consultation.complaints && (
             <div>
-              <h3 className="font-heading font-semibold">{t('prescription.complaints')}:</h3>
+              <h3 className="font-heading font-semibold">Complaints:</h3>
               <p>{consultation.complaints}</p>
             </div>
           )}
           {consultation.findings && (
             <div>
-              <h3 className="font-heading font-semibold">{t('prescription.findings')}:</h3>
+              <h3 className="font-heading font-semibold">Findings:</h3>
               <p>{consultation.findings}</p>
             </div>
           )}
           {consultation.investigations && (
             <div>
-              <h3 className="font-heading font-semibold">{t('prescription.investigations')}:</h3>
+              <h3 className="font-heading font-semibold">Investigations:</h3>
               <p>{consultation.investigations}</p>
             </div>
           )}
           {consultation.diagnosis && (
             <div>
-              <h3 className="font-heading font-semibold">{t('prescription.diagnosis')}:</h3>
+              <h3 className="font-heading font-semibold">Diagnosis:</h3>
               <p>{consultation.diagnosis}</p>
             </div>
           )}
