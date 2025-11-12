@@ -1574,25 +1574,22 @@ const Consultation = () => {
                               </div>
                           </div>
 
-                          <div className="pt-6 flex flex-col sm:flex-row items-center gap-2">
-                              <div className="flex-grow w-full sm:w-auto">
-                                <div className="flex items-center gap-2">
-                                    <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-md hover:bg-muted/50 flex-grow justify-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={isGenerateDocEnabled}
-                                            onChange={e => setIsGenerateDocEnabled(e.target.checked)}
-                                            className="h-5 w-5 rounded border-border"
-                                        />
-                                        <span className="sr-only">Enable Google Doc Generation</span>
-                                    </label>
-                                    <Button type="submit" size="icon" className="h-12 w-12" disabled={isSubmitting}>
-                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-                                        <span className="sr-only">Generate Google Doc</span>
-                                    </Button>
-                                </div>
-                              </div>
+                          <div className="pt-6 flex flex-wrap items-center justify-start gap-4">
+                              <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-md hover:bg-muted/50">
+                                  <input
+                                      type="checkbox"
+                                      checked={isGenerateDocEnabled}
+                                      onChange={e => setIsGenerateDocEnabled(e.target.checked)}
+                                      className="h-5 w-5 rounded border-border"
+                                  />
+                                  <span className="sr-only">Enable Google Doc Generation</span>
+                              </label>
+
                               <div className="flex items-center gap-2">
+                                  <Button type="submit" size="icon" className="h-12 w-12" disabled={isSubmitting}>
+                                      {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+                                      <span className="sr-only">Generate Google Doc</span>
+                                  </Button>
                                   <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={handleSaveAndPrint}>
                                       <Printer className="w-5 h-5" />
                                       <span className="sr-only">Save & Print</span>
