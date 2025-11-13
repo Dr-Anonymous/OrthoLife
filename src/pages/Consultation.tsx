@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -30,6 +30,8 @@ import TextShortcutManagementModal from '@/components/TextShortcutManagementModa
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/Prescription';
 import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
+import ConsultationRegistration from '@/components/ConsultationRegistration';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface TextShortcut {
   id: string;
@@ -343,6 +345,7 @@ const Consultation = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isSaveBundleModalOpen, setIsSaveBundleModalOpen] = useState(false);
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
 
@@ -1242,6 +1245,10 @@ const Consultation = () => {
                           <div className="flex justify-between items-center mb-2">
                               <Label>Consultation Date</Label>
                               <div className="flex items-center gap-2">
+                                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsRegistrationModalOpen(true)}>
+                                       <UserPlus className="h-4 w-4" />
+                                       <span className="sr-only">Register New Patient</span>
+                                   </Button>
                                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => selectedDate && fetchConsultations(selectedDate)} disabled={isFetchingConsultations}>
                                       {isFetchingConsultations ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                                       <span className="sr-only">Refresh</span>
@@ -1651,6 +1658,26 @@ const Consultation = () => {
           onClose={() => setIsShortcutModalOpen(false)}
           onUpdate={fetchTextShortcuts}
         />
+        <Dialog open={isRegistrationModalOpen} onOpenChange={setIsRegistrationModalOpen}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>Register New Patient</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details below to register a new patient and create a consultation for them.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <ConsultationRegistration
+                        onSuccess={(newConsultation) => {
+                            setIsRegistrationModalOpen(false);
+                            if (selectedDate) {
+                                fetchConsultations(selectedDate, newConsultation.patient_id);
+                            }
+                        }}
+                    />
+                </div>
+            </DialogContent>
+        </Dialog>
     </>
   );
 };
