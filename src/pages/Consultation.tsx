@@ -382,7 +382,6 @@ const Consultation = () => {
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isOrdering, setIsOrdering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(true);
@@ -408,31 +407,8 @@ const Consultation = () => {
   const translationCache = useRef<any>({ en: {}, te: {} });
   const printRef = useRef(null);
   
-  const markAsCompleted = async () => {
-    if (!selectedConsultation) return;
-    try {
-      stopTimer();
-      isTimerPausedRef.current = true;
-      const { error } = await supabase
-        .from('consultations')
-        .update({ status: 'completed' })
-        .eq('id', selectedConsultation.id);
-      
-      if (error) throw error;
-      if (selectedDate) fetchConsultations(selectedDate);
-    } catch (error) {
-      console.error('Error marking consultation as completed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to mark consultation as completed.',
-      });
-    }
-  };
-
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    onAfterPrint: markAsCompleted,
   });
 
   useEffect(() => {
@@ -443,12 +419,12 @@ const Consultation = () => {
   }, [isReadyToPrint, handlePrint]);
 
   const handleSaveAndPrint = async () => {
-    const saved = await saveChanges();
+    const saved = await saveChanges({ markAsCompleted: true });
     if (saved) {
-      setIsReadyToPrint(true);
       if (isGenerateDocEnabled) {
         submitForm(undefined, { skipSave: true });
       }
+      setIsReadyToPrint(true);
     }
   };
 
@@ -461,10 +437,6 @@ const Consultation = () => {
         case 'p':
           event.preventDefault();
           handleSaveAndPrint();
-          break;
-        case 'o':
-          event.preventDefault();
-          handleOrderNow();
           break;
         case 's':
           event.preventDefault();
@@ -1078,7 +1050,7 @@ const Consultation = () => {
     }));
   };
 
-  const saveChanges = async () => {
+  const saveChanges = async (options: { markAsCompleted?: boolean } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) {
       toast({ variant: 'destructive', title: 'Error', description: 'No consultation selected.' });
       return false;
@@ -1087,7 +1059,13 @@ const Consultation = () => {
     const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
     const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
 
-    if (!patientDetailsChanged && !extraDataChanged) {
+    const shouldAttemptToComplete = options.markAsCompleted &&
+        (extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== ''));
+
+    const newStatus = shouldAttemptToComplete ? 'completed' : selectedConsultation.status;
+    const statusChanged = newStatus !== selectedConsultation.status;
+
+    if (!patientDetailsChanged && !extraDataChanged && !statusChanged) {
       toast({ title: 'No Changes', description: 'No new changes to save.' });
       return true; // No changes, but operation is "successful"
     }
@@ -1104,16 +1082,27 @@ const Consultation = () => {
             phone: editablePatientDetails.phone,
           })
           .eq('id', editablePatientDetails.id);
-
         if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
       }
 
+      const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
+
       if (extraDataChanged) {
+          consultationUpdatePayload.consultation_data = { ...extraData, language: i18n.language };
+      }
+      if (statusChanged) {
+          consultationUpdatePayload.status = newStatus;
+          if (newStatus === 'completed') {
+              stopTimer();
+              isTimerPausedRef.current = true;
+          }
+      }
+
+      if (Object.keys(consultationUpdatePayload).length > 0) {
         const { error: updateError } = await supabase
           .from('consultations')
-          .update({ consultation_data: { ...extraData, language: i18n.language } })
+          .update(consultationUpdatePayload)
           .eq('id', selectedConsultation.id);
-
         if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
       }
 
@@ -1123,6 +1112,7 @@ const Consultation = () => {
         ...selectedConsultation,
         patient: { ...editablePatientDetails },
         consultation_data: { ...extraData, language: i18n.language },
+        status: newStatus as 'pending' | 'completed',
       };
 
       setSelectedConsultation(updatedConsultation);
@@ -1131,8 +1121,8 @@ const Consultation = () => {
 
       const updateInList = (list: Consultation[]) => list.map(c => c.id === updatedConsultation.id ? updatedConsultation : c);
       setAllConsultations(prev => updateInList(prev));
-      setPendingConsultations(prev => updateInList(prev));
-      setCompletedConsultations(prev => updateInList(prev));
+      setPendingConsultations(prev => updateInList(prev).filter(c => c.status === 'pending'));
+      setCompletedConsultations(prev => updateInList(prev).filter(c => c.status === 'completed'));
 
       return true;
     } catch (error) {
@@ -1141,45 +1131,6 @@ const Consultation = () => {
       return false;
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleOrderNow = async () => {
-    if (!selectedConsultation || !editablePatientDetails) return;
-    setIsOrdering(true);
-    try {
-      const saved = await saveChanges();
-      if (!saved) return;
-
-      const payload = {
-        templateId: GOOGLE_DOCS_TEMPLATE_IDS.INVESTIGATIONS,
-        patientId: selectedConsultation.patient.id,
-        name: editablePatientDetails.name,
-        dob: editablePatientDetails.dob,
-        sex: editablePatientDetails.sex,
-        phone: editablePatientDetails.phone,
-        age: String(age),
-        complaints: extraData.complaints,
-        investigations: extraData.investigations,
-        diagnosis: extraData.diagnosis,
-        folderId: editablePatientDetails.drive_id,
-      };
-
-      const { data, error } = await supabase.functions.invoke('create-docs-investigations', {
-        body: payload,
-      });
-
-      if (error) throw new Error(error.message || 'Failed to create investigations document');
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      console.error('Error ordering investigations:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to order investigations. Please try again.' });
-    } finally {
-      setIsOrdering(false);
     }
   };
 
@@ -1369,7 +1320,7 @@ const Consultation = () => {
 
                   <div className="md:col-span-3">
                   {selectedConsultation && editablePatientDetails ? (
-                      <form onSubmit={submitForm} className="space-y-6">
+                      <form className="space-y-6">
                           <div className="space-y-4">
                               <div className="flex flex-wrap items-center justify-between mb-4">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -1506,10 +1457,6 @@ const Consultation = () => {
                                             </Button>
                                         ))}
                                     </div>
-                                    <Button type="button" size="icon" variant="ghost" onClick={handleOrderNow} disabled={isOrdering}>
-                                      {isOrdering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-                                      <span className="sr-only">Order Now</span>
-                                    </Button>
                                   </div>
                                   <Textarea id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value)} placeholder="Investigations required..." className="min-h-[100px]" />
                               </div>
@@ -1594,35 +1541,30 @@ const Consultation = () => {
                               </div>
                           </div>
 
-                          <div className="pt-6 flex flex-wrap items-center justify-start gap-4">
-                              <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-md hover:bg-muted/50">
-                                  <input
-                                      type="checkbox"
-                                      checked={isGenerateDocEnabled}
-                                      onChange={e => setIsGenerateDocEnabled(e.target.checked)}
-                                      className="h-5 w-5 rounded border-border"
-                                  />
-                                  <span className="sr-only">Enable Google Doc Generation</span>
-                              </label>
-                              <div className="flex items-center gap-2">
-                                  <Button type="submit" size="icon" className="outline" disabled={isSubmitting}>
-                                      {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-                                      <span className="sr-only">Generate Google Doc</span>
-                                  </Button>
-                                  <Button type="button" size="icon" variant="h-12 w-12" className="h-12 w-12" onClick={handleSaveAndPrint}>
-                                      <Printer className="w-5 h-5" />
-                                      <span className="sr-only">Save & Print</span>
-                                  </Button>
-                                  <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
-                                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                      <span className="sr-only">Save Changes</span>
-                                  </Button>
-                                  <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
-                                      <PackagePlus className="w-5 h-5" />
-                                      <span className="sr-only">Save as Bundle</span>
-                                  </Button>
-                                  
-                              </div>
+                          <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-between gap-4">
+                              <Button
+                                type="button"
+                                variant={isGenerateDocEnabled ? "secondary" : "outline"}
+                                size="icon"
+                                className="h-12 w-12"
+                                onClick={() => setIsGenerateDocEnabled(prev => !prev)}
+                                disabled={isSubmitting}
+                              >
+                                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+                                <span className="sr-only">Toggle Google Doc Generation</span>
+                              </Button>
+                              <Button type="button" size="icon" className="h-12 w-12" onClick={handleSaveAndPrint}>
+                                  <Printer className="w-5 h-5" />
+                                  <span className="sr-only">Save & Print</span>
+                              </Button>
+                              <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
+                                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                  <span className="sr-only">Save Changes</span>
+                              </Button>
+                              <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
+                                  <PackagePlus className="w-5 h-5" />
+                                  <span className="sr-only">Save as Bundle</span>
+                              </Button>
                           </div>
                       </form>
                   ) : (
