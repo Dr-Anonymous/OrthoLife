@@ -1119,10 +1119,12 @@ const Consultation = () => {
       setInitialPatientDetails(editablePatientDetails);
       setInitialExtraData(extraData);
 
-      const updateInList = (list: Consultation[]) => list.map(c => c.id === updatedConsultation.id ? updatedConsultation : c);
-      setAllConsultations(prev => updateInList(prev));
-      setPendingConsultations(prev => updateInList(prev).filter(c => c.status === 'pending'));
-      setCompletedConsultations(prev => updateInList(prev).filter(c => c.status === 'completed'));
+      const updatedAllConsultations = allConsultations.map(c =>
+        c.id === updatedConsultation.id ? updatedConsultation : c
+      );
+      setAllConsultations(updatedAllConsultations);
+      setPendingConsultations(updatedAllConsultations.filter(c => c.status === 'pending'));
+      setCompletedConsultations(updatedAllConsultations.filter(c => c.status === 'completed'));
 
       return true;
     } catch (error) {
