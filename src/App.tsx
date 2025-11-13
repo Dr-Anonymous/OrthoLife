@@ -9,6 +9,7 @@ import PageLoader from "./components/PageLoader";
 import { usePWAInstall } from "./hooks/usePWAInstall";
 import { supabase } from "./integrations/supabase/client";
 import { useAuth } from "./hooks/useAuth";
+import { ConsultationProvider } from "./context/ConsultationContext";
 
 const Index = lazy(() => import("./pages/Index"));
 const AppointmentPage = lazy(() => import("./pages/AppointmentPage"));
@@ -94,7 +95,7 @@ const App = () => {
                 <Route path="/wa" element={<WhatsAppMe />} />
                 <Route path="/emr" element={<EMR />} />
                 <Route path="/badam" element={<PatientRegistration />} />
-                <Route path="/consultation" element={<Consultation />} />
+                <Route path="/consultation" element={<ConsultationProvider><Consultation /></ConsultationProvider>} />
                 <Route path="/consultation-stats" element={<ConsultationStats />} />
 
                 {/* Pharmacy Routes */}
