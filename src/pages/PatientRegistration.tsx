@@ -484,7 +484,7 @@ const PatientRegistration = () => {
                         {calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} / {c.patient.phone}
                       </p>
                     </div>
-                    <Badge variant={c.status === 'completed' ? 'secondary' : 'default'}>
+                    <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'warning' : 'default'}>
                       {c.status}
                     </Badge>
                   </div>
