@@ -68,7 +68,7 @@ interface Consultation {
   id: string;
   patient: Patient;
   consultation_data: any;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'under_evaluation';
 }
 
 const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications, i18n }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void, i18n: any }) => {
@@ -315,7 +315,9 @@ const Consultation = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
+  const [evaluationConsultations, setEvaluationConsultations] = useState<Consultation[]>([]);
   const [completedConsultations, setCompletedConsultations] = useState<Consultation[]>([]);
+  const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(true);
   const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
@@ -654,6 +656,7 @@ const Consultation = () => {
     if (!patientIdToRestore) {
       setAllConsultations([]);
       setPendingConsultations([]);
+      setEvaluationConsultations([]);
       setCompletedConsultations([]);
       setSelectedConsultation(null);
     }
@@ -668,6 +671,7 @@ const Consultation = () => {
       const consultations = data.consultations || [];
       setAllConsultations(consultations);
       setPendingConsultations(consultations.filter(c => c.status === 'pending'));
+      setEvaluationConsultations(consultations.filter(c => c.status === 'under_evaluation'));
       setCompletedConsultations(consultations.filter(c => c.status === 'completed'));
       if (patientIdToRestore) {
         const restoredConsultation = consultations.find(c => c.patient.id === patientIdToRestore);
@@ -1059,10 +1063,13 @@ const Consultation = () => {
     const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
     const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
 
-    const shouldAttemptToComplete = options.markAsCompleted &&
-        (extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== ''));
+    const isPrinting = options.markAsCompleted;
+    const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
 
-    const newStatus = shouldAttemptToComplete ? 'completed' : selectedConsultation.status;
+    let newStatus = selectedConsultation.status;
+    if (isPrinting) {
+      newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
+    }
     const statusChanged = newStatus !== selectedConsultation.status;
 
     if (!patientDetailsChanged && !extraDataChanged && !statusChanged) {
@@ -1112,7 +1119,7 @@ const Consultation = () => {
         ...selectedConsultation,
         patient: { ...editablePatientDetails },
         consultation_data: { ...extraData, language: i18n.language },
-        status: newStatus as 'pending' | 'completed',
+        status: newStatus as 'pending' | 'completed' | 'under_evaluation',
       };
 
       setSelectedConsultation(updatedConsultation);
@@ -1124,6 +1131,7 @@ const Consultation = () => {
       );
       setAllConsultations(updatedAllConsultations);
       setPendingConsultations(updatedAllConsultations.filter(c => c.status === 'pending'));
+      setEvaluationConsultations(updatedAllConsultations.filter(c => c.status === 'under_evaluation'));
       setCompletedConsultations(updatedAllConsultations.filter(c => c.status === 'completed'));
 
       return true;
@@ -1284,6 +1292,26 @@ const Consultation = () => {
                                           </Button>
                                       ))}
                                       {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
+                                  </div>
+                              )}
+                          </div>
+                          <div>
+                              <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent" onClick={() => setIsEvaluationCollapsed(!isEvaluationCollapsed)}>
+                                  <Label className="cursor-pointer">Under Evaluation: {evaluationConsultations.length}</Label>
+                                  <ChevronDown className={cn("w-4 h-4 transition-transform", !isEvaluationCollapsed && "rotate-180")} />
+                              </Button>
+                              {isFetchingConsultations ? (
+                                  <div className="flex justify-center items-center h-32">
+                                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                  </div>
+                              ) : (
+                                  <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isEvaluationCollapsed ? "max-h-0" : "max-h-60")}>
+                                      {evaluationConsultations.map(c => (
+                                          <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
+                                              {c.patient.name}
+                                          </Button>
+                                      ))}
+                                      {evaluationConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
                                   </div>
                               )}
                           </div>
