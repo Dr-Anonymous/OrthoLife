@@ -1238,6 +1238,21 @@ const Consultation = () => {
         window.open(data.url, '_blank');
       }
 
+      if (data?.driveId && editablePatientDetails && !editablePatientDetails.drive_id) {
+        const newPatientDetails = { ...editablePatientDetails, drive_id: data.driveId };
+        setEditablePatientDetails(newPatientDetails);
+
+        const updatedAllConsultations = allConsultations.map(c =>
+          c.id === selectedConsultation.id
+            ? { ...c, patient: { ...c.patient, drive_id: data.driveId } }
+            : c
+        );
+        setAllConsultations(updatedAllConsultations);
+        setPendingConsultations(updatedAllConsultations.filter(c => c.status === 'pending'));
+        setEvaluationConsultations(updatedAllConsultations.filter(c => c.status === 'under_evaluation'));
+        setCompletedConsultations(updatedAllConsultations.filter(c => c.status === 'completed'));
+      }
+
       toast({
         title: "Prescription Generated",
         description: `Prescription for ${editablePatientDetails.name} has been generated.`,

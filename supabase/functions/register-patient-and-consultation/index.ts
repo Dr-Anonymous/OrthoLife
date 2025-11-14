@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import { corsHeaders } from '../_shared/cors.ts';
-import { getGoogleAccessToken } from '../_shared/google-auth.ts';
-import { createOrGetPatientFolder } from '../_shared/google-drive.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -110,19 +108,7 @@ serve(async (req) => {
     }
 
     // No matches or user confirmed new patient, proceed with registration
-    let driveId = existingDriveId;
-    if (!driveId) {
-      const accessToken = await getGoogleAccessToken();
-      if (accessToken) {
-        driveId = await createOrGetPatientFolder({
-          patientName: name,
-          accessToken,
-          templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4", // Prescription template
-        });
-      } else {
-        console.error("Failed to get Google Access Token. Cannot create Drive folder.");
-      }
-    }
+    const driveId = existingDriveId; // Keep existing driveId if patient is being migrated
 
     const newPatientId = id || await generateIncrementalId(supabase);
     const { data: newPatient, error: newPatientError } = await supabase
