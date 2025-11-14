@@ -1535,21 +1535,19 @@ const Consultation = () => {
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
-                                        {suggestedInvestigations.map((investigation) => (
-                                            <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
-                                                {investigation}
-                                            </Button>
-                                        ))}
-                                    </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                      <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                      {suggestedInvestigations.map((investigation) => (
+                                          <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
+                                              {investigation}
+                                          </Button>
+                                      ))}
                                   </div>
                                   <Textarea id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value)} placeholder="Investigations required..." className="min-h-[100px]" />
-                              </div>
+                                </div>
 
-                              <div className="space-y-2">
+                                <div className="space-y-2">
                                   <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
                                   <Textarea id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
                               </div>

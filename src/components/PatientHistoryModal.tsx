@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Calendar, Stethoscope, Pill, FileText, MapPin } from 'lucide-react';
+import { Loader2, Calendar, Stethoscope, Pill, FileText, MapPin, NotebookText } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PatientHistoryModalProps {
@@ -80,12 +80,14 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                       </span>
                     </div>
                     <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                      {item.consultation_data?.diagnosis && (
+                      {(item.consultation_data?.diagnosis || item.consultation_data?.complaints) && (
                         <div className="flex items-start gap-3">
                           <Stethoscope className="w-5 h-5 mt-1 text-primary" />
                           <div>
-                            <h4 className="font-semibold">Diagnosis</h4>
-                            <p className="text-sm text-muted-foreground">{item.consultation_data.diagnosis}</p>
+                            <h4 className="font-semibold">{item.consultation_data.diagnosis ? 'Diagnosis' : 'Complaints'}</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                              {item.consultation_data.diagnosis || item.consultation_data.complaints}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -108,6 +110,15 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                           <div>
                             <h4 className="font-semibold">Advice</h4>
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.advice}</p>
+                          </div>
+                        </div>
+                      )}
+                      {item.consultation_data?.personalNote && (
+                        <div className="flex items-start gap-3">
+                          <NotebookText className="w-5 h-5 mt-1 text-primary" />
+                          <div>
+                            <h4 className="font-semibold">Doctor's Note</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.personalNote}</p>
                           </div>
                         </div>
                       )}

@@ -177,8 +177,11 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     }
   };
 
-  const handlePatientSelection = (patientId: string, patientList: Patient[] = searchResults) => {
-    const selected = patientList.find(p => p.id.toString() === patientId);
+  const handleSelectPatient = (patientId: string, patientList: Patient[] = searchResults) => {
+    // The review identified a bug here. The patientId from the Select component is a string,
+    // while the patient.id from the search results is a number. We need to ensure the comparison
+    // works correctly by coercing the types.
+    const selected = patientList.find(p => p.id == Number(patientId));
     setSelectedPatientId(patientId);
 
     if (selected) {
@@ -251,7 +254,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           title: 'Patient Exists',
           description: data.message,
         });
-        handlePatientSelection(data.patient.id.toString(), [data.patient]);
+        handleSelectPatient(data.patient.id.toString(), [data.patient]);
       } else if (data.status === 'success') {
         toast({
           title: 'Patient Registered for Consultation',
@@ -284,7 +287,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   'August', 'September', 'October', 'November', 'December'];
 
   const handleSelectFromModal = (patientId: string) => {
-    handlePatientSelection(patientId, matchingPatients);
+    handleSelectPatient(patientId, matchingPatients);
     setShowConfirmation(false);
   };
 
@@ -367,7 +370,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           {searchResults.length > 0 && (
             <div className="space-y-2 md:col-span-2">
               <Label className="text-sm font-medium">Select Existing Patient</Label>
-              <Select value={selectedPatientId} onValueChange={handlePatientSelection}>
+              <Select value={selectedPatientId} onValueChange={handleSelectPatient}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a patient from search results..." />
                 </SelectTrigger>
