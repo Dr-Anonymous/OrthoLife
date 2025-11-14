@@ -14,7 +14,6 @@ const Index = lazy(() => import("./pages/Index"));
 const AppointmentPage = lazy(() => import("./pages/AppointmentPage"));
 const LegalPoliciesPage = lazy(() => import("./pages/LegalPoliciesPage"));
 const WhatsAppMe = lazy(() => import("./pages/WhatsAppMe"));
-const EMR = lazy(() => import("./pages/EMR"));
 const PatientRegistration = lazy(() => import("./pages/PatientRegistration"));
 const Consultation = lazy(() => import("./pages/Consultation"));
 const ConsultationStats = lazy(() => import("./pages/ConsultationStats"));
@@ -92,7 +91,6 @@ const App = () => {
                 <Route path="/appointment" element={<AppointmentPage />} />
                 <Route path="/legal" element={<LegalPoliciesPage />} />
                 <Route path="/wa" element={<WhatsAppMe />} />
-                <Route path="/emr" element={<EMR />} />
                 <Route path="/badam" element={<PatientRegistration />} />
                 <Route path="/consultation" element={<Consultation />} />
                 <Route path="/consultation-stats" element={<ConsultationStats />} />
