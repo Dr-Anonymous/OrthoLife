@@ -40,35 +40,6 @@ serve(async (req) => {
     // Sanitize phone to last 10 digits
     const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
 
-    // If a driveId is provided, we're updating an existing patient.
-    if (existingDriveId) {
-      const { data: updatedPatient, error: updateError } = await supabase
-        .from('patients')
-        .update({ name, dob, sex, phone: sanitizedPhone })
-        .eq('drive_id', existingDriveId)
-        .select('id, created_at, drive_id')
-        .single();
-      if (updateError) throw updateError;
-
-      // Proceed to create a consultation for the updated patient
-      const { data: consultation, error: newConsultationError } = await supabase
-        .from('consultations')
-        .insert({ patient_id: updatedPatient.id, status: 'pending' })
-        .select()
-        .single();
-
-      if (newConsultationError) throw newConsultationError;
-
-      return new Response(JSON.stringify({
-        status: 'success',
-        consultation,
-        driveId: updatedPatient.drive_id
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
-
     // Check for existing patients with the same phone number
     const { data: existingPatients, error: patientError } = await supabase
       .from('patients')
@@ -139,16 +110,18 @@ serve(async (req) => {
     }
 
     // No matches or user confirmed new patient, proceed with registration
-    const accessToken = await getGoogleAccessToken();
-    let driveId = null;
-    if (accessToken) {
-      driveId = await createOrGetPatientFolder({
-        patientName: name,
-        accessToken,
-        templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4", // Prescription template
-      });
-    } else {
-      console.error("Failed to get Google Access Token. Cannot create Drive folder.");
+    let driveId = existingDriveId;
+    if (!driveId) {
+      const accessToken = await getGoogleAccessToken();
+      if (accessToken) {
+        driveId = await createOrGetPatientFolder({
+          patientName: name,
+          accessToken,
+          templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4", // Prescription template
+        });
+      } else {
+        console.error("Failed to get Google Access Token. Cannot create Drive folder.");
+      }
     }
 
     const newPatientId = await generateIncrementalId(supabase);
