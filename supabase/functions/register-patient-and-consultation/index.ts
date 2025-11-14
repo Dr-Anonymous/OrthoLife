@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import { corsHeaders } from '../_shared/cors.ts';
-import { getGoogleAccessToken } from '../_shared/google-auth.ts';
-import { createOrGetPatientFolder } from '../_shared/google-drive.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -35,39 +33,10 @@ serve(async (req) => {
   }
 
   try {
-    const { name, dob, sex, phone, driveId: existingDriveId, force = false } = await req.json();
+    const { id, name, dob, sex, phone, driveId: existingDriveId, force = false } = await req.json();
 
     // Sanitize phone to last 10 digits
     const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
-
-    // If a driveId is provided, we're updating an existing patient.
-    if (existingDriveId) {
-      const { data: updatedPatient, error: updateError } = await supabase
-        .from('patients')
-        .update({ name, dob, sex, phone: sanitizedPhone })
-        .eq('drive_id', existingDriveId)
-        .select('id, created_at, drive_id')
-        .single();
-      if (updateError) throw updateError;
-
-      // Proceed to create a consultation for the updated patient
-      const { data: consultation, error: newConsultationError } = await supabase
-        .from('consultations')
-        .insert({ patient_id: updatedPatient.id, status: 'pending' })
-        .select()
-        .single();
-
-      if (newConsultationError) throw newConsultationError;
-
-      return new Response(JSON.stringify({
-        status: 'success',
-        consultation,
-        driveId: updatedPatient.drive_id
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
 
     // Check for existing patients with the same phone number
     const { data: existingPatients, error: patientError } = await supabase
@@ -139,19 +108,9 @@ serve(async (req) => {
     }
 
     // No matches or user confirmed new patient, proceed with registration
-    const accessToken = await getGoogleAccessToken();
-    let driveId = null;
-    if (accessToken) {
-      driveId = await createOrGetPatientFolder({
-        patientName: name,
-        accessToken,
-        templateId: "1Wm5gXKW1AwVcdQVmlekOSHN60u32QNIoqGpP_NyDlw4", // Prescription template
-      });
-    } else {
-      console.error("Failed to get Google Access Token. Cannot create Drive folder.");
-    }
+    const driveId = existingDriveId; // Keep existing driveId if patient is being migrated
 
-    const newPatientId = await generateIncrementalId(supabase);
+    const newPatientId = id || await generateIncrementalId(supabase);
     const { data: newPatient, error: newPatientError } = await supabase
       .from('patients')
       .insert({ id: newPatientId, name, dob, sex, phone: sanitizedPhone, drive_id: driveId })

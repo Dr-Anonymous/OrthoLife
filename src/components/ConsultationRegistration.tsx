@@ -21,27 +21,38 @@ interface Patient {
   sex: string;
   phone: string;
   drive_id: string | null;
+  complaints?: string;
+  findings?: string;
+  investigations?: string;
+  diagnosis?: string;
+  advice?: string;
+  followup?: string;
+  medications?: any[];
 }
 
 interface FormData {
+  id: number | null;
   name: string;
   dob: Date | undefined;
   sex: string;
   phone: string;
   driveId: string | null;
+  consultation_data: any | null;
 }
 
 interface ConsultationRegistrationProps {
-  onSuccess?: (newPatient: any) => void;
+  onSuccess?: (newPatient: any, consultationData?: any) => void;
 }
 
 const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState<FormData>({
+    id: null,
     name: '',
     dob: undefined,
     sex: 'M',
     phone: '',
     driveId: null,
+    consultation_data: null,
   });
 
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
@@ -83,8 +94,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId'>, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value, driveId: null }));
+  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId' | 'id' | 'consultation_data'>, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value, driveId: null, id: null, consultation_data: null }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
 
     if (field === 'phone' || field === 'name') {
@@ -109,23 +120,50 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setSelectedPatientId('');
 
     try {
-      const { data, error } = await supabase.functions.invoke('search-patients-database', {
+      // Step 1: Search the database
+      const { data: dbData, error: dbError } = await supabase.functions.invoke('search-patients-database', {
         body: { searchTerm, searchType },
       });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      if (data && data.length > 0) {
-        setSearchResults(data);
+      if (dbData && dbData.length > 0) {
+        setSearchResults(dbData);
         toast({
-          title: 'Patients Found',
-          description: `Found ${data.length} patient(s). Please select one.`,
+          title: 'Patients Found in Database',
+          description: `Found ${dbData.length} patient(s). Please select one.`,
         });
       } else {
-        toast({
-          title: 'No Patients Found',
-          description: 'No existing patients found with this criteria. You can register a new patient.',
-        });
+        // Step 2: If no database results and searching by phone, search Google Drive
+        if (searchType === 'phone') {
+          toast({
+            title: 'Searching Legacy Records',
+            description: 'No patients found in the database. Checking older records from Google Drive...',
+          });
+          const { data: driveData, error: driveError } = await supabase.functions.invoke('search-patient-records', {
+            body: { phoneNumber: searchTerm },
+          });
+
+          if (driveError) throw driveError;
+
+          if (driveData && driveData.length > 0) {
+            setSearchResults(driveData);
+            toast({
+              title: 'Patients Found in Google Drive',
+              description: `Found ${driveData.length} patient(s). Please select one to import.`,
+            });
+          } else {
+            toast({
+              title: 'No Patients Found',
+              description: 'No patients found in the database or Google Drive. You can register a new patient.',
+            });
+          }
+        } else {
+          toast({
+            title: 'No Patients Found',
+            description: 'No patients found with this name. You can register a new patient.',
+          });
+        }
       }
     } catch (error) {
       console.error('Error searching patients:', error);
@@ -139,17 +177,23 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     }
   };
 
-  const handlePatientSelection = (patientId: string, patientList: Patient[] = searchResults) => {
-    const selected = patientList.find(p => p.id.toString() === patientId);
+  const handleSelectPatient = (patientId: string, patientList: Patient[] = searchResults) => {
+    // The review identified a bug here. The patientId from the Select component is a string,
+    // while the patient.id from the search results is a number. We need to ensure the comparison
+    // works correctly by coercing the types.
+    const selected = patientList.find(p => p.id == Number(patientId));
     setSelectedPatientId(patientId);
 
     if (selected) {
+      const { id, name, dob, sex, phone, drive_id, ...consultation_data } = selected;
       setFormData({
-        name: selected.name,
-        dob: selected.dob ? new Date(selected.dob) : undefined,
-        sex: selected.sex,
-        phone: selected.phone,
-        driveId: selected.drive_id,
+        id,
+        name,
+        dob: dob ? new Date(dob) : undefined,
+        sex,
+        phone,
+        driveId: drive_id,
+        consultation_data,
       });
       toast({
         title: 'Patient Data Loaded',
@@ -186,6 +230,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     try {
       const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
         body: {
+          id: formData.id,
           name: formData.name,
           dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
           sex: formData.sex,
@@ -209,17 +254,17 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           title: 'Patient Exists',
           description: data.message,
         });
-        handlePatientSelection(data.patient.id.toString(), [data.patient]);
+        handleSelectPatient(data.patient.id.toString(), [data.patient]);
       } else if (data.status === 'success') {
         toast({
           title: 'Patient Registered for Consultation',
           description: `${formData.name} has been successfully registered.`,
         });
-        setFormData({ name: '', dob: undefined, sex: 'M', phone: '', driveId: null });
+        setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
         setSearchResults([]);
         setSelectedPatientId('');
         setShowConfirmation(false);
-        if (onSuccess) onSuccess(data.consultation);
+        if (onSuccess) onSuccess(data.consultation, formData.consultation_data);
       } else {
         throw new Error(data.error || 'An unexpected error occurred.');
       }
@@ -242,7 +287,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   'August', 'September', 'October', 'November', 'December'];
 
   const handleSelectFromModal = (patientId: string) => {
-    handlePatientSelection(patientId, matchingPatients);
+    handleSelectPatient(patientId, matchingPatients);
     setShowConfirmation(false);
   };
 
@@ -325,7 +370,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           {searchResults.length > 0 && (
             <div className="space-y-2 md:col-span-2">
               <Label className="text-sm font-medium">Select Existing Patient</Label>
-              <Select value={selectedPatientId} onValueChange={handlePatientSelection}>
+              <Select value={selectedPatientId} onValueChange={handleSelectPatient}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a patient from search results..." />
                 </SelectTrigger>
