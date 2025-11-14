@@ -21,6 +21,13 @@ interface Patient {
   sex: string;
   phone: string;
   drive_id: string | null;
+  complaints?: string;
+  findings?: string;
+  investigations?: string;
+  diagnosis?: string;
+  advice?: string;
+  followup?: string;
+  medications?: any[];
 }
 
 interface FormData {
@@ -30,10 +37,11 @@ interface FormData {
   sex: string;
   phone: string;
   driveId: string | null;
+  consultation_data: any | null;
 }
 
 interface ConsultationRegistrationProps {
-  onSuccess?: (newPatient: any) => void;
+  onSuccess?: (newPatient: any, consultationData?: any) => void;
 }
 
 const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess }) => {
@@ -44,6 +52,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     sex: 'M',
     phone: '',
     driveId: null,
+    consultation_data: null,
   });
 
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
@@ -85,8 +94,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId' | 'id'>, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value, driveId: null, id: null }));
+  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId' | 'id' | 'consultation_data'>, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value, driveId: null, id: null, consultation_data: null }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
 
     if (field === 'phone' || field === 'name') {
@@ -173,13 +182,15 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setSelectedPatientId(patientId);
 
     if (selected) {
+      const { id, name, dob, sex, phone, drive_id, ...consultation_data } = selected;
       setFormData({
-        id: selected.id,
-        name: selected.name,
-        dob: selected.dob ? new Date(selected.dob) : undefined,
-        sex: selected.sex,
-        phone: selected.phone,
-        driveId: selected.drive_id,
+        id,
+        name,
+        dob: dob ? new Date(dob) : undefined,
+        sex,
+        phone,
+        driveId: drive_id,
+        consultation_data,
       });
       toast({
         title: 'Patient Data Loaded',
@@ -246,11 +257,11 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           title: 'Patient Registered for Consultation',
           description: `${formData.name} has been successfully registered.`,
         });
-        setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null });
+        setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
         setSearchResults([]);
         setSelectedPatientId('');
         setShowConfirmation(false);
-        if (onSuccess) onSuccess(data.consultation);
+        if (onSuccess) onSuccess(data.consultation, formData.consultation_data);
       } else {
         throw new Error(data.error || 'An unexpected error occurred.');
       }

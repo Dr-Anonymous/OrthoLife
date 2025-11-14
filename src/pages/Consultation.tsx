@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -669,7 +670,7 @@ const Consultation = () => {
     }
   };
 
-  const fetchConsultations = async (date: Date, patientIdToRestore?: string) => {
+  const fetchConsultations = async (date: Date, patientIdToRestore?: string, consultationData?: any) => {
     setIsFetchingConsultations(true);
     if (!patientIdToRestore) {
       setAllConsultations([]);
@@ -694,6 +695,12 @@ const Consultation = () => {
       if (patientIdToRestore) {
         const restoredConsultation = consultations.find(c => c.patient.id === patientIdToRestore);
         if (restoredConsultation) {
+          if (consultationData) {
+            restoredConsultation.consultation_data = {
+              ...restoredConsultation.consultation_data,
+              ...consultationData
+            };
+          }
           setSelectedConsultation(restoredConsultation);
         }
       }
@@ -1706,10 +1713,10 @@ const Consultation = () => {
                 </DialogHeader>
                 <div className="py-4">
                     <ConsultationRegistration
-                        onSuccess={(newConsultation) => {
+                        onSuccess={(newConsultation, consultationData) => {
                             setIsRegistrationModalOpen(false);
                             if (selectedDate) {
-                                fetchConsultations(selectedDate, newConsultation.patient_id);
+                                fetchConsultations(selectedDate, newConsultation.patient_id, consultationData);
                             }
                         }}
                     />
