@@ -81,12 +81,11 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
         if (!patientData || !patientData.name) {
           return null;
         }
+
+        // Return the full patientData object, ensuring the ID is a number
         return {
+          ...patientData,
           id: parseInt(patientData.id, 10),
-          name: patientData.name,
-          dob: patientData.dob,
-          sex: patientData.sex,
-          phone: patientData.phone || phoneNumber.replace(/\D/g, '').slice(-10),
           drive_id: folderId
         };
       } catch (error) {
