@@ -82,7 +82,7 @@ async function searchPhoneNumber(accessToken, phoneNumber) {
           return null;
         }
         return {
-          id: Math.floor(Math.random() * 1000000),
+          id: parseInt(patientData.id, 10),
           name: patientData.name,
           dob: patientData.dob,
           sex: patientData.sex,
