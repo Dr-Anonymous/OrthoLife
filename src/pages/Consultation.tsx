@@ -29,7 +29,7 @@ import SaveBundleModal from '@/components/SaveBundleModal';
 import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/Prescription';
-import { GOOGLE_DOCS_TEMPLATE_IDS } from '@/config/constants';
+import { GOOGLE_DOCS_TEMPLATE_IDS, HOSPITALS } from '@/config/constants';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -390,6 +390,21 @@ const Consultation = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(true);
+  const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
+
+  useEffect(() => {
+    const storedHospital = localStorage.getItem('selectedHospital');
+    if (storedHospital) {
+      const foundHospital = HOSPITALS.find(h => h.name === storedHospital);
+      if (foundHospital) {
+        setSelectedHospital(foundHospital);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('selectedHospital', selectedHospital.name);
+  }, [selectedHospital]);
 
   useEffect(() => {
     const storedValue = localStorage.getItem('isGenerateDocEnabled');
@@ -1243,6 +1258,28 @@ const Consultation = () => {
                   <div className="lg:col-span-1 space-y-4">
                       <div>
                           <div className="flex justify-between items-center mb-2">
+                            <Label>Hospital</Label>
+                          </div>
+                          <Select value={selectedHospital.name} onValueChange={(value) => {
+                                const hospital = HOSPITALS.find(h => h.name === value);
+                                if (hospital) {
+                                    setSelectedHospital(hospital);
+                                }
+                            }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select hospital" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {HOSPITALS.map(hospital => (
+                                        <SelectItem key={hospital.name} value={hospital.name}>
+                                            {hospital.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                      </div>
+                      <div>
+                          <div className="flex justify-between items-center mb-2">
                               <Label>Consultation Date</Label>
                               <div className="flex items-center gap-2">
                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsRegistrationModalOpen(true)}>
@@ -1624,6 +1661,7 @@ const Consultation = () => {
                       consultationDate={selectedDate || new Date()}
                       age={age}
                       language={i18n.language}
+                      logoUrl={selectedHospital.logoUrl}
                   />
               )}
           </div>

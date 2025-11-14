@@ -38,9 +38,10 @@ interface PrescriptionProps {
   consultationDate: Date;
   age: number | '';
   language: string;
+  logoUrl: string;
 }
 
-export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language }, ref) => {
+export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl }, ref) => {
   const { t, i18n } = useTranslation();
 
   React.useEffect(() => {
@@ -59,7 +60,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         style={{ backgroundImage: backgroundPattern }}
       >
         <div className="flex items-center">
-          <img src="/badam-logo.png" alt="Clinic Logo" className="h-24 w-auto" />
+          <img src={logoUrl} alt="Clinic Logo" className="h-24 w-auto" />
         </div>
         <div className="text-right">
           <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
