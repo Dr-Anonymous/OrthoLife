@@ -1119,8 +1119,13 @@ const Consultation = () => {
 
       const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
 
+      const dataToSave = { ...extraData, language: i18n.language };
+      if (isPrinting) {
+        dataToSave.location = selectedHospital.name;
+      }
+
       if (extraDataChanged) {
-          consultationUpdatePayload.consultation_data = { ...extraData, language: i18n.language };
+          consultationUpdatePayload.consultation_data = dataToSave;
       }
       if (statusChanged) {
           consultationUpdatePayload.status = newStatus;
@@ -1188,8 +1193,10 @@ const Consultation = () => {
         }
       }
 
+      const templateId = selectedHospital.name === 'OrthoLife' ? GOOGLE_DOCS_TEMPLATE_IDS.ORTHOLIFE_PRESCRIPTION : GOOGLE_DOCS_TEMPLATE_IDS.PRESCRIPTION;
+
       const payload = {
-        templateId: GOOGLE_DOCS_TEMPLATE_IDS.PRESCRIPTION,
+        templateId,
         patientId: selectedConsultation.patient.id,
         name: editablePatientDetails.name,
         dob: editablePatientDetails.dob,
