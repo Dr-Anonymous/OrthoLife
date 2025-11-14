@@ -24,6 +24,7 @@ interface Patient {
 }
 
 interface FormData {
+  id: number | null;
   name: string;
   dob: Date | undefined;
   sex: string;
@@ -37,6 +38,7 @@ interface ConsultationRegistrationProps {
 
 const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState<FormData>({
+    id: null,
     name: '',
     dob: undefined,
     sex: 'M',
@@ -83,8 +85,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId'>, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value, driveId: null }));
+  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId' | 'id'>, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value, driveId: null, id: null }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
 
     if (field === 'phone' || field === 'name') {
@@ -172,6 +174,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
     if (selected) {
       setFormData({
+        id: selected.id,
         name: selected.name,
         dob: selected.dob ? new Date(selected.dob) : undefined,
         sex: selected.sex,
@@ -213,6 +216,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     try {
       const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
         body: {
+          id: formData.id,
           name: formData.name,
           dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
           sex: formData.sex,
@@ -242,7 +246,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           title: 'Patient Registered for Consultation',
           description: `${formData.name} has been successfully registered.`,
         });
-        setFormData({ name: '', dob: undefined, sex: 'M', phone: '', driveId: null });
+        setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null });
         setSearchResults([]);
         setSelectedPatientId('');
         setShowConfirmation(false);
