@@ -109,23 +109,50 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setSelectedPatientId('');
 
     try {
-      const { data, error } = await supabase.functions.invoke('search-patients-database', {
+      // Step 1: Search the database
+      const { data: dbData, error: dbError } = await supabase.functions.invoke('search-patients-database', {
         body: { searchTerm, searchType },
       });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      if (data && data.length > 0) {
-        setSearchResults(data);
+      if (dbData && dbData.length > 0) {
+        setSearchResults(dbData);
         toast({
-          title: 'Patients Found',
-          description: `Found ${data.length} patient(s). Please select one.`,
+          title: 'Patients Found in Database',
+          description: `Found ${dbData.length} patient(s). Please select one.`,
         });
       } else {
-        toast({
-          title: 'No Patients Found',
-          description: 'No existing patients found with this criteria. You can register a new patient.',
-        });
+        // Step 2: If no database results and searching by phone, search Google Drive
+        if (searchType === 'phone') {
+          toast({
+            title: 'Searching Legacy Records',
+            description: 'No patients found in the database. Checking older records from Google Drive...',
+          });
+          const { data: driveData, error: driveError } = await supabase.functions.invoke('search-patient-records', {
+            body: { phoneNumber: searchTerm },
+          });
+
+          if (driveError) throw driveError;
+
+          if (driveData && driveData.length > 0) {
+            setSearchResults(driveData);
+            toast({
+              title: 'Patients Found in Google Drive',
+              description: `Found ${driveData.length} patient(s). Please select one to import.`,
+            });
+          } else {
+            toast({
+              title: 'No Patients Found',
+              description: 'No patients found in the database or Google Drive. You can register a new patient.',
+            });
+          }
+        } else {
+          toast({
+            title: 'No Patients Found',
+            description: 'No patients found with this name. You can register a new patient.',
+          });
+        }
       }
     } catch (error) {
       console.error('Error searching patients:', error);
