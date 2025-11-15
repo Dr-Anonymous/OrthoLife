@@ -113,17 +113,23 @@ const WhatsAppMe = () => {
         });
         if (patientError) throw patientError;
 
-        if (patientData && patientData.length > 0) {
-          // Assuming the first result is the most relevant
-          setPrescription(patientData[0]);
-        } else {
-          // 2. If no patient data, search for calendar events
-          const { data: eventData, error: eventError } = await supabase.functions.invoke('search-calendar-events', {
+        // 1. Search for patients/prescriptions and calendar events concurrently
+        const [patientResult, eventResult] = await Promise.all([
+          supabase.functions.invoke('search-patients', {
+            body: { searchTerm: phone, searchType: 'phone' },
+          }),
+          supabase.functions.invoke('search-calendar-events', {
             body: { phoneNumber: phone },
-          });
-          if (eventError) throw eventError;
-          setCalendarEvents(eventData.calendarEvents || []);
+          }),
+        ]);
+
+        if (patientResult.error) throw patientResult.error;
+        if (eventResult.error) throw eventResult.error;
+
+        if (patientResult.data && patientResult.data.length > 0) {
+          setPrescription(patientResult.data[0]);
         }
+        setCalendarEvents(eventResult.data.calendarEvents || []);
       } catch (error) {
         console.error('Error searching records:', error);
         showError('Failed to search for records.');

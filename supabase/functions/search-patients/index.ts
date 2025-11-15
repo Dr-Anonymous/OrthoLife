@@ -37,7 +37,29 @@ serve(async (req) => {
     if (dbError) throw dbError;
 
     if (dbData && dbData.length > 0) {
-      return new Response(JSON.stringify(dbData), {
+      const patientsWithConsultations = await Promise.all(dbData.map(async (patient) => {
+        const { data: lastConsultation, error: lastConsultationError } = await supabase
+          .from('consultations')
+          .select('consultation_data')
+          .eq('patient_id', patient.id)
+          .not('consultation_data', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (lastConsultationError) {
+          // This is not a fatal error, just means no consultation history
+          console.error(`No consultation history for patient ${patient.id}:`, lastConsultationError.message);
+          return patient;
+        }
+
+        return {
+          ...patient,
+          ...lastConsultation.consultation_data,
+        };
+      }));
+
+      return new Response(JSON.stringify(patientsWithConsultations), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
