@@ -33,6 +33,8 @@ import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/Prescription';
 import { MedicalCertificate } from '@/components/MedicalCertificate';
 import MedicalCertificateModal, { CertificateData } from '@/components/MedicalCertificateModal';
+import { Receipt } from '@/components/Receipt';
+import ReceiptModal, { ReceiptData } from '@/components/ReceiptModal';
 import { GOOGLE_DOCS_TEMPLATE_IDS, HOSPITALS } from '@/config/constants';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -351,7 +353,9 @@ const Consultation = () => {
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
 
@@ -433,8 +437,10 @@ const Consultation = () => {
   const translationCache = useRef<any>({ en: {}, te: {} });
   const printRef = useRef(null);
   const certificatePrintRef = useRef(null);
+  const receiptPrintRef = useRef(null);
 
   const [isReadyToPrintCertificate, setIsReadyToPrintCertificate] = useState(false);
+  const [isReadyToPrintReceipt, setIsReadyToPrintReceipt] = useState(false);
   
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -442,6 +448,10 @@ const Consultation = () => {
 
   const handlePrintCertificate = useReactToPrint({
     contentRef: certificatePrintRef,
+  });
+
+  const handlePrintReceipt = useReactToPrint({
+    contentRef: receiptPrintRef,
   });
 
   useEffect(() => {
@@ -458,6 +468,14 @@ const Consultation = () => {
       setCertificateData(null);
     }
   }, [isReadyToPrintCertificate, handlePrintCertificate]);
+
+  useEffect(() => {
+    if (isReadyToPrintReceipt) {
+      handlePrintReceipt();
+      setIsReadyToPrintReceipt(false);
+      setReceiptData(null);
+    }
+  }, [isReadyToPrintReceipt, handlePrintReceipt]);
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
@@ -1691,6 +1709,10 @@ const Consultation = () => {
                                           <FileText className="w-4 h-4 mr-2" />
                                           Generate Medical Certificate
                                       </DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => setIsReceiptModalOpen(true)}>
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          Generate Receipt
+                                      </DropdownMenuItem>
                                   </DropdownMenuContent>
                               </DropdownMenu>
                           </div>
@@ -1728,6 +1750,18 @@ const Consultation = () => {
                       diagnosis={extraData.diagnosis}
                       consultationDate={selectedDate || new Date()}
                       certificateData={certificateData}
+                  />
+              )}
+          </div>
+      </div>
+      <div style={{ position: 'absolute', left: '-9999px' }}>
+          <div ref={receiptPrintRef}>
+              {selectedConsultation && editablePatientDetails && receiptData && (
+                  <Receipt
+                      patient={editablePatientDetails}
+                      receiptData={receiptData}
+                      consultationDate={selectedDate || new Date()}
+                      hospital={selectedHospital}
                   />
               )}
           </div>
@@ -1772,6 +1806,17 @@ const Consultation = () => {
                     setIsReadyToPrintCertificate(true);
                 }}
                 patientName={editablePatientDetails.name}
+            />
+        )}
+        {selectedConsultation && editablePatientDetails && (
+            <ReceiptModal
+                isOpen={isReceiptModalOpen}
+                onClose={() => setIsReceiptModalOpen(false)}
+                onSubmit={(data) => {
+                    setReceiptData(data);
+                    setIsReceiptModalOpen(false);
+                    setIsReadyToPrintReceipt(true);
+                }}
             />
         )}
         <Dialog open={isRegistrationModalOpen} onOpenChange={setIsRegistrationModalOpen}>

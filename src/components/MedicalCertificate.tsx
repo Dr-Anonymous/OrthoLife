@@ -53,7 +53,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
             </p>
           </div>
         </header>
-        
+
         <div className="text-right py-2 text-muted-foreground">
           {format(new Date(), 'dd/MM/yyyy')}
         </div>
