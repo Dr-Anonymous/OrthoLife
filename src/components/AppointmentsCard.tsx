@@ -31,7 +31,7 @@ const AppointmentsCard = () => {
       try {
         setLoading(true);
         const phoneNumber = user.phoneNumber.slice(-10);
-        const { data, error } = await supabase.functions.invoke('search-whatsappme-records', {
+        const { data, error } = await supabase.functions.invoke('search-calendar-events', {
           body: { phoneNumber },
         });
 
