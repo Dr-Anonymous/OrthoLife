@@ -51,7 +51,7 @@ const processTextShortcuts = (
   shortcuts: TextShortcut[]
 ): { newValue: string, newCursorPosition: number } | null => {
   const textBeforeCursor = currentValue.substring(0, cursorPosition);
-  const shortcutRegex = /(?:^|\s)([a-zA-Z0-9_]+)\.$/;
+  const shortcutRegex = /(?:^|\s)([a-zA-Z0-9_]+)\.\s$/;
   const match = textBeforeCursor.match(shortcutRegex);
 
   if (match) {
@@ -74,16 +74,8 @@ const processTextShortcuts = (
       const textAfter = currentValue.substring(cursorPosition);
       const prefix = fullMatch.startsWith(' ') ? ' ' : '';
 
-      let newTextAfter = textAfter;
-      if (!textAfter.startsWith(' ') && textAfter.length > 0) {
-        newTextAfter = ' ' + textAfter;
-      }
-      if (textAfter.length === 0) {
-        newTextAfter = ' ';
-      }
-
-      const newValue = textBefore + prefix + expansion + newTextAfter;
-      const newCursorPosition = (textBefore + prefix + expansion).length;
+      const newValue = textBefore + prefix + expansion + ' ' + textAfter;
+      const newCursorPosition = (textBefore + prefix + expansion).length + 1;
 
 
       return { newValue, newCursorPosition };
@@ -127,7 +119,7 @@ interface Consultation {
   status: 'pending' | 'completed' | 'under_evaluation';
 }
 
-const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications, i18n }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void, i18n: any }) => {
+const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications, i18n, medFrequencyRefs, medDurationRefs, medInstructionsRefs, medNotesRefs }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void, i18n: any, medFrequencyRefs: React.RefObject<{ [key: string]: HTMLTextAreaElement | null }>, medDurationRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }>, medInstructionsRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }>, medNotesRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }> }) => {
   const {
     attributes,
     listeners,
@@ -1772,6 +1764,10 @@ const Consultation = () => {
                                       medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
                                       fetchSavedMedications={fetchSavedMedications}
                                       i18n={i18n}
+                                      medFrequencyRefs={medFrequencyRefs}
+                                      medDurationRefs={medDurationRefs}
+                                      medInstructionsRefs={medInstructionsRefs}
+                                      medNotesRefs={medNotesRefs}
                                       />
                                   ))}
                                   </SortableContext>
