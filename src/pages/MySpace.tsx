@@ -27,6 +27,8 @@ const MySpace = () => {
   const [investigations, setInvestigations] = useState<string>('');
   const [advice, setAdvice] = useState<string>('');
   const [patientName, setPatientName] = useState<string>('');
+  const [patientId, setPatientId] = useState<string | undefined>(undefined);
+  const [patientPhone, setPatientPhone] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
@@ -73,6 +75,8 @@ const MySpace = () => {
           setInvestigations(data?.investigations || '');
           setAdvice(data?.advice || '');
           setPatientName(data?.patientName || '');
+          setPatientId(data?.patientId || undefined);
+          setPatientPhone(data?.phone || undefined);
           setIsSelectionPending(false);
         }
 
@@ -149,7 +153,7 @@ const MySpace = () => {
               <p className="text-red-500">{error}</p>
             ) : (
               <>
-                <PrescriptionsCard patientName={patientName} />
+                <PrescriptionsCard patientName={patientName} patientId={patientId} patientPhone={patientPhone} />
                 <DietAndExercisesCard advice={advice} patientName={patientName} />
                 <OrderMedicationCard medications={medications} patientName={patientName} />
                 <OrderTestsCard investigations={investigations} patientName={patientName} />
