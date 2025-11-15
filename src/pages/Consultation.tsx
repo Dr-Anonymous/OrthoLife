@@ -51,11 +51,12 @@ const processTextShortcuts = (
   shortcuts: TextShortcut[]
 ): { newValue: string, newCursorPosition: number } | null => {
   const textBeforeCursor = currentValue.substring(0, cursorPosition);
-  const shortcutRegex = /(?:^|\s)([a-zA-Z0-9_]+)\.\s$/;
+  const shortcutRegex = /(^|\s|\n|\.\s)([a-zA-Z0-9_]+)\.\s$/;
   const match = textBeforeCursor.match(shortcutRegex);
 
   if (match) {
-    const shortcutText = match[1];
+    const prefix = match[1] || '';
+    const shortcutText = match[2];
     const matchingShortcut = shortcuts.find(
       (sc) => sc.shortcut.toLowerCase() === shortcutText.toLowerCase()
     );
@@ -63,20 +64,19 @@ const processTextShortcuts = (
     if (matchingShortcut) {
       const fullMatch = match[0];
       const startOfShortcutInValue = cursorPosition - fullMatch.length;
-      const isStartOfSentence = /^\s*$/.test(currentValue.substring(0, startOfShortcutInValue));
+      const textBeforeContent = currentValue.substring(0, startOfShortcutInValue);
+
+      const shouldCapitalize = /^\s*$/.test(textBeforeContent) || textBeforeContent.endsWith('. ') || textBeforeContent.endsWith('.\n');
 
       let expansion = matchingShortcut.expansion;
-      if (isStartOfSentence) {
+      if (shouldCapitalize) {
         expansion = expansion.charAt(0).toUpperCase() + expansion.slice(1);
       }
 
-      const textBefore = currentValue.substring(0, startOfShortcutInValue);
       const textAfter = currentValue.substring(cursorPosition);
-      const prefix = fullMatch.startsWith(' ') ? ' ' : '';
 
-      const newValue = textBefore + prefix + expansion + ' ' + textAfter;
-      const newCursorPosition = (textBefore + prefix + expansion).length + 1;
-
+      const newValue = textBeforeContent + prefix + expansion + ' ' + textAfter;
+      const newCursorPosition = (textBeforeContent + prefix + expansion).length + 1;
 
       return { newValue, newCursorPosition };
     }
