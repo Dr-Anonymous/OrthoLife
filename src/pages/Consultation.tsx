@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -30,6 +31,8 @@ import SaveBundleModal from '@/components/SaveBundleModal';
 import TextShortcutManagementModal from '@/components/TextShortcutManagementModal';
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/Prescription';
+import { MedicalCertificate } from '@/components/MedicalCertificate';
+import MedicalCertificateModal, { CertificateData } from '@/components/MedicalCertificateModal';
 import { GOOGLE_DOCS_TEMPLATE_IDS, HOSPITALS } from '@/config/constants';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -347,6 +350,8 @@ const Consultation = () => {
   const [isSaveBundleModalOpen, setIsSaveBundleModalOpen] = useState(false);
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
+  const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
 
@@ -427,9 +432,16 @@ const Consultation = () => {
   const debouncedDiagnosis = useDebounce(extraData.diagnosis, 500);
   const translationCache = useRef<any>({ en: {}, te: {} });
   const printRef = useRef(null);
+  const certificatePrintRef = useRef(null);
+
+  const [isReadyToPrintCertificate, setIsReadyToPrintCertificate] = useState(false);
   
   const handlePrint = useReactToPrint({
     contentRef: printRef,
+  });
+
+  const handlePrintCertificate = useReactToPrint({
+    contentRef: certificatePrintRef,
   });
 
   useEffect(() => {
@@ -438,6 +450,14 @@ const Consultation = () => {
       setIsReadyToPrint(false);
     }
   }, [isReadyToPrint, handlePrint]);
+
+  useEffect(() => {
+    if (isReadyToPrintCertificate) {
+      handlePrintCertificate();
+      setIsReadyToPrintCertificate(false);
+      setCertificateData(null);
+    }
+  }, [isReadyToPrintCertificate, handlePrintCertificate]);
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
@@ -1642,30 +1662,37 @@ const Consultation = () => {
                               </div>
                           </div>
 
-                          <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-between gap-4">
-                              <Button
-                                type="button"
-                                variant={isGenerateDocEnabled ? "secondary" : "outline"}
-                                size="icon"
-                                className="h-12 w-12"
-                                onClick={() => setIsGenerateDocEnabled(prev => !prev)}
-                                disabled={isSubmitting}
-                              >
-                                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-                                <span className="sr-only">Toggle Google Doc Generation</span>
+                          <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
+                              <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving}>
+                                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+                                  Save Changes
                               </Button>
-                              <Button type="button" size="icon" className="h-12 w-12" onClick={handleSaveAndPrint}>
-                                  <Printer className="w-5 h-5" />
-                                  <span className="sr-only">Save & Print</span>
+                              <Button type="button" size="lg" onClick={handleSaveAndPrint}>
+                                  <Printer className="w-5 h-5 mr-2" />
+                                  Save & Print
                               </Button>
-                              <Button type="button" size="icon" className="h-12 w-12" onClick={saveChanges} disabled={isSaving}>
-                                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                  <span className="sr-only">Save Changes</span>
-                              </Button>
-                              <Button type="button" size="icon" variant="outline" className="h-12 w-12" onClick={() => setIsSaveBundleModalOpen(true)}>
-                                  <PackagePlus className="w-5 h-5" />
-                                  <span className="sr-only">Save as Bundle</span>
-                              </Button>
+                              <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                      <Button type="button" size="icon" variant="outline" className="h-12 w-12">
+                                          <MoreVertical className="w-5 h-5" />
+                                      </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          {isGenerateDocEnabled ? 'Disable' : 'Enable'} Google Doc
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => setIsSaveBundleModalOpen(true)}>
+                                          <PackagePlus className="w-4 h-4 mr-2" />
+                                          Save as Bundle
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onSelect={() => setIsMedicalCertificateModalOpen(true)}>
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          Generate Medical Certificate
+                                      </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                              </DropdownMenu>
                           </div>
                       </form>
                   ) : (
@@ -1693,7 +1720,19 @@ const Consultation = () => {
               )}
           </div>
       </div>
-        <SavedMedicationsModal
+      <div style={{ position: 'absolute', left: '-9999px' }}>
+          <div ref={certificatePrintRef}>
+              {selectedConsultation && editablePatientDetails && certificateData && (
+                  <MedicalCertificate
+                      patient={editablePatientDetails}
+                      diagnosis={extraData.diagnosis}
+                      consultationDate={selectedDate || new Date()}
+                      certificateData={certificateData}
+                  />
+              )}
+          </div>
+      </div>
+      <SavedMedicationsModal
           isOpen={isMedicationsModalOpen}
           onClose={() => setIsMedicationsModalOpen(false)}
           onMedicationsUpdate={fetchSavedMedications}
@@ -1723,6 +1762,18 @@ const Consultation = () => {
           onClose={() => setIsShortcutModalOpen(false)}
           onUpdate={fetchTextShortcuts}
         />
+        {selectedConsultation && editablePatientDetails && (
+            <MedicalCertificateModal
+                isOpen={isMedicalCertificateModalOpen}
+                onClose={() => setIsMedicalCertificateModalOpen(false)}
+                onSubmit={(data) => {
+                    setCertificateData(data);
+                    setIsMedicalCertificateModalOpen(false);
+                    setIsReadyToPrintCertificate(true);
+                }}
+                patientName={editablePatientDetails.name}
+            />
+        )}
         <Dialog open={isRegistrationModalOpen} onOpenChange={setIsRegistrationModalOpen}>
             <DialogContent className="max-w-4xl">
                 <DialogHeader>
