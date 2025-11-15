@@ -9,10 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 interface PatientFolder {
   id: string;
   name: string;
+  files: any[];
 }
 
 interface CalendarEvent {
-  start:string;
+  start: string;
   description: string;
   attachments?: string;
 }
@@ -37,6 +38,7 @@ const WhatsAppMe = () => {
   const [nameFromUrl, setNameFromUrl] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
+  const [prescription, setPrescription] = useState<any>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
@@ -103,13 +105,25 @@ const WhatsAppMe = () => {
       setIsLoading(true);
       setPatientFolders([]);
       setCalendarEvents([]);
+      setPrescription(null);
       try {
-        const { data, error } = await supabase.functions.invoke('search-whatsappme-records', {
-          body: { phoneNumber: phone },
+        // 1. Search for patients/prescriptions
+        const { data: patientData, error: patientError } = await supabase.functions.invoke('search-patients', {
+          body: { searchTerm: phone, searchType: 'phone' },
         });
-        if (error) throw error;
-        setPatientFolders(data.patientFolders || []);
-        setCalendarEvents(data.calendarEvents || []);
+        if (patientError) throw patientError;
+
+        if (patientData && patientData.length > 0) {
+          // Assuming the first result is the most relevant
+          setPrescription(patientData[0]);
+        } else {
+          // 2. If no patient data, search for calendar events
+          const { data: eventData, error: eventError } = await supabase.functions.invoke('search-calendar-events', {
+            body: { phoneNumber: phone },
+          });
+          if (eventError) throw eventError;
+          setCalendarEvents(eventData.calendarEvents || []);
+        }
       } catch (error) {
         console.error('Error searching records:', error);
         showError('Failed to search for records.');
@@ -118,8 +132,6 @@ const WhatsAppMe = () => {
       }
     } else {
       showError('Please enter a valid 10-digit phone number.');
-      setPatientFolders([]);
-      setCalendarEvents([]);
     }
   };
 
@@ -294,30 +306,29 @@ const WhatsAppMe = () => {
 
         {isLoading && <p>Loading...</p>}
 
-        {patientFolders.length > 0 && (
+        {prescription && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Folder className="w-4 h-4" /> Patient Records
+              <Clipboard className="w-4 h-4" /> Prescription Details
             </h3>
-            <div className="space-y-2">
-              {patientFolders.map(folder => (
-                <Card key={folder.id} className="p-4">
-                  <a
-                    href={`https://drive.google.com/drive/folders/${folder.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline flex items-center gap-2"
-                  >
-                    <Link className="w-4 h-4" />
-                    {folder.name}
-                  </a>
-                </Card>
-              ))}
-            </div>
+            <Card className="p-4">
+              <p><strong>Name:</strong> {prescription.name}</p>
+              {prescription.complaints && <p><strong>Complaints:</strong> {prescription.complaints}</p>}
+              {prescription.medications && (
+                <div>
+                  <strong>Medications:</strong>
+                  <ul className="list-disc pl-5">
+                    {prescription.medications.map((med: any, index: number) => (
+                      <li key={index}>{med.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
-        {calendarEvents.length > 0 && (
+        {calendarEvents.length > 0 && !prescription && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Calendar Events
