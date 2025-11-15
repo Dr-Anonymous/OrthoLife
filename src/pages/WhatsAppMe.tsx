@@ -334,7 +334,7 @@ const WhatsAppMe = () => {
           </div>
         )}
 
-        {calendarEvents.length > 0 && !prescription && (
+        {calendarEvents.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Calendar Events
