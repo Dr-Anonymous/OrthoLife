@@ -28,7 +28,7 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData }) => {
           style={{ backgroundImage: backgroundPattern }}
         >
           <div className="flex items-center">
-            <img src="/logo.png" alt="Clinic Logo" className="h-24 w-auto" />
+            <img src="/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
           </div>
           <div className="text-right">
             <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
