@@ -65,7 +65,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           <div className="text-lg leading-relaxed space-y-6">
             <p>
               This is to certify that {patientPrefix} <strong>{patient.name}</strong>, bearing ID No.: <strong>{patient.id}</strong>
-              &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>.{ /* space */}
+              &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>.{ " " }
               {pronounHeShe} is under treatment for the above condition from <strong>{format(treatmentFromDate, 'PPP')}</strong> to the present date.
             </p>
             <p>
