@@ -40,7 +40,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           style={{ backgroundImage: backgroundPattern }}
         >
           <div className="flex items-center">
-            <img src="/logo.png" alt="Clinic Logo" className="h-24 w-auto" />
+            <img src="/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
           </div>
           <div className="text-right">
             <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
@@ -65,7 +65,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           <div className="text-lg leading-relaxed space-y-6">
             <p>
               This is to certify that {patientPrefix} <strong>{patient.name}</strong>, bearing ID No.: <strong>{patient.id}</strong>
-              &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>.
+              &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>. 
               {pronounHeShe} is under treatment for the above condition from <strong>{format(treatmentFromDate, 'PPP')}</strong> to the present date.
             </p>
             <p>
@@ -74,7 +74,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
             </p>
             {rejoinDate && rejoinActivity ? (
               <p>
-                {pronounHeShe} has been reevaluated on follow-up and found to be fit to resume {pronounHeSheLower === 'he' ? 'his' : 'her'} <strong>{rejoinActivity}</strong> duties from <strong>{format(rejoinDate, 'PPP')}</strong>.
+                {pronounHeShe} has been reevaluated on follow-up and found to be fit to resume <strong>{rejoinActivity}</strong> duties from <strong>{format(rejoinDate, 'PPP')}</strong>.
               </p>
             ) : (
               <p>
