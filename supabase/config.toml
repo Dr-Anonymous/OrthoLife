@@ -3,9 +3,6 @@ project_id = "vqskeanwpnvuyxorymib"
 [functions.search-patient-records]
 verify_jwt = false
 
-[functions.create-docs-prescription]
-verify_jwt = false
-
 [functions.translate-content]
 verify_jwt = false
 

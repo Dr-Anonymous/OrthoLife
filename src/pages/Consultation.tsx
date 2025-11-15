@@ -66,7 +66,7 @@ const processTextShortcuts = (
       const startOfShortcutInValue = cursorPosition - fullMatch.length;
       const textBeforeContent = currentValue.substring(0, startOfShortcutInValue);
 
-      const shouldCapitalize = /^\s*$/.test(textBeforeContent) || textBeforeContent.endsWith('. ') || textBeforeContent.endsWith('.\n');
+      const shouldCapitalize = /^\s*$/.test(textBeforeContent) || prefix.includes('\n') || prefix.includes('.');
 
       let expansion = matchingShortcut.expansion;
       if (shouldCapitalize) {
