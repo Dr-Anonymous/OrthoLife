@@ -21,12 +21,16 @@ export interface CertificateData {
   restPeriodDays: number;
   restPeriodStartDate: Date;
   treatmentFromDate: Date;
+  rejoinDate?: Date;
+  rejoinActivity?: string;
 }
 
 const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpen, onClose, onSubmit, patientName }) => {
   const [restPeriodDays, setRestPeriodDays] = useState<number | ''>('');
   const [restPeriodStartDate, setRestPeriodStartDate] = useState<Date | undefined>(new Date());
   const [treatmentFromDate, setTreatmentFromDate] = useState<Date | undefined>(new Date());
+  const [rejoinDate, setRejoinDate] = useState<Date | undefined>();
+  const [rejoinActivity, setRejoinActivity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = () => {
@@ -39,6 +43,8 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
       restPeriodDays: Number(restPeriodDays),
       restPeriodStartDate,
       treatmentFromDate,
+      rejoinDate,
+      rejoinActivity,
     });
     // The parent component will handle closing the modal on success
     setIsSubmitting(false);
@@ -127,6 +133,45 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
                 />
               </PopoverContent>
             </Popover>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">
+              Rejoin Date
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "col-span-3 justify-start text-left font-normal",
+                    !rejoinDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {rejoinDate ? format(rejoinDate, "PPP") : <span>Pick a date (Optional)</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={rejoinDate}
+                  onSelect={setRejoinDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="rejoin-activity" className="text-right">
+              Rejoin Activity
+            </Label>
+            <Input
+              id="rejoin-activity"
+              value={rejoinActivity}
+              onChange={(e) => setRejoinActivity(e.target.value)}
+              className="col-span-3"
+              placeholder="e.g., normal duties"
+            />
           </div>
         </div>
         <DialogFooter>
