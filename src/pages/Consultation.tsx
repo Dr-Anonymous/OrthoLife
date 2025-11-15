@@ -40,10 +40,58 @@ import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface TextShortcut {
-  id: string;
+  id:string;
   shortcut: string;
   expansion: string;
 }
+
+const processTextShortcuts = (
+  currentValue: string,
+  cursorPosition: number,
+  shortcuts: TextShortcut[]
+): { newValue: string, newCursorPosition: number } | null => {
+  const textBeforeCursor = currentValue.substring(0, cursorPosition);
+  const shortcutRegex = /(?:^|\s)([a-zA-Z0-9_]+)\.$/;
+  const match = textBeforeCursor.match(shortcutRegex);
+
+  if (match) {
+    const shortcutText = match[1];
+    const matchingShortcut = shortcuts.find(
+      (sc) => sc.shortcut.toLowerCase() === shortcutText.toLowerCase()
+    );
+
+    if (matchingShortcut) {
+      const fullMatch = match[0];
+      const startOfShortcutInValue = cursorPosition - fullMatch.length;
+      const isStartOfSentence = /^\s*$/.test(currentValue.substring(0, startOfShortcutInValue));
+
+      let expansion = matchingShortcut.expansion;
+      if (isStartOfSentence) {
+        expansion = expansion.charAt(0).toUpperCase() + expansion.slice(1);
+      }
+
+      const textBefore = currentValue.substring(0, startOfShortcutInValue);
+      const textAfter = currentValue.substring(cursorPosition);
+      const prefix = fullMatch.startsWith(' ') ? ' ' : '';
+
+      let newTextAfter = textAfter;
+      if (!textAfter.startsWith(' ') && textAfter.length > 0) {
+        newTextAfter = ' ' + textAfter;
+      }
+      if (textAfter.length === 0) {
+        newTextAfter = ' ';
+      }
+
+      const newValue = textBefore + prefix + expansion + newTextAfter;
+      const newCursorPosition = (textBefore + prefix + expansion).length;
+
+
+      return { newValue, newCursorPosition };
+    }
+  }
+
+  return null;
+};
 
 interface Medication {
   id: string;
@@ -276,8 +324,9 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
             </div>
             {isCustom &&
               <Textarea
+                ref={el => medFrequencyRefs.current[`${index}.frequency`] = el}
                 value={med.frequency}
-                onChange={e => handleMedChange(index, 'frequency', e.target.value)}
+                onChange={e => handleMedChange(index, 'frequency', e.target.value, e.target.selectionStart)}
                 placeholder="e.g., once a week"
                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               />
@@ -287,8 +336,9 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
             <div className="space-y-2">
               <Label className="text-sm font-medium">Duration</Label>
               <Input
+                ref={el => medDurationRefs.current[`${index}.duration`] = el}
                 value={med.duration}
-                onChange={e => handleMedChange(index, 'duration', e.target.value)}
+                onChange={e => handleMedChange(index, 'duration', e.target.value, e.target.selectionStart)}
                 placeholder="e.g., 7 days"
                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               />
@@ -296,8 +346,9 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
             <div className="space-y-2">
               <Label className="text-sm font-medium">Instructions</Label>
               <Input
+                ref={el => medInstructionsRefs.current[`${index}.instructions`] = el}
                 value={med.instructions}
-                onChange={e => handleMedChange(index, 'instructions', e.target.value)}
+                onChange={e => handleMedChange(index, 'instructions', e.target.value, e.target.selectionStart)}
                 placeholder="Special instructions"
                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
               />
@@ -306,8 +357,9 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
           <div className="space-y-2">
             <Label className="text-sm font-medium">Notes</Label>
             <Input
+              ref={el => medNotesRefs.current[`${index}.notes`] = el}
               value={med.notes}
-              onChange={e => handleMedChange(index, 'notes', e.target.value)}
+              onChange={e => handleMedChange(index, 'notes', e.target.value, e.target.selectionStart)}
               placeholder="e.g., side effects"
               onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
             />
@@ -438,6 +490,19 @@ const Consultation = () => {
   const printRef = useRef(null);
   const certificatePrintRef = useRef(null);
   const receiptPrintRef = useRef(null);
+  const [cursorPosition, setCursorPosition] = useState<{ [key: string]: number }>({});
+  const complaintsRef = useRef<HTMLTextAreaElement>(null);
+  const findingsRef = useRef<HTMLTextAreaElement>(null);
+  const investigationsRef = useRef<HTMLTextAreaElement>(null);
+  const diagnosisRef = useRef<HTMLTextAreaElement>(null);
+  const adviceRef = useRef<HTMLTextAreaElement>(null);
+  const followupRef = useRef<HTMLTextAreaElement>(null);
+  const personalNoteRef = useRef<HTMLTextAreaElement>(null);
+  const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
+  const medDurationRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const medInstructionsRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+
 
   const [isReadyToPrintCertificate, setIsReadyToPrintCertificate] = useState(false);
   const [isReadyToPrintReceipt, setIsReadyToPrintReceipt] = useState(false);
@@ -476,6 +541,45 @@ const Consultation = () => {
       setReceiptData(null);
     }
   }, [isReadyToPrintReceipt, handlePrintReceipt]);
+
+  useEffect(() => {
+    Object.keys(cursorPosition).forEach(field => {
+      const position = cursorPosition[field];
+      if (position === undefined) return;
+
+      let element: HTMLTextAreaElement | HTMLInputElement | null = null;
+
+      if (field.startsWith('medications')) {
+        const [, index, medField] = field.split('.');
+        const key = `${index}.${medField}`;
+        if (medField === 'frequency' && medFrequencyRefs.current[key]) {
+          element = medFrequencyRefs.current[key];
+        } else if (medField === 'duration' && medDurationRefs.current[key]) {
+            element = medDurationRefs.current[key];
+        } else if (medField === 'instructions' && medInstructionsRefs.current[key]) {
+            element = medInstructionsRefs.current[key];
+        } else if (medField === 'notes' && medNotesRefs.current[key]) {
+            element = medNotesRefs.current[key];
+        }
+      } else {
+        switch (field) {
+          case 'complaints': element = complaintsRef.current; break;
+          case 'findings': element = findingsRef.current; break;
+          case 'investigations': element = investigationsRef.current; break;
+          case 'diagnosis': element = diagnosisRef.current; break;
+          case 'advice': element = adviceRef.current; break;
+          case 'followup': element = followupRef.current; break;
+          case 'personalNote': element = personalNoteRef.current; break;
+        }
+      }
+
+      if (element) {
+        element.selectionStart = element.selectionEnd = position;
+        // Reset the cursor position for this field to avoid re-applying
+        setCursorPosition(prev => ({ ...prev, [field]: undefined }));
+      }
+    });
+  }, [extraData, cursorPosition]);
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
@@ -937,36 +1041,24 @@ const Consultation = () => {
     setIsConsultationDatePickerOpen(false);
     };
 
-  const handleExtraChange = (field: string, value: string) => {
+  const handleExtraChange = (
+    field: string,
+    value: string,
+    cursorPosition: number | null
+  ) => {
     // Open shortcut modal
     if ((field === 'complaints' || field === 'diagnosis') && value.includes('//')) {
       setIsShortcutModalOpen(true);
-      // Remove the trigger characters from the input
       setExtraData(prev => ({ ...prev, [field]: value.replace('//', '') }));
       return;
     }
 
-    // Handle shortcut replacement for complaints and diagnosis
-    if (['complaints', 'diagnosis', 'findings', 'investigations', 'advice', 'personalNote'].includes(field)) {
-      const shortcutRegex = /(\s|^)(\w+)\.\s*$/; // Matches a word preceded by space or start, followed by a dot
-      const match = value.match(shortcutRegex);
-
-      if (match) {
-        const shortcutText = match[2];
-        const matchingShortcut = textShortcuts.find(sc => sc.shortcut.toLowerCase() === shortcutText.toLowerCase());
-
-        if (matchingShortcut) {
-          const isStartOfSentence = /^\s*$/.test(value.substring(0, match.index));
-          let expansion = matchingShortcut.expansion;
-
-          if (isStartOfSentence) {
-            expansion = expansion.charAt(0).toUpperCase() + expansion.slice(1);
-          }
-
-          const newValue = value.replace(shortcutRegex, match[1] + expansion + ' ');
-          setExtraData(prev => ({ ...prev, [field]: newValue }));
-          return;
-        }
+    if (['complaints', 'diagnosis', 'findings', 'investigations', 'advice', 'personalNote'].includes(field) && cursorPosition !== null) {
+      const shortcutResult = processTextShortcuts(value, cursorPosition, textShortcuts);
+      if (shortcutResult) {
+        setExtraData(prev => ({ ...prev, [field]: shortcutResult.newValue }));
+        setCursorPosition({ [field]: shortcutResult.newCursorPosition });
+        return;
       }
     }
 
@@ -998,6 +1090,14 @@ const Consultation = () => {
           const replacementText = t('followup_message_structure', { count, unit: unitText });
           const newValue = value.replace(shortcut, replacementText);
           setExtraData(prev => ({ ...prev, followup: newValue }));
+          return;
+        }
+      }
+      if (cursorPosition !== null) {
+        const shortcutResult = processTextShortcuts(value, cursorPosition, textShortcuts);
+        if (shortcutResult) {
+          setExtraData(prev => ({ ...prev, [field]: shortcutResult.newValue }));
+          setCursorPosition({ [field]: shortcutResult.newCursorPosition });
           return;
         }
       }
@@ -1070,7 +1170,12 @@ const Consultation = () => {
       setSuggestedMedications(prev => prev.filter(item => item.id !== med.id));
   };
 
-  const handleMedChange = (index: number, field: keyof Medication, value: string | boolean) => {
+  const handleMedChange = (
+    index: number,
+    field: keyof Medication,
+    value: string | boolean,
+    cursorPosition: number | null = null
+  ) => {
     if (field === 'name' && typeof value === 'string' && value.startsWith('//')) {
       setIsMedicationsModalOpen(true);
       setExtraData(prev => {
@@ -1090,6 +1195,23 @@ const Consultation = () => {
         return { ...prev, medications: newMeds };
       });
       return;
+    }
+
+    if (
+      (field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes') &&
+      typeof value === 'string' &&
+      cursorPosition !== null
+    ) {
+      const shortcutResult = processTextShortcuts(value, cursorPosition, textShortcuts);
+      if (shortcutResult) {
+        setExtraData(prev => {
+          const newMeds = [...prev.medications];
+          newMeds[index][field] = shortcutResult.newValue as never;
+          return { ...prev, medications: newMeds };
+        });
+        setCursorPosition({ [`medications.${index}.${field}`]: shortcutResult.newCursorPosition });
+        return;
+      }
     }
 
     setExtraData(prev => {
@@ -1578,12 +1700,12 @@ const Consultation = () => {
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                   <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
-                                  <Textarea id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value)} placeholder="Patient complaints..." className="min-h-[100px]" />
+                                  <Textarea ref={complaintsRef} id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value, e.target.selectionStart)} placeholder="Patient complaints..." className="min-h-[100px]" />
                               </div>
 
                               <div className="space-y-2">
                                   <Label htmlFor="findings" className="text-sm font-medium">Clinical Findings</Label>
-                                  <Textarea id="findings" value={extraData.findings} onChange={e => handleExtraChange('findings', e.target.value)} placeholder="Clinical findings..." className="min-h-[100px]" />
+                                  <Textarea ref={findingsRef} id="findings" value={extraData.findings} onChange={e => handleExtraChange('findings', e.target.value, e.target.selectionStart)} placeholder="Clinical findings..." className="min-h-[100px]" />
                               </div>
                               </div>
 
@@ -1597,12 +1719,12 @@ const Consultation = () => {
                                           </Button>
                                       ))}
                                   </div>
-                                  <Textarea id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value)} placeholder="Investigations required..." className="min-h-[100px]" />
+                                  <Textarea ref={investigationsRef} id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value, e.target.selectionStart)} placeholder="Investigations required..." className="min-h-[100px]" />
                                 </div>
 
                                 <div className="space-y-2">
                                   <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
-                                  <Textarea id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
+                                  <Textarea ref={diagnosisRef} id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value, e.target.selectionStart)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
                               </div>
                               </div>
 
@@ -1616,7 +1738,7 @@ const Consultation = () => {
                                           </Button>
                                       ))}
                                   </div>
-                                  <Textarea id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value)} placeholder="Medical advice..." className="min-h-[80px]" />
+                                  <Textarea ref={adviceRef} id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value, e.target.selectionStart)} placeholder="Medical advice..." className="min-h-[80px]" />
                               </div>
                           </div>
 
@@ -1671,12 +1793,12 @@ const Consultation = () => {
                                           </Button>
                                       ))}
                                   </div>
-                                  <Textarea id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
+                                  <Textarea ref={followupRef} id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value, e.target.selectionStart)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
                               </div>
 
                               <div className="space-y-2">
                                   <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
-                                  <Textarea id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
+                                  <Textarea ref={personalNoteRef} id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value, e.target.selectionStart)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
                               </div>
                           </div>
 
