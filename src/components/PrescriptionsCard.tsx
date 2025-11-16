@@ -35,7 +35,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
       try {
         setLoading(true);
         // 1. Fetch from database
-        const { data: dbData, error: dbError } = await supabase.functions.invoke('get-consultations-by-date', {
+        const { data: dbData, error: dbError } = await supabase.functions.invoke('get-consultations', {
           body: { patientId },
         });
         if (dbError) throw new Error(`Error fetching database records: ${dbError.message}`);

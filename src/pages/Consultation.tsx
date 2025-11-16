@@ -814,7 +814,7 @@ const Consultation = () => {
       setSelectedConsultation(null);
     }
     try {
-      const { data, error } = await supabase.functions.invoke('get-consultations-by-date', {
+      const { data, error } = await supabase.functions.invoke('get-consultations', {
         body: { date: format(date, 'yyyy-MM-dd') },
       });
 

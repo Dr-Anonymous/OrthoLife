@@ -20,7 +20,7 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
       if (!patientId) return;
       setIsLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke('get-consultations-by-date', {
+        const { data, error } = await supabase.functions.invoke('get-consultations', {
           body: { patientId: patientId },
         });
 
