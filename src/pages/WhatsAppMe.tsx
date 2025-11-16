@@ -107,12 +107,6 @@ const WhatsAppMe = () => {
       setCalendarEvents([]);
       setPrescription(null);
       try {
-        // 1. Search for patients/prescriptions
-        const { data: patientData, error: patientError } = await supabase.functions.invoke('search-patients', {
-          body: { searchTerm: phone, searchType: 'phone' },
-        });
-        if (patientError) throw patientError;
-
         // 1. Search for patients/prescriptions and calendar events concurrently
         const [patientResult, eventResult] = await Promise.all([
           supabase.functions.invoke('search-patients', {
