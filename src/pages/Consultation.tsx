@@ -443,7 +443,11 @@ const Consultation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(false);
+  const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(() => {
+    const storedValue = localStorage.getItem('isGenerateDocEnabled');
+    return storedValue !== null ? JSON.parse(storedValue) : false;
+  });
+  const isGenerateDocEnabledRef = useRef(isGenerateDocEnabled);
   const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
 
   useEffect(() => {
@@ -461,14 +465,8 @@ const Consultation = () => {
   }, [selectedHospital]);
 
   useEffect(() => {
-    const storedValue = localStorage.getItem('isGenerateDocEnabled');
-    if (storedValue !== null) {
-      setIsGenerateDocEnabled(JSON.parse(storedValue));
-    }
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem('isGenerateDocEnabled', JSON.stringify(isGenerateDocEnabled));
+    isGenerateDocEnabledRef.current = isGenerateDocEnabled;
   }, [isGenerateDocEnabled]);
   const [isReadyToPrint, setIsReadyToPrint] = useState(false);
   const [age, setAge] = useState<number | ''>('');
@@ -576,7 +574,7 @@ const Consultation = () => {
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
     if (saved) {
-      if (isGenerateDocEnabled) {
+      if (isGenerateDocEnabledRef.current) {
         submitForm(undefined, { skipSave: true });
       }
       setIsReadyToPrint(true);
@@ -979,6 +977,21 @@ const Consultation = () => {
   }, [extraData, editablePatientDetails, initialPatientDetails, initialExtraData]);
 
   useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isFormDirty) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isFormDirty]);
+
+  useEffect(() => {
     if (editablePatientDetails?.dob) {
       const dobDate = new Date(editablePatientDetails.dob);
       if (!isNaN(dobDate.getTime())) {
@@ -1334,7 +1347,7 @@ const Consultation = () => {
 
   const submitForm = async (e?: React.FormEvent, options: { skipSave?: boolean } = {}) => {
     if (e) e.preventDefault();
-    if (!selectedConsultation || !editablePatientDetails || !isGenerateDocEnabled) return;
+    if (!selectedConsultation || !editablePatientDetails || !isGenerateDocEnabledRef.current) return;
     setIsSubmitting(true);
     try {
       if (!options.skipSave) {
