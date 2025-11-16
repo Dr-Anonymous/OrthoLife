@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,7 +18,7 @@ interface CalendarEvent {
   attachments?: string;
 }
 
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 interface RecentCall {
   number: string;
@@ -56,10 +56,7 @@ const WhatsAppMe = () => {
   };
 
   const formatPhoneNumber = (input: string) => {
-    // Remove all non-digit characters
     const digitsOnly = input.replace(/[^0-9]/g, '');
-    
-    // If number starts with 91 and is 12 digits, remove the 91
     if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
       return digitsOnly.slice(2);
     }
@@ -107,13 +104,6 @@ const WhatsAppMe = () => {
       setCalendarEvents([]);
       setPrescription(null);
       try {
-        // 1. Search for patients/prescriptions
-        const { data: patientData, error: patientError } = await supabase.functions.invoke('search-patients', {
-          body: { searchTerm: phone, searchType: 'phone' },
-        });
-        if (patientError) throw patientError;
-
-        // 1. Search for patients/prescriptions and calendar events concurrently
         const [patientResult, eventResult] = await Promise.all([
           supabase.functions.invoke('search-patients', {
             body: { searchTerm: phone, searchType: 'phone' },
@@ -303,6 +293,7 @@ const WhatsAppMe = () => {
                 onClick={searchRecords}
                 disabled={isLoading}
                 className="h-7 px-2"
+                aria-label="Search"
               >
                 <Search className="w-4 h-4" />
               </Button>
@@ -312,56 +303,94 @@ const WhatsAppMe = () => {
 
         {isLoading && <p>Loading...</p>}
 
-        {prescription && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Clipboard className="w-4 h-4" /> Prescription Details
-            </h3>
-            <Card className="p-4">
-              <p><strong>Name:</strong> {prescription.name}</p>
-              {prescription.complaints && <p><strong>Complaints:</strong> {prescription.complaints}</p>}
-              {prescription.medications && (
-                <div>
-                  <strong>Medications:</strong>
-                  <ul className="list-disc pl-5">
-                    {prescription.medications.map((med: any, index: number) => (
-                      <li key={index}>{med.name}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </Card>
-          </div>
-        )}
-
-        {calendarEvents.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Calendar Events
-            </h3>
-            <div className="space-y-4">
-              {calendarEvents.map(event => (
-                <Card key={event.start} className="p-4">
-                  <p className="font-semibold">{new Date(event.start).toLocaleString()}</p>
-                  <div className="text-sm mt-2" dangerouslySetInnerHTML={{ __html: event.description.replace(/\n/g, '<br />') }} />
-                  {event.attachments && (
-                    <div className="mt-2">
-                      <a
-                        href={event.attachments}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline flex items-center gap-1"
-                      >
-                        <Link className="w-4 h-4" />
-                        View Attachment
-                      </a>
+        <div className="flex overflow-x-auto space-x-4 py-2">
+          {prescription && (
+            <Card className="min-w-[300px] flex-shrink-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Clipboard className="w-4 h-4" /> Prescription Details
+                </CardTitle>
+                {prescription.created_at && (
+                  <CardDescription>
+                    {format(new Date(prescription.created_at), 'PPP')}
+                  </CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p><strong>Name:</strong> {prescription.name}</p>
+                {(prescription.diagnosis || prescription.complaints) && (
+                  <div className="flex items-start gap-3">
+                    <Stethoscope className="w-5 h-5 mt-1 text-primary" />
+                    <div>
+                      <h4 className="font-semibold">{prescription.diagnosis ? 'Diagnosis' : 'Complaints'}</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {prescription.diagnosis || prescription.complaints}
+                      </p>
                     </div>
-                  )}
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+                  </div>
+                )}
+                {prescription.medications?.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <Pill className="w-5 h-5 mt-1 text-primary" />
+                    <div>
+                      <h4 className="font-semibold">Medications</h4>
+                      <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                        {prescription.medications.map((med: any, index: number) => (
+                          <li key={index}>{med.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+                {prescription.investigations && (
+                  <div className="flex items-start gap-3">
+                    <FlaskConical className="w-5 h-5 mt-1 text-primary" />
+                    <div>
+                      <h4 className="font-semibold">Investigations</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.investigations}</p>
+                    </div>
+                  </div>
+                )}
+                {prescription.advice && (
+                  <div className="flex items-start gap-3">
+                    <FileText className="w-5 h-5 mt-1 text-primary" />
+                    <div>
+                      <h4 className="font-semibold">Advice</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.advice}</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {calendarEvents.map(event => (
+            <Card key={event.start} className="min-w-[300px] flex-shrink-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Calendar className="w-4 h-4" /> Calendar Event
+                </CardTitle>
+                <CardDescription>{new Date(event.start).toLocaleString()}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm" dangerouslySetInnerHTML={{ __html: event.description.replace(/\n/g, '<br />') }} />
+                {event.attachments && (
+                  <div className="mt-2">
+                    <a
+                      href={event.attachments}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <Link className="w-4 h-4" />
+                      View Attachment
+                    </a>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         {recentCalls.length > 0 && (
           <Accordion type="single" collapsible>

@@ -16,7 +16,7 @@ const PatientRegistration = () => {
   const fetchTodaysConsultations = async () => {
     setIsFetchingConsultations(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-consultations-by-date', {
+      const { data, error } = await supabase.functions.invoke('get-consultations', {
         body: { date: format(new Date(), 'yyyy-MM-dd') },
       });
 
