@@ -19,6 +19,7 @@ interface PrescriptionsCardProps {
 
 const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, patientId, patientPhone }) => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [driveRecords, setDriveRecords] = useState<any>(null);
   const [dbConsultations, setDbConsultations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
