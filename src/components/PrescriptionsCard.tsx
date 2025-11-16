@@ -14,11 +14,11 @@ import { HOSPITALS } from '@/config/constants';
 interface PrescriptionsCardProps {
   patientName: string;
   patientId: string | undefined;
+  patientPhone: string | undefined;
 }
 
-const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, patientId }) => {
+const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, patientId, patientPhone }) => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
   const [driveRecords, setDriveRecords] = useState<any>(null);
   const [dbConsultations, setDbConsultations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,10 +44,9 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
           setDriveRecords(null);
         } else {
           // 2. Fallback to Google Drive
-          if (user?.phoneNumber) {
-            const phoneNumber = user.phoneNumber.slice(-10);
+          if (patientPhone) {
             const { data: driveData, error: driveError } = await supabase.functions.invoke('get-patient-drive-files', {
-              body: { phoneNumber },
+              body: { phoneNumber: patientPhone },
             });
             if (driveError) throw new Error(`Error fetching drive records: ${driveError.message}`);
             setDriveRecords(driveData);
@@ -66,7 +65,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
 
   useEffect(() => {
     fetchRecords();
-  }, [patientId, user]);
+  }, [patientId, patientPhone]);
 
   const filteredRecords = useMemo(() => {
     if (!driveRecords || !driveRecords.patientFolders || !patientName) {

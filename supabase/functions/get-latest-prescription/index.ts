@@ -72,26 +72,52 @@ serve(async (req) => {
 });
 
 async function getLatestConsultationByPatientId(patientId: string) {
-  const { data: consultation, error } = await supabase
+  const { data: consultations, error } = await supabase
     .from('consultations')
-    .select('consultation_data, patients (name)')
+    .select('consultation_data, patients (id, name, phone)')
     .eq('patient_id', patientId)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
 
-  if (error || !consultation) {
-    console.warn(`No consultation found for patientId ${patientId}.`, error);
-    return { medications: [] };
+  if (error) {
+    console.error(`Error fetching consultation for patientId ${patientId}:`, error);
+    // Return a default structure on error to prevent breaking the frontend
+    return { patientId, patientName: '', phone: '', medications: [], investigations: '', advice: '' };
   }
 
-  const { consultation_data, patients: patient } = consultation;
+  if (!consultations || consultations.length === 0) {
+    // No consultations found, but we need to get patient details to return
+    const { data: patient, error: patientError } = await supabase
+      .from('patients')
+      .select('id, name, phone')
+      .eq('id', patientId)
+      .single();
+
+    if (patientError || !patient) {
+      console.error(`Error fetching patient details for patientId ${patientId}:`, patientError);
+      return { patientId, patientName: '', phone: '', medications: [], investigations: '', advice: '' };
+    }
+
+    return {
+      patientId: patient.id,
+      patientName: patient.name,
+      phone: patient.phone,
+      medications: [],
+      investigations: '',
+      advice: '',
+    };
+  }
+
+  const latestConsultation = consultations[0];
+  const { consultation_data, patients: patient } = latestConsultation;
 
   return {
-    medications: consultation_data.medications || [],
-    investigations: consultation_data.investigations,
+    medications: consultation_data?.medications || [],
+    investigations: consultation_data?.investigations || '',
     patientName: patient.name,
-    advice: consultation_data.advice,
+    advice: consultation_data?.advice || '',
+    patientId: patientId,
+    phone: patient.phone,
   };
 }
 
