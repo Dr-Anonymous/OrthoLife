@@ -12,12 +12,11 @@ import { format } from 'date-fns';
 import { HOSPITALS } from '@/config/constants';
 
 interface PrescriptionsCardProps {
-  patientName: string;
   patientId: string | undefined;
   patientPhone: string | undefined;
 }
 
-const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, patientId, patientPhone }) => {
+const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patientPhone }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [driveRecords, setDriveRecords] = useState<any>(null);
@@ -67,13 +66,6 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
   useEffect(() => {
     fetchRecords();
   }, [patientId, patientPhone]);
-
-  const filteredRecords = useMemo(() => {
-    if (!driveRecords || !driveRecords.patientFolders || !patientName) {
-      return [];
-    }
-    return driveRecords.patientFolders.filter((record: any) => record.name === patientName);
-  }, [driveRecords, patientName]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -151,9 +143,9 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
           </ul>
         )}
 
-        {!loading && !error && dbConsultations.length === 0 && filteredRecords.length > 0 && (
+        {!loading && !error && dbConsultations.length === 0 && driveRecords?.patientFolders?.length > 0 && (
           <ul className="space-y-3">
-            {filteredRecords.map((record: any) => (
+            {driveRecords.patientFolders.map((record: any) => (
               <div key={record.id} className="p-4 bg-gray-100 rounded-lg">
                 <p className="font-medium text-gray-800">{record.name}</p>
                 {record.files && record.files.length > 0 && (
@@ -223,7 +215,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
           </ul>
         )}
 
-        {!loading && !error && dbConsultations.length === 0 && filteredRecords.length === 0 && (
+        {!loading && !error && dbConsultations.length === 0 && (!driveRecords?.patientFolders || driveRecords.patientFolders.length === 0) && (
           <p className="text-gray-500">{t('prescriptionsCard.noRecords')}</p>
         )}
 
