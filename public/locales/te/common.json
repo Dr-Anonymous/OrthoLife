@@ -151,6 +151,7 @@
   "mySpace.welcome": "మై స్పేస్ కు స్వాగతం",
   "mySpace.dashboardDescription": "మీ వ్యక్తిగత ఆరోగ్య డాష్‌బోర్డ్",
   "mySpace.logout": "లాగ్అవుట్",
+  "mySpace.switchPatient": "రోగిని మార్చండి",
 
   "prescriptionsCard.title": "నా ప్రిస్క్రిప్షన్లు మరియు రికార్డులు",
   "prescriptionsCard.loading": "రికార్డులు లోడ్ అవుతున్నాయి...",
@@ -158,10 +159,11 @@
   "prescriptionsCard.download": "డౌన్‌లోడ్ చేయండి",
   "prescriptionsCard.noRecords": "ప్రిస్క్రిప్షన్లు/రికార్డులు కనుగొనబడలేదు.",
   "prescriptionsCard.uploadTitle": "క్రొత్త రికార్డును అప్‌లోడ్ చేయండి",
+  "prescriptionsCard.userUploadsTitle": "నా అప్‌లోడ్‌లు",
   "prescriptionsCard.uploading": "అప్‌లోడ్ చేస్తోంది...",
   "prescriptionsCard.upload": "అప్‌లోడ్ చేయండి",
 
-  "orderMedicationCard.title": "{{patientName}} కోసం మందులను ఆర్డర్ చేయండి",
+  "orderMedicationCard.title": "మందులను ఆర్డర్ చేయండి",
   "orderMedicationCard.noMedication": "తాజా ప్రిస్క్రిప్షన్‌లో ఏ మందులు సూచించబడలేదు.",
   "orderMedicationCard.orderNew": "క్రొత్తగా ఆర్డర్ చేయండి",
   "orderMedicationCard.fromLatestPrescription": "తాజా ప్రిస్క్రిప్షన్ నుండి:",
@@ -169,14 +171,14 @@
   "orderMedicationCard.quantity": "పరిమాణం",
   "orderMedicationCard.orderNow": "ఇప్పుడే ఆర్డర్ చేయండి",
 
-  "orderTestsCard.title": "{{patientName}} కోసం పరీక్షలను ఆర్డర్ చేయండి",
+  "orderTestsCard.title": "పరీక్షలను ఆర్డర్ చేయండి",
   "orderTestsCard.noInvestigations": "తాజా ప్రిస్క్రిప్షన్‌లో ఏ పరీక్షలు సూచించబడలేదు.",
   "orderTestsCard.orderNew": "క్రొత్తగా ఆర్డర్ చేయండి",
   "orderTestsCard.labTestsFromPrescription": "తాజా ప్రిస్క్రిప్షన్ నుండి ప్రయోగశాల పరీక్షలు (మీరు దిగువ జాబితాను సవరించవచ్చు):",
   "orderTestsCard.orderNow": "ఇప్పుడే ఆర్డర్ చేయండి",
   "orderTestsCard.radiologicalInvestigations": "రేడియోలాజికల్ పరీక్షలు:",
 
-  "dietAndExercisesCard.title": "{{patientName}} కోసం ఆహారం మరియు వ్యాయామాలు",
+  "dietAndExercisesCard.title": "నా ఆహారం మరియు వ్యాయామాలు",
   "dietAndExercisesCard.viewGuide": "గైడ్ చూడండి",
   "dietAndExercisesCard.viewDiet": "ఆహారం చూడండి",
   "dietAndExercisesCard.viewExercise": "వ్యాయామం చూడండి",
@@ -235,5 +237,7 @@
   "prescription.med_noon": "మధ్యాహ్నం",
   "prescription.med_night": "రాత్రి",
   "prescription.followup": "తదుపరి",
-  "prescription.footer_text": "మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా యాక్సెస్ చేయడానికి ortho.life/my-space సందర్శించండి."
+  "prescription.footer_text": "మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా యాక్సెస్ చేయడానికి ortho.life/my-space సందర్శించండి.",
+  "patientSelectionModal.title": "రోగిని ఎంచుకోండి",
+  "patientSelectionModal.description": "ఈ ఫోన్ నంబర్‌తో బహుళ రోగులు అనుబంధించబడ్డారు. కొనసాగించడానికి దయచేసి ఒకరిని ఎంచుకోండి."
 }
