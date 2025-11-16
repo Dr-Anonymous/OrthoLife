@@ -20,14 +20,14 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
       if (!patientId) return;
       setIsLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke('get-patient-history', {
-          body: { patient_id: patientId },
+        const { data, error } = await supabase.functions.invoke('get-consultations-by-date', {
+          body: { patientId: patientId },
         });
 
         if (error) throw error;
         if (data.error) throw new Error(data.error);
 
-        setHistory(data.history || []);
+        setHistory(data.consultations || []);
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -97,8 +97,8 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                           <div>
                             <h4 className="font-semibold">Medications</h4>
                             <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                              {item.consultation_data.medications.map((med: any) => (
-                                <li key={med.id}>{med.name} - {med.dose}</li>
+                              {item.consultation_data.medications.map((med: any, index: number) => (
+                                <li key={index}>{med.name} - {med.dose}</li>
                               ))}
                             </ul>
                           </div>
