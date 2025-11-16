@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackEvent } from '@/lib/analytics';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,11 +52,13 @@ const PatientGuidesPage = () => {
   const [noResults, setNoResults] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     trackEvent({
       eventType: "page_view",
       path: location.pathname,
+      user_phone: user?.phoneNumber,
     });
 
     const params = new URLSearchParams(location.search);
@@ -102,14 +105,14 @@ const PatientGuidesPage = () => {
     try {
       if (navigator.share) {
         await navigator.share(shareData);
-        trackEvent({ eventType: 'share', details: { method: 'navigator', contentType: 'guide', contentId: guide.id, sharedTo: 'unknown' } });
+        trackEvent({ eventType: 'share', path: location.pathname, user_phone: user?.phoneNumber, details: { method: 'navigator', contentType: 'guide', contentId: guide.id, sharedTo: 'unknown' } });
       } else {
         await navigator.clipboard.writeText(shareUrl);
         toast({
           title: "Link Copied!",
           description: "The guide link has been copied to your clipboard.",
         });
-        trackEvent({ eventType: 'share', details: { method: 'clipboard', contentType: 'guide', contentId: guide.id } });
+        trackEvent({ eventType: 'share', path: location.pathname, user_phone: user?.phoneNumber, details: { method: 'clipboard', contentType: 'guide', contentId: guide.id } });
       }
     } catch (error) {
       console.error("Failed to share:", error);
