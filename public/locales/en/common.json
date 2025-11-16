@@ -156,6 +156,7 @@
   "prescriptionsCard.title": "My Prescriptions and Records",
   "prescriptionsCard.loading": "Loading records...",
   "prescriptionsCard.view": "View",
+  "prescriptionsCard.download": "Download",
   "prescriptionsCard.noRecords": "No prescriptions/records found.",
   "prescriptionsCard.uploadTitle": "Upload New Record",
   "prescriptionsCard.uploading": "Uploading...",
