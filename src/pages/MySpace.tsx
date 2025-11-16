@@ -34,7 +34,6 @@ const MySpace = () => {
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
   const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
   const [patientList, setPatientList] = useState<any[]>([]);
-  const [selectionSource, setSelectionSource] = useState<'database' | 'gdrive' | null>(null);
   const [isSelectionPending, setIsSelectionPending] = useState(true);
 
   useEffect(() => {
@@ -55,28 +54,28 @@ const MySpace = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const fetchPrescription = async (patientId?: string, folderId?: string) => {
+  const fetchPatientData = async (patientId?: string) => {
     if (!authLoading && user?.phoneNumber) {
       try {
         setLoading(true);
         const phoneNumber = user.phoneNumber.slice(-10);
-        const { data, error } = await supabase.functions.invoke('get-latest-prescription', {
-          body: { phoneNumber, patientId, folderId },
+        const { data, error } = await supabase.functions.invoke('search-patients', {
+          body: patientId ? { patientId } : { searchTerm: phoneNumber, searchType: 'phone' },
         });
 
-        if (error) throw new Error(`Error fetching prescription: ${error.message}`);
+        if (error) throw new Error(`Error fetching patient data: ${error.message}`);
 
-        if (data.patients) {
-          setPatientList(data.patients);
-          setSelectionSource(data.source);
+        if (Array.isArray(data) && data.length > 1) {
+          setPatientList(data);
           setIsPatientSelectionModalOpen(true);
         } else {
-          setMedications(data?.medications || []);
-          setInvestigations(data?.investigations || '');
-          setAdvice(data?.advice || '');
-          setPatientName(data?.patientName || '');
-          setPatientId(data?.patientId || undefined);
-          setPatientPhone(data?.phone || undefined);
+          const patientData = Array.isArray(data) ? data[0] : data;
+          setMedications(patientData?.medications || []);
+          setInvestigations(patientData?.investigations || '');
+          setAdvice(patientData?.advice || '');
+          setPatientName(patientData?.name || '');
+          setPatientId(patientData?.id || undefined);
+          setPatientPhone(patientData?.phone || undefined);
           setIsSelectionPending(false);
         }
 
@@ -92,16 +91,12 @@ const MySpace = () => {
   };
 
   useEffect(() => {
-    fetchPrescription();
+    fetchPatientData();
   }, [user, authLoading]);
 
   const handlePatientSelect = (selectedPatient: any) => {
     setIsPatientSelectionModalOpen(false);
-    if (selectionSource === 'database') {
-      fetchPrescription(selectedPatient.id, undefined);
-    } else if (selectionSource === 'gdrive') {
-      fetchPrescription(undefined, selectedPatient.id);
-    }
+    fetchPatientData(selectedPatient.id);
   };
 
   const handleLogout = async () => {
