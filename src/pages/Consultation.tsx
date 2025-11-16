@@ -443,7 +443,7 @@ const Consultation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(true);
+  const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
 
   useEffect(() => {
