@@ -152,6 +152,7 @@
   "mySpace.welcome": "Welcome to My Space",
   "mySpace.dashboardDescription": "Your personal health dashboard",
   "mySpace.logout": "Logout",
+  "mySpace.switchPatient": "Switch Patient",
 
   "prescriptionsCard.title": "My Prescriptions and Records",
   "prescriptionsCard.loading": "Loading records...",
@@ -162,7 +163,7 @@
   "prescriptionsCard.uploading": "Uploading...",
   "prescriptionsCard.upload": "Upload",
 
-  "orderMedicationCard.title": "Order Medication for {{patientName}}",
+  "orderMedicationCard.title": "Order Medication",
   "orderMedicationCard.noMedication": "No medicine prescribed in the latest prescription.",
   "orderMedicationCard.orderNew": "Order New",
   "orderMedicationCard.fromLatestPrescription": "From the latest prescription:",
@@ -170,14 +171,14 @@
   "orderMedicationCard.quantity": "Quantity",
   "orderMedicationCard.orderNow": "Order Now",
 
-  "orderTestsCard.title": "Order Tests for {{patientName}}",
+  "orderTestsCard.title": "Order Tests",
   "orderTestsCard.noInvestigations": "No investigations prescribed in the latest prescription.",
   "orderTestsCard.orderNew": "Order New",
   "orderTestsCard.labTestsFromPrescription": "Lab tests from the latest prescription (you can edit the list below):",
   "orderTestsCard.orderNow": "Order Now",
   "orderTestsCard.radiologicalInvestigations": "Radiological Investigations:",
 
-  "dietAndExercisesCard.title": "Diet and Exercises for {{patientName}}",
+  "dietAndExercisesCard.title": "My Diet and Exercises",
   "dietAndExercisesCard.viewGuide": "View Guide",
   "dietAndExercisesCard.viewDiet": "View Diet",
   "dietAndExercisesCard.viewExercise": "View Exercise",
@@ -236,5 +237,7 @@
   "prescription.med_noon": "A.Noon",
   "prescription.med_night": "Night",
   "prescription.followup": "Follow-up",
-  "prescription.footer_text": "Visit ortho.life/my-space to access your prescriptions, diets, and exercises anytime."
+  "prescription.footer_text": "Visit ortho.life/my-space to access your prescriptions, diets, and exercises anytime.",
+  "patientSelectionModal.title": "Select a Patient",
+  "patientSelectionModal.description": "Multiple patients are associated with this phone number. Please select one to continue."
 }
