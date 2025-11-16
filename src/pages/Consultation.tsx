@@ -1568,8 +1568,8 @@ const Consultation = () => {
                 View pending consultations and manage prescriptions
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 sm:space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+            <CardContent className="p-4 md:p-6 space-y-6 sm:space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-1 space-y-4">
                       <div>
                           <div className="flex justify-between items-center mb-2">
@@ -1710,7 +1710,7 @@ const Consultation = () => {
                       </div>
                   </div>
 
-                  <div className="md:col-span-3">
+                  <div className="lg:col-span-2">
                   {selectedConsultation && editablePatientDetails ? (
                       <form className="space-y-6">
                           <div className="space-y-4">
@@ -1935,27 +1935,25 @@ const Consultation = () => {
                               </div>
                           </div>
 
-                          <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
-                              <div className="flex flex-col items-end">
-                                  {!isOnline && <p className="text-sm text-yellow-600 mb-2">Changes will be saved locally.</p>}
-                                  <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving}>
-                                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
-                                      Save Changes
-                                  </Button>
-                              </div>
-                              <Button type="button" size="lg" onClick={handleSaveAndPrint}>
-                                  <Printer className="w-5 h-5 mr-2" />
-                                  Save & Print
+                          <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-3">
+                              <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving} className="w-full sm:w-auto">
+                                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+                                  Save Changes
                               </Button>
-                              <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                      <Button type="button" size="icon" variant="outline" className="h-12 w-12">
-                                          <MoreVertical className="w-5 h-5" />
-                                      </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
-                                          <FileText className="w-4 h-4 mr-2" />
+                              <div className="flex w-full sm:w-auto gap-3">
+                                <Button type="button" size="lg" onClick={handleSaveAndPrint} className="flex-1">
+                                    <Printer className="w-5 h-5 mr-2" />
+                                    Print
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button type="button" size="icon" variant="outline" className="h-12 w-12">
+                                            <MoreVertical className="w-5 h-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
+                                            <FileText className="w-4 h-4 mr-2" />
                                           {isGenerateDocEnabled ? 'Disable' : 'Enable'} Google Doc
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onSelect={() => setIsSaveBundleModalOpen(true)}>
