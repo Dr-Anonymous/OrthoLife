@@ -23,6 +23,8 @@ export interface CertificateData {
   treatmentFromDate: Date;
   rejoinDate?: Date;
   rejoinActivity?: string;
+  certificateDate: Date;
+  consultationDate: Date;
 }
 
 const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpen, onClose, onSubmit, patientName }) => {
@@ -32,9 +34,17 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
   const [rejoinDate, setRejoinDate] = useState<Date | undefined>();
   const [rejoinActivity, setRejoinActivity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRestPeriodDatePickerOpen, setIsRestPeriodDatePickerOpen] = useState(false);
+  const [isTreatmentFromDatePickerOpen, setIsTreatmentFromDatePickerOpen] = useState(false);
+  const [isRejoinDatePickerOpen, setIsRejoinDatePickerOpen] = useState(false);
+  const [certificateDate, setCertificateDate] = useState<Date | undefined>(new Date());
+  const [consultationDate, setConsultationDate] = useState<Date | undefined>(new Date());
+  const [isCertificateDatePickerOpen, setIsCertificateDatePickerOpen] = useState(false);
+  const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
+
 
   const handleSubmit = () => {
-    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate) {
+    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate || !certificateDate || !consultationDate) {
       // Basic validation
       return;
     }
@@ -45,12 +55,20 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
       treatmentFromDate,
       rejoinDate,
       rejoinActivity,
+      certificateDate,
+      consultationDate,
     });
     // The parent component will handle closing the modal on success
     setIsSubmitting(false);
   };
 
   const restPeriodEndDate = restPeriodStartDate && restPeriodDays ? addDays(restPeriodStartDate, Number(restPeriodDays) -1) : null;
+
+    useEffect(() => {
+        if (restPeriodStartDate) {
+            setConsultationDate(restPeriodStartDate);
+        }
+    }, [restPeriodStartDate]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -62,6 +80,36 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">
+                Certificate Date
+            </Label>
+            <Popover open={isCertificateDatePickerOpen} onOpenChange={setIsCertificateDatePickerOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant={"outline"}
+                        className={cn(
+                            "col-span-3 justify-start text-left font-normal",
+                            !certificateDate && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {certificateDate ? format(certificateDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <Calendar
+                        mode="single"
+                        selected={certificateDate}
+                        onSelect={(date) => {
+                            setCertificateDate(date);
+                            setIsCertificateDatePickerOpen(false);
+                        }}
+                        initialFocus
+                    />
+                </PopoverContent>
+            </Popover>
+          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="rest-days" className="text-right">
               Rest (Days)
@@ -78,7 +126,7 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
             <Label className="text-right">
               Rest From
             </Label>
-            <Popover>
+            <Popover open={isRestPeriodDatePickerOpen} onOpenChange={setIsRestPeriodDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
@@ -95,7 +143,10 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
                 <Calendar
                   mode="single"
                   selected={restPeriodStartDate}
-                  onSelect={setRestPeriodStartDate}
+                  onSelect={(date) => {
+                    setRestPeriodStartDate(date);
+                    setIsRestPeriodDatePickerOpen(false);
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -111,7 +162,7 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
             <Label className="text-right">
               Treatment From
             </Label>
-            <Popover>
+            <Popover open={isTreatmentFromDatePickerOpen} onOpenChange={setIsTreatmentFromDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
@@ -128,7 +179,10 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
                 <Calendar
                   mode="single"
                   selected={treatmentFromDate}
-                  onSelect={setTreatmentFromDate}
+                  onSelect={(date) => {
+                    setTreatmentFromDate(date);
+                    setIsTreatmentFromDatePickerOpen(false);
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -136,9 +190,39 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">
+                Consultation Date
+            </Label>
+            <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant={"outline"}
+                        className={cn(
+                            "col-span-3 justify-start text-left font-normal",
+                            !consultationDate && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {consultationDate ? format(consultationDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <Calendar
+                        mode="single"
+                        selected={consultationDate}
+                        onSelect={(date) => {
+                            setConsultationDate(date);
+                            setIsConsultationDatePickerOpen(false);
+                        }}
+                        initialFocus
+                    />
+                </PopoverContent>
+            </Popover>
+            </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">
               Rejoin Date
             </Label>
-            <Popover>
+            <Popover open={isRejoinDatePickerOpen} onOpenChange={setIsRejoinDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
@@ -155,7 +239,10 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
                 <Calendar
                   mode="single"
                   selected={rejoinDate}
-                  onSelect={setRejoinDate}
+                  onSelect={(date) => {
+                    setRejoinDate(date);
+                    setIsRejoinDatePickerOpen(false);
+                  }}
                   initialFocus
                 />
               </PopoverContent>
