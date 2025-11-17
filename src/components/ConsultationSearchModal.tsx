@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/integrations/supabase/client';
-import { useDebounce } from '@/hooks/useDebounce';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { format } from 'date-fns';
 
@@ -13,33 +13,31 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const debouncedName = useDebounce(name, 300);
-  const debouncedPhone = useDebounce(phone, 300);
-  const debouncedKeyword = useDebounce(keyword, 300);
+  const handleSearch = async () => {
+    if (!name && !phone && !keyword) {
+      setResults([]);
+      return;
+    }
 
-  useEffect(() => {
-    const searchConsultations = async () => {
-      if (!debouncedName && !debouncedPhone && !debouncedKeyword) {
-        setResults([]);
-        return;
-      }
+    setIsLoading(true);
+    const { data, error } = await supabase.functions.invoke('search-consultations', {
+      body: { name, phone, keyword },
+    });
 
-      setIsLoading(true);
-      const { data, error } = await supabase.functions.invoke('search-consultations', {
-        body: { name: debouncedName, phone: debouncedPhone, keyword: debouncedKeyword },
-      });
+    if (error) {
+      console.error('Error searching consultations:', error);
+      setResults([]);
+    } else {
+      setResults(data.results || []);
+    }
+    setIsLoading(false);
+  };
 
-      if (error) {
-        console.error('Error searching consultations:', error);
-        setResults([]);
-      } else {
-        setResults(data.results);
-      }
-      setIsLoading(false);
-    };
-
-    searchConsultations();
-  }, [debouncedName, debouncedPhone, debouncedKeyword]);
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const handleSelect = (consultation) => {
     onSelectConsultation(consultation);
@@ -53,11 +51,14 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
           <DialogTitle>Search Consultations</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
-          <Input placeholder="Search by name..." value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="Search by phone..." value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <Input placeholder="Search by keyword..." value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+          <Input placeholder="Search by name..." value={name} onChange={(e) => setName(e.target.value)} onKeyDown={handleKeyDown} />
+          <Input placeholder="Search by phone..." value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={handleKeyDown} />
+          <Input placeholder="Search by keyword..." value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} />
         </div>
-        <div className="max-h-[60vh] overflow-y-auto p-4">
+        <div className="px-4 pb-4">
+          <Button onClick={handleSearch} className="w-full">Search</Button>
+        </div>
+        <div className="max-h-[50vh] overflow-y-auto p-4">
           {isLoading ? (
             <p>Loading...</p>
           ) : (

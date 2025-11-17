@@ -29,7 +29,7 @@ serve(async (req) => {
         status,
         consultation_data,
         created_at,
-        patient:patients (
+        patient:patients!inner (
           id,
           name,
           dob,
@@ -40,12 +40,12 @@ serve(async (req) => {
       `);
 
     if (name) {
-      query = query.ilike('patients.name', `%${name}%`);
+      query = query.ilike('patient.name', `%${name}%`);
     }
 
     if (phone) {
       const cleanedPhone = phone.slice(-10);
-      query = query.like('patients.phone', `%${cleanedPhone}%`);
+      query = query.like('patient.phone', `%${cleanedPhone}%`);
     }
 
     if (keyword) {
