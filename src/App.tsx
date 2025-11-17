@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PageLoader from "./components/PageLoader";
 import { usePWAInstall } from "./hooks/usePWAInstall";
-import { supabase } from "./integrations/supabase/client";
+import { trackEvent } from "./lib/analytics";
 import { useAuth } from "./hooks/useAuth";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -44,21 +44,13 @@ const ActivityLogger = () => {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    const logActivity = async () => {
-      if (!loading && user && user.phoneNumber) {
-        try {
-          await supabase.functions.invoke('log-user-activity', {
-            body: {
-              page_visited: location.pathname,
-              user_phone: user.phoneNumber
-            },
-          });
-        } catch (error) {
-          // Errors are logged to the console by default
-        }
-      }
-    };
-    logActivity();
+    if (!loading && user) {
+      trackEvent({
+        eventType: "page_view",
+        path: location.pathname,
+        user_phone: user.phoneNumber,
+      });
+    }
   }, [location.pathname, user, loading]);
 
   return null;

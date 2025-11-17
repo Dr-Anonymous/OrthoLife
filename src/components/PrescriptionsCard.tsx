@@ -10,16 +10,19 @@ import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/Prescription';
 import { format } from 'date-fns';
 import { HOSPITALS } from '@/config/constants';
+import { useToast } from '@/components/ui/use-toast';
 
 interface PrescriptionsCardProps {
-  patientName: string;
   patientId: string | undefined;
   patientPhone: string | undefined;
 }
 
-const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, patientId, patientPhone }) => {
+const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patientPhone }) => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [driveRecords, setDriveRecords] = useState<any>(null);
+  const [userUploads, setUserUploads] = useState<any[]>([]);
   const [dbConsultations, setDbConsultations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +56,14 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
             setDbConsultations([]);
           }
         }
+
+        // 3. Fetch user uploads
+        const { data: uploadsData, error: uploadsError } = await supabase.functions.invoke('get-patient-uploads', {
+          body: { patientId },
+        });
+        if (uploadsError) throw new Error(`Error fetching user uploads: ${uploadsError.message}`);
+        setUserUploads(uploadsData || []);
+
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -67,13 +78,6 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
     fetchRecords();
   }, [patientId, patientPhone]);
 
-  const filteredRecords = useMemo(() => {
-    if (!driveRecords || !driveRecords.patientFolders || !patientName) {
-      return [];
-    }
-    return driveRecords.patientFolders.filter((record: any) => record.name === patientName);
-  }, [driveRecords, patientName]);
-
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     onAfterPrint: () => setPrintingConsultation(null),
@@ -85,8 +89,8 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
     }
   }, [printingConsultation, handlePrint]);
 
-  const handleFileUpload = async () => {
-    if (!selectedFile || !user?.phoneNumber) return;
+  const handleFileUpload = async (retryCount = 1) => {
+    if (!selectedFile || !patientId) return;
 
     setUploading(true);
     const reader = new FileReader();
@@ -96,7 +100,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
         const fileContent = reader.result as string;
         const { error } = await supabase.functions.invoke('upload-file-to-drive', {
             body: {
-                phoneNumber: user.phoneNumber.slice(-10),
+                patientId,
                 fileName: selectedFile.name,
                 fileContent,
                 mimeType: selectedFile.type
@@ -112,7 +116,16 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
         }
 
       } catch (err: any) {
-        setError(err.message);
+        if (retryCount > 0) {
+          handleFileUpload(retryCount - 1);
+        } else {
+          toast({
+            title: "Upload Failed",
+            description: "Please try again later.",
+            variant: "destructive",
+          });
+          setError(err.message);
+        }
       } finally {
         setUploading(false);
       }
@@ -150,9 +163,9 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
           </ul>
         )}
 
-        {!loading && !error && dbConsultations.length === 0 && filteredRecords.length > 0 && (
+        {!loading && !error && dbConsultations.length === 0 && driveRecords?.patientFolders?.length > 0 && (
           <ul className="space-y-3">
-            {filteredRecords.map((record: any) => (
+            {driveRecords.patientFolders.map((record: any) => (
               <div key={record.id} className="p-4 bg-gray-100 rounded-lg">
                 <p className="font-medium text-gray-800">{record.name}</p>
                 {record.files && record.files.length > 0 && (
@@ -222,8 +235,32 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientName, pati
           </ul>
         )}
 
-        {!loading && !error && dbConsultations.length === 0 && filteredRecords.length === 0 && (
+        {!loading && !error && dbConsultations.length === 0 && (!driveRecords?.patientFolders || driveRecords.patientFolders.length === 0) && (
           <p className="text-gray-500">{t('prescriptionsCard.noRecords')}</p>
+        )}
+
+        {userUploads.length > 0 && (
+          <div className="mt-4 pt-4 border-t">
+            <h3 className="text-lg font-medium text-gray-800 mb-2">{t('prescriptionsCard.userUploadsTitle')}</h3>
+            <ul className="space-y-3 max-h-60 overflow-y-auto">
+              {userUploads.map((file: any) => (
+                <li key={file.id} className="p-3 bg-gray-100 rounded-lg flex justify-between items-center">
+                  <div>
+                    <p className="font-medium text-gray-800">{file.name}</p>
+                    <p className="text-sm text-gray-600">{format(new Date(file.createdTime), 'PPP')}</p>
+                  </div>
+                  <a
+                    href={`https://drive.google.com/file/d/${file.id}/view`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {t('prescriptionsCard.view')}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         <div className="mt-4 pt-4 border-t">

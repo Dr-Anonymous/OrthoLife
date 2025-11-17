@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -10,24 +11,23 @@ import { Button } from '@/components/ui/button';
 
 interface PatientSelectionModalProps {
   isOpen: boolean;
-  onClose: () => void;
   patients: { id: string; name: string }[];
   onSelect: (patient: { id: string; name: string }) => void;
 }
 
 const PatientSelectionModal: React.FC<PatientSelectionModalProps> = ({
   isOpen,
-  onClose,
   patients,
   onSelect,
 }) => {
+  const { t } = useTranslation();
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Select a Patient</DialogTitle>
+          <DialogTitle>{t('patientSelectionModal.title')}</DialogTitle>
           <DialogDescription>
-            Multiple patients are associated with this phone number. Please select one to view their prescription.
+            {t('patientSelectionModal.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col space-y-2">
