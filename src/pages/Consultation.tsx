@@ -595,6 +595,12 @@ const Consultation = () => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
 
+    if (ctrlKey && event.key.toLowerCase() === 'f') {
+      event.preventDefault();
+      setIsSearchModalOpen(true);
+      return;
+    }
+
     if (ctrlKey && selectedConsultation) {
       switch (event.key.toLowerCase()) {
         case 'p':

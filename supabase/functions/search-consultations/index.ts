@@ -1,6 +1,3 @@
-// this is the master search function used by Consultation.tsx- it can accept name, phone number or keyword input.
-//it searches through the whole database
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -19,62 +16,41 @@ serve(async (req) => {
     const { name, phone, keyword } = await req.json();
 
     if (!name && !phone && !keyword) {
-      return new Response(JSON.stringify({ error: 'At least one search parameter (name, phone, or keyword) must be provided' }), {
+      return new Response(JSON.stringify({ results: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 200,
       });
     }
 
-    let query = supabase
-      .from('consultations')
-      .select(`
-        id,
-        status,
-        consultation_data,
-        created_at,
-        patient:patients!inner (
-          id,
-          name,
-          dob,
-          sex,
-          phone,
-          drive_id
-        )
-      `);
-
-    if (name) {
-      query = query.ilike('patient.name', `%${name}%`);
-    }
-
-    if (phone) {
-      const cleanedPhone = phone.slice(-10);
-      query = query.like('patient.phone', `%${cleanedPhone}%`);
-    }
-
-    if (keyword) {
-      // Perform a case-insensitive search across all values in the JSONB object
-      query = query.ilike('consultation_data::text', `%${keyword}%`);
-    }
-
-    query = query.order('created_at', { ascending: false });
-
-    const { data, error } = await query;
+    const { data, error } = await supabase.rpc('search_consultations', {
+      name_query: name || null,
+      phone_query: phone || null,
+      keyword_query: keyword || null,
+    });
 
     if (error) throw error;
 
     // Group consultations by patient
     const patientsMap = new Map();
-    data.forEach(consultation => {
-      const patient = consultation.patient;
-      if (!patientsMap.has(patient.id)) {
-        patientsMap.set(patient.id, {
-          ...patient,
+    data.forEach(row => {
+      if (!patientsMap.has(row.patient_id)) {
+        patientsMap.set(row.patient_id, {
+          id: row.patient_id,
+          name: row.patient_name,
+          dob: row.patient_dob,
+          sex: row.patient_sex,
+          phone: row.patient_phone,
+          drive_id: row.patient_drive_id,
           consultations: [],
         });
       }
-      // Since the patient object is nested in the consultation, we remove it before pushing
-      const { patient: _, ...consultationData } = consultation;
-      patientsMap.get(patient.id).consultations.push(consultationData);
+      patientsMap.get(row.patient_id).consultations.push({
+        id: row.consultation_id,
+        created_at: row.consultation_created_at,
+        status: row.consultation_status,
+        consultation_data: row.consultation_data,
+        patient: { id: row.patient_id, name: row.patient_name, dob: row.patient_dob, sex: row.patient_sex, phone: row.patient_phone, drive_id: row.patient_drive_id }
+      });
     });
 
     const results = Array.from(patientsMap.values());
