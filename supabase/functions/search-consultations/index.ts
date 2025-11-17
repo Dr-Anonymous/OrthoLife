@@ -1,3 +1,6 @@
+// this is the master search function used by Consultation.tsx- it can accept name, phone number or keyword input.
+//it searches through the whole database
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
 import { corsHeaders } from '../_shared/cors.ts'
