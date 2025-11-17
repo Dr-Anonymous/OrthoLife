@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Link } from 'react-router-dom';
+import { offlineStore } from '@/lib/local-storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -38,6 +40,8 @@ import ReceiptModal, { ReceiptData } from '@/components/ReceiptModal';
 import { GOOGLE_DOCS_TEMPLATE_IDS, HOSPITALS } from '@/config/constants';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
+import { PatientConflictModal } from '@/components/PatientConflictModal';
 
 interface TextShortcut {
   id:string;
@@ -363,6 +367,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
 };
 
 const Consultation = () => {
+  const isOnline = useOnlineStatus();
   const { i18n, t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
@@ -400,8 +405,11 @@ const Consultation = () => {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [conflictData, setConflictData] = useState<{ local: any; server: any, consultationId: string } | null>(null);
+  const [patientConflictData, setPatientConflictData] = useState<{ offlinePatient: any; conflictingPatients: any[], consultationId: string } | null>(null);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
+  const [pendingSyncIds, setPendingSyncIds] = useState<string[]>([]);
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -786,6 +794,104 @@ const Consultation = () => {
     fetchSavedMedications();
     fetchTextShortcuts();
   }, []);
+
+  useEffect(() => {
+    const syncOfflineData = async () => {
+      if (isOnline) {
+        const keys = await offlineStore.keys();
+        setPendingSyncIds(keys);
+        if (keys.length > 0) {
+          toast({ title: 'Syncing...', description: `Syncing ${keys.length} locally saved consultations.` });
+          for (const key of keys) {
+            try {
+              const offlineData = await offlineStore.getItem(key) as any;
+              if (offlineData) {
+                const { data: serverConsultation, error } = await supabase
+                  .from('consultations')
+                  .select('*, patient:patients(*)')
+                  .eq('id', key)
+                  .single();
+
+                if (error) throw error;
+
+                const localTimestamp = new Date(offlineData.timestamp);
+                const serverTimestamp = new Date(serverConsultation.updated_at);
+
+                if (offlineData.type === 'new_patient') {
+                  // Logic to register a new patient will go here
+                  // For now, we'll just log it and remove it from the offline store to avoid infinite loops
+                  console.log("Syncing new patient:", offlineData.patient.name);
+
+                  const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+                    body: {
+                      name: offlineData.patient.name,
+                      dob: offlineData.patient.dob,
+                      sex: offlineData.patient.sex,
+                      phone: offlineData.patient.phone,
+                      force: false, // Let the backend handle conflicts initially
+                    },
+                  });
+
+                  if (error) throw new Error(error.message);
+
+                  // The conflict resolution for new patients will be handled in the next step
+                  if (data.status === 'success') {
+                    await offlineStore.removeItem(key);
+                    setPendingSyncIds(prev => prev.filter(id => id !== key));
+                  } else if (data.status === 'partial_match' || data.status === 'exact_match') {
+                    setPatientConflictData({
+                      offlinePatient: offlineData.patient,
+                      conflictingPatients: data.matches || [data.patient],
+                      consultationId: key,
+                    });
+                    return; // Pause sync
+                  }
+
+                } else if (serverTimestamp > localTimestamp) {
+                  setConflictData({ local: offlineData, server: serverConsultation, consultationId: key });
+                  return; // Pause sync until conflict is resolved
+                } else {
+                  const { patientDetails, extraData, status } = offlineData;
+
+                  const { error: patientUpdateError } = await supabase
+                    .from('patients')
+                    .update({
+                      name: patientDetails.name,
+                      dob: patientDetails.dob,
+                      sex: patientDetails.sex,
+                      phone: patientDetails.phone,
+                    })
+                    .eq('id', patientDetails.id);
+                  if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
+
+                  const { error: consultationUpdateError } = await supabase
+                    .from('consultations')
+                    .update({
+                      consultation_data: extraData,
+                      status: status,
+                    })
+                    .eq('id', key);
+                  if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
+                }
+
+                await offlineStore.removeItem(key);
+                setPendingSyncIds(prev => prev.filter(id => id !== key));
+              }
+            } catch (error) {
+              console.error('Sync error for consultation', key, error);
+              toast({ variant: 'destructive', title: 'Sync Error', description: `Failed to sync consultation for ${key}.` });
+            }
+          }
+          toast({ title: 'Sync Complete', description: 'All local changes have been synced.' });
+          if(selectedDate) fetchConsultations(selectedDate);
+        }
+      }
+    };
+
+    if (!conflictData) {
+      syncOfflineData();
+    }
+  }, [isOnline, conflictData]);
 
   const fetchTextShortcuts = async () => {
     const { data, error } = await supabase
@@ -1269,46 +1375,59 @@ const Consultation = () => {
 
     setIsSaving(true);
     try {
-      if (patientDetailsChanged) {
-        const { error: patientUpdateError } = await supabase
-          .from('patients')
-          .update({
-            name: editablePatientDetails.name,
-            dob: editablePatientDetails.dob,
-            sex: editablePatientDetails.sex,
-            phone: editablePatientDetails.phone,
-          })
-          .eq('id', editablePatientDetails.id);
-        if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-      }
+      if (!isOnline) {
+        const offlineData = {
+          patientDetails: editablePatientDetails,
+          extraData,
+          status: newStatus,
+          timestamp: new Date().toISOString(),
+        };
+        await offlineStore.setItem(selectedConsultation.id, offlineData);
+        setPendingSyncIds(prev => [...new Set([...prev, selectedConsultation.id])]);
+        toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
+      } else {
+        if (patientDetailsChanged) {
+          const { error: patientUpdateError } = await supabase
+            .from('patients')
+            .update({
+              name: editablePatientDetails.name,
+              dob: editablePatientDetails.dob,
+              sex: editablePatientDetails.sex,
+              phone: editablePatientDetails.phone,
+            })
+            .eq('id', editablePatientDetails.id);
+          if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+        }
 
-      const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
+        const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
+        const dataToSave = { ...extraData, language: i18n.language };
+        if (isPrinting) {
+          dataToSave.location = selectedHospital.name;
+        }
 
-      const dataToSave = { ...extraData, language: i18n.language };
-      if (isPrinting) {
-        dataToSave.location = selectedHospital.name;
-      }
-
-      if (extraDataChanged) {
+        if (extraDataChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
-      }
-      if (statusChanged) {
+        }
+        if (statusChanged) {
           consultationUpdatePayload.status = newStatus;
           if (newStatus === 'completed') {
-              stopTimer();
-              isTimerPausedRef.current = true;
+            stopTimer();
+            isTimerPausedRef.current = true;
           }
-      }
+        }
 
-      if (Object.keys(consultationUpdatePayload).length > 0) {
-        const { error: updateError } = await supabase
-          .from('consultations')
-          .update(consultationUpdatePayload)
-          .eq('id', selectedConsultation.id);
-        if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
-      }
+        if (Object.keys(consultationUpdatePayload).length > 0) {
+          const { error: updateError } = await supabase
+            .from('consultations')
+            .update(consultationUpdatePayload)
+            .eq('id', selectedConsultation.id);
+          if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
+        }
 
-      toast({ title: 'Success', description: 'Your changes have been saved.' });
+        await offlineStore.removeItem(selectedConsultation.id);
+        setPendingSyncIds(prev => prev.filter(id => id !== selectedConsultation.id));
+        toast({ title: 'Success', description: 'Your changes have been saved.' });
+      }
 
       const updatedConsultation = {
         ...selectedConsultation,
@@ -1343,6 +1462,68 @@ const Consultation = () => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  };
+
+  const handleResolveConflict = async (resolution: 'local' | 'server') => {
+    if (!conflictData) return;
+
+    const { consultationId, local } = conflictData;
+    if (resolution === 'server') {
+      await offlineStore.removeItem(consultationId);
+    } else { // local
+      const { patientDetails, extraData, status } = local;
+
+      const { error: patientUpdateError } = await supabase
+        .from('patients')
+        .update({ name: patientDetails.name, dob: patientDetails.dob, sex: patientDetails.sex, phone: patientDetails.phone })
+        .eq('id', patientDetails.id);
+      if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
+
+      const { error: consultationUpdateError } = await supabase
+        .from('consultations')
+        .update({ consultation_data: extraData, status: status })
+        .eq('id', consultationId);
+      if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
+
+      await offlineStore.removeItem(consultationId);
+    }
+
+    setPendingSyncIds(prev => prev.filter(id => id !== consultationId));
+    setConflictData(null); // This will re-trigger the sync useEffect
+  };
+
+  const handleResolvePatientConflict = async (resolution: 'new' | { mergeWith: number }) => {
+    if (!patientConflictData) return;
+    const { consultationId, offlinePatient } = patientConflictData;
+
+    let patientIdToUse;
+
+    if (resolution === 'new') {
+       const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+          body: { ...offlinePatient, force: true },
+        });
+        if (error) throw new Error(error.message);
+        patientIdToUse = data.consultation.patient_id;
+    } else {
+      patientIdToUse = resolution.mergeWith;
+    }
+
+    // Now create a consultation for the resolved patient
+    const offlineConsultationData = (await offlineStore.getItem(consultationId) as any).consultation;
+
+    const { error: consultationError } = await supabase
+      .from('consultations')
+      .insert({
+        patient_id: patientIdToUse,
+        consultation_data: offlineConsultationData.consultation_data,
+        status: 'pending'
+       });
+
+    if (consultationError) throw new Error(consultationError.message);
+
+    await offlineStore.removeItem(consultationId);
+    setPendingSyncIds(prev => prev.filter(id => id !== consultationId));
+    setPatientConflictData(null); // This will re-trigger the sync
   };
 
   const submitForm = async (e?: React.FormEvent, options: { skipSave?: boolean } = {}) => {
@@ -1435,6 +1616,11 @@ const Consultation = () => {
 
   return (
     <>
+      {!isOnline && (
+        <div className="bg-yellow-500 text-center p-2 text-white">
+          You are currently offline. Changes will be saved locally and synced when you're back online.
+        </div>
+      )}
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
         <div className="container mx-auto max-w-7xl">
           <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -1442,6 +1628,7 @@ const Consultation = () => {
               <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
                 <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
                 Doctor's Consultation
+                {!isOnline && <CloudOff className="w-6 h-6 text-yellow-500" />}
               </CardTitle>
               <CardDescription className="text-base sm:text-lg text-muted-foreground">
                 View pending consultations and manage prescriptions
@@ -1525,9 +1712,10 @@ const Consultation = () => {
                               ) : (
                                   <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
                                       {pendingConsultations.map(c => (
-                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                              {c.patient.name}
-                                          </Button>
+                                        <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
+                                          <span>{c.patient.name}</span>
+                                          {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                        </Button>
                                       ))}
                                       {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
                                   </div>
@@ -1545,8 +1733,9 @@ const Consultation = () => {
                               ) : (
                                   <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isEvaluationCollapsed ? "max-h-0" : "max-h-60")}>
                                       {evaluationConsultations.map(c => (
-                                          <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                              {c.patient.name}
+                                          <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
+                                              <span>{c.patient.name}</span>
+                                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                           </Button>
                                       ))}
                                       {evaluationConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
@@ -1565,8 +1754,9 @@ const Consultation = () => {
                               ) : (
                                   <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
                                       {completedConsultations.map(c => (
-                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                              {c.patient.name}
+                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
+                                              <span>{c.patient.name}</span>
+                                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                           </Button>
                                       ))}
                                       {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
@@ -1812,10 +2002,13 @@ const Consultation = () => {
                           </div>
 
                           <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
-                              <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving}>
-                                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
-                                  Save Changes
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                {!isOnline && <CloudOff className="h-5 w-5 text-yellow-600" />}
+                                <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+                                    Save Changes
+                                </Button>
+                              </div>
                               <Button type="button" size="lg" onClick={handleSaveAndPrint}>
                                   <Printer className="w-5 h-5 mr-2" />
                                   Save & Print
@@ -1962,7 +2155,12 @@ const Consultation = () => {
                     <ConsultationRegistration
                         onSuccess={(newConsultation, consultationData) => {
                             setIsRegistrationModalOpen(false);
-                            if (selectedDate) {
+                            if (String(newConsultation.patient_id).startsWith('offline-')) {
+                                setAllConsultations(prev => [newConsultation, ...prev]);
+                                setPendingConsultations(prev => [newConsultation, ...prev]);
+                                setSelectedConsultation(newConsultation);
+                                setPendingSyncIds(prev => [...new Set([...prev, newConsultation.patient_id])]);
+                            } else if (selectedDate) {
                                 fetchConsultations(selectedDate, newConsultation.patient_id, consultationData);
                             }
                         }}
@@ -1970,6 +2168,24 @@ const Consultation = () => {
                 </div>
             </DialogContent>
         </Dialog>
+        {conflictData && (
+          <ConflictResolutionModal
+            isOpen={!!conflictData}
+            onClose={() => setConflictData(null)}
+            onResolve={handleResolveConflict}
+            localData={conflictData.local}
+            serverData={conflictData.server}
+          />
+        )}
+        {patientConflictData && (
+          <PatientConflictModal
+            isOpen={!!patientConflictData}
+            onClose={() => setPatientConflictData(null)}
+            onResolve={handleResolvePatientConflict}
+            offlinePatient={patientConflictData.offlinePatient}
+            conflictingPatients={patientConflictData.conflictingPatients}
+          />
+        )}
     </>
   );
 };
