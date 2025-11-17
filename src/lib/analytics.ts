@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 type AnalyticsEvent = {
   eventType: string;
   path: string;
+  user_phone?: string | null;
   details?: Record<string, unknown>;
 };
 
-export const trackEvent = async ({ eventType, path, details }: AnalyticsEvent) => {
+export const trackEvent = async ({ eventType, path, user_phone, details }: AnalyticsEvent) => {
   try {
     const { error } = await supabase
       .from("analytics")
@@ -14,6 +15,7 @@ export const trackEvent = async ({ eventType, path, details }: AnalyticsEvent) =
         {
           event_type: eventType,
           path,
+          user_phone,
           details,
         },
       ]);

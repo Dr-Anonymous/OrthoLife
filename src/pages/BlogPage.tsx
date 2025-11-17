@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import { isTelugu } from '@/lib/languageUtils';
 import Footer from '@/components/Footer';
@@ -42,11 +43,13 @@ const BlogPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [noResults, setNoResults] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     trackEvent({
       eventType: "page_view",
       path: location.pathname,
+      user_phone: user?.phoneNumber,
     });
 
     const params = new URLSearchParams(location.search);
@@ -54,7 +57,7 @@ const BlogPage = () => {
     if (query) {
       setSearchTerm(query);
     }
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, user]);
 
   const POSTS_PER_PAGE = 5; // 1 featured + 4 in grid
 
