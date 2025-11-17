@@ -1,22 +1,53 @@
+/**
+ * @fileoverview This Supabase Edge Function is the central hub for finding and retrieving patient data.
+ *
+ * @summary It serves as a unified patient search endpoint with three primary modes of operation:
+ * 1.  Search by `patientId`: Directly fetches a single patient and their latest consultation from the database.
+ * 2.  Search by `searchTerm` and `searchType` ('name' or 'phone'):
+ *     - First, it queries the main `patients` database.
+ *     - If no results are found for a 'phone' search, it performs a fallback search against legacy
+ *       patient records stored in Google Drive.
+ *     - This mode is designed to handle cases where a single phone number may be associated with
+ *       multiple patients, returning a list for the frontend to handle.
+ *
+ * @param {string} [patientId] - The unique identifier for a patient. If provided, all other search params are ignored.
+ * @param {string} [searchTerm] - The search query (either a name or a phone number).
+ * @param {string} [searchType] - The type of search, must be either 'name' or 'phone'.
+ *
+ * @returns A JSON response containing an array of patient objects or a single patient object,
+ *          each merged with their most recent consultation data. The `source` property indicates
+ *          whether the data came from 'database' or 'gdrive'.
+ */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.4';
 import { corsHeaders } from '../_shared/cors.ts';
-import { getGoogleAccessToken } from "../_shared/google-auth.ts";
+import { searchPhoneNumberInDrive } from "../_shared/google-drive.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_ANON_KEY')!
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
 serve(async (req) => {
+  // Standard CORS preflight request handling.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { searchTerm, searchType } = await req.json();
+    const { searchTerm, searchType, patientId } = await req.json();
 
+    // Mode 1: Direct fetch by patientId. This is the most specific search and takes priority.
+    if (patientId) {
+        const patientData = await getPatientDataById(patientId);
+        return new Response(JSON.stringify(patientData), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+        });
+    }
+
+    // Mode 2: Search by term. Requires both searchTerm and searchType.
     if (!searchTerm || !searchType) {
       return new Response(JSON.stringify({ error: 'searchTerm and searchType are required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -24,11 +55,12 @@ serve(async (req) => {
       });
     }
 
-    // 1. Search Database
+    // First, attempt to find the patient in our primary database.
     let query = supabase.from('patients').select('*');
     if (searchType === 'name') {
       query = query.ilike('name', `%${searchTerm}%`);
     } else if (searchType === 'phone') {
+      // Sanitize phone number to the last 10 digits for consistent searching.
       const sanitizedPhone = searchTerm.slice(-10);
       query = query.like('phone', `%${sanitizedPhone}%`);
     }
@@ -36,9 +68,10 @@ serve(async (req) => {
 
     if (dbError) throw dbError;
 
+    // If we find one or more patients in the database, fetch their latest consultation and return them.
     if (dbData && dbData.length > 0) {
       const patientsWithConsultations = await Promise.all(dbData.map(async (patient) => {
-        const { data: lastConsultation, error: lastConsultationError } = await supabase
+        const { data: lastConsultation } = await supabase
           .from('consultations')
           .select('consultation_data')
           .eq('patient_id', patient.id)
@@ -47,15 +80,10 @@ serve(async (req) => {
           .limit(1)
           .single();
 
-        if (lastConsultationError) {
-          // This is not a fatal error, just means no consultation history
-          console.error(`No consultation history for patient ${patient.id}:`, lastConsultationError.message);
-          return patient;
-        }
-
         return {
           ...patient,
-          ...lastConsultation.consultation_data,
+          ...lastConsultation?.consultation_data,
+          source: 'database'
         };
       }));
 
@@ -65,17 +93,19 @@ serve(async (req) => {
       });
     }
 
-    // 2. Fallback to Google Drive if no DB results and searchType is 'phone'
+    // If the database search yields no results and the search was by phone,
+    // trigger the fallback to search legacy records in Google Drive.
     if (searchType === 'phone') {
-      const accessToken = await getGoogleAccessToken();
-      const drivePatients = await searchPhoneNumberInDrive(accessToken, searchTerm);
-      return new Response(JSON.stringify(drivePatients), {
+      const drivePatients = await searchPhoneNumberInDrive(searchTerm);
+      // Add the 'source' field to identify these as legacy records.
+      const patientsWithSource = drivePatients.map(p => ({ ...p, source: 'gdrive' }));
+      return new Response(JSON.stringify(patientsWithSource), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // If searchType is 'name' and no results, or if drive search fails, return empty
+    // If no results are found after all checks, return an empty array.
     return new Response(JSON.stringify([]), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
@@ -89,161 +119,33 @@ serve(async (req) => {
   }
 });
 
-async function searchPhoneNumberInDrive(accessToken, phoneNumber) {
-  // This logic is copied and adapted from the old `search-patient-records` function
-  const searchQuery = encodeURIComponent(`fullText contains '${phoneNumber}' and mimeType='application/vnd.google-apps.document'`);
-  const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&fields=files(id,name,parents)`, {
-    headers: { 'Authorization': `Bearer ${accessToken}` }
-  });
-  const searchData = await searchResponse.json();
-  const matchingDocs = searchData.files || [];
-  if (matchingDocs.length === 0) return [];
+/**
+ * Helper function to fetch a single patient by their ID and merge it
+ * with their most recent consultation data.
+ * @param {string} patientId - The UUID of the patient.
+ * @returns A single patient object with their latest consultation data.
+ */
+async function getPatientDataById(patientId: string) {
+    const { data: patient, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', patientId)
+        .single();
 
-  const parentFolderIds = new Set();
-  matchingDocs.forEach(doc => {
-    if (doc.parents && doc.parents.length > 0) parentFolderIds.add(doc.parents[0]);
-  });
+    if (error) throw error;
 
-  const patientDataPromises = Array.from(parentFolderIds).map(async (folderId) => {
-    const { patientData } = await getLatestPrescriptionData(accessToken, folderId);
-    if (!patientData || !patientData.name) return null;
-    return { ...patientData, id: parseInt(patientData.id, 10), drive_id: folderId };
-  });
+    const { data: lastConsultation } = await supabase
+        .from('consultations')
+        .select('consultation_data')
+        .eq('patient_id', patient.id)
+        .not('consultation_data', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-  const patientObjects = await Promise.all(patientDataPromises);
-  return patientObjects.filter(patient => patient !== null);
-}
-
-// All helper functions below are copied directly from `search-patient-records`
-async function getLatestPrescriptionData(accessToken, folderId) {
-    const docsResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.document'&orderBy=modifiedTime+desc&pageSize=1&fields=files(id,name)`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    const docsData = await docsResponse.json();
-    const latestDoc = docsData.files?.[0];
-    if (!latestDoc) return { folderId, patientData: null };
-
-    const contentResponse = await fetch(`https://docs.googleapis.com/v1/documents/${latestDoc.id}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    const contentData = await contentResponse.json();
-    const documentText = extractTextFromDocument(contentData);
-    const patientData = parsePatientData(documentText);
-    return { folderId, patientData };
-}
-
-function extractTextFromDocument(document) {
-  let text = '';
-  if (document.body?.content) {
-    for (const element of document.body.content) {
-      if (element.paragraph) {
-        for (const textElement of element.paragraph.elements || []) {
-          if (textElement.textRun) text += textElement.textRun.content;
-        }
-      } else if (element.table) {
-        text += extractTextFromTable(element.table);
-      }
-    }
-  }
-  return text;
-}
-
-function extractTextFromTable(table) {
-  let tableText = '';
-  if (table.tableRows) {
-    for (const row of table.tableRows) {
-      const cellTexts = [];
-      if (row.tableCells) {
-        for (const cell of row.tableCells) {
-          let cellText = '';
-          if (cell?.content) {
-            for (const cellElement of cell.content) {
-              if (cellElement.paragraph) {
-                for (const textElement of cellElement.paragraph.elements || []) {
-                  if (textElement.textRun) cellText += textElement.textRun.content;
-                }
-              }
-            }
-          }
-          cellTexts.push(cellText.replace(/\n/g, ' ').trim());
-        }
-      }
-      tableText += cellTexts.join('\t') + '\n';
-    }
-  }
-  return tableText;
-}
-
-function parsePatientData(documentText) {
-  const data = {};
-  const nameMatch = documentText.match(/Name:\s*(?:{{name}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:D\.O\.B)/i);
-  if (nameMatch && nameMatch[1] && !nameMatch[1].includes('{{')) {
-    data.name = nameMatch[1].trim();
-  }
-  const dobMatch = documentText.match(/(?:D\.O\.B)[:\s]*(?:{{dob}}|([^\s\n\r{]+(?:\s+[^\s\n\r{]+)*?))\s*(?:Phone|Sex|Age)/i);
-  if (dobMatch && dobMatch[1] && !dobMatch[1].includes('{{')) {
-    data.dob = dobMatch[1].trim();
-  }
-  const phoneMatch = documentText.match(/Phone[:\s]*(?:{{phone}}|([^\s\n\r{]+))\s*(?:Sex|Age|ID)/i);
-  if (phoneMatch && phoneMatch[1] && !phoneMatch[1].includes('{{')) {
-    data.phone = phoneMatch[1].trim();
-  }
-  const sexMatch = documentText.match(/Sex[:\s]*(?:{{sex}}|([^\s\n\r{]+))\s*(?:Age|ID|Date|\n)/i);
-  if (sexMatch && sexMatch[1] && !sexMatch[1].includes('{{')) {
-    data.sex = sexMatch[1].trim();
-  }
-  const idMatch = documentText.match(/ID No: *(?:{{id}}|([^\s\n\r{]+))(?:\n)/);
-  if (idMatch && idMatch[1] && !idMatch[1].includes('{{')) {
-    data.id = idMatch[1].trim();
-  }
-  const complaintsMatch = documentText.match(/Complaints[:\s]*(?:{{complaints}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Findings|Clinical|$)/i);
-  if (complaintsMatch && complaintsMatch[1] && !complaintsMatch[1].includes('{{')) {
-    data.complaints = complaintsMatch[1].trim();
-  }
-  const findingsMatch = documentText.match(/Findings[:\s]*(?:{{findings}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Investigations|Diagnosis|$)/i);
-  if (findingsMatch && findingsMatch[1] && !findingsMatch[1].includes('{{')) {
-    data.findings = findingsMatch[1].trim();
-  }
-  const investigationsMatch = documentText.match(/Investigations[:\s]*(?:{{investigations}}|([\s\S]*?))(?=\s*(?:→|Diagnosis:|Advice:|[A-Z][A-Za-z\s]+:|$))/i);
-  if (investigationsMatch && investigationsMatch[1] && !investigationsMatch[1].includes('{{')) {
-    data.investigations = investigationsMatch[1].trim();
-  }
-  const diagnosisMatch = documentText.match(/Diagnosis[:\s]*(?:{{diagnosis}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Advice|Medication|$)/i);
-  if (diagnosisMatch && diagnosisMatch[1] && !diagnosisMatch[1].includes('{{')) {
-    data.diagnosis = diagnosisMatch[1].trim();
-  }
-  const adviceMatch = documentText.match(/Advice[:\s]*(?:{{advice}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Medication|Get free|Followup|$)/i);
-  if (adviceMatch && adviceMatch[1] && !adviceMatch[1].includes('{{')) {
-    data.advice = adviceMatch[1].trim();
-  }
-  const followupMatch = documentText.match(/Followup[:\s]*(?:{{followup}}|([^→\n\r{}]+(?:\n[^→\n\r{}]*)*?))\s*(?:→|Dear|Orthopaedic|$)/i);
-  if (followupMatch && followupMatch[1] && !followupMatch[1].includes('{{')) {
-    data.followup = followupMatch[1].trim();
-  }
-  // Simplified medication parsing
-  const medications = [];
-  const medicationTableMatch = documentText.match(/Medication:(.*?)(?:→|Get free|Followup)/s);
-  if (medicationTableMatch && medicationTableMatch[1]) {
-      const tableContent = medicationTableMatch[1];
-      const lines = tableContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-      const isTruthyMarker = (val) => val && ['✔', '✓', 'true', '1', 'yes', 'y'].includes(val.trim().toLowerCase());
-
-      for (const line of lines) {
-          if (line.match(/Name|Dose|Morning|Frequency/i)) continue;
-          const cols = line.split(/\s{2,}|	/).map(c => c.trim());
-          if (cols.length < 3 || !/^\d+\.?$/.test(cols[0])) continue;
-
-          medications.push({
-              name: cols[1] || '',
-              dose: cols[2] || '',
-              freqMorning: isTruthyMarker(cols[3]),
-              freqNoon: isTruthyMarker(cols[4]),
-              freqNight: isTruthyMarker(cols[5]),
-              duration: cols[6] || '',
-              instructions: cols[7] || '',
-          });
-      }
-  }
-  if (medications.length > 0) data.medications = medications;
-  return data;
+    return {
+        ...patient,
+        ...lastConsultation?.consultation_data,
+        source: 'database'
+    };
 }

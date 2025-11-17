@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
 import { corsHeaders } from '../_shared/cors.ts';
+import { searchFoldersByPhoneNumber } from "../_shared/google-drive.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -25,7 +26,7 @@ serve(async (req) => {
       });
     }
 
-    const patientFolders = await searchPhoneNumber(accessToken, phoneNumber);
+    const patientFolders = await getPatientFiles(accessToken, phoneNumber);
 
     return new Response(JSON.stringify({ patientFolders }), {
       status: 200,
@@ -41,44 +42,33 @@ serve(async (req) => {
   }
 });
 
-async function searchPhoneNumber(accessToken, phoneNumber) {
-  const searchQuery = encodeURIComponent(`fullText contains '${phoneNumber}' and mimeType='application/vnd.google-apps.document'`);
-  const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&fields=files(id,name,parents)`, {
-    headers: { 'Authorization': `Bearer ${accessToken}` }
-  });
-  const searchData = await searchResponse.json();
-  const matchingDocs = searchData.files || [];
-  if (matchingDocs.length === 0) return [];
+async function getPatientFiles(accessToken: string, phoneNumber: string) {
+    const parentFolderIds = await searchFoldersByPhoneNumber(accessToken, phoneNumber);
 
-  const parentFolderIds = new Set();
-  matchingDocs.forEach(doc => {
-    if (doc.parents && doc.parents.length > 0) parentFolderIds.add(doc.parents[0]);
-  });
-
-  const folderPromises = Array.from(parentFolderIds).map(async (folderId) => {
-    const folderResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=name`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    const folderData = await folderResponse.json();
-    const filesQuery = encodeURIComponent(`'${folderId}' in parents`);
-    const filesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${filesQuery}&fields=files(id,name,createdTime,mimeType)`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    const filesData = await filesResponse.json();
-    const files = await Promise.all((filesData.files || []).map(async (file) => {
-      if (file.name === 'uploads' && file.mimeType === 'application/vnd.google-apps.folder') {
-        const subFilesQuery = encodeURIComponent(`'${file.id}' in parents`);
-        const subFilesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${subFilesQuery}&fields=files(id,name,createdTime,mimeType)`, {
+    const folderPromises = Array.from(parentFolderIds).map(async (folderId) => {
+        const folderResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=name`, {
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-        const subFilesData = await subFilesResponse.json();
-        return { ...file, files: subFilesData.files || [] };
-      }
-      return file;
-    }));
-    return { id: folderId, name: folderData.name, files };
-  });
+        const folderData = await folderResponse.json();
+        const filesQuery = encodeURIComponent(`'${folderId}' in parents`);
+        const filesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${filesQuery}&fields=files(id,name,createdTime,mimeType)`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const filesData = await filesResponse.json();
+        const files = await Promise.all((filesData.files || []).map(async (file: any) => {
+          if (file.name === 'uploads' && file.mimeType === 'application/vnd.google-apps.folder') {
+            const subFilesQuery = encodeURIComponent(`'${file.id}' in parents`);
+            const subFilesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${subFilesQuery}&fields=files(id,name,createdTime,mimeType)`, {
+              headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const subFilesData = await subFilesResponse.json();
+            return { ...file, files: subFilesData.files || [] };
+          }
+          return file;
+        }));
+        return { id: folderId, name: folderData.name, files };
+      });
 
-  const folderObjects = await Promise.all(folderPromises);
-  return folderObjects.filter(folder => folder !== null && folder.name);
+      const folderObjects = await Promise.all(folderPromises);
+      return folderObjects.filter(folder => folder !== null && folder.name);
 }
