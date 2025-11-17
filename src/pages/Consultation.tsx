@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -42,6 +42,7 @@ import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
 import { PatientConflictModal } from '@/components/PatientConflictModal';
+import { ConsultationSearchModal } from '@/components/ConsultationSearchModal';
 
 interface TextShortcut {
   id:string;
@@ -403,6 +404,7 @@ const Consultation = () => {
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [conflictData, setConflictData] = useState<{ local: any; server: any, consultationId: string } | null>(null);
@@ -1669,6 +1671,10 @@ const Consultation = () => {
                           <div className="flex justify-between items-center mb-2">
                               <Label>Consultation Date</Label>
                               <div className="flex items-center gap-2">
+                                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsSearchModalOpen(true)}>
+                                       <Search className="h-4 w-4" />
+                                       <span className="sr-only">Search Consultations</span>
+                                   </Button>
                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsRegistrationModalOpen(true)}>
                                        <UserPlus className="h-4 w-4" />
                                        <span className="sr-only">Register New Patient</span>
@@ -2196,6 +2202,16 @@ const Consultation = () => {
             conflictingPatients={patientConflictData.conflictingPatients}
           />
         )}
+      <ConsultationSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onSelectConsultation={(consultation) => {
+          const consultationDate = new Date(consultation.created_at);
+          setSelectedDate(consultationDate);
+          fetchConsultations(consultationDate, consultation.patient.id, consultation.consultation_data);
+          setIsSearchModalOpen(false);
+        }}
+      />
     </>
   );
 };
