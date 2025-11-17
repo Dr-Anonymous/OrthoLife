@@ -2001,27 +2001,28 @@ const Consultation = () => {
                               </div>
                           </div>
 
-                          <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
-                              <div className="flex items-center gap-2">
+                          <div className="pt-6 flex flex-wrap sm:flex-row items-center sm:justify-end gap-3">
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
                                 {!isOnline && <CloudOff className="h-5 w-5 text-yellow-600" />}
-                                <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving}>
+                                <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving} className="flex-grow">
                                     {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
                                     Save Changes
                                 </Button>
                               </div>
-                              <Button type="button" size="lg" onClick={handleSaveAndPrint}>
-                                  <Printer className="w-5 h-5 mr-2" />
-                                  Save & Print
-                              </Button>
-                              <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                      <Button type="button" size="icon" variant="outline" className="h-12 w-12">
-                                          <MoreVertical className="w-5 h-5" />
-                                      </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
-                                          <FileText className="w-4 h-4 mr-2" />
+                              <div className="flex w-full sm:w-auto gap-3">
+                                <Button type="button" size="lg" onClick={handleSaveAndPrint} className="flex-grow">
+                                    <Printer className="w-5 h-5 mr-2" />
+                                    Print
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button type="button" size="icon" variant="outline" className="h-12 w-12 flex-shrink-0">
+                                            <MoreVertical className="w-5 h-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
+                                            <FileText className="w-4 h-4 mr-2" />
                                           {isGenerateDocEnabled ? 'Disable' : 'Enable'} Google Doc
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onSelect={() => setIsSaveBundleModalOpen(true)}>
@@ -2037,8 +2038,9 @@ const Consultation = () => {
                                           <FileText className="w-4 h-4 mr-2" />
                                           Generate Receipt
                                       </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                              </DropdownMenu>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                           </div>
                       </form>
                   ) : (
