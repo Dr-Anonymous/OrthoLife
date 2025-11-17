@@ -126,16 +126,19 @@ const MySpace = () => {
               </h1>
               {patientName && <p className="mt-1 text-lg text-gray-600">{t('mySpace.dashboardDescription')}</p>}
             </div>
-            <div className="flex items-center gap-4 mt-4 sm:mt-0">
-              <LanguageSwitcher />
-              {patientList.length > 1 && (
-                <Button onClick={() => setIsPatientSelectionModalOpen(true)} variant="outline">
-                  {t('mySpace.switchPatient')}
-                </Button>
-              )}
-              <Button onClick={handleLogout} variant="outline">
-                <LogOut className="mr-2 h-4 w-4" /> {t('mySpace.logout')}
-              </Button>
+            <div className="flex flex-col items-end gap-2 mt-4 sm:mt-0">
+                <div className="flex items-center gap-4">
+                    <LanguageSwitcher />
+                    {patientList.length > 1 && (
+                        <Button onClick={() => setIsPatientSelectionModalOpen(true)} variant="outline">
+                        {t('mySpace.switchPatient')}
+                        </Button>
+                    )}
+                    <Button onClick={handleLogout} variant="outline">
+                        <LogOut className="mr-2 h-4 w-4" /> {t('mySpace.logout')}
+                    </Button>
+                </div>
+                {user?.phoneNumber && <p className="text-sm text-gray-600"><strong>{user.phoneNumber}</strong></p>}
             </div>
           </header>
 
