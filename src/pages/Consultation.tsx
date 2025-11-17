@@ -41,6 +41,7 @@ import { GOOGLE_DOCS_TEMPLATE_IDS, HOSPITALS } from '@/config/constants';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
+import { PatientConflictModal } from '@/components/PatientConflictModal';
 
 interface TextShortcut {
   id:string;
@@ -405,6 +406,7 @@ const Consultation = () => {
   const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [conflictData, setConflictData] = useState<{ local: any; server: any, consultationId: string } | null>(null);
+  const [patientConflictData, setPatientConflictData] = useState<{ offlinePatient: any; conflictingPatients: any[], consultationId: string } | null>(null);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
   const [pendingSyncIds, setPendingSyncIds] = useState<string[]>([]);
@@ -815,32 +817,62 @@ const Consultation = () => {
                 const localTimestamp = new Date(offlineData.timestamp);
                 const serverTimestamp = new Date(serverConsultation.updated_at);
 
-                if (serverTimestamp > localTimestamp) {
+                if (offlineData.type === 'new_patient') {
+                  // Logic to register a new patient will go here
+                  // For now, we'll just log it and remove it from the offline store to avoid infinite loops
+                  console.log("Syncing new patient:", offlineData.patient.name);
+
+                  const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+                    body: {
+                      name: offlineData.patient.name,
+                      dob: offlineData.patient.dob,
+                      sex: offlineData.patient.sex,
+                      phone: offlineData.patient.phone,
+                      force: false, // Let the backend handle conflicts initially
+                    },
+                  });
+
+                  if (error) throw new Error(error.message);
+
+                  // The conflict resolution for new patients will be handled in the next step
+                  if (data.status === 'success') {
+                    await offlineStore.removeItem(key);
+                    setPendingSyncIds(prev => prev.filter(id => id !== key));
+                  } else if (data.status === 'partial_match' || data.status === 'exact_match') {
+                    setPatientConflictData({
+                      offlinePatient: offlineData.patient,
+                      conflictingPatients: data.matches || [data.patient],
+                      consultationId: key,
+                    });
+                    return; // Pause sync
+                  }
+
+                } else if (serverTimestamp > localTimestamp) {
                   setConflictData({ local: offlineData, server: serverConsultation, consultationId: key });
                   return; // Pause sync until conflict is resolved
+                } else {
+                  const { patientDetails, extraData, status } = offlineData;
+
+                  const { error: patientUpdateError } = await supabase
+                    .from('patients')
+                    .update({
+                      name: patientDetails.name,
+                      dob: patientDetails.dob,
+                      sex: patientDetails.sex,
+                      phone: patientDetails.phone,
+                    })
+                    .eq('id', patientDetails.id);
+                  if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
+
+                  const { error: consultationUpdateError } = await supabase
+                    .from('consultations')
+                    .update({
+                      consultation_data: extraData,
+                      status: status,
+                    })
+                    .eq('id', key);
+                  if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
                 }
-
-                const { patientDetails, extraData, status } = offlineData;
-
-                const { error: patientUpdateError } = await supabase
-                  .from('patients')
-                  .update({
-                    name: patientDetails.name,
-                    dob: patientDetails.dob,
-                    sex: patientDetails.sex,
-                    phone: patientDetails.phone,
-                  })
-                  .eq('id', patientDetails.id);
-                if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
-
-                const { error: consultationUpdateError } = await supabase
-                  .from('consultations')
-                  .update({
-                    consultation_data: extraData,
-                    status: status,
-                  })
-                  .eq('id', key);
-                if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
 
                 await offlineStore.removeItem(key);
                 setPendingSyncIds(prev => prev.filter(id => id !== key));
@@ -1460,6 +1492,40 @@ const Consultation = () => {
     setConflictData(null); // This will re-trigger the sync useEffect
   };
 
+  const handleResolvePatientConflict = async (resolution: 'new' | { mergeWith: number }) => {
+    if (!patientConflictData) return;
+    const { consultationId, offlinePatient } = patientConflictData;
+
+    let patientIdToUse;
+
+    if (resolution === 'new') {
+       const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+          body: { ...offlinePatient, force: true },
+        });
+        if (error) throw new Error(error.message);
+        patientIdToUse = data.consultation.patient_id;
+    } else {
+      patientIdToUse = resolution.mergeWith;
+    }
+
+    // Now create a consultation for the resolved patient
+    const offlineConsultationData = (await offlineStore.getItem(consultationId) as any).consultation;
+
+    const { error: consultationError } = await supabase
+      .from('consultations')
+      .insert({
+        patient_id: patientIdToUse,
+        consultation_data: offlineConsultationData.consultation_data,
+        status: 'pending'
+       });
+
+    if (consultationError) throw new Error(consultationError.message);
+
+    await offlineStore.removeItem(consultationId);
+    setPendingSyncIds(prev => prev.filter(id => id !== consultationId));
+    setPatientConflictData(null); // This will re-trigger the sync
+  };
+
   const submitForm = async (e?: React.FormEvent, options: { skipSave?: boolean } = {}) => {
     if (e) e.preventDefault();
     if (!selectedConsultation || !editablePatientDetails || !isGenerateDocEnabledRef.current) return;
@@ -1648,7 +1714,7 @@ const Consultation = () => {
                                       {pendingConsultations.map(c => (
                                         <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
                                           <span>{c.patient.name}</span>
-                                          {pendingSyncIds.includes(c.id) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                          {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                         </Button>
                                       ))}
                                       {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
@@ -1669,7 +1735,7 @@ const Consultation = () => {
                                       {evaluationConsultations.map(c => (
                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
                                               <span>{c.patient.name}</span>
-                                              {pendingSyncIds.includes(c.id) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                           </Button>
                                       ))}
                                       {evaluationConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
@@ -1690,7 +1756,7 @@ const Consultation = () => {
                                       {completedConsultations.map(c => (
                                            <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
                                               <span>{c.patient.name}</span>
-                                              {pendingSyncIds.includes(c.id) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                           </Button>
                                       ))}
                                       {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
@@ -1930,51 +1996,54 @@ const Consultation = () => {
                             </div>
                             <Textarea ref={followupRef} id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value, e.target.selectionStart)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
                           </div>
-
+                          
                           <div className="space-y-2">
                             <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
                             <Textarea ref={personalNoteRef} id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value, e.target.selectionStart)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
                           </div>
                         </div>
 
-                        <div className="pt-6 flex flex-wrap sm:flex-row items-center sm:justify-end gap-3">
-                          <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving} className="w-full sm:w-auto">
-                              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
-                              Save Changes
-                          </Button>
-                          <div className="flex w-full sm:w-auto gap-3">
-                            <Button type="button" size="lg" onClick={handleSaveAndPrint} className="flex-grow">
-                                <Printer className="w-5 h-5 mr-2" />
-                                Print
-                            </Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button type="button" size="icon" variant="outline" className="h-12 w-12 flex-shrink-0">
-                                        <MoreVertical className="w-5 h-5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
-                                        <FileText className="w-4 h-4 mr-2" />
-                                      {isGenerateDocEnabled ? 'Disable' : 'Enable'} Google Doc
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onSelect={() => setIsSaveBundleModalOpen(true)}>
-                                      <PackagePlus className="w-4 h-4 mr-2" />
-                                      Save as Bundle
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onSelect={() => setIsMedicalCertificateModalOpen(true)}>
-                                      <FileText className="w-4 h-4 mr-2" />
-                                      Generate Medical Certificate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onSelect={() => setIsReceiptModalOpen(true)}>
-                                      <FileText className="w-4 h-4 mr-2" />
-                                      Generate Receipt
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                        <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                              {!isOnline && <CloudOff className="h-5 w-5 text-yellow-600" />}
+                              <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving}>
+                                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+                                  Save Changes
+                              </Button>
                           </div>
-                        </div>
+                          <div className="flex w-full sm:w-auto gap-3">
+                              <Button type="button" size="lg" onClick={handleSaveAndPrint}>
+                                  <Printer className="w-5 h-5 mr-2" />
+                                  Print
+                              </Button>
+                              <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                      <Button type="button" size="icon" variant="outline" className="h-12 w-12">
+                                          <MoreVertical className="w-5 h-5" />
+                                      </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          {isGenerateDocEnabled ? 'Disable' : 'Enable'} Google Doc
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => setIsSaveBundleModalOpen(true)}>
+                                          <PackagePlus className="w-4 h-4 mr-2" />
+                                          Save as Bundle
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onSelect={() => setIsMedicalCertificateModalOpen(true)}>
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          Generate Medical Certificate
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => setIsReceiptModalOpen(true)}>
+                                          <FileText className="w-4 h-4 mr-2" />
+                                          Generate Receipt
+                                      </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                              </DropdownMenu>
+                          </div>
+                      </div>
                       </form>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
@@ -2090,7 +2159,12 @@ const Consultation = () => {
                     <ConsultationRegistration
                         onSuccess={(newConsultation, consultationData) => {
                             setIsRegistrationModalOpen(false);
-                            if (selectedDate) {
+                            if (String(newConsultation.patient_id).startsWith('offline-')) {
+                                setAllConsultations(prev => [newConsultation, ...prev]);
+                                setPendingConsultations(prev => [newConsultation, ...prev]);
+                                setSelectedConsultation(newConsultation);
+                                setPendingSyncIds(prev => [...new Set([...prev, newConsultation.patient_id])]);
+                            } else if (selectedDate) {
                                 fetchConsultations(selectedDate, newConsultation.patient_id, consultationData);
                             }
                         }}
@@ -2105,6 +2179,15 @@ const Consultation = () => {
             onResolve={handleResolveConflict}
             localData={conflictData.local}
             serverData={conflictData.server}
+          />
+        )}
+        {patientConflictData && (
+          <PatientConflictModal
+            isOpen={!!patientConflictData}
+            onClose={() => setPatientConflictData(null)}
+            onResolve={handleResolvePatientConflict}
+            offlinePatient={patientConflictData.offlinePatient}
+            conflictingPatients={patientConflictData.conflictingPatients}
           />
         )}
     </>
