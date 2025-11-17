@@ -27,20 +27,20 @@ const AnalyticsPage = () => {
 
     return pageViewEvents.reduce((acc, activity) => {
       const date = format(new Date(activity.created_at), 'yyyy-MM-dd');
-      const userKey = `${activity.user_name || 'Unknown'} (${activity.user_phone})`;
+      const user = activity.user_phone;
 
       if (viewMode === 'day') {
-        if (!acc[userKey]) acc[userKey] = [];
-        acc[userKey].push(activity);
+        if (!acc[user]) acc[user] = [];
+        acc[user].push(activity);
       } else { // month view
         if (monthlyViewType === 'date') {
           if (!acc[date]) acc[date] = {};
-          if (!acc[date][userKey]) acc[date][userKey] = [];
-          acc[date][userKey].push(activity);
+          if (!acc[date][user]) acc[date][user] = [];
+          acc[date][user].push(activity);
         } else { // user-wise
-          if (!acc[userKey]) acc[userKey] = {};
-          if (!acc[userKey][date]) acc[userKey][date] = [];
-          acc[userKey][date].push(activity);
+          if (!acc[user]) acc[user] = {};
+          if (!acc[user][date]) acc[user][date] = [];
+          acc[user][date].push(activity);
         }
       }
       return acc;

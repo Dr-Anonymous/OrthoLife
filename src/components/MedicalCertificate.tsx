@@ -13,15 +13,17 @@ import { CertificateData } from './MedicalCertificateModal';
 interface MedicalCertificateProps {
   patient: Patient;
   diagnosis: string;
+  consultationDate: Date;
   certificateData: CertificateData;
 }
 
 export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   patient,
   diagnosis,
+  consultationDate,
   certificateData,
 }) => {
-  const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity, certificateDate, consultationDate } = certificateData;
+  const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity } = certificateData;
   const restPeriodEndDate = addDays(restPeriodStartDate, restPeriodDays - 1);
   const patientPrefix = patient.sex === 'M' ? 'Mr.' : 'Mrs.';
   const pronounHeShe = patient.sex === 'M' ? 'He' : 'She';
@@ -53,7 +55,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
         </header>
 
         <div className="text-right py-2 text-muted-foreground">
-          {format(certificateDate, 'dd/MM/yyyy')}
+          {format(new Date(), 'dd/MM/yyyy')}
         </div>
 
         <main className="flex-grow">

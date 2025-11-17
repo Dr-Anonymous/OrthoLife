@@ -50,7 +50,6 @@ const DiagnosticsPage = () => {
       eventType: "page_view",
       path: location.pathname,
       user_phone: user?.phoneNumber,
-      user_name: user?.displayName,
       details: { page: 'diagnostics' }
     });
   }, [location.pathname, user]);
@@ -186,7 +185,6 @@ const DiagnosticsPage = () => {
       eventType: "add_to_cart",
       path: location.pathname,
       user_phone: user?.phoneNumber,
-      user_name: user?.displayName,
       details: {
         page: 'diagnostics',
         testId: test.id,
@@ -268,7 +266,6 @@ const DiagnosticsPage = () => {
         eventType: "purchase",
         path: location.pathname,
         user_phone: user?.phoneNumber,
-        user_name: user?.displayName,
         details: {
           page: 'diagnostics',
           items: items,

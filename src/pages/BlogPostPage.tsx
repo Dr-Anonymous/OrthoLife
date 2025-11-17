@@ -49,7 +49,6 @@ const BlogPostPage = () => {
         eventType: "page_view",
         path: location.pathname,
         user_phone: user?.phoneNumber,
-        user_name: user?.displayName,
         details: { page: 'blog-post', postId: postId },
       });
     }

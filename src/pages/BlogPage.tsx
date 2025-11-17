@@ -50,7 +50,6 @@ const BlogPage = () => {
       eventType: "page_view",
       path: location.pathname,
       user_phone: user?.phoneNumber,
-      user_name: user?.displayName,
     });
 
     const params = new URLSearchParams(location.search);

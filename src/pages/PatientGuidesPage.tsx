@@ -59,7 +59,6 @@ const PatientGuidesPage = () => {
       eventType: "page_view",
       path: location.pathname,
       user_phone: user?.phoneNumber,
-      user_name: user?.displayName,
     });
 
     const params = new URLSearchParams(location.search);
@@ -106,14 +105,14 @@ const PatientGuidesPage = () => {
     try {
       if (navigator.share) {
         await navigator.share(shareData);
-        trackEvent({ eventType: 'share', path: location.pathname, user_phone: user?.phoneNumber, user_name: user?.displayName, details: { method: 'navigator', contentType: 'guide', contentId: guide.id, sharedTo: 'unknown' } });
+        trackEvent({ eventType: 'share', path: location.pathname, user_phone: user?.phoneNumber, details: { method: 'navigator', contentType: 'guide', contentId: guide.id, sharedTo: 'unknown' } });
       } else {
         await navigator.clipboard.writeText(shareUrl);
         toast({
           title: "Link Copied!",
           description: "The guide link has been copied to your clipboard.",
         });
-        trackEvent({ eventType: 'share', path: location.pathname, user_phone: user?.phoneNumber, user_name: user?.displayName, details: { method: 'clipboard', contentType: 'guide', contentId: guide.id } });
+        trackEvent({ eventType: 'share', path: location.pathname, user_phone: user?.phoneNumber, details: { method: 'clipboard', contentType: 'guide', contentId: guide.id } });
       }
     } catch (error) {
       console.error("Failed to share:", error);

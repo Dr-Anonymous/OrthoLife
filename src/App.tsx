@@ -49,7 +49,6 @@ const ActivityLogger = () => {
         eventType: "page_view",
         path: location.pathname,
         user_phone: user.phoneNumber,
-        user_name: user.displayName,
       });
     }
   }, [location.pathname, user, loading]);
