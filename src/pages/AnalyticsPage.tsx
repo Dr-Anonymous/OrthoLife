@@ -11,54 +11,63 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ChevronsRight, ArrowRight } from 'lucide-react';
 import { format, getMonth, getYear } from 'date-fns';
 
-interface UserActivity {
-  created_at: string;
-  user_phone: string;
-  page_visited: string;
-}
-
 const AnalyticsPage = () => {
   const [analyticsData, setAnalyticsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
-  const [isActivityLoading, setIsActivityLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'day' | 'month'>('day');
   const [monthlyViewType, setMonthlyViewType] = useState<'date' | 'user'>('date');
 
   const processedTrails = useMemo(() => {
-    if (!userActivity || userActivity.length === 0) {
+    const pageViewEvents = analyticsData.filter(d => d.event_type === 'page_view' && d.user_phone);
+    if (pageViewEvents.length === 0) {
       return {};
     }
 
-    return userActivity.reduce((acc, activity) => {
+    return pageViewEvents.reduce((acc, activity) => {
       const date = format(new Date(activity.created_at), 'yyyy-MM-dd');
-      const user = activity.user_phone;
+      const userKey = `${activity.user_name || 'Unknown'} (${activity.user_phone})`;
 
       if (viewMode === 'day') {
-        if (!acc[user]) acc[user] = [];
-        acc[user].push(activity);
+        if (!acc[userKey]) acc[userKey] = [];
+        acc[userKey].push(activity);
       } else { // month view
         if (monthlyViewType === 'date') {
           if (!acc[date]) acc[date] = {};
-          if (!acc[date][user]) acc[date][user] = [];
-          acc[date][user].push(activity);
+          if (!acc[date][userKey]) acc[date][userKey] = [];
+          acc[date][userKey].push(activity);
         } else { // user-wise
-          if (!acc[user]) acc[user] = {};
-          if (!acc[user][date]) acc[user][date] = [];
-          acc[user][date].push(activity);
+          if (!acc[userKey]) acc[userKey] = {};
+          if (!acc[userKey][date]) acc[userKey][date] = [];
+          acc[userKey][date].push(activity);
         }
       }
       return acc;
     }, {} as any);
-  }, [userActivity, viewMode, monthlyViewType]);
+  }, [analyticsData, viewMode, monthlyViewType]);
 
   useEffect(() => {
     const fetchAnalyticsData = async () => {
+      if (!selectedDate) return;
+
       try {
         setLoading(true);
-        const { data, error } = await supabase.from('analytics').select('*').order('created_at', { ascending: false });
+        let startDate, endDate;
+
+        if (viewMode === 'month') {
+          startDate = new Date(getYear(selectedDate), getMonth(selectedDate), 1).toISOString();
+          endDate = new Date(getYear(selectedDate), getMonth(selectedDate) + 1, 1).toISOString();
+        } else { // default to 'day' view
+          startDate = new Date(getYear(selectedDate), getMonth(selectedDate), selectedDate.getDate()).toISOString();
+          endDate = new Date(getYear(selectedDate), getMonth(selectedDate), selectedDate.getDate() + 1).toISOString();
+        }
+
+        const { data, error } = await supabase.from('analytics')
+          .select('*')
+          .gte('created_at', startDate)
+          .lt('created_at', endDate)
+          .order('created_at', { ascending: false });
 
         if (error) {
           throw error;
@@ -74,35 +83,7 @@ const AnalyticsPage = () => {
     };
 
     fetchAnalyticsData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedDate) {
-      fetchUserActivity(selectedDate, viewMode);
-    }
   }, [selectedDate, viewMode]);
-
-  const fetchUserActivity = async (date: Date, mode: 'day' | 'month') => {
-    setIsActivityLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('get-user-activity', {
-        body: {
-          year: getYear(date),
-          month: getMonth(date),
-          day: date.getDate(),
-          view: mode,
-        },
-      });
-
-      if (error) throw error;
-      setUserActivity(data.data || []);
-    } catch (error) {
-      console.error('Error fetching user activity:', error);
-      setUserActivity([]);
-    } finally {
-      setIsActivityLoading(false);
-    }
-  };
 
   const processedData = useMemo(() => {
     if (analyticsData.length === 0) {
@@ -233,7 +214,7 @@ const AnalyticsPage = () => {
                   <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="rounded-md border" />
                 </div>
                 <div>
-                  {isActivityLoading ? (
+                  {loading ? (
                     <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
                   ) : (
                     <div className="overflow-y-auto h-[400px] pr-4">
@@ -305,12 +286,12 @@ const AnalyticsPage = () => {
   );
 };
 
-const Trail = ({ trail }: { trail: UserActivity[] }) => (
+const Trail = ({ trail }: { trail: any[] }) => (
   <div className="flex flex-wrap items-center gap-2 text-sm">
     {trail.map((activity, index) => (
       <React.Fragment key={activity.created_at}>
         <div className="flex flex-col items-center">
-          <span className="px-2 py-1 bg-muted rounded">{activity.page_visited}</span>
+          <span className="px-2 py-1 bg-muted rounded">{activity.path}</span>
           <span className="text-xs text-muted-foreground">{format(new Date(activity.created_at), 'p')}</span>
         </div>
         {index < trail.length - 1 && <ArrowRight className="w-4 h-4" />}
