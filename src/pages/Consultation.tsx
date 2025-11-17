@@ -812,44 +812,58 @@ const Consultation = () => {
                   .eq('id', key)
                   .single();
 
-                if (error) throw error;
+              const offlineData = await offlineStore.getItem(key) as any;
+              if (!offlineData) continue;
+
+              if (offlineData.type === 'new_patient') {
+                console.log("Syncing new patient:", offlineData.patient.name);
+
+                const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+                  body: {
+                    name: offlineData.patient.name,
+                    dob: offlineData.patient.dob,
+                    sex: offlineData.patient.sex,
+                    phone: offlineData.patient.phone,
+                    force: false,
+                  },
+                });
+
+                if (error) throw new Error(error.message);
+
+                if (data.status === 'success') {
+                  await offlineStore.removeItem(key);
+                  setPendingSyncIds(prev => prev.filter(id => id !== key));
+                } else if (data.status === 'partial_match' || data.status === 'exact_match') {
+                  setPatientConflictData({
+                    offlinePatient: offlineData.patient,
+                    conflictingPatients: data.matches || [data.patient],
+                    consultationId: key,
+                  });
+                  return;
+                }
+              } else {
+                const { data: serverConsultation, error } = await supabase
+                  .from('consultations')
+                  .select('*, patient:patients(*)')
+                  .eq('id', key)
+                  .single();
+
+                if (error) {
+                    if (error.code === 'PGRST116') { // "The result contains 0 rows"
+                        console.warn(`Consultation with ID ${key} not found on server. It might have been deleted.`);
+                        await offlineStore.removeItem(key);
+                        setPendingSyncIds(prev => prev.filter(id => id !== key));
+                        continue;
+                    }
+                    throw error;
+                }
 
                 const localTimestamp = new Date(offlineData.timestamp);
                 const serverTimestamp = new Date(serverConsultation.updated_at);
 
-                if (offlineData.type === 'new_patient') {
-                  // Logic to register a new patient will go here
-                  // For now, we'll just log it and remove it from the offline store to avoid infinite loops
-                  console.log("Syncing new patient:", offlineData.patient.name);
-
-                  const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
-                    body: {
-                      name: offlineData.patient.name,
-                      dob: offlineData.patient.dob,
-                      sex: offlineData.patient.sex,
-                      phone: offlineData.patient.phone,
-                      force: false, // Let the backend handle conflicts initially
-                    },
-                  });
-
-                  if (error) throw new Error(error.message);
-
-                  // The conflict resolution for new patients will be handled in the next step
-                  if (data.status === 'success') {
-                    await offlineStore.removeItem(key);
-                    setPendingSyncIds(prev => prev.filter(id => id !== key));
-                  } else if (data.status === 'partial_match' || data.status === 'exact_match') {
-                    setPatientConflictData({
-                      offlinePatient: offlineData.patient,
-                      conflictingPatients: data.matches || [data.patient],
-                      consultationId: key,
-                    });
-                    return; // Pause sync
-                  }
-
-                } else if (serverTimestamp > localTimestamp) {
+                if (serverTimestamp > localTimestamp) {
                   setConflictData({ local: offlineData, server: serverConsultation, consultationId: key });
-                  return; // Pause sync until conflict is resolved
+                  return;
                 } else {
                   const { patientDetails, extraData, status } = offlineData;
 
