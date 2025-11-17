@@ -68,6 +68,7 @@ const PharmacyPage = () => {
       eventType: "page_view",
       path: location.pathname,
       user_phone: user?.phoneNumber,
+      user_name: user?.displayName,
       details: { page: 'pharmacy' }
     });
   }, [location.pathname, user]);
@@ -266,6 +267,7 @@ const PharmacyPage = () => {
       eventType: "add_to_cart",
       path: location.pathname,
       user_phone: user?.phoneNumber,
+      user_name: user?.displayName,
       details: {
         page: 'pharmacy',
         medicineId: medicine.id,
@@ -441,6 +443,7 @@ const PharmacyPage = () => {
         eventType: "purchase",
         path: location.pathname,
         user_phone: user?.phoneNumber,
+        user_name: user?.displayName,
         details: {
           page: 'pharmacy',
           items: items,
