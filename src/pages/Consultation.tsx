@@ -805,14 +805,6 @@ const Consultation = () => {
           for (const key of keys) {
             try {
               const offlineData = await offlineStore.getItem(key) as any;
-              if (offlineData) {
-                const { data: serverConsultation, error } = await supabase
-                  .from('consultations')
-                  .select('*, patient:patients(*)')
-                  .eq('id', key)
-                  .single();
-
-              const offlineData = await offlineStore.getItem(key) as any;
               if (!offlineData) continue;
 
               if (offlineData.type === 'new_patient') {
