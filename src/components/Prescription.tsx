@@ -63,36 +63,28 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
               print-color-adjust: exact;
             }
             .printable-area {
+              display: table;
               width: 100%;
               height: 100%;
+              border-collapse: collapse;
             }
             .printable-header {
-              position: fixed;
-              top: 0;
-              left: 0;
-              right: 0;
-              z-index: 1;
-              background-color: white; /* Or your desired background */
+              display: table-header-group;
             }
             .printable-footer {
-              position: fixed;
-              bottom: 0;
-              left: 0;
-              right: 0;
-              z-index: 1;
-              background-color: white; /* Or your desired background */
+              display: table-footer-group;
             }
             .printable-main {
-              /* Add padding to the main content to prevent overlap with the fixed header and footer. */
-              /* These values are estimates and may need adjustment if header/footer heights change. */
-              padding-top: 150px;
-              padding-bottom: 100px;
+              display: table-row-group;
+            }
+            .printable-header > div, .printable-footer > div {
+              page-break-inside: avoid;
             }
           }
         `}
       </style>
-    <div ref={ref} className="p-8 font-sans text-sm bg-background text-foreground flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
-      <div className="printable-area flex flex-col flex-grow">
+    <div ref={ref} className="p-8 font-sans text-sm bg-background text-foreground" style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
+      <div className="printable-area">
         {/* Header */}
         <header
             className="printable-header"
@@ -117,7 +109,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           </div>
         </header>
 
-        <main className="printable-main flex-grow">
+        <main className="printable-main">
           {/* Patient Info */}
           <section className="flex justify-between py-4 border-b border-border">
             <div>
@@ -243,11 +235,11 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
             className="printable-footer"
         >
           <div
-              className="mt-8 p-2 h-20 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
+              className="mt-8 p-3 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
               style={{ backgroundImage: backgroundPattern }}
           >
             <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
-            <img src="/qr-code.png" alt="QR Code" className="h-full w-auto p-1" />
+            <img src="/qr-code.png" alt="QR Code" className="h-12 w-12" />
           </div>
         </footer>
       </div>
