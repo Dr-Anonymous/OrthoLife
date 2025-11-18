@@ -39,8 +39,13 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
     }
   };
 
-  const handleSelect = (consultation) => {
-    onSelectConsultation(consultation);
+  const handleSelect = (consultation, patient) => {
+    const { consultations, ...patientData } = patient;
+    const reconstructedConsultation = {
+      ...consultation,
+      patient: patientData,
+    };
+    onSelectConsultation(reconstructedConsultation);
     onClose();
   };
 
@@ -73,7 +78,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                   </AccordionTrigger>
                   <AccordionContent>
                     {patient.consultations.map(consultation => (
-                      <div key={consultation.id} className="border-b p-3 mb-2 cursor-pointer hover:bg-gray-100" onClick={() => handleSelect(consultation)}>
+                      <div key={consultation.id} className="border-b p-3 mb-2 cursor-pointer hover:bg-gray-100" onClick={() => handleSelect(consultation, patient)}>
                         <p className="font-semibold">{format(new Date(consultation.created_at), 'PPP')}</p>
                         {Object.entries(consultation.consultation_data || {}).map(([key, value]) => (
                           value && <div key={key} className="text-sm"><strong>{key}: </strong><span>{Array.isArray(value) ? value.map(i => i.name || i).join(', ') : String(value)}</span></div>
