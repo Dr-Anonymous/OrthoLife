@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search, MapPin } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -460,41 +460,55 @@ const Consultation = () => {
   });
   const isGenerateDocEnabledRef = useRef(isGenerateDocEnabled);
   const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
+  const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
+    const storedValue = localStorage.getItem('isGpsEnabled');
+    return storedValue !== null ? JSON.parse(storedValue) : true;
+  });
 
   useEffect(() => {
-    const storedHospital = localStorage.getItem('selectedHospital');
-    if (storedHospital) {
-      const foundHospital = HOSPITALS.find(h => h.name === storedHospital);
-      if (foundHospital) {
-        setSelectedHospital(foundHospital);
+    localStorage.setItem('isGpsEnabled', JSON.stringify(isGpsEnabled));
+  }, [isGpsEnabled]);
+
+  useEffect(() => {
+    if (isGpsEnabled) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            let closestHospital = HOSPITALS[0];
+            let minDistance = Infinity;
+
+            HOSPITALS.forEach(hospital => {
+              const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestHospital = hospital;
+              }
+            });
+            setSelectedHospital(closestHospital);
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            // Fallback to default if GPS is on but fails
+            const storedHospital = localStorage.getItem('selectedHospital');
+            const foundHospital = HOSPITALS.find(h => h.name === storedHospital) || HOSPITALS[0];
+            setSelectedHospital(foundHospital);
+          }
+        );
       }
-    } else if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          let closestHospital = HOSPITALS[0];
-          let minDistance = Infinity;
-
-          HOSPITALS.forEach(hospital => {
-            const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestHospital = hospital;
-            }
-          });
-          setSelectedHospital(closestHospital);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          // Falls back to default which is already set in useState
-        }
-      );
+    } else {
+      const storedHospital = localStorage.getItem('selectedHospital');
+      const foundHospital = HOSPITALS.find(h => h.name === storedHospital) || HOSPITALS[0];
+      setSelectedHospital(foundHospital);
     }
-  }, []);
+  }, [isGpsEnabled]);
 
   useEffect(() => {
-    localStorage.setItem('selectedHospital', selectedHospital.name);
-  }, [selectedHospital]);
+    // Only save to localStorage if GPS is disabled (i.e., manual selection)
+    if (!isGpsEnabled) {
+      localStorage.setItem('selectedHospital', selectedHospital.name);
+    }
+  }, [selectedHospital, isGpsEnabled]);
 
   useEffect(() => {
     localStorage.setItem('isGenerateDocEnabled', JSON.stringify(isGenerateDocEnabled));
@@ -1675,12 +1689,19 @@ const Consultation = () => {
                   <div className="lg:col-span-1 space-y-4">
                       <div>
                           <div className="flex justify-between items-center mb-2">
-                            <Label>Hospital</Label>
+                            <div className="flex items-center gap-2">
+                              <Label>Hospital</Label>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsGpsEnabled(prev => !prev)}>
+                                <MapPin className={cn("h-4 w-4", isGpsEnabled ? "text-blue-500" : "text-muted-foreground")} />
+                                <span className="sr-only">Toggle GPS selection</span>
+                              </Button>
+                            </div>
                           </div>
                           <Select value={selectedHospital.name} onValueChange={(value) => {
                                 const hospital = HOSPITALS.find(h => h.name === value);
                                 if (hospital) {
                                     setSelectedHospital(hospital);
+                                    setIsGpsEnabled(false);
                                 }
                             }}>
                                 <SelectTrigger>
