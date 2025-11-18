@@ -38,6 +38,7 @@ import MedicalCertificateModal, { CertificateData } from '@/components/MedicalCe
 import { Receipt } from '@/components/Receipt';
 import ReceiptModal, { ReceiptData } from '@/components/ReceiptModal';
 import { GOOGLE_DOCS_TEMPLATE_IDS, HOSPITALS } from '@/config/constants';
+import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
@@ -467,6 +468,27 @@ const Consultation = () => {
       if (foundHospital) {
         setSelectedHospital(foundHospital);
       }
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          let closestHospital = HOSPITALS[0];
+          let minDistance = Infinity;
+
+          HOSPITALS.forEach(hospital => {
+            const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestHospital = hospital;
+            }
+          });
+          setSelectedHospital(closestHospital);
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          // Falls back to default which is already set in useState
+        }
+      );
     }
   }, []);
 
