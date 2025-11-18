@@ -1,10 +1,56 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from 'date-fns';
+import { Pill, FileText, NotebookText, Undo2, Calendar, Stethoscope } from 'lucide-react';
+
+const ConsultationSearchResultItem = ({ consultation, highlightKeyword }) => {
+    const {
+        personalNote,
+        complaints,
+        findings,
+        investigations,
+        diagnosis,
+        medications,
+        advice,
+        followup,
+    } = consultation.consultation_data || {};
+
+    const renderField = (Icon, label, value) => {
+        if (!value || (Array.isArray(value) && value.length === 0)) return null;
+
+        const displayValue = Array.isArray(value)
+            ? value.map(med => `${med.name}${med.duration ? ` - ${med.duration}` : ''}`).join(', ')
+            : value;
+
+        return (
+            <div className="flex items-start gap-3">
+                <Icon className="w-5 h-5 mt-1 text-primary flex-shrink-0" />
+                <div>
+                    <h4 className="font-semibold">{label}</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: highlightKeyword(displayValue) }} />
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-3">
+            {renderField(NotebookText, "Doctor's Personal Note", personalNote)}
+            {renderField(Stethoscope, 'Complaints', complaints)}
+            {renderField(FileText, 'Clinical Findings', findings)}
+            {renderField(FileText, 'Investigations', investigations)}
+            {renderField(Stethoscope, 'Diagnosis', diagnosis)}
+            {renderField(Pill, 'Medications', medications)}
+            {renderField(FileText, 'Advice', advice)}
+            {renderField(Undo2, 'Follow-up', followup)}
+        </div>
+    );
+};
+
 
 export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation }) => {
   const [name, setName] = useState('');
@@ -49,6 +95,12 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
     onClose();
   };
 
+  const highlightKeyword = (text: string) => {
+    if (!keyword || !text) return text;
+    const regex = new RegExp(`(${keyword})`, 'gi');
+    return text.replace(regex, '<strong class="bg-yellow-200">$1</strong>');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl">
@@ -78,11 +130,12 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                   </AccordionTrigger>
                   <AccordionContent>
                     {patient.consultations.map(consultation => (
-                      <div key={consultation.id} className="border-b p-3 mb-2 cursor-pointer hover:bg-gray-100" onClick={() => handleSelect(consultation, patient)}>
-                        <p className="font-semibold">{format(new Date(consultation.created_at), 'PPP')}</p>
-                        {Object.entries(consultation.consultation_data || {}).map(([key, value]) => (
-                          value && <div key={key} className="text-sm"><strong>{key}: </strong><span>{Array.isArray(value) ? value.map(i => i.name || i).join(', ') : String(value)}</span></div>
-                        ))}
+                      <div key={consultation.id} className="border-b last:border-b-0 p-3 mb-2 cursor-pointer hover:bg-muted/50 rounded-md" onClick={() => handleSelect(consultation, patient)}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <p className="font-semibold">{format(new Date(consultation.created_at), 'PPP')}</p>
+                        </div>
+                        <ConsultationSearchResultItem consultation={consultation} highlightKeyword={highlightKeyword} />
                       </div>
                     ))}
                   </AccordionContent>
