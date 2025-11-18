@@ -54,31 +54,65 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
   return (
-    <div ref={ref} className="p-8 font-sans text-sm bg-background text-foreground flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
-      {/* Header */}
-      <header
-        className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
-        style={{ backgroundImage: backgroundPattern }}
-      >
-        <div className="flex items-center">
-          <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", logoUrl === '/logo.png' ? 'h-20' : 'h-24')} />
-        </div>
-        <div className="text-right">
-          <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
-          <p className="text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
-          <p className="text-muted-foreground">Orthopaedic Surgeon</p>
-          <p className="mt-2 text-gray-700">
-            <span className="font-semibold">📞 98668 12555</span>
-            <span className="mx-2">|</span>
-            <span className="font-semibold">📧 info@ortho.life</span>
-          </p>
-        </div>
-      </header>
+    <>
+      <style type="text/css">
+        {`
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .printable-header {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              z-index: 10;
+            }
+            .printable-footer {
+              position: fixed;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              z-index: 10;
+            }
+            .printable-main {
+              padding-top: 140px; /* Adjust this value based on header height */
+              padding-bottom: 110px; /* Adjust this value based on footer height */
+            }
+          }
+        `}
+      </style>
+      <div ref={ref} className="py-8 px-10 font-sans text-sm bg-background text-foreground flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
+        <div className="printable-area flex flex-col flex-grow">
+          {/* Header */}
+          <header
+              className="printable-header"
+          >
+          <div
+              className="flex justify-between items-center pt-4 pb-2 border-b-2 border-primary-light rounded-t-lg px-10"
+              style={{ backgroundImage: backgroundPattern }}
+          >
+            <div className="flex items-center">
+              <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", logoUrl === '/logo.png' ? 'h-20' : 'h-24')} />
+            </div>
+            <div className="text-right">
+              <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
+              <p className="text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
+              <p className="text-muted-foreground">Orthopaedic Surgeon</p>
+              <p className="mt-2 text-gray-700">
+                <span className="font-semibold">📞 98668 12555</span>
+                <span className="mx-2">|</span>
+                <span className="font-semibold">📧 info@ortho.life</span>
+              </p>
+            </div>
+          </div>
+        </header>
 
-      <main className="flex-grow">
-        {/* Patient Info */}
-        <section className="flex justify-between py-4 border-b border-border">
-          <div>
+        <main className="printable-main flex-grow">
+          {/* Patient Info */}
+          <section className="flex justify-between pt-2 pb-4 border-b border-border">
+            <div>
             <p><span className="font-semibold">Name:</span> {patient.name}</p>
             <p><span className="font-semibold">Age/Sex:</span> {age}/{patient.sex}</p>
           </div>
@@ -194,17 +228,23 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
             <p className="whitespace-pre-wrap">{consultation.followup}</p>
           </section>
         )}
-      </main>
+        </main>
 
-      {/* Footer */}
-      <footer
-        className="mt-8 p-4 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
-        style={{ backgroundImage: backgroundPattern }}
-      >
-        <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
-        <img src="/qr-code.png" alt="QR Code" className="h-16 w-16" />
-      </footer>
+        {/* Footer */}
+        <footer
+            className="printable-footer"
+        >
+          <div
+              className="mt-4 pt-2 pb-6 h-16 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center px-10"
+              style={{ backgroundImage: backgroundPattern }}
+          >
+            <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
+            <img src="/qr-code.png" alt="QR Code" className="h-full w-auto p-1" />
+          </div>
+        </footer>
+      </div>
     </div>
+    </>
   );
 });
 
