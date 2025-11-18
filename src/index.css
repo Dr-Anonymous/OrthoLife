@@ -212,3 +212,24 @@
   overflow-x: auto;
   display: block;
 }
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .prescription-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .prescription-table thead, .prescription-table tfoot {
+    display: table-header-group;
+  }
+  .prescription-table tfoot {
+    display: table-footer-group;
+  }
+   @page {
+    size: A4;
+    margin: 1cm; /* Adjust margins as needed */
+  }
+}
