@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from 'date-fns';
-import { Pill, FileText, NotebookText, Undo2, Calendar, Stethoscope } from 'lucide-react';
+import { Pill, FileText, NotebookText, Undo2, Calendar, Stethoscope, MapPin } from 'lucide-react';
 
 const ConsultationSearchResultItem = ({ consultation, highlightKeyword }) => {
     const {
@@ -131,9 +131,17 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                   <AccordionContent>
                     {patient.consultations.map(consultation => (
                       <div key={consultation.id} className="border-b last:border-b-0 p-3 mb-2 cursor-pointer hover:bg-muted/50 rounded-md" onClick={() => handleSelect(consultation, patient)}>
-                        <div className="flex items-center gap-2 mb-3">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <p className="font-semibold">{format(new Date(consultation.created_at), 'PPP')}</p>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                <p className="font-semibold">{format(new Date(consultation.created_at), 'PPP')}</p>
+                            </div>
+                            {consultation.consultation_data?.location && (
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                                    <p className="text-sm text-muted-foreground">{consultation.consultation_data.location}</p>
+                                </div>
+                            )}
                         </div>
                         <ConsultationSearchResultItem consultation={consultation} highlightKeyword={highlightKeyword} />
                       </div>
