@@ -60,8 +60,6 @@ const BlogPage = () => {
     }
   }, [location.pathname, location.search, user]);
 
-  const POSTS_PER_PAGE = 5; // 1 featured + 4 in grid
-
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {

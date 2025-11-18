@@ -1589,7 +1589,7 @@ const Consultation = () => {
         }
       }
 
-      const templateId = selectedHospital.name === 'OrthoLife' ? GOOGLE_DOCS_TEMPLATE_IDS.ORTHOLIFE_PRESCRIPTION : GOOGLE_DOCS_TEMPLATE_IDS.PRESCRIPTION;
+      const templateId = selectedHospital.name === 'OrthoLife' ? GOOGLE_DOCS_TEMPLATE_IDS.ORTHOLIFE_PRESCRIPTION : GOOGLE_DOCS_TEMPLATE_IDS.BADAM_PRESCRIPTION;
 
       const payload = {
         templateId,
@@ -1677,25 +1677,23 @@ const Consultation = () => {
             <CardHeader className="text-center pt-6 sm:pt-8">
               <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
                 <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
-                Doctor's Consultation
+                Consultation Suit
                 {!isOnline && <CloudOff className="w-6 h-6 text-yellow-500" />}
               </CardTitle>
               <CardDescription className="text-base sm:text-lg text-muted-foreground">
-                View pending consultations and manage prescriptions
+                View and manage prescriptions
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 md:p-6 space-y-6 sm:space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-1 space-y-4">
-                      <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-2">
-                              <Label>Hospital</Label>
-                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsGpsEnabled(prev => !prev)}>
-                                <MapPin className={cn("h-4 w-4", isGpsEnabled ? "text-blue-500" : "text-muted-foreground")} />
-                                <span className="sr-only">Toggle GPS selection</span>
-                              </Button>
-                            </div>
+                      <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="location-select">Location</Label>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsGpsEnabled(prev => !prev)}>
+                              <MapPin className={cn("h-4 w-4", isGpsEnabled ? "text-blue-500 fill-blue-200" : "text-muted-foreground")} />
+                              <span className="sr-only">Toggle GPS selection</span>
+                            </Button>
                           </div>
                           <Select value={selectedHospital.name} onValueChange={(value) => {
                                 const hospital = HOSPITALS.find(h => h.name === value);
@@ -1704,8 +1702,8 @@ const Consultation = () => {
                                     setIsGpsEnabled(false);
                                 }
                             }}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select hospital" />
+                                <SelectTrigger id="location-select" className="w-[180px]">
+                                    <SelectValue placeholder="Select location" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {HOSPITALS.map(hospital => (
@@ -2108,7 +2106,7 @@ const Consultation = () => {
                       </form>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
-                        <p className="text-lg text-muted-foreground">Please select a patient to view details.</p>
+                        <p className="text-lg text-muted-foreground">Select a patient to view details.</p>
                       </div>
                     )}
                   </div>
