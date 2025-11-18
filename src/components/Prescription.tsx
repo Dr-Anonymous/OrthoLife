@@ -227,6 +227,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           </tr>
         </tfoot>
       </table>
+    </div>
   );
 });
 
