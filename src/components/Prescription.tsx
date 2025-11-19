@@ -198,11 +198,11 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
 
       {/* Footer */}
       <footer
-        className="mt-8 p-4 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
+        className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
         style={{ backgroundImage: backgroundPattern }}
       >
         <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
-        <img src="/qr-code.png" alt="QR Code" className="h-16 w-16" />
+        <img src="/qr-code.png" alt="QR Code" className="h-12 w-12" />
       </footer>
     </div>
   );
