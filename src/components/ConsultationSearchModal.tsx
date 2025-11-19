@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { calculateAge } from '@/lib/age';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -124,7 +125,12 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                 <AccordionItem value={`patient-${patient.id}`} key={patient.id}>
                   <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4">
-                      <span>{patient.name}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span>{patient.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {calculateAge(new Date(patient.dob))}/{patient.sex}
+                        </span>
+                      </div>
                       <span className="text-sm text-gray-500">{patient.phone}</span>
                     </div>
                   </AccordionTrigger>
