@@ -202,7 +202,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         style={{ backgroundImage: backgroundPattern }}
       >
         <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
-        <img src="/qr-code.png" alt="QR Code" className="h-12 w-12" />
+        <img src="/qr-code.png" alt="QR Code" className="h-16 w-16" />
       </footer>
     </div>
   );
