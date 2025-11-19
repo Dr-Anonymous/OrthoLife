@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Link } from 'react-router-dom';
+import { offlineStore } from '@/lib/local-storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search, MapPin } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -36,8 +38,12 @@ import MedicalCertificateModal, { CertificateData } from '@/components/MedicalCe
 import { Receipt } from '@/components/Receipt';
 import ReceiptModal, { ReceiptData } from '@/components/ReceiptModal';
 import { GOOGLE_DOCS_TEMPLATE_IDS, HOSPITALS } from '@/config/constants';
+import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
+import { PatientConflictModal } from '@/components/PatientConflictModal';
+import { ConsultationSearchModal } from '@/components/ConsultationSearchModal';
 
 interface TextShortcut {
   id:string;
@@ -363,6 +369,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
 };
 
 const Consultation = () => {
+  const isOnline = useOnlineStatus();
   const { i18n, t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
@@ -398,10 +405,14 @@ const Consultation = () => {
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [conflictData, setConflictData] = useState<{ local: any; server: any, consultationId: string } | null>(null);
+  const [patientConflictData, setPatientConflictData] = useState<{ offlinePatient: any; conflictingPatients: any[], consultationId: string } | null>(null);
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
+  const [pendingSyncIds, setPendingSyncIds] = useState<string[]>([]);
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -443,32 +454,65 @@ const Consultation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(false);
-  const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
-
-  useEffect(() => {
-    const storedHospital = localStorage.getItem('selectedHospital');
-    if (storedHospital) {
-      const foundHospital = HOSPITALS.find(h => h.name === storedHospital);
-      if (foundHospital) {
-        setSelectedHospital(foundHospital);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('selectedHospital', selectedHospital.name);
-  }, [selectedHospital]);
-
-  useEffect(() => {
+  const [isGenerateDocEnabled, setIsGenerateDocEnabled] = useState(() => {
     const storedValue = localStorage.getItem('isGenerateDocEnabled');
-    if (storedValue !== null) {
-      setIsGenerateDocEnabled(JSON.parse(storedValue));
+    return storedValue !== null ? JSON.parse(storedValue) : false;
+  });
+  const isGenerateDocEnabledRef = useRef(isGenerateDocEnabled);
+  const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
+  const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
+    const storedValue = localStorage.getItem('isGpsEnabled');
+    return storedValue !== null ? JSON.parse(storedValue) : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('isGpsEnabled', JSON.stringify(isGpsEnabled));
+  }, [isGpsEnabled]);
+
+  useEffect(() => {
+    if (isGpsEnabled) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            let closestHospital = HOSPITALS[0];
+            let minDistance = Infinity;
+
+            HOSPITALS.forEach(hospital => {
+              const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestHospital = hospital;
+              }
+            });
+            setSelectedHospital(closestHospital);
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            // Fallback to default if GPS is on but fails
+            const storedHospital = localStorage.getItem('selectedHospital');
+            const foundHospital = HOSPITALS.find(h => h.name === storedHospital) || HOSPITALS[0];
+            setSelectedHospital(foundHospital);
+          }
+        );
+      }
+    } else {
+      const storedHospital = localStorage.getItem('selectedHospital');
+      const foundHospital = HOSPITALS.find(h => h.name === storedHospital) || HOSPITALS[0];
+      setSelectedHospital(foundHospital);
     }
-  }, []);
+  }, [isGpsEnabled]);
+
+  useEffect(() => {
+    // Only save to localStorage if GPS is disabled (i.e., manual selection)
+    if (!isGpsEnabled) {
+      localStorage.setItem('selectedHospital', selectedHospital.name);
+    }
+  }, [selectedHospital, isGpsEnabled]);
 
   useEffect(() => {
     localStorage.setItem('isGenerateDocEnabled', JSON.stringify(isGenerateDocEnabled));
+    isGenerateDocEnabledRef.current = isGenerateDocEnabled;
   }, [isGenerateDocEnabled]);
   const [isReadyToPrint, setIsReadyToPrint] = useState(false);
   const [age, setAge] = useState<number | ''>('');
@@ -576,7 +620,7 @@ const Consultation = () => {
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
     if (saved) {
-      if (isGenerateDocEnabled) {
+      if (isGenerateDocEnabledRef.current) {
         submitForm(undefined, { skipSave: true });
       }
       setIsReadyToPrint(true);
@@ -586,6 +630,12 @@ const Consultation = () => {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
+
+    if (ctrlKey && event.key.toLowerCase() === 'f') {
+      event.preventDefault();
+      setIsSearchModalOpen(true);
+      return;
+    }
 
     if (ctrlKey && selectedConsultation) {
       switch (event.key.toLowerCase()) {
@@ -789,6 +839,110 @@ const Consultation = () => {
     fetchTextShortcuts();
   }, []);
 
+  useEffect(() => {
+    const syncOfflineData = async () => {
+      if (isOnline) {
+        const keys = await offlineStore.keys();
+        setPendingSyncIds(keys);
+        if (keys.length > 0) {
+          toast({ title: 'Syncing...', description: `Syncing ${keys.length} locally saved consultations.` });
+          for (const key of keys) {
+            try {
+              const offlineData = await offlineStore.getItem(key) as any;
+              if (!offlineData) continue;
+
+              if (offlineData.type === 'new_patient') {
+                console.log("Syncing new patient:", offlineData.patient.name);
+
+                const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+                  body: {
+                    name: offlineData.patient.name,
+                    dob: offlineData.patient.dob,
+                    sex: offlineData.patient.sex,
+                    phone: offlineData.patient.phone,
+                    force: false,
+                  },
+                });
+
+                if (error) throw new Error(error.message);
+
+                if (data.status === 'success') {
+                  await offlineStore.removeItem(key);
+                  setPendingSyncIds(prev => prev.filter(id => id !== key));
+                } else if (data.status === 'partial_match' || data.status === 'exact_match') {
+                  setPatientConflictData({
+                    offlinePatient: offlineData.patient,
+                    conflictingPatients: data.matches || [data.patient],
+                    consultationId: key,
+                  });
+                  return;
+                }
+              } else {
+                const { data: serverConsultation, error } = await supabase
+                  .from('consultations')
+                  .select('*, patient:patients(*)')
+                  .eq('id', key)
+                  .single();
+
+                if (error) {
+                    if (error.code === 'PGRST116') { // "The result contains 0 rows"
+                        console.warn(`Consultation with ID ${key} not found on server. It might have been deleted.`);
+                        await offlineStore.removeItem(key);
+                        setPendingSyncIds(prev => prev.filter(id => id !== key));
+                        continue;
+                    }
+                    throw error;
+                }
+
+                const localTimestamp = new Date(offlineData.timestamp);
+                const serverTimestamp = new Date(serverConsultation.updated_at);
+
+                if (serverTimestamp > localTimestamp) {
+                  setConflictData({ local: offlineData, server: serverConsultation, consultationId: key });
+                  return;
+                } else {
+                  const { patientDetails, extraData, status } = offlineData;
+
+                  const { error: patientUpdateError } = await supabase
+                    .from('patients')
+                    .update({
+                      name: patientDetails.name,
+                      dob: patientDetails.dob,
+                      sex: patientDetails.sex,
+                      phone: patientDetails.phone,
+                    })
+                    .eq('id', patientDetails.id);
+                  if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
+
+                  const { error: consultationUpdateError } = await supabase
+                    .from('consultations')
+                    .update({
+                      consultation_data: extraData,
+                      status: status,
+                    })
+                    .eq('id', key);
+                  if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
+                }
+
+                await offlineStore.removeItem(key);
+                setPendingSyncIds(prev => prev.filter(id => id !== key));
+              }
+            } catch (error) {
+              console.error('Sync error for consultation', key, error);
+              toast({ variant: 'destructive', title: 'Sync Error', description: `Failed to sync consultation for ${key}.` });
+            }
+          }
+          toast({ title: 'Sync Complete', description: 'All local changes have been synced.' });
+          if(selectedDate) fetchConsultations(selectedDate);
+        }
+      }
+    };
+
+    if (!conflictData) {
+      syncOfflineData();
+    }
+  }, [isOnline, conflictData]);
+
   const fetchTextShortcuts = async () => {
     const { data, error } = await supabase
       .from('text_shortcuts')
@@ -977,6 +1131,21 @@ const Consultation = () => {
       setIsFormDirty(isDirty);
     }
   }, [extraData, editablePatientDetails, initialPatientDetails, initialExtraData]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isFormDirty) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isFormDirty]);
 
   useEffect(() => {
     if (editablePatientDetails?.dob) {
@@ -1256,46 +1425,59 @@ const Consultation = () => {
 
     setIsSaving(true);
     try {
-      if (patientDetailsChanged) {
-        const { error: patientUpdateError } = await supabase
-          .from('patients')
-          .update({
-            name: editablePatientDetails.name,
-            dob: editablePatientDetails.dob,
-            sex: editablePatientDetails.sex,
-            phone: editablePatientDetails.phone,
-          })
-          .eq('id', editablePatientDetails.id);
-        if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-      }
+      if (!isOnline) {
+        const offlineData = {
+          patientDetails: editablePatientDetails,
+          extraData,
+          status: newStatus,
+          timestamp: new Date().toISOString(),
+        };
+        await offlineStore.setItem(selectedConsultation.id, offlineData);
+        setPendingSyncIds(prev => [...new Set([...prev, selectedConsultation.id])]);
+        toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
+      } else {
+        if (patientDetailsChanged) {
+          const { error: patientUpdateError } = await supabase
+            .from('patients')
+            .update({
+              name: editablePatientDetails.name,
+              dob: editablePatientDetails.dob,
+              sex: editablePatientDetails.sex,
+              phone: editablePatientDetails.phone,
+            })
+            .eq('id', editablePatientDetails.id);
+          if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+        }
 
-      const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
+        const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
+        const dataToSave = { ...extraData, language: i18n.language };
+        if (isPrinting) {
+          dataToSave.location = selectedHospital.name;
+        }
 
-      const dataToSave = { ...extraData, language: i18n.language };
-      if (isPrinting) {
-        dataToSave.location = selectedHospital.name;
-      }
-
-      if (extraDataChanged) {
+        if (extraDataChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
-      }
-      if (statusChanged) {
+        }
+        if (statusChanged) {
           consultationUpdatePayload.status = newStatus;
           if (newStatus === 'completed') {
-              stopTimer();
-              isTimerPausedRef.current = true;
+            stopTimer();
+            isTimerPausedRef.current = true;
           }
-      }
+        }
 
-      if (Object.keys(consultationUpdatePayload).length > 0) {
-        const { error: updateError } = await supabase
-          .from('consultations')
-          .update(consultationUpdatePayload)
-          .eq('id', selectedConsultation.id);
-        if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
-      }
+        if (Object.keys(consultationUpdatePayload).length > 0) {
+          const { error: updateError } = await supabase
+            .from('consultations')
+            .update(consultationUpdatePayload)
+            .eq('id', selectedConsultation.id);
+          if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
+        }
 
-      toast({ title: 'Success', description: 'Your changes have been saved.' });
+        await offlineStore.removeItem(selectedConsultation.id);
+        setPendingSyncIds(prev => prev.filter(id => id !== selectedConsultation.id));
+        toast({ title: 'Success', description: 'Your changes have been saved.' });
+      }
 
       const updatedConsultation = {
         ...selectedConsultation,
@@ -1332,9 +1514,71 @@ const Consultation = () => {
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
+  const handleResolveConflict = async (resolution: 'local' | 'server') => {
+    if (!conflictData) return;
+
+    const { consultationId, local } = conflictData;
+    if (resolution === 'server') {
+      await offlineStore.removeItem(consultationId);
+    } else { // local
+      const { patientDetails, extraData, status } = local;
+
+      const { error: patientUpdateError } = await supabase
+        .from('patients')
+        .update({ name: patientDetails.name, dob: patientDetails.dob, sex: patientDetails.sex, phone: patientDetails.phone })
+        .eq('id', patientDetails.id);
+      if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
+
+      const { error: consultationUpdateError } = await supabase
+        .from('consultations')
+        .update({ consultation_data: extraData, status: status })
+        .eq('id', consultationId);
+      if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
+
+      await offlineStore.removeItem(consultationId);
+    }
+
+    setPendingSyncIds(prev => prev.filter(id => id !== consultationId));
+    setConflictData(null); // This will re-trigger the sync useEffect
+  };
+
+  const handleResolvePatientConflict = async (resolution: 'new' | { mergeWith: number }) => {
+    if (!patientConflictData) return;
+    const { consultationId, offlinePatient } = patientConflictData;
+
+    let patientIdToUse;
+
+    if (resolution === 'new') {
+       const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+          body: { ...offlinePatient, force: true },
+        });
+        if (error) throw new Error(error.message);
+        patientIdToUse = data.consultation.patient_id;
+    } else {
+      patientIdToUse = resolution.mergeWith;
+    }
+
+    // Now create a consultation for the resolved patient
+    const offlineConsultationData = (await offlineStore.getItem(consultationId) as any).consultation;
+
+    const { error: consultationError } = await supabase
+      .from('consultations')
+      .insert({
+        patient_id: patientIdToUse,
+        consultation_data: offlineConsultationData.consultation_data,
+        status: 'pending'
+       });
+
+    if (consultationError) throw new Error(consultationError.message);
+
+    await offlineStore.removeItem(consultationId);
+    setPendingSyncIds(prev => prev.filter(id => id !== consultationId));
+    setPatientConflictData(null); // This will re-trigger the sync
+  };
+
   const submitForm = async (e?: React.FormEvent, options: { skipSave?: boolean } = {}) => {
     if (e) e.preventDefault();
-    if (!selectedConsultation || !editablePatientDetails || !isGenerateDocEnabled) return;
+    if (!selectedConsultation || !editablePatientDetails || !isGenerateDocEnabledRef.current) return;
     setIsSubmitting(true);
     try {
       if (!options.skipSave) {
@@ -1345,7 +1589,7 @@ const Consultation = () => {
         }
       }
 
-      const templateId = selectedHospital.name === 'OrthoLife' ? GOOGLE_DOCS_TEMPLATE_IDS.ORTHOLIFE_PRESCRIPTION : GOOGLE_DOCS_TEMPLATE_IDS.PRESCRIPTION;
+      const templateId = selectedHospital.name === 'OrthoLife' ? GOOGLE_DOCS_TEMPLATE_IDS.ORTHOLIFE_PRESCRIPTION : GOOGLE_DOCS_TEMPLATE_IDS.BADAM_PRESCRIPTION;
 
       const payload = {
         templateId,
@@ -1422,47 +1666,60 @@ const Consultation = () => {
 
   return (
     <>
+      {!isOnline && (
+        <div className="bg-yellow-500 text-center p-2 text-white">
+          You are currently offline. Changes will be saved locally and synced when you're back online.
+        </div>
+      )}
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-2 sm:p-4">
         <div className="container mx-auto max-w-7xl">
           <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
             <CardHeader className="text-center pt-6 sm:pt-8">
               <CardTitle className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-bold text-primary">
                 <Stethoscope className="w-6 h-6 sm:w-7 sm:h-7" />
-                Doctor's Consultation
+                Consultation Suit
+                {!isOnline && <CloudOff className="w-6 h-6 text-yellow-500" />}
               </CardTitle>
               <CardDescription className="text-base sm:text-lg text-muted-foreground">
-                View pending consultations and manage prescriptions
+                View and manage prescriptions
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 sm:space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+            <CardContent className="p-4 md:p-6 space-y-6 sm:space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-1 space-y-4">
-                      <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <Label>Hospital</Label>
-                          </div>
-                          <Select value={selectedHospital.name} onValueChange={(value) => {
-                                const hospital = HOSPITALS.find(h => h.name === value);
-                                if (hospital) {
-                                    setSelectedHospital(hospital);
-                                }
-                            }}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select hospital" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {HOSPITALS.map(hospital => (
-                                        <SelectItem key={hospital.name} value={hospital.name}>
-                                            {hospital.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="location-select" className="flex-shrink-0">Location</Label>
+                        <Select value={selectedHospital.name} onValueChange={(value) => {
+                            const hospital = HOSPITALS.find(h => h.name === value);
+                            if (hospital) {
+                                setSelectedHospital(hospital);
+                                setIsGpsEnabled(false);
+                            }
+                        }}>
+                            <SelectTrigger id="location-select" className="flex-grow">
+                                <SelectValue placeholder="Select location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {HOSPITALS.map(hospital => (
+                                    <SelectItem key={hospital.name} value={hospital.name}>
+                                        {hospital.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setIsGpsEnabled(prev => !prev)}>
+                          <MapPin className={cn("h-4 w-4", isGpsEnabled ? "text-blue-500 fill-blue-200" : "text-muted-foreground")} />
+                          <span className="sr-only">Toggle GPS selection</span>
+                        </Button>
                       </div>
                       <div>
                           <div className="flex justify-between items-center mb-2">
                               <Label>Consultation Date</Label>
                               <div className="flex items-center gap-2">
+                                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsSearchModalOpen(true)}>
+                                       <Search className="h-4 w-4" />
+                                       <span className="sr-only">Search Consultations</span>
+                                   </Button>
                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsRegistrationModalOpen(true)}>
                                        <UserPlus className="h-4 w-4" />
                                        <span className="sr-only">Register New Patient</span>
@@ -1512,9 +1769,10 @@ const Consultation = () => {
                               ) : (
                                   <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
                                       {pendingConsultations.map(c => (
-                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                              {c.patient.name}
-                                          </Button>
+                                        <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
+                                          <span>{c.patient.name}</span>
+                                          {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                        </Button>
                                       ))}
                                       {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
                                   </div>
@@ -1532,8 +1790,9 @@ const Consultation = () => {
                               ) : (
                                   <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isEvaluationCollapsed ? "max-h-0" : "max-h-60")}>
                                       {evaluationConsultations.map(c => (
-                                          <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                              {c.patient.name}
+                                          <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
+                                              <span>{c.patient.name}</span>
+                                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                           </Button>
                                       ))}
                                       {evaluationConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
@@ -1552,8 +1811,9 @@ const Consultation = () => {
                               ) : (
                                   <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
                                       {completedConsultations.map(c => (
-                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelectConsultation(c)}>
-                                              {c.patient.name}
+                                           <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
+                                              <span>{c.patient.name}</span>
+                                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                           </Button>
                                       ))}
                                       {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
@@ -1573,239 +1833,245 @@ const Consultation = () => {
                       </div>
                   </div>
 
-                  <div className="md:col-span-3">
-                  {selectedConsultation && editablePatientDetails ? (
+                  <div className="lg:col-span-2">
+                    {selectedConsultation && editablePatientDetails ? (
                       <form className="space-y-6">
-                          <div className="space-y-4">
-                              <div className="flex flex-wrap items-center justify-between mb-4">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <User className="w-5 h-5 text-primary" />
-                                    <h3 className="text-lg font-semibold text-foreground">
-                                      Demographic details of {editablePatientDetails.name}
-                                    </h3>
-                                    {lastVisitDate && (
-                                      <span className="text-sm text-muted-foreground">
-                                        ({lastVisitDate === 'First Consultation' ? 'First Consultation' : `Last visit: ${lastVisitDate}`})
-                                      </span>
-                                    )}
-                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsHistoryModalOpen(true)}>
-                                      <History className="h-4 w-4" />
-                                      <span className="sr-only">View Patient History</span>
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap items-center justify-between mb-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <User className="w-5 h-5 text-primary" />
+                              <h3 className="text-lg font-semibold text-foreground">
+                                Demographic details of {editablePatientDetails.name}
+                              </h3>
+                              {lastVisitDate && (
+                                <span className="text-sm text-muted-foreground">
+                                  ({lastVisitDate === 'First Consultation' ? 'First Consultation' : `Last visit: ${lastVisitDate}`})
+                                </span>
+                              )}
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsHistoryModalOpen(true)}>
+                                <History className="h-4 w-4" />
+                                <span className="sr-only">View Patient History</span>
+                              </Button>
+                            </div>
+                            {editablePatientDetails.drive_id && (
+                                <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
+                                    <Folder className="w-5 h-5 text-blue-500 hover:text-blue-700" />
+                                </a>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="name">Full Name</Label>
+                              <Input id="name" value={editablePatientDetails.name} onChange={e => handlePatientDetailsChange('name', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="phone">Phone Number</Label>
+                              <Input id="phone" value={editablePatientDetails.phone} onChange={e => handlePatientDetailsChange('phone', e.target.value)} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="dob">Date of Birth</Label>
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <Popover open={isPatientDatePickerOpen} onOpenChange={setIsPatientDatePickerOpen}>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
                                     </Button>
-                                  </div>
-                                  {editablePatientDetails.drive_id && (
-                                      <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
-                                          <Folder className="w-5 h-5 text-blue-500 hover:text-blue-700" />
-                                      </a>
-                                  )}
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                  <Label htmlFor="name">Full Name</Label>
-                                  <Input id="name" value={editablePatientDetails.name} onChange={e => handlePatientDetailsChange('name', e.target.value)} />
-                                  </div>
-                                  <div className="space-y-2">
-                                  <Label htmlFor="phone">Phone Number</Label>
-                                  <Input id="phone" value={editablePatientDetails.phone} onChange={e => handlePatientDetailsChange('phone', e.target.value)} />
-                                  </div>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="dob">Date of Birth</Label>
-                                    <div className="flex flex-col sm:flex-row gap-2">
-                                      <Popover open={isPatientDatePickerOpen} onOpenChange={setIsPatientDatePickerOpen}>
-                                        <PopoverTrigger asChild>
-                                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editablePatientDetails.dob && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {editablePatientDetails.dob ? format(new Date(editablePatientDetails.dob), "PPP") : <span>Select date</span>}
-                                          </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                          <div className="p-3 border-b space-y-2">
-                                            <div className="flex gap-2">
-                                              <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                  {Array.from({ length: 12 }).map((_, index) => (
-                                                    <SelectItem key={index} value={index.toString()}>
-                                                      {format(new Date(2000, index), 'MMMM')}
-                                                    </SelectItem>
-                                                  ))}
-                                                </SelectContent>
-                                              </Select>
-                                              <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                                                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                                                <SelectContent className="max-h-48">
-                                                  {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                                                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                                                  ))}
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                          </div>
-                                          <Calendar
-                                            mode="single"
-                                            selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
-                                            onSelect={handleDateChange}
-                                            month={calendarDate}
-                                            onMonthChange={setCalendarDate}
-                                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                                            initialFocus
-                                            className="p-3"
-                                          />
-                                        </PopoverContent>
-                                      </Popover>
-                                      <Input
-                                        id="age"
-                                        type="number"
-                                        placeholder="Age"
-                                        value={age}
-                                        onChange={handleAgeChange}
-                                        className="w-full sm:w-24"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="space-y-2">
-                                  <Label htmlFor="sex">Sex</Label>
-                                  <Select value={editablePatientDetails.sex} onValueChange={value => handlePatientDetailsChange('sex', value)}>
-                                      <SelectTrigger>
-                                      <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                      <SelectItem value="M">Male</SelectItem>
-                                      <SelectItem value="F">Female</SelectItem>
-                                      <SelectItem value="Other">Other</SelectItem>
-                                      </SelectContent>
-                                  </Select>
-                                  </div>
-                              </div>
-                          </div>
-
-                          <div className="space-y-4">
-                              <div className="flex items-center justify-between mb-4">
-                                  <div className="flex items-center gap-2">
-                                      <FileText className="w-5 h-5 text-primary" />
-                                      <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
-                                  </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                  <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
-                                  <Textarea ref={complaintsRef} id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value, e.target.selectionStart)} placeholder="Patient complaints..." className="min-h-[100px]" />
-                              </div>
-
-                              <div className="space-y-2">
-                                  <Label htmlFor="findings" className="text-sm font-medium">Clinical Findings</Label>
-                                  <Textarea ref={findingsRef} id="findings" value={extraData.findings} onChange={e => handleExtraChange('findings', e.target.value, e.target.selectionStart)} placeholder="Clinical findings..." className="min-h-[100px]" />
-                              </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                      <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
-                                      {suggestedInvestigations.map((investigation) => (
-                                          <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
-                                              {investigation}
-                                          </Button>
-                                      ))}
-                                  </div>
-                                  <Textarea ref={investigationsRef} id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value, e.target.selectionStart)} placeholder="Investigations required..." className="min-h-[100px]" />
-                                </div>
-
-                                <div className="space-y-2">
-                                  <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
-                                  <Textarea ref={diagnosisRef} id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value, e.target.selectionStart)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
-                              </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                      <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
-                                      <LanguageSwitcher />
-                                      {suggestedAdvice.map((advice) => (
-                                          <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
-                                              {advice}
-                                          </Button>
-                                      ))}
-                                  </div>
-                                  <Textarea ref={adviceRef} id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value, e.target.selectionStart)} placeholder="Medical advice..." className="min-h-[80px]" />
-                              </div>
-                          </div>
-
-                          <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                      <div className="flex items-center gap-2">
-                                          <Stethoscope className="w-5 h-5 text-primary" />
-                                          <h3 className="text-lg font-semibold text-foreground">Medications</h3>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <div className="p-3 border-b space-y-2">
+                                      <div className="flex gap-2">
+                                        <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                                          <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            {Array.from({ length: 12 }).map((_, index) => (
+                                              <SelectItem key={index} value={index.toString()}>
+                                                {format(new Date(2000, index), 'MMMM')}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                                          <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                                          <SelectContent className="max-h-48">
+                                            {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                                              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
-                                      {suggestedMedications.map((med) => (
-                                          <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleMedicationSuggestionClick(med)}>
-                                              {med.name}
-                                          </Button>
-                                      ))}
-                                  </div>
+                                    </div>
+                                    <Calendar
+                                      mode="single"
+                                      selected={editablePatientDetails.dob ? new Date(editablePatientDetails.dob) : undefined}
+                                      onSelect={handleDateChange}
+                                      month={calendarDate}
+                                      onMonthChange={setCalendarDate}
+                                      disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                      initialFocus
+                                      className="p-3"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                <Input
+                                  id="age"
+                                  type="number"
+                                  placeholder="Age"
+                                  value={age}
+                                  onChange={handleAgeChange}
+                                  className="w-full sm:w-24"
+                                />
                               </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="sex">Sex</Label>
+                              <Select value={editablePatientDetails.sex} onValueChange={value => handlePatientDetailsChange('sex', value)}>
+                                  <SelectTrigger>
+                                  <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                  <SelectItem value="M">Male</SelectItem>
+                                  <SelectItem value="F">Female</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
 
-                              <div className="space-y-4 pl-6">
-                              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                  <SortableContext items={extraData.medications.map(m => m.id)} strategy={verticalListSortingStrategy}>
-                                  {extraData.medications.map((med, index) => (
-                                      <SortableMedicationItem
-                                      key={med.id}
-                                      med={med}
-                                      index={index}
-                                      handleMedChange={handleMedChange}
-                                      removeMedication={removeMedication}
-                                      savedMedications={savedMedications}
-                                      setExtraData={setExtraData}
-                                      medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
-                                      fetchSavedMedications={fetchSavedMedications}
-                                      i18n={i18n}
-                                      medFrequencyRefs={medFrequencyRefs}
-                                      medDurationRefs={medDurationRefs}
-                                      medInstructionsRefs={medInstructionsRefs}
-                                      medNotesRefs={medNotesRefs}
-                                      />
-                                  ))}
-                                  </SortableContext>
-                              </DndContext>
-                              </div>
-                              <div className="flex justify-end items-center gap-2">
-                                  <Button type="button" onClick={addMedication} variant="outline" size="icon" className="rounded-full">
-                                      <Plus className="h-4 w-4" />
-                                      <span className="sr-only">Add Medication</span>
-                                  </Button>
-                              </div>
-
-                              <div className="space-y-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                      <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
-                                      {suggestedFollowup.map((followup) => (
-                                          <Button key={followup} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(followup)}>
-                                              {followup}
-                                          </Button>
-                                      ))}
-                                  </div>
-                                  <Textarea ref={followupRef} id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value, e.target.selectionStart)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
-                              </div>
-
-                              <div className="space-y-2">
-                                  <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
-                                  <Textarea ref={personalNoteRef} id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value, e.target.selectionStart)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
-                              </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-primary" />
+                                <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                            </div>
                           </div>
 
-                          <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
+                                <Textarea ref={complaintsRef} id="complaints" value={extraData.complaints} onChange={e => handleExtraChange('complaints', e.target.value, e.target.selectionStart)} placeholder="Patient complaints..." className="min-h-[100px]" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="findings" className="text-sm font-medium">Clinical Findings</Label>
+                                <Textarea ref={findingsRef} id="findings" value={extraData.findings} onChange={e => handleExtraChange('findings', e.target.value, e.target.selectionStart)} placeholder="Clinical findings..." className="min-h-[100px]" />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                  <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                  {suggestedInvestigations.map((investigation) => (
+                                      <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleInvestigationSuggestionClick(investigation)}>
+                                          {investigation}
+                                      </Button>
+                                  ))}
+                              </div>
+                              <Textarea ref={investigationsRef} id="investigations" value={extraData.investigations} onChange={e => handleExtraChange('investigations', e.target.value, e.target.selectionStart)} placeholder="Investigations required..." className="min-h-[100px]" />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
+                              <Textarea ref={diagnosisRef} id="diagnosis" value={extraData.diagnosis} onChange={e => handleExtraChange('diagnosis', e.target.value, e.target.selectionStart)} placeholder="Clinical diagnosis..." className="min-h-[100px]" />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
+                                <LanguageSwitcher />
+                                {suggestedAdvice.map((advice) => (
+                                    <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleAdviceSuggestionClick(advice)}>
+                                        {advice}
+                                    </Button>
+                                ))}
+                            </div>
+                            <Textarea ref={adviceRef} id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value, e.target.selectionStart)} placeholder="Medical advice..." className="min-h-[80px]" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                    <Stethoscope className="w-5 h-5 text-primary" />
+                                    <h3 className="text-lg font-semibold text-foreground">Medications</h3>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {suggestedMedications.map((med) => (
+                                      <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleMedicationSuggestionClick(med)}>
+                                          {med.name}
+                                      </Button>
+                                  ))}
+                                </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4 pl-6">
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={extraData.medications.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                                {extraData.medications.map((med, index) => (
+                                    <SortableMedicationItem
+                                    key={med.id}
+                                    med={med}
+                                    index={index}
+                                    handleMedChange={handleMedChange}
+                                    removeMedication={removeMedication}
+                                    savedMedications={savedMedications}
+                                    setExtraData={setExtraData}
+                                    medicationNameInputRef={index === extraData.medications.length - 1 ? medicationNameInputRef : null}
+                                    fetchSavedMedications={fetchSavedMedications}
+                                    i18n={i18n}
+                                    medFrequencyRefs={medFrequencyRefs}
+                                    medDurationRefs={medDurationRefs}
+                                    medInstructionsRefs={medInstructionsRefs}
+                                    medNotesRefs={medNotesRefs}
+                                    />
+                                ))}
+                                </SortableContext>
+                            </DndContext>
+                          </div>
+                          <div className="flex justify-end items-center gap-2">
+                            <Button type="button" onClick={addMedication} variant="outline" size="icon" className="rounded-full">
+                                <Plus className="h-4 w-4" />
+                                <span className="sr-only">Add Medication</span>
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                                {suggestedFollowup.map((followup) => (
+                                    <Button key={followup} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleFollowupSuggestionClick(followup)}>
+                                        {followup}
+                                    </Button>
+                                ))}
+                            </div>
+                            <Textarea ref={followupRef} id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value, e.target.selectionStart)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
+                            <Textarea ref={personalNoteRef} id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value, e.target.selectionStart)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
+                          </div>
+                        </div>
+
+                        <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                              {!isOnline && <CloudOff className="h-5 w-5 text-yellow-600" />}
                               <Button type="button" size="lg" onClick={saveChanges} disabled={isSaving}>
                                   {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
                                   Save Changes
                               </Button>
+                          </div>
+                          <div className="flex w-full sm:w-auto gap-3">
                               <Button type="button" size="lg" onClick={handleSaveAndPrint}>
                                   <Printer className="w-5 h-5 mr-2" />
-                                  Save & Print
+                                  Print
                               </Button>
                               <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -1834,12 +2100,13 @@ const Consultation = () => {
                                   </DropdownMenuContent>
                               </DropdownMenu>
                           </div>
-                      </form>
-                  ) : (
-                      <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
-                          <p className="text-lg text-muted-foreground">Please select a patient to view details.</p>
                       </div>
-                  )}
+                      </form>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
+                        <p className="text-lg text-muted-foreground">Select a patient to view details.</p>
+                      </div>
+                    )}
                   </div>
               </div>
             </CardContent>
@@ -1949,7 +2216,12 @@ const Consultation = () => {
                     <ConsultationRegistration
                         onSuccess={(newConsultation, consultationData) => {
                             setIsRegistrationModalOpen(false);
-                            if (selectedDate) {
+                            if (String(newConsultation.patient_id).startsWith('offline-')) {
+                                setAllConsultations(prev => [newConsultation, ...prev]);
+                                setPendingConsultations(prev => [newConsultation, ...prev]);
+                                setSelectedConsultation(newConsultation);
+                                setPendingSyncIds(prev => [...new Set([...prev, newConsultation.patient_id])]);
+                            } else if (selectedDate) {
                                 fetchConsultations(selectedDate, newConsultation.patient_id, consultationData);
                             }
                         }}
@@ -1957,6 +2229,34 @@ const Consultation = () => {
                 </div>
             </DialogContent>
         </Dialog>
+        {conflictData && (
+          <ConflictResolutionModal
+            isOpen={!!conflictData}
+            onClose={() => setConflictData(null)}
+            onResolve={handleResolveConflict}
+            localData={conflictData.local}
+            serverData={conflictData.server}
+          />
+        )}
+        {patientConflictData && (
+          <PatientConflictModal
+            isOpen={!!patientConflictData}
+            onClose={() => setPatientConflictData(null)}
+            onResolve={handleResolvePatientConflict}
+            offlinePatient={patientConflictData.offlinePatient}
+            conflictingPatients={patientConflictData.conflictingPatients}
+          />
+        )}
+      <ConsultationSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onSelectConsultation={(consultation) => {
+          const consultationDate = new Date(consultation.created_at);
+          setSelectedDate(consultationDate);
+          fetchConsultations(consultationDate, consultation.patient.id, consultation.consultation_data);
+          setIsSearchModalOpen(false);
+        }}
+      />
     </>
   );
 };

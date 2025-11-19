@@ -130,7 +130,7 @@ const SaveBundleModal: React.FC<SaveBundleModalProps> = ({ isOpen, onClose, medi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="overflow-y-auto max-h-[90vh]">
+      <DialogContent className="sm:max-w-xl overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Save as Prescription Bundle</DialogTitle>
           <DialogDescription>
