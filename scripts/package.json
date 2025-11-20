@@ -1,0 +1,9 @@
+{
+  "name": "backup-script",
+  "version": "1.0.0",
+  "description": "Helper script for managing Google Drive backups.",
+  "main": "handle_google_drive_backup.js",
+  "dependencies": {
+    "googleapis": "^100.0.0"
+  }
+}
