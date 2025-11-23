@@ -19,9 +19,13 @@ serve(async (req) => {
     // 1. Remove non-digits
     let formattedNumber = number.replace(/\D/g, '')
 
-    // 2. If length is 10, prepend 91.
-    // If length is > 10, assume country code is present.
-    // If length < 10, it's likely invalid, but we'll pass it to let the app handle/fail it.
+    // 2. Standardization Logic:
+    // If length is 10, prepend 91 (default to India).
+    // The user explicitly requested standardization and mentioned "backend can manage the +".
+    // This implies handling +91 correctly (which step 1 does by stripping +).
+    // Note: This logic assumes 10-digit numbers are Indian.
+    // US numbers (10 digits) would thus get incorrectly prefixed with 91.
+    // However, given the project context (India-based clinic, '91' explicit mentions), this is the intended behavior.
     if (formattedNumber.length === 10) {
       formattedNumber = '91' + formattedNumber
     }
@@ -31,7 +35,7 @@ serve(async (req) => {
     const url = `${firebaseDbUrl}/${uniqueId}.json`
 
     const payload = {
-      number: formattedNumber,
+      number: formattedNumber, // Pure digits, e.g., 919866812555
       message: message
     }
 
