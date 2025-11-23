@@ -628,7 +628,7 @@ const Consultation = () => {
       // Send WhatsApp notification
       if (editablePatientDetails && editablePatientDetails.phone) {
         try {
-          const message = `Dear ${editablePatientDetails.name}, Your consultation has concluded. You can view your prescription, diet & exercise advice and order medication/tests at https://ortho.life/auth?phone=${editablePatientDetails.phone}`;
+          const message = `👋 Hi ${editablePatientDetails.name},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded.\nYou can view your prescription, diet & exercise advice and order medicines/tests at-\nhttps://ortho.life/auth?phone=${editablePatientDetails.phone}`;
           const { error } = await supabase.functions.invoke('send-whatsapp', {
             body: { number: editablePatientDetails.phone, message },
           });

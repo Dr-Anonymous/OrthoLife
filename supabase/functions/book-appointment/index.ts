@@ -33,7 +33,7 @@ serve(async (req)=>{
     const appointmentDate = new Date(appointmentData.start).toLocaleDateString('en-GB', {
       timeZone: 'UTC'
     });
-    const messageText = `Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${appointmentTime} on ${appointmentDate}.`;
+    const messageText = `👋 Hi ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${appointmentTime} on ${appointmentDate}.`;
     const message = encodeURI(messageText);
 
     const accessToken = await getGoogleAccessToken();

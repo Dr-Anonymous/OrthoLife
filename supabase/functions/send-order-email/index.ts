@@ -50,7 +50,7 @@ const handler = async (req)=>{
     console.log("Order email sent successfully:", emailResponse);
 
     // Send WhatsApp notification
-    const waMessage = `We received your ${orderType} order for ₹${total}. We will contact you shortly.`;
+    const waMessage = `👋\nWe received your ${orderType} order for ₹${total}.\nHere are the details-\n\n${itemsList}\n\nWe will contact you shortly.`;
     await sendWhatsAppMessage(patientData.phone, waMessage);
 
     // Update stock for pharmacy orders
