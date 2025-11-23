@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,16 +33,19 @@ const PatientGuidePage = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (guideId) {
       trackEvent({
         eventType: "page_view",
         path: location.pathname,
+        user_phone: user?.phoneNumber,
+        user_name: user?.displayName,
         details: { page: 'patient-guide', guideId: guideId },
       });
     }
-  }, [location.pathname, guideId]);
+  }, [location.pathname, guideId, user]);
 
   const handleDownloadPdf = async () => {
     if (!guide) return;
