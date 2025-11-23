@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
+import { sendWhatsAppMessage } from "../_shared/whatsapp.ts";
+
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,13 +23,19 @@ serve(async (req)=>{
     }) : "";
     const myMail = patientData.email && patientData.email.trim() ? `\nEmail: ${patientData.email}` : "";
     const appointmentId = crypto.randomUUID();
-    const message = encodeURI(`Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${new Date(appointmentData.start).toLocaleTimeString('en-GB', {
+
+    // Construct the message text cleanly
+    const appointmentTime = new Date(appointmentData.start).toLocaleTimeString('en-GB', {
       timeZone: 'UTC',
       hour12: true,
       timeStyle: 'short'
-    })} on ${new Date(appointmentData.start).toLocaleDateString('en-GB', {
+    });
+    const appointmentDate = new Date(appointmentData.start).toLocaleDateString('en-GB', {
       timeZone: 'UTC'
-    })}.`);
+    });
+    const messageText = `Dear ${patientData.name},\nYour ${appointmentData.serviceType} is scheduled at ${appointmentTime} on ${appointmentDate}.`;
+    const message = encodeURI(messageText);
+
     const accessToken = await getGoogleAccessToken();
     if (accessToken) {
       const calendarId = Deno.env.get('GOOGLE_CALENDAR_ID');
@@ -69,6 +77,9 @@ SMS: <a href="sms:${patientData.phone}?body=` + message + `">Send</a>`,
       } else {
         const calendarEventData = await calendarResponse.json();
         console.log(`Google Calendar event ${isReschedule ? 'updated' : 'created'}:`, calendarEventData.id);
+
+        // Send WhatsApp notification
+        await sendWhatsAppMessage(patientData.phone, messageText);
       }
     } else {
       console.log('No Google Calendar access token available, skipping event creation');

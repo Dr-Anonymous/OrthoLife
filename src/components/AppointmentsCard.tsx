@@ -55,11 +55,27 @@ const AppointmentsCard = () => {
     fetchAppointments();
   }, [user]);
 
-  const handleCancelAppointment = async (eventId: string) => {
+  const handleCancelAppointment = async (event: any) => {
     setIsCancelling(true);
     try {
+      const phoneNumber = user?.phoneNumber?.slice(-10);
+
+      // Attempt to extract service type from description
+      let serviceType = 'Appointment';
+      if (event.description) {
+        const match = event.description.match(/Service:\s*(.+)/);
+        if (match && match[1]) {
+          serviceType = match[1].trim();
+        }
+      }
+
       const { error } = await supabase.functions.invoke('cancel-appointment', {
-        body: { eventId },
+        body: {
+          eventId: event.id,
+          phone: phoneNumber,
+          serviceType: serviceType,
+          date: event.start
+        },
       });
       if (error) throw new Error(`Error cancelling appointment: ${error.message}`);
       await fetchAppointments();
@@ -130,7 +146,7 @@ const AppointmentsCard = () => {
                                 </DialogClose>
                                 <Button
                                   variant="destructive"
-                                  onClick={() => handleCancelAppointment(event.id)}
+                                  onClick={() => handleCancelAppointment(event)}
                                   disabled={isCancelling}
                                 >
                                   {isCancelling ? t('appointmentsCard.cancelDialog.cancelling') : t('appointmentsCard.cancelDialog.confirm')}
