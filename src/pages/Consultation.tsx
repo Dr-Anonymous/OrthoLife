@@ -624,6 +624,20 @@ const Consultation = () => {
         submitForm(undefined, { skipSave: true });
       }
       setIsReadyToPrint(true);
+
+      // Send WhatsApp notification
+      if (editablePatientDetails && editablePatientDetails.phone) {
+        try {
+          const message = `Dear ${editablePatientDetails.name}, Your consultation has concluded. You can view your prescription, diet & exercise advice and order medication/tests at https://ortho.life/auth?phone=${editablePatientDetails.phone}`;
+          const { error } = await supabase.functions.invoke('send-whatsapp', {
+            body: { number: editablePatientDetails.phone, message },
+          });
+          if (error) throw error;
+        } catch (err) {
+            console.error('Failed to send WhatsApp notification:', err);
+            // Don't show an error toast to the user as the primary action (print/save) succeeded
+        }
+      }
     }
   };
 

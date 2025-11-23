@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
 import { corsHeaders } from '../_shared/cors.ts';
+import { sendWhatsAppMessage } from "../_shared/whatsapp.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -10,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { eventId } = await req.json();
+    const { eventId, phone, serviceType, date } = await req.json();
     if (!eventId) {
       return new Response(JSON.stringify({ error: 'Event ID is required' }), {
         status: 400,
@@ -35,6 +36,12 @@ serve(async (req) => {
     });
 
     if (response.ok) {
+      // Send WhatsApp notification if details are provided
+      if (phone && serviceType && date) {
+        const message = `Your appointment for ${serviceType} on ${new Date(date).toLocaleDateString('en-GB')} has been cancelled.`;
+        await sendWhatsAppMessage(phone, message);
+      }
+
       return new Response(JSON.stringify({ success: true, message: 'Appointment cancelled successfully.' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
