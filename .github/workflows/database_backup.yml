@@ -42,6 +42,11 @@ jobs:
           FILENAME="backup-${{ steps.backup_type.outputs.type }}-${TIMESTAMP}.sql"
           echo "path=${FILENAME}" >> $GITHUB_OUTPUT
 
+      - name: Disable IPv6
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+
       - name: Dump Supabase database
         run: |
           supabase db dump --data-only -f ${{ steps.backup_file.outputs.path }}

@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, Phone, MessageSquare } from "lucide-react";
 
-const WhatsAppTestPage = () => {
+const SendWhatsApp = () => {
   const [number, setNumber] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -107,4 +107,4 @@ const WhatsAppTestPage = () => {
   );
 };
 
-export default WhatsAppTestPage;
+export default SendWhatsApp;

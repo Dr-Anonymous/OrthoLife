@@ -35,7 +35,7 @@ const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const SymptomCheckerPage = lazy(() => import("./pages/SymptomCheckerPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const MySpace = lazy(() => import("./pages/MySpace"));
-const WhatsAppTestPage = lazy(() => import("./pages/WhatsAppTestPage"));
+const SendWhatsApp = lazy(() => import("./pages/SendWhatsApp"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -118,7 +118,7 @@ const App = () => {
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/my-space" element={<MySpace />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/test-whatsapp" element={<WhatsAppTestPage />} />
+                <Route path="/whatsapp" element={<SendWhatsApp />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
