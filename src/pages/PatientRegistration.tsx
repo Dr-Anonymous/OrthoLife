@@ -40,6 +40,10 @@ const PatientRegistration = () => {
     fetchTodaysConsultations();
   }, []);
 
+  const filteredConsultations = todaysConsultations.filter(
+    c => c.consultation_data?.location !== 'OrthoLife'
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="container mx-auto max-w-4xl">
@@ -59,14 +63,14 @@ const PatientRegistration = () => {
         </Card>
 
         <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-4 text-center">Today's Consultations ({todaysConsultations.length})</h3>
+          <h3 className="text-xl font-semibold mb-4 text-center">Today's Consultations ({filteredConsultations.length})</h3>
           {isFetchingConsultations ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : todaysConsultations.length > 0 ? (
+          ) : filteredConsultations.length > 0 ? (
             <div className="flex flex-wrap justify-center gap-3">
-              {todaysConsultations.map(c => (
+              {filteredConsultations.map(c => (
                 <div key={c.id} className="bg-card border p-3 rounded-lg shadow-sm w-full max-w-sm">
                   <div className="flex justify-between items-start">
                     <div>

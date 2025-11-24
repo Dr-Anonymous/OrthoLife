@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,16 +41,19 @@ const BlogPostPage = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (postId) {
       trackEvent({
         eventType: "page_view",
         path: location.pathname,
+        user_phone: user?.phoneNumber,
+        user_name: user?.displayName,
         details: { page: 'blog-post', postId: postId },
       });
     }
-  }, [location.pathname, postId]);
+  }, [location.pathname, postId, user]);
 
   const handleShare = async () => {
     let path = window.location.pathname;

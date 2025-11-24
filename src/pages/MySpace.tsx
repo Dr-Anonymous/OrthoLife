@@ -32,6 +32,7 @@ const MySpace = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isLanguageSelected, setIsLanguageSelected] = useState(false);
   const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
   const [patientList, setPatientList] = useState<any[]>([]);
   const [isSelectionPending, setIsSelectionPending] = useState(true);
@@ -40,12 +41,15 @@ const MySpace = () => {
     const hasSetLanguage = localStorage.getItem('languageSet');
     if (!hasSetLanguage) {
       setIsLanguageModalOpen(true);
+    } else {
+      setIsLanguageSelected(true);
     }
   }, []);
 
   const handleModalClose = () => {
     localStorage.setItem('languageSet', 'true');
     setIsLanguageModalOpen(false);
+    setIsLanguageSelected(true);
   };
 
   useEffect(() => {
@@ -91,8 +95,10 @@ const MySpace = () => {
   };
 
   useEffect(() => {
-    fetchPatientData();
-  }, [user, authLoading]);
+    if (isLanguageSelected) {
+      fetchPatientData();
+    }
+  }, [user, authLoading, isLanguageSelected]);
 
   const handlePatientSelect = (selectedPatient: any) => {
     setIsPatientSelectionModalOpen(false);
@@ -115,21 +121,30 @@ const MySpace = () => {
         <div className="container mx-auto p-4 sm:p-6 md:p-8">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">{t('mySpace.welcome')}</h1>
-              {user?.phoneNumber && <p className="mt-1 text-lg text-gray-600">{t('mySpace.dashboardDescription')} (<strong>{user.phoneNumber}</strong>).</p>}
+              <h1 className="text-3xl font-bold text-gray-800">
+                {patientName ? `${t('mySpace.welcome')}, ${patientName}` : t('mySpace.welcome')}
+              </h1>
+              {patientName && <p className="mt-1 text-lg text-gray-600">{t('mySpace.dashboardDescription')}</p>}
             </div>
-            <div className="flex items-center gap-4 mt-4 sm:mt-0">
-              <LanguageSwitcher />
-              <Button onClick={handleLogout} variant="outline">
-                <LogOut className="mr-2 h-4 w-4" /> {t('mySpace.logout')}
-              </Button>
+            <div className="flex flex-col items-end gap-2 mt-4 sm:mt-0">
+                <div className="flex items-center gap-4">
+                    <LanguageSwitcher />
+                    {patientList.length > 1 && (
+                        <Button onClick={() => setIsPatientSelectionModalOpen(true)} variant="outline">
+                        {t('mySpace.switchPatient')}
+                        </Button>
+                    )}
+                    <Button onClick={handleLogout} variant="outline">
+                        <LogOut className="mr-2 h-4 w-4" /> {t('mySpace.logout')}
+                    </Button>
+                </div>
+                {user?.phoneNumber && <p className="text-sm text-gray-600"><strong>{user.phoneNumber}</strong></p>}
             </div>
           </header>
 
           <LanguagePreferenceModal isOpen={isLanguageModalOpen} onClose={handleModalClose} />
           <PatientSelectionModal
             isOpen={isPatientSelectionModalOpen}
-            onClose={() => setIsPatientSelectionModalOpen(false)}
             patients={patientList}
             onSelect={handlePatientSelect}
           />
@@ -150,10 +165,10 @@ const MySpace = () => {
             ) : (
               <>
                 <DietAndExercisesCard advice={advice} />
-                <PrescriptionsCard patientId={patientId} patientPhone={patientPhone} />
+                <AppointmentsCard />
                 <OrderMedicationCard medications={medications} />
                 <OrderTestsCard investigations={investigations} />
-                <AppointmentsCard />
+                <PrescriptionsCard patientId={patientId} patientPhone={patientPhone} />
                 <TestResultsCard />
               </>
             )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText, NotebookText, Undo2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -318,48 +318,34 @@ const WhatsAppMe = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p><strong>Name:</strong> {prescription.name}</p>
-                {(prescription.diagnosis || prescription.complaints) && (
-                  <div className="flex items-start gap-3">
-                    <Stethoscope className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                      <h4 className="font-semibold">{prescription.diagnosis ? 'Diagnosis' : 'Complaints'}</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {prescription.diagnosis || prescription.complaints}
-                      </p>
+                {[
+                  { Icon: NotebookText, label: "Doctor's Personal Note", value: prescription.personalNote },
+                  { Icon: Stethoscope, label: 'Complaints', value: prescription.complaints },
+                  { Icon: FileText, label: 'Clinical Findings', value: prescription.findings },
+                  { Icon: FileText, label: 'Investigations', value: prescription.investigations },
+                  { Icon: Stethoscope, label: 'Diagnosis', value: prescription.diagnosis },
+                  { Icon: Pill, label: 'Medications', value: prescription.medications },
+                  { Icon: FileText, label: 'Advice', value: prescription.advice },
+                  { Icon: Undo2, label: 'Follow-up', value: prescription.followup },
+                ].map(({ Icon, label, value }, index) => {
+                  if (!value || (Array.isArray(value) && value.length === 0)) return null;
+
+                  const displayValue = Array.isArray(value)
+                    ? value.map((med: any) => `${med.name}${med.duration ? ` - ${med.duration}` : ''}`).join(', ')
+                    : value;
+
+                  return (
+                    <div key={index} className="flex items-start gap-3">
+                      <Icon className="w-5 h-5 mt-1 text-primary flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold">{label}</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {displayValue}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {prescription.medications?.length > 0 && (
-                  <div className="flex items-start gap-3">
-                    <Pill className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                      <h4 className="font-semibold">Medications</h4>
-                      <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                        {prescription.medications.map((med: any, index: number) => (
-                          <li key={index}>{med.name}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-                {prescription.investigations && (
-                  <div className="flex items-start gap-3">
-                    <FlaskConical className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                      <h4 className="font-semibold">Investigations</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.investigations}</p>
-                    </div>
-                  </div>
-                )}
-                {prescription.advice && (
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                      <h4 className="font-semibold">Advice</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.advice}</p>
-                    </div>
-                  </div>
-                )}
+                  );
+                })}
               </CardContent>
             </Card>
           )}

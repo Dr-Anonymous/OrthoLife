@@ -42,16 +42,10 @@ jobs:
           FILENAME="backup-${{ steps.backup_type.outputs.type }}-${TIMESTAMP}.sql"
           echo "path=${FILENAME}" >> $GITHUB_OUTPUT
 
-      - name: Force IPv4 Resolution
+      - name: Disable IPv6
         run: |
-          DB_HOST="db.${{ secrets.PROJECT_ID }}.supabase.co"
-          IPV4_ADDRESS=$(dig +short A $DB_HOST)
-          if [ -z "$IPV4_ADDRESS" ]; then
-            echo "Could not resolve IPv4 address for $DB_HOST"
-            exit 1
-          fi
-          echo "Found IPv4 address for $DB_HOST: $IPV4_ADDRESS"
-          echo "$IPV4_ADDRESS $DB_HOST" | sudo tee -a /etc/hosts
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Dump Supabase database
         run: |

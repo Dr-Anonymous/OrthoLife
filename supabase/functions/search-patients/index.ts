@@ -1,3 +1,23 @@
+/**
+ * @fileoverview This Supabase Edge Function is the central hub for finding and retrieving patient data.
+ *
+ * @summary It serves as a unified patient search endpoint with three primary modes of operation:
+ * 1.  Search by `patientId`: Directly fetches a single patient and their latest consultation from the database.
+ * 2.  Search by `searchTerm` and `searchType` ('name' or 'phone'):
+ *     - First, it queries the main `patients` database.
+ *     - If no results are found for a 'phone' search, it performs a fallback search against legacy
+ *       patient records stored in Google Drive.
+ *     - This mode is designed to handle cases where a single phone number may be associated with
+ *       multiple patients, returning a list for the frontend to handle.
+ *
+ * @param {string} [patientId] - The unique identifier for a patient. If provided, all other search params are ignored.
+ * @param {string} [searchTerm] - The search query (either a name or a phone number).
+ * @param {string} [searchType] - The type of search, must be either 'name' or 'phone'.
+ *
+ * @returns A JSON response containing an array of patient objects or a single patient object,
+ *          each merged with their most recent consultation data. The `source` property indicates
+ *          whether the data came from 'database' or 'gdrive'.
+ */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.4';
@@ -10,6 +30,7 @@ const supabase = createClient(
 );
 
 serve(async (req) => {
+  // Standard CORS preflight request handling.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -17,6 +38,7 @@ serve(async (req) => {
   try {
     const { searchTerm, searchType, patientId } = await req.json();
 
+    // Mode 1: Direct fetch by patientId. This is the most specific search and takes priority.
     if (patientId) {
         const patientData = await getPatientDataById(patientId);
         return new Response(JSON.stringify(patientData), {
@@ -25,6 +47,7 @@ serve(async (req) => {
         });
     }
 
+    // Mode 2: Search by term. Requires both searchTerm and searchType.
     if (!searchTerm || !searchType) {
       return new Response(JSON.stringify({ error: 'searchTerm and searchType are required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -32,11 +55,12 @@ serve(async (req) => {
       });
     }
 
-    // 1. Search Database
+    // First, attempt to find the patient in our primary database.
     let query = supabase.from('patients').select('*');
     if (searchType === 'name') {
       query = query.ilike('name', `%${searchTerm}%`);
     } else if (searchType === 'phone') {
+      // Sanitize phone number to the last 10 digits for consistent searching.
       const sanitizedPhone = searchTerm.slice(-10);
       query = query.like('phone', `%${sanitizedPhone}%`);
     }
@@ -44,6 +68,7 @@ serve(async (req) => {
 
     if (dbError) throw dbError;
 
+    // If we find one or more patients in the database, fetch their latest consultation and return them.
     if (dbData && dbData.length > 0) {
       const patientsWithConsultations = await Promise.all(dbData.map(async (patient) => {
         const { data: lastConsultation } = await supabase
@@ -68,9 +93,11 @@ serve(async (req) => {
       });
     }
 
-    // 2. Fallback to Google Drive if no DB results and searchType is 'phone'
+    // If the database search yields no results and the search was by phone,
+    // trigger the fallback to search legacy records in Google Drive.
     if (searchType === 'phone') {
       const drivePatients = await searchPhoneNumberInDrive(searchTerm);
+      // Add the 'source' field to identify these as legacy records.
       const patientsWithSource = drivePatients.map(p => ({ ...p, source: 'gdrive' }));
       return new Response(JSON.stringify(patientsWithSource), {
         status: 200,
@@ -78,6 +105,7 @@ serve(async (req) => {
       });
     }
 
+    // If no results are found after all checks, return an empty array.
     return new Response(JSON.stringify([]), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
@@ -91,6 +119,12 @@ serve(async (req) => {
   }
 });
 
+/**
+ * Helper function to fetch a single patient by their ID and merge it
+ * with their most recent consultation data.
+ * @param {string} patientId - The UUID of the patient.
+ * @returns A single patient object with their latest consultation data.
+ */
 async function getPatientDataById(patientId: string) {
     const { data: patient, error } = await supabase
         .from('patients')
