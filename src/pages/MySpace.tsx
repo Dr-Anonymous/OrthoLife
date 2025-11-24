@@ -143,19 +143,20 @@ const MySpace = () => {
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
+                <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
               </>
             ) : error ? (
               <p className="text-red-500">{error}</p>
             ) : (
               <>
-                <PrescriptionsCard patientName={patientName} patientId={patientId} patientPhone={patientPhone} />
-                <DietAndExercisesCard advice={advice} patientName={patientName} />
-                <OrderMedicationCard medications={medications} patientName={patientName} />
-                <OrderTestsCard investigations={investigations} patientName={patientName} />
+                <DietAndExercisesCard advice={advice} />
+                <PrescriptionsCard patientId={patientId} patientPhone={patientPhone} />
+                <OrderMedicationCard medications={medications} />
+                <OrderTestsCard investigations={investigations} />
+                <AppointmentsCard />
                 <TestResultsCard />
               </>
             )}
-            <AppointmentsCard />
           </div>
         </div>
       </main>

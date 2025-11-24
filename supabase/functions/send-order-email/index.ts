@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@3.5.0";
+import { sendWhatsAppMessage } from "../_shared/whatsapp.ts";
+
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +48,11 @@ const handler = async (req)=>{
       `
     });
     console.log("Order email sent successfully:", emailResponse);
+
+    // Send WhatsApp notification
+    const waMessage = `👋\nWe received your ${orderType} order for ₹${total}.\nHere are the details-\n\n${itemsList}\n\nWe will contact you shortly.`;
+    await sendWhatsAppMessage(patientData.phone, waMessage);
+
     // Update stock for pharmacy orders
     if (orderType === 'pharmacy') {
       try {

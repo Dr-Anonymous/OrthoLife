@@ -580,6 +580,20 @@ const Consultation = () => {
         submitForm(undefined, { skipSave: true });
       }
       setIsReadyToPrint(true);
+
+      // Send WhatsApp notification
+      if (editablePatientDetails && editablePatientDetails.phone) {
+        try {
+          const message = `👋 Hi ${editablePatientDetails.name},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- View your prescription 📋\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\nhttps://ortho.life/auth?phone=${editablePatientDetails.phone}`;
+          const { error } = await supabase.functions.invoke('send-whatsapp', {
+            body: { number: editablePatientDetails.phone, message },
+          });
+          if (error) throw error;
+        } catch (err) {
+            console.error('Failed to send WhatsApp notification:', err);
+            // Don't show an error toast to the user as the primary action (print/save) succeeded
+        }
+      }
     }
   };
 
