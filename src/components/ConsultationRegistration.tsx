@@ -1,7 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { offlineStore } from '@/lib/local-storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,7 +45,6 @@ interface ConsultationRegistrationProps {
 }
 
 const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess }) => {
-  const isOnline = useOnlineStatus();
   const [formData, setFormData] = useState<FormData>({
     id: null,
     name: '',
@@ -204,82 +201,45 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setIsSubmitting(true);
 
     try {
-      if (!isOnline) {
-        const tempId = `offline-${Date.now()}`;
-        const newPatient = {
-          id: tempId,
+      const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+        body: {
+          id: formData.id,
           name: formData.name,
           dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
           sex: formData.sex,
           phone: formData.phone,
-          drive_id: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        const newConsultation = {
-          id: `offline-consultation-${Date.now()}`,
-          patient_id: tempId,
-          status: 'pending',
-          consultation_data: {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          patient: newPatient
-        };
+          driveId: formData.driveId,
+          force,
+          age: String(age),
+        },
+      });
 
-        await offlineStore.setItem(tempId, { type: 'new_patient', patient: newPatient, consultation: newConsultation });
+      if (error) { // Network or unexpected function error
+        throw new Error(error.message);
+      }
 
+      if (data.status === 'partial_match') {
+        setMatchingPatients(data.matches);
+        setShowConfirmation(true);
+      } else if (data.status === 'exact_match') {
         toast({
-          title: 'Patient Registered Locally',
-          description: `${formData.name} will be synced when you are back online.`,
+          variant: 'destructive',
+          title: 'Patient Exists',
+          description: data.message,
         });
-
-        if (onSuccess) onSuccess(newConsultation, {});
-
+        handleSelectPatient(data.patient.id.toString(), [data.patient]);
+      } else if (data.status === 'success') {
+        toast({
+          title: 'Patient Registered for Consultation',
+          description: `${formData.name} has been successfully registered.`,
+        });
         setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
         setSearchResults([]);
         setSelectedPatientId('');
-
+        setShowConfirmation(false);
+        if (onSuccess) onSuccess(data.consultation, formData.consultation_data);
       } else {
-        const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
-          body: {
-            id: formData.id,
-            name: formData.name,
-            dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
-            sex: formData.sex,
-            phone: formData.phone,
-            driveId: formData.driveId,
-            force,
-            age: String(age),
-          },
-        });
-
-        if (error) { // Network or unexpected function error
-          throw new Error(error.message);
-        }
-
-        if (data.status === 'partial_match') {
-          setMatchingPatients(data.matches);
-          setShowConfirmation(true);
-        } else if (data.status === 'exact_match') {
-          toast({
-            variant: 'destructive',
-            title: 'Patient Exists',
-            description: data.message,
-          });
-          handleSelectPatient(data.patient.id.toString(), [data.patient]);
-        } else if (data.status === 'success') {
-          toast({
-            title: 'Patient Registered for Consultation',
-            description: `${formData.name} has been successfully registered.`,
-          });
-          setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
-          setSearchResults([]);
-          setSelectedPatientId('');
-          setShowConfirmation(false);
-          if (onSuccess) onSuccess(data.consultation, formData.consultation_data);
-        } else {
-          throw new Error(data.error || 'An unexpected error occurred.');
-        }
+        throw new Error(data.error || 'An unexpected error occurred.');
       }
 
     } catch (error) {
@@ -354,7 +314,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   className={cn("pl-10 pr-10", errors.name && "border-destructive")}
                   placeholder="Enter full name"
                 />
-                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching || !isOnline}>
+                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
                 </button>
               </div>
@@ -372,7 +332,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   className={cn("pl-10 pr-10", errors.phone && "border-destructive")}
                   placeholder="Enter 10-digit number"
                 />
-                <button type="button" onClick={() => handleSearch('phone')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching || !isOnline}>
+                <button type="button" onClick={() => handleSearch('phone')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
                 </button>
               </div>

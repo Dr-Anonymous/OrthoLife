@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 
 interface OrderTestsCardProps {
   investigations: string;
+  patientName: string;
 }
 
-const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
+const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, patientName }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [labInvestigations, setLabInvestigations] = useState('');
@@ -41,7 +42,7 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
       <Card>
         <CardHeader className="flex flex-row items-center space-x-3">
           <Beaker className="h-6 w-6 text-primary" />
-          <CardTitle>{t('orderTestsCard.title')}</CardTitle>
+          <CardTitle>{t('orderTestsCard.title', { patientName })}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-500 text-center py-4">{t('orderTestsCard.noInvestigations')}</p>
@@ -57,7 +58,7 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
     <Card>
       <CardHeader className="flex flex-row items-center space-x-3">
         <Beaker className="h-6 w-6 text-primary" />
-        <CardTitle>{t('orderTestsCard.title')}</CardTitle>
+        <CardTitle>{t('orderTestsCard.title', { patientName })}</CardTitle>
       </CardHeader>
       <CardContent>
         {labInvestigations && (

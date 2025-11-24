@@ -9,9 +9,9 @@ serve(async (req) => {
   }
 
   try {
-    const { patientId, fileName, fileContent, mimeType } = await req.json();
-    if (!patientId || !fileName || !fileContent || !mimeType) {
-      return new Response(JSON.stringify({ error: 'Patient ID, file name, file content and mimeType are required' }), {
+    const { phoneNumber, fileName, fileContent, mimeType } = await req.json();
+    if (!phoneNumber || !fileName || !fileContent || !mimeType) {
+      return new Response(JSON.stringify({ error: 'Phone number, file name, file content and mimeType are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -25,8 +25,15 @@ serve(async (req) => {
       });
     }
 
-    const parentFolderId = "1PwsXLaJFr6_D6WVoH2XlcCKRWnD1E1EY";
-    const patientUploadFolderId = await findOrCreatePatientUploadFolder(accessToken, patientId, parentFolderId);
+    const patientFolderId = await findPatientFolder(accessToken, phoneNumber);
+    if (!patientFolderId) {
+        return new Response(JSON.stringify({ error: 'Patient folder not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    const uploadsFolderId = await findOrCreateUploadsFolder(accessToken, patientFolderId);
 
     const parts = fileContent.split(',');
     const base64Data = parts[1];
@@ -34,7 +41,7 @@ serve(async (req) => {
 
     const fileMetadata = {
         name: fileName,
-        parents: [patientUploadFolderId]
+        parents: [uploadsFolderId]
     };
 
     const boundary = '-------314159265358979323846';
@@ -84,14 +91,34 @@ serve(async (req) => {
   }
 });
 
-async function findOrCreatePatientUploadFolder(accessToken: string, patientId: string, parentFolderId: string): Promise<string> {
-    const searchQuery = encodeURIComponent(`'${parentFolderId}' in parents and name='${patientId}' and mimeType='application/vnd.google-apps.folder'`);
+
+async function findPatientFolder(accessToken: string, phoneNumber: string): Promise<string | null> {
+    const searchQuery = encodeURIComponent(`fullText contains '${phoneNumber}' and mimeType='application/vnd.google-apps.document'`);
+    const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&fields=files(parents)`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    if (!searchResponse.ok) {
+        throw new Error('Failed to search for patient folder.');
+    }
+    const searchData = await searchResponse.json();
+    const matchingDocs = searchData.files || [];
+    if (matchingDocs.length === 0) {
+        return null;
+    }
+    if (matchingDocs[0].parents && matchingDocs[0].parents.length > 0) {
+        return matchingDocs[0].parents[0];
+    }
+    return null;
+}
+
+async function findOrCreateUploadsFolder(accessToken: string, parentFolderId: string): Promise<string> {
+    const searchQuery = encodeURIComponent(`'${parentFolderId}' in parents and name='uploads' and mimeType='application/vnd.google-apps.folder'`);
     const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${searchQuery}&fields=files(id)`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
     });
 
     if (!searchResponse.ok) {
-        throw new Error('Failed to search for patient upload folder.');
+        throw new Error('Failed to search for uploads folder.');
     }
 
     const searchData = await searchResponse.json();
@@ -100,7 +127,7 @@ async function findOrCreatePatientUploadFolder(accessToken: string, patientId: s
     }
 
     const folderMetadata = {
-        name: patientId,
+        name: 'uploads',
         mimeType: 'application/vnd.google-apps.folder',
         parents: [parentFolderId]
     };
@@ -114,7 +141,7 @@ async function findOrCreatePatientUploadFolder(accessToken: string, patientId: s
     });
 
     if (!createResponse.ok) {
-        throw new Error('Failed to create patient upload folder.');
+        throw new Error('Failed to create uploads folder.');
     }
 
     const newFolder = await createResponse.json();
