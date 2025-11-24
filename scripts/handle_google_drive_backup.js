@@ -51,6 +51,10 @@ async function findOrCreateFolder(folderName) {
 }
 
 async function uploadBackup(folderId) {
+    if (!fs.existsSync(BACKUP_FILE_PATH)) {
+        throw new Error(`Backup file not found at path: ${BACKUP_FILE_PATH}`);
+    }
+
     const fileName = path.basename(BACKUP_FILE_PATH);
     const fileSize = fs.statSync(BACKUP_FILE_PATH).size;
     const fileMetadata = {
