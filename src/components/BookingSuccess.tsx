@@ -59,25 +59,17 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({ paymentOption }) => {
 
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-yellow-800 text-sm">
-            <strong>Important:</strong> To reschedule or cancel, please log in to the My Space page.
+            <strong>Important:</strong> If you need to reschedule or cancel your appointment,
+            please call us at least 24 hours in advance.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            onClick={() => window.location.href = '/my-space'}
-            className="w-full"
-            variant="secondary"
-          >
-            Go to My Space
-          </Button>
-          <Button
-            onClick={() => window.location.href = '/'}
-            className="w-full"
-          >
-            Back to Home
-          </Button>
-        </div>
+        <Button
+          onClick={() => window.location.href = '/'}
+          className="w-full"
+        >
+          Back to Home
+        </Button>
       </CardContent>
     </Card>
   );

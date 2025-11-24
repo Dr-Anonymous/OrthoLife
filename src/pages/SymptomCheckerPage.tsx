@@ -104,9 +104,24 @@ const SymptomCheckerPage = () => {
               <Activity className="h-12 w-12 mx-auto mb-4 text-primary" />
               <h1 className="text-3xl md:text-4xl font-bold mb-4">AI Symptom Checker</h1>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Get preliminary health insights based on your symptoms. Our AI assistant will guide you on the next steps.
+                Get preliminary health insights based on your symptoms. Our AI assistant will help guide you on the next steps.
               </p>
             </div>
+
+            <Card className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+              <CardHeader>
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
+                  <div>
+                    <CardTitle className="text-orange-900 dark:text-orange-100">Important Disclaimer</CardTitle>
+                    <CardDescription className="text-orange-800 dark:text-orange-200">
+                      This tool provides preliminary information only and is NOT a substitute for professional medical advice, diagnosis, or treatment.
+                      Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
 
             <div className="grid gap-6 md:grid-cols-2 mb-6">
               <Card>
@@ -231,20 +246,6 @@ const SymptomCheckerPage = () => {
                       </Button>
                     </div>
                   </CardContent>
-                </Card>
-                <Card className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-950/20">
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
-                      <div>
-                        <CardTitle className="text-orange-900 dark:text-orange-100">Important Disclaimer</CardTitle>
-                        <CardDescription className="text-orange-800 dark:text-orange-200">
-                          This tool provides preliminary information only and is NOT a substitute for professional medical advice, diagnosis, or treatment. 
-                          Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
                 </Card>
               </div>
             )}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
-import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PatientDetailsForm from '@/components/PatientDetailsForm';
@@ -43,17 +42,14 @@ const DiagnosticsPage = () => {
   });
   const { toast } = useToast();
   const location = useLocation();
-  const { user } = useAuth();
 
   useEffect(() => {
     trackEvent({
       eventType: "page_view",
       path: location.pathname,
-      user_phone: user?.phoneNumber,
-      user_name: user?.displayName,
       details: { page: 'diagnostics' }
     });
-  }, [location.pathname, user]);
+  }, [location.pathname]);
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -185,8 +181,6 @@ const DiagnosticsPage = () => {
     trackEvent({
       eventType: "add_to_cart",
       path: location.pathname,
-      user_phone: user?.phoneNumber,
-      user_name: user?.displayName,
       details: {
         page: 'diagnostics',
         testId: test.id,
@@ -267,8 +261,6 @@ const DiagnosticsPage = () => {
       trackEvent({
         eventType: "purchase",
         path: location.pathname,
-        user_phone: user?.phoneNumber,
-        user_name: user?.displayName,
         details: {
           page: 'diagnostics',
           items: items,

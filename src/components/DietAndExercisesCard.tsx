@@ -7,9 +7,10 @@ import { isTelugu } from '../lib/languageUtils';
 
 interface DietAndExercisesCardProps {
   advice?: string;
+  patientName: string;
 }
 
-const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) => {
+const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice, patientName }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const adviceLines = advice ? advice.split('\n').filter(line => line.trim() !== '') : [];
@@ -51,7 +52,7 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) =
       <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
         <div className="flex items-center mb-4">
           <ClipboardList className="h-6 w-6 text-blue-500 mr-3" />
-          <h2 className="text-2xl font-semibold leading-none tracking-tight">{t('dietAndExercisesCard.title')}</h2>
+          <h2 className="text-2xl font-semibold leading-none tracking-tight">{t('dietAndExercisesCard.title', { patientName })}</h2>
         </div>
         <div className="flex-grow">
           {adviceLines.length > 0 ? (

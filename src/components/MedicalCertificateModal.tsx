@@ -23,8 +23,6 @@ export interface CertificateData {
   treatmentFromDate: Date;
   rejoinDate?: Date;
   rejoinActivity?: string;
-  certificateDate: Date;
-  consultationDate: Date;
 }
 
 const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpen, onClose, onSubmit, patientName }) => {
@@ -34,17 +32,9 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
   const [rejoinDate, setRejoinDate] = useState<Date | undefined>();
   const [rejoinActivity, setRejoinActivity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRestPeriodDatePickerOpen, setIsRestPeriodDatePickerOpen] = useState(false);
-  const [isTreatmentFromDatePickerOpen, setIsTreatmentFromDatePickerOpen] = useState(false);
-  const [isRejoinDatePickerOpen, setIsRejoinDatePickerOpen] = useState(false);
-  const [certificateDate, setCertificateDate] = useState<Date | undefined>(new Date());
-  const [consultationDate, setConsultationDate] = useState<Date | undefined>(new Date());
-  const [isCertificateDatePickerOpen, setIsCertificateDatePickerOpen] = useState(false);
-  const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
-
 
   const handleSubmit = () => {
-    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate || !certificateDate || !consultationDate) {
+    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate) {
       // Basic validation
       return;
     }
@@ -55,20 +45,12 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
       treatmentFromDate,
       rejoinDate,
       rejoinActivity,
-      certificateDate,
-      consultationDate,
     });
     // The parent component will handle closing the modal on success
     setIsSubmitting(false);
   };
 
   const restPeriodEndDate = restPeriodStartDate && restPeriodDays ? addDays(restPeriodStartDate, Number(restPeriodDays) -1) : null;
-
-    useEffect(() => {
-        if (restPeriodStartDate) {
-            setConsultationDate(restPeriodStartDate);
-        }
-    }, [restPeriodStartDate]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -81,99 +63,6 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-                Certificate Date
-            </Label>
-            <Popover open={isCertificateDatePickerOpen} onOpenChange={setIsCertificateDatePickerOpen}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        className={cn(
-                            "col-span-3 justify-start text-left font-normal",
-                            !certificateDate && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {certificateDate ? format(certificateDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar
-                        mode="single"
-                        selected={certificateDate}
-                        onSelect={(date) => {
-                            setCertificateDate(date);
-                            setIsCertificateDatePickerOpen(false);
-                        }}
-                        initialFocus
-                    />
-                </PopoverContent>
-            </Popover>
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-                First Consultation
-            </Label>
-            <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        className={cn(
-                            "col-span-3 justify-start text-left font-normal",
-                            !consultationDate && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {consultationDate ? format(consultationDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                    <Calendar
-                        mode="single"
-                        selected={consultationDate}
-                        onSelect={(date) => {
-                            setConsultationDate(date);
-                            setIsConsultationDatePickerOpen(false);
-                        }}
-                        initialFocus
-                    />
-                </PopoverContent>
-            </Popover>
-            </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-              Injury From
-            </Label>
-            <Popover open={isTreatmentFromDatePickerOpen} onOpenChange={setIsTreatmentFromDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "col-span-3 justify-start text-left font-normal",
-                    !treatmentFromDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {treatmentFromDate ? format(treatmentFromDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={treatmentFromDate}
-                  onSelect={(date) => {
-                    setTreatmentFromDate(date);
-                    setIsTreatmentFromDatePickerOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="rest-days" className="text-right">
               Rest (Days)
             </Label>
@@ -185,12 +74,11 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
               className="col-span-3"
             />
           </div>
-          
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">
               Rest From
             </Label>
-            <Popover open={isRestPeriodDatePickerOpen} onOpenChange={setIsRestPeriodDatePickerOpen}>
+            <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
@@ -207,28 +95,50 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
                 <Calendar
                   mode="single"
                   selected={restPeriodStartDate}
-                  onSelect={(date) => {
-                    setRestPeriodStartDate(date);
-                    setIsRestPeriodDatePickerOpen(false);
-                  }}
+                  onSelect={setRestPeriodStartDate}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
           </div>
-          
            <div className="grid grid-cols-4 items-center gap-4">
                <Label className="text-right col-span-1">Rest To</Label>
                <div className="col-span-3 text-sm font-medium text-muted-foreground h-10 flex items-center">
                    {restPeriodEndDate ? format(restPeriodEndDate, "PPP") : 'Please enter rest days & start date'}
                </div>
-           </div>   
-          
+           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">
+              Treatment From
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "col-span-3 justify-start text-left font-normal",
+                    !treatmentFromDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {treatmentFromDate ? format(treatmentFromDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={treatmentFromDate}
+                  onSelect={setTreatmentFromDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">
               Rejoin Date
             </Label>
-            <Popover open={isRejoinDatePickerOpen} onOpenChange={setIsRejoinDatePickerOpen}>
+            <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
@@ -245,16 +155,12 @@ const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpe
                 <Calendar
                   mode="single"
                   selected={rejoinDate}
-                  onSelect={(date) => {
-                    setRejoinDate(date);
-                    setIsRejoinDatePickerOpen(false);
-                  }}
+                  onSelect={setRejoinDate}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
           </div>
-          
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="rejoin-activity" className="text-right">
               Rejoin Activity
