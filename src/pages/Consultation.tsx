@@ -618,6 +618,7 @@ const Consultation = () => {
   }, [extraData, cursorPosition]);
 
   const handleSaveAndPrint = async () => {
+    const previousStatus = selectedConsultation?.status;
     const saved = await saveChanges({ markAsCompleted: true });
     if (saved) {
       if (isGenerateDocEnabledRef.current) {
@@ -625,8 +626,8 @@ const Consultation = () => {
       }
       setIsReadyToPrint(true);
 
-      // Send WhatsApp notification
-      if (editablePatientDetails && editablePatientDetails.phone) {
+      // Send WhatsApp notification only if the status was NOT already completed
+      if (previousStatus !== 'completed' && editablePatientDetails && editablePatientDetails.phone) {
         try {
           const message = `👋 Hi ${editablePatientDetails.name},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- View your prescription 📋\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\nhttps://ortho.life/auth?phone=${editablePatientDetails.phone}`;
           const { error } = await supabase.functions.invoke('send-whatsapp', {
@@ -634,8 +635,8 @@ const Consultation = () => {
           });
           if (error) throw error;
         } catch (err) {
-            console.error('Failed to send WhatsApp notification:', err);
-            // Don't show an error toast to the user as the primary action (print/save) succeeded
+          console.error('Failed to send WhatsApp notification:', err);
+          // Don't show an error toast to the user as the primary action (print/save) succeeded
         }
       }
     }
