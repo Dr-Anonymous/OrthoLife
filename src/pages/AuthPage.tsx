@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { auth } from '@/integrations/firebase/client';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import Footer from '@/components/Footer';
 const AuthPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { phone: phoneParam } = useParams();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -30,11 +31,11 @@ const AuthPage = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const phoneFromUrl = searchParams.get('phone');
+    const phoneFromUrl = searchParams.get('phone') || phoneParam;
     if (phoneFromUrl) {
       setPhone(phoneFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, phoneParam]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Sanitize the input to only allow digits and keep the last 10
@@ -91,7 +92,7 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      if(confirmationResult) {
+      if (confirmationResult) {
         await confirmationResult.confirm(otp);
       }
       toast.success('Successfully logged in!');
@@ -107,7 +108,7 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-       <div id="recaptcha-container"></div>
+      <div id="recaptcha-container"></div>
       <Header />
       <main className="flex-grow flex items-center justify-center p-4 py-24 bg-gradient-to-b from-background to-secondary/20">
         <Card className="w-full max-w-md">
@@ -169,9 +170,9 @@ const AuthPage = () => {
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Verifying...' : 'Verify OTP'}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     className="w-full"
                     onClick={() => {
                       setIsOtpSent(false);

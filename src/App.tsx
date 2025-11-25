@@ -113,9 +113,10 @@ const App = () => {
                 <Route path="/faqs" element={<FAQPage />} />
                 <Route path="/resources" element={<ResourcesPage installPrompt={installPrompt} handleInstallClick={handleInstallClick} />} />
                 <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
-                
+
                 {/* login routes */}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/p/:phone" element={<AuthPage />} />
                 <Route path="/my-space" element={<MySpace />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/whatsapp" element={<SendWhatsApp />} />
