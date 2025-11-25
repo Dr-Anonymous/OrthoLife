@@ -9,7 +9,7 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
 const BACKUP_FILE_PATH = process.env.BACKUP_FILE_PATH;
-const BACKUP_FOLDER_NAME = 'Database Backups';
+const BACKUP_FOLDER_ID = '1K_5A3XPE6TOopH4uRM2vgOmb3iRwRhEI';
 const DAILY_RETENTION_DAYS = 30;
 const WEEKLY_RETENTION_WEEKS = 4;
 
@@ -26,29 +26,6 @@ const oauth2Client = new google.auth.OAuth2(
 oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
-
-async function findOrCreateFolder(folderName) {
-    const res = await drive.files.list({
-        q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
-        fields: 'files(id)',
-    });
-
-    if (res.data.files.length > 0) {
-        console.log(`Found folder '${folderName}' with ID: ${res.data.files[0].id}`);
-        return res.data.files[0].id;
-    } else {
-        const fileMetadata = {
-            name: folderName,
-            mimeType: 'application/vnd.google-apps.folder',
-        };
-        const folder = await drive.files.create({
-            resource: fileMetadata,
-            fields: 'id',
-        });
-        console.log(`Created folder '${folderName}' with ID: ${folder.data.id}`);
-        return folder.data.id;
-    }
-}
 
 async function uploadBackup(folderId) {
     if (!fs.existsSync(BACKUP_FILE_PATH)) {
@@ -124,9 +101,8 @@ async function cleanupOldBackups(folderId) {
 
 async function main() {
     try {
-        const folderId = await findOrCreateFolder(BACKUP_FOLDER_NAME);
-        await uploadBackup(folderId);
-        await cleanupOldBackups(folderId);
+        await uploadBackup(BACKUP_FOLDER_ID);
+        await cleanupOldBackups(BACKUP_FOLDER_ID);
     } catch (error) {
         console.error('An error occurred during the backup process:', error.message);
         process.exit(1);
