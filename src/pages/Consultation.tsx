@@ -618,27 +618,12 @@ const Consultation = () => {
   }, [extraData, cursorPosition]);
 
   const handleSaveAndPrint = async () => {
-    const previousStatus = selectedConsultation?.status;
     const saved = await saveChanges({ markAsCompleted: true });
     if (saved) {
       if (isGenerateDocEnabledRef.current) {
         submitForm(undefined, { skipSave: true });
       }
       setIsReadyToPrint(true);
-
-      // Send WhatsApp notification only if the status was NOT already completed
-      if (previousStatus !== 'completed' && editablePatientDetails && editablePatientDetails.phone) {
-        try {
-          const message = `👋 Hi ${editablePatientDetails.name},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- View your prescription 📋\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\nhttps://ortho.life/auth?phone=${editablePatientDetails.phone}`;
-          const { error } = await supabase.functions.invoke('send-whatsapp', {
-            body: { number: editablePatientDetails.phone, message },
-          });
-          if (error) throw error;
-        } catch (err) {
-          console.error('Failed to send WhatsApp notification:', err);
-          // Don't show an error toast to the user as the primary action (print/save) succeeded
-        }
-      }
     }
   };
 
@@ -935,6 +920,10 @@ const Consultation = () => {
                     })
                     .eq('id', key);
                   if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
+
+                  if (status === 'completed' && serverConsultation.status !== 'completed') {
+                    sendConsultationCompletionNotification(patientDetails.name, patientDetails.phone);
+                  }
                 }
 
                 await offlineStore.removeItem(key);
@@ -1413,6 +1402,22 @@ const Consultation = () => {
     }));
   };
 
+  const sendConsultationCompletionNotification = async (patientName: string, patientPhone: string) => {
+    try {
+      const isTelugu = i18n.language === 'te';
+      const message = isTelugu
+        ? `👋 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను చూడవచ్చు 📋\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలను చదవవచ్చు\n- మందులు 💊 & పరీక్షలను 🧪 ఆర్డర్ చేయవచ్చు-\n\nhttps://ortho.life/auth?phone=${patientPhone}`
+        : `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- View your prescription 📋\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\nhttps://ortho.life/auth?phone=${patientPhone}`;
+
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: { number: patientPhone, message },
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Failed to send WhatsApp notification:', err);
+    }
+  };
+
   const saveChanges = async (options: { markAsCompleted?: boolean } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) {
       toast({ variant: 'destructive', title: 'Error', description: 'No consultation selected.' });
@@ -1485,6 +1490,10 @@ const Consultation = () => {
             .update(consultationUpdatePayload)
             .eq('id', selectedConsultation.id);
           if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
+        }
+
+        if (statusChanged && newStatus === 'completed' && selectedConsultation.status !== 'completed') {
+          sendConsultationCompletionNotification(editablePatientDetails.name, editablePatientDetails.phone);
         }
 
         await offlineStore.removeItem(selectedConsultation.id);
