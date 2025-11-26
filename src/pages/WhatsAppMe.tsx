@@ -131,6 +131,33 @@ const WhatsAppMe = () => {
     }
   };
 
+
+  const getHeaderText = (type: number) => {
+    switch (type) {
+      case 2:
+      case 3:
+      case 4:
+        return "Dr Samuel Manoj Cherukuri\n98668 12555";
+      default:
+        return "";
+    }
+  };
+
+  const getAddressText = (type: number) => {
+    switch (type) {
+      case 2:
+        return new Date().getDay() === 0
+          ? "\n\nAfter *_4 pm_* at  *OrthoLife* :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv"
+          : "\n\nAfter *_7:30 pm_* at  *OrthoLife* :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv";
+      case 3:
+        return "\n\n9-5 pm at:\nLaxmi Hospital,\nGudarigunta, Kakinada\n\nLocation:\nhttps://g.co/kgs/5Xkr4FU";
+      case 4:
+        return "\n\n *5-7 pm* at:\n _Badam clinical laboratory_ \nhttps://g.co/kgs/eAgkp5S";
+      default:
+        return "";
+    }
+  };
+
   const process = (e: number) => {
     if (!phone) {
       showError('Please enter a phone number');
@@ -150,22 +177,19 @@ const WhatsAppMe = () => {
       return;
     }
 
-    let address;
-    switch (e) {
-      case 2:
-        address = new Date().getDay() === 0 ? "Dr%20Samuel%20Manoj%20Cherukuri%0A_98668%2012555_%0A%0AAfter%20%2A_4%20pm_%2A%20at%20%20%2AOrthoLife%2A%20%3A%0ARoad%20number%203%2C%0AR%20R%20Nagar%2C%20near%20RTO%20office%2C%0AKakinada%0A%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F6ZEukv" : "Dr%20Samuel%20Manoj%20Cherukuri%0A_98668%2012555_%0A%0AAfter%20%2A_7%3A30%20pm_%2A%20at%20%20%2AOrthoLife%2A%20%3A%0ARoad%20number%203%2C%0AR%20R%20Nagar%2C%20near%20RTO%20office%2C%0AKakinada%0A%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F6ZEukv";
-        break;
-      case 3:
-        address = "_Dr%20Samuel%20Manoj%20Cherukuri_%0A%2A98668%2012555%2A%20%0A%0A9-5%20pm%20at%3A%0ALaxmi%20Hospital%2C%0AGudarigunta%2C%20Kakinada%0A%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F5Xkr4FU";
-        break;
-      case 4:
-        address = "_Dr%20Samuel%20Manoj%20Cherukuri_%20%0A9866812555%0A%0A%20%2A5-7%20pm%2A%20at%3A%0A%20_Badam%20clinical%20laboratory_%20%0Ahttps%3A%2F%2Fg.co%2Fkgs%2FeAgkp5S";
-        break;
-      default:
-        address = "%2F";
+
+
+    let header = getHeaderText(e);
+    let addressPart = getAddressText(e);
+
+    let addressEncoded;
+    if (e === 2 || e === 3 || e === 4) {
+      addressEncoded = encodeURIComponent(header + addressPart);
+    } else {
+      addressEncoded = "%2F";
     }
 
-    const finalUrl = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=91${formattedPhone}&text=${address}` : `https://wa.me/91${formattedPhone}?text=${address}`;
+    const finalUrl = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=91${formattedPhone}&text=${addressEncoded}` : `https://wa.me/91${formattedPhone}?text=${addressEncoded}`;
     window.location.href = finalUrl;
   };
 
@@ -208,7 +232,16 @@ const WhatsAppMe = () => {
       return;
     }
 
-    window.location.href = `sms:${formattedPhone}?body=Dr%20Samuel%20Manoj%20Cherukuri%0A098668%2012555%0A%0A9-5pm%20at%3A%0ALaxmi%20Hospital%2C%20Gudarigunta%2C%20Kakinada%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F5Xkr4FU%0A%0AAfter%207pm%20at%20%28clinic%20address%29%3A%0ARoad%20number%203%2C%0AR%20R%20Nagar%2C%20near%20RTO%20office%2C%20Kakinada%0ALocation%3A%0Ahttps%3A%2F%2Fg.co%2Fkgs%2F6ZEukv`;
+    const header = getHeaderText(2);
+    const address3 = getAddressText(3);
+    const address4 = getAddressText(4);
+    const address2 = getAddressText(2);
+
+    // Combine addresses: Header + Laxmi (3) + Badam (4) + Clinic (2)
+    const body = `${header}${address3}${address4}${address2}`;
+    const encodedBody = encodeURIComponent(body);
+
+    window.location.href = `sms:${formattedPhone}?body=${encodedBody}`;
   };
 
   const handlePasteClick = async () => {
