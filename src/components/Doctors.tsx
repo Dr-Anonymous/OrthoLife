@@ -27,7 +27,7 @@ const doctors: Doctor[] = [
     {
         name: "Dr. Samuel Manoj Cherukuri",
         title: "Orthopedic Surgeon",
-        qualifications: "M.S Ortho (KMC Manipal)",
+        qualifications: "M.S Ortho (Manipal)",
         bio: "I'm an Orthopaedic surgeon (M.S) trained at the prestigious Kasturba Hospital (KMC), Manipal. I practice orthopaedics in and around the capital city of Kakinada district of Andhra Pradesh, India.",
         image: "/images/doctors/manoj.jpg",
         specialties: [
