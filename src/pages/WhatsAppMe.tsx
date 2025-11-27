@@ -32,6 +32,19 @@ interface RecentChat {
   timestamp: number;
 }
 
+declare global {
+  interface Window {
+    Android?: {
+      isWhatsAppInstalled(): boolean;
+      isWhatsAppBusinessInstalled(): boolean;
+      getClipboardText(): string;
+    };
+    AndroidClipboard?: {
+      getClipboardText(): string;
+    };
+  }
+}
+
 const WhatsAppMe = () => {
   const [phone, setPhone] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -43,6 +56,9 @@ const WhatsAppMe = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
   const [recentChats, setRecentChats] = useState<RecentChat[]>([]);
+  const [isSmsMode, setIsSmsMode] = useState(false);
+  const [recentCallsOpen, setRecentCallsOpen] = useState("");
+  const [recentChatsOpen, setRecentChatsOpen] = useState("");
 
   const getRecentChats = (): RecentChat[] => {
     const chats = localStorage.getItem('recentChats');
@@ -132,27 +148,17 @@ const WhatsAppMe = () => {
   };
 
 
-  const getHeaderText = (type: number) => {
+  const getMessageForType = (type: number) => {
+    const header = "Dr Samuel Manoj Cherukuri\n98668 12555";
     switch (type) {
-      case 2:
-      case 3:
-      case 4:
-        return "Dr Samuel Manoj Cherukuri\n98668 12555";
-      default:
-        return "";
-    }
-  };
-
-  const getAddressText = (type: number) => {
-    switch (type) {
-      case 2:
-        return new Date().getDay() === 0
-          ? "\n\nAfter 4 pm at  OrthoLife :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv"
-          : "\n\nAfter 7:30 pm at  OrthoLife :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv";
-      case 3:
-        return "\n\n9-5 pm at:\nLaxmi Hospital,\nGudarigunta, Kakinada\n\nLocation:\nhttps://g.co/kgs/5Xkr4FU";
-      case 4:
-        return "\n\n5-7 pm at:\n Badam clinical laboratory \nhttps://g.co/kgs/eAgkp5S";
+      case 2: // Clinic
+        const isSunday = new Date().getDay() === 0;
+        const time = isSunday ? "After 4 pm" : "After 7:30 pm";
+        return `${header}\n\n${time} at  OrthoLife :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv`;
+      case 3: // Laxmi
+        return `${header}\n\n9-5 pm at:\nLaxmi Hospital,\nGudarigunta, Kakinada\n\nLocation:\nhttps://g.co/kgs/5Xkr4FU`;
+      case 4: // Badam
+        return `${header}\n\n5-7 pm at:\n Badam clinical laboratory \nhttps://g.co/kgs/eAgkp5S`;
       default:
         return "";
     }
@@ -177,20 +183,32 @@ const WhatsAppMe = () => {
       return;
     }
 
+    const message = getMessageForType(e);
 
-
-    let header = getHeaderText(e);
-    let addressPart = getAddressText(e);
-
-    let addressEncoded;
-    if (e === 2 || e === 3 || e === 4) {
-      addressEncoded = encodeURIComponent(header + addressPart);
+    // Check if WhatsApp is installed
+    let isWhatsAppAvailable = false;
+    if (isSmsMode) {
+      isWhatsAppAvailable = false; // Force SMS if SMS mode is active
+    } else if (window.Android) {
+      isWhatsAppAvailable = window.Android.isWhatsAppInstalled() || window.Android.isWhatsAppBusinessInstalled();
     } else {
-      addressEncoded = "%2F";
+      // Fallback for non-Android environments
+      isWhatsAppAvailable = true;
     }
 
-    const finalUrl = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=91${formattedPhone}&text=${addressEncoded}` : `https://wa.me/91${formattedPhone}?text=${addressEncoded}`;
-    window.location.href = finalUrl;
+    if (isWhatsAppAvailable) {
+      // For WhatsApp, if message is empty (e.g. type 1), use %2F to just open chat
+      const textParam = message ? encodeURIComponent(message) : "%2F";
+      const finalUrl = (window.AndroidClipboard || window.Android)
+        ? `whatsapp://send?phone=91${formattedPhone}&text=${textParam}`
+        : `https://wa.me/91${formattedPhone}?text=${textParam}`;
+      window.location.href = finalUrl;
+    } else {
+      // Send SMS
+      // For SMS, if message is empty, we just open the SMS app for the number
+      const encodedBody = encodeURIComponent(message);
+      window.location.href = `sms:${formattedPhone}?body=${encodedBody}`;
+    }
   };
 
   const inform = (e: number) => {
@@ -211,7 +229,7 @@ const WhatsAppMe = () => {
         address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedPhone}` : `https://wa.me/917093551714?text=${formattedPhone}`;
         break;
       case 2:
-        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=919652377616&text=${formattedPhone}` : `https://wa.me/919652377616?text=${formattedPhone}`;
+        address = `sms:+919983849838?body=${formattedPhone}`;
         break;
       default:
         address = "%2F";
@@ -220,35 +238,13 @@ const WhatsAppMe = () => {
     window.location.href = address;
   };
 
-  const sms = () => {
-    if (!phone) {
-      showError('Please enter a phone number');
-      return;
-    }
 
-    const formattedPhone = formatPhoneNumber(phone);
-    if (!formattedPhone) {
-      showError('Please enter a valid phone number');
-      return;
-    }
-
-    const header = getHeaderText(2);
-    const address3 = getAddressText(3);
-    const address4 = getAddressText(4);
-    const address2 = getAddressText(2);
-
-    // Combine addresses: Header + Laxmi (3) + Badam (4) + Clinic (2)
-    const body = `${header}${address3}${address4}${address2}`;
-    const encodedBody = encodeURIComponent(body);
-
-    window.location.href = `sms:${formattedPhone}?body=${encodedBody}`;
-  };
 
   const handlePasteClick = async () => {
     setIsProcessing(true);
     let text;
     try {
-      const clipboard = (window as { AndroidClipboard?: { getClipboardText: () => string } }).AndroidClipboard;
+      const clipboard = window.Android || window.AndroidClipboard;
       if (clipboard && clipboard.getClipboardText) {
         text = clipboard.getClipboardText();
       } else {
@@ -412,7 +408,7 @@ const WhatsAppMe = () => {
         </div>
 
         {recentCalls.length > 0 && (
-          <Accordion type="single" collapsible>
+          <Accordion type="single" collapsible value={recentCallsOpen} onValueChange={setRecentCallsOpen}>
             <AccordionItem value="recent-calls">
               <AccordionTrigger>
                 <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -431,6 +427,7 @@ const WhatsAppMe = () => {
                         <Button onClick={() => {
                           setPhone(call.number);
                           setDisplayName(call.name);
+                          setRecentCallsOpen("");
                         }} className="mb-1">
                           Select
                         </Button>
@@ -447,7 +444,7 @@ const WhatsAppMe = () => {
         )}
 
         {recentChats.length > 0 && (
-          <Accordion type="single" collapsible>
+          <Accordion type="single" collapsible value={recentChatsOpen} onValueChange={setRecentChatsOpen}>
             <AccordionItem value="recent-chats">
               <AccordionTrigger>
                 <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -466,6 +463,7 @@ const WhatsAppMe = () => {
                         <Button onClick={() => {
                           setPhone(chat.number);
                           setDisplayName(chat.name);
+                          setRecentChatsOpen("");
                         }} className="mb-1">
                           Select
                         </Button>
@@ -487,8 +485,8 @@ const WhatsAppMe = () => {
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <Button
-              variant="outline"
-              onClick={sms}
+              variant={isSmsMode ? "default" : "outline"}
+              onClick={() => setIsSmsMode(!isSmsMode)}
               className="h-auto py-2 flex-col gap-1"
             >
               <MessageSquare className="w-4 h-4" />
@@ -549,7 +547,7 @@ const WhatsAppMe = () => {
               className="h-auto py-2 flex-col gap-1"
             >
               <User className="w-4 h-4" />
-              <span>OP Room</span>
+              <span>OrthoLife</span>
             </Button>
           </div>
         </div>
