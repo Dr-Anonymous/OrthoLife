@@ -13,17 +13,17 @@ const Contact = () => {
         </div>
 
         <div className="max-w-2xl mx-auto space-y-8">
-          <div onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} className="flex items-start gap-4">
+          <div onClick={(e) => { e.preventDefault(); window.location.href = 'tel:+919983849838'; }} className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <Phone size={24} />
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-1">Phone Number</h3>
-              <p className="text-gray-700">9866812555</p>
+              <p className="text-gray-700">99 838 49 838</p>
             </div>
           </div>
 
-          <div onClick={(e) => {e.preventDefault();window.location.href='https://g.page/orthosam/';}} className="flex items-start gap-4">
+          <div onClick={(e) => { e.preventDefault(); window.location.href = 'https://g.page/orthosam/'; }} className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <MapPin size={24} />
             </div>
@@ -33,7 +33,7 @@ const Contact = () => {
             </div>
           </div>
 
-          <div onClick={(e) => {e.preventDefault();window.location.href='mailto:info@ortho.life';}} className="flex items-start gap-4">
+          <div onClick={(e) => { e.preventDefault(); window.location.href = 'mailto:info@ortho.life'; }} className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <Mail size={24} />
             </div>

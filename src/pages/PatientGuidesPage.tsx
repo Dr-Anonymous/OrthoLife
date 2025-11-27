@@ -72,23 +72,23 @@ const PatientGuidesPage = () => {
   const handleDownloadPdf = async (guideId: number) => {
     setDownloadingId(guideId);
     try {
-        const { data: guide, error } = await supabase
-            .from('guides')
-            .select('title, content, guide_translations(*)')
-            .eq('id', guideId)
-            .single();
+      const { data: guide, error } = await supabase
+        .from('guides')
+        .select('title, content, guide_translations(*)')
+        .eq('id', guideId)
+        .single();
 
-        if (error) throw error;
-        if (guide) {
-            const translation = guide.guide_translations.find(t => t.language === i18n.language);
-            const contentToSave = translation?.content || guide.content;
-            const titleToSave = translation?.title || guide.title;
-            await generatePdf(contentToSave, titleToSave);
-        }
+      if (error) throw error;
+      if (guide) {
+        const translation = guide.guide_translations.find(t => t.language === i18n.language);
+        const contentToSave = translation?.content || guide.content;
+        const titleToSave = translation?.title || guide.title;
+        await generatePdf(contentToSave, titleToSave);
+      }
     } catch (error) {
-        console.error("Error fetching guide content for PDF:", error);
+      console.error("Error fetching guide content for PDF:", error);
     } finally {
-        setDownloadingId(null);
+      setDownloadingId(null);
     }
   };
 
@@ -169,10 +169,10 @@ const PatientGuidesPage = () => {
 
   const handleCategoryClick = (categoryId: number | null) => {
     if (categoryId === null) {
-    // Already on "All" → do nothing
-    if (selectedCategory === null) return;
-    // Switching from a category → reset to All
-    setSelectedCategory(null);
+      // Already on "All" → do nothing
+      if (selectedCategory === null) return;
+      // Switching from a category → reset to All
+      setSelectedCategory(null);
     } else if (categoryId === selectedCategory) {
       // Clicking the same category again → reset to All
       setSelectedCategory(null);
@@ -180,7 +180,7 @@ const PatientGuidesPage = () => {
       // Switching to a new category
       setSelectedCategory(categoryId);
     }
-    
+
     setGuides([]); // Clear old guides immediately
   };
 
@@ -204,8 +204,8 @@ const PatientGuidesPage = () => {
     const searchInTelugu = isTelugu(term);
     const termLower = searchInTelugu ? term : term.toLowerCase();
     const searchWords = term.split(/\s+/).filter(w => {
-        const lowerW = w.toLowerCase();
-        return w.length > 0 && !['exercises', 'diet'].includes(lowerW);
+      const lowerW = w.toLowerCase();
+      return w.length > 0 && !['exercises', 'diet'].includes(lowerW);
     });
 
     if (searchWords.length === 0) {
@@ -213,41 +213,41 @@ const PatientGuidesPage = () => {
     }
 
     const scoredGuides = guides.map(guide => {
-        let score = 0;
-        let title = '';
-        let description = '';
-        const category = guide.categories.name.toLowerCase();
+      let score = 0;
+      let title = '';
+      let description = '';
+      const category = guide.categories.name.toLowerCase();
 
-        if (searchInTelugu) {
-            const translation = guide.guide_translations.find(t => t.language === 'te');
-            if (translation) {
-                title = translation.title;
-                description = translation.description;
-            } else {
-                return { guide, score: 0 };
-            }
+      if (searchInTelugu) {
+        const translation = guide.guide_translations.find(t => t.language === 'te');
+        if (translation) {
+          title = translation.title;
+          description = translation.description;
         } else {
-            title = guide.title.toLowerCase();
-            description = guide.description.toLowerCase();
+          return { guide, score: 0 };
         }
+      } else {
+        title = guide.title.toLowerCase();
+        description = guide.description.toLowerCase();
+      }
 
-        if (title.includes(termLower)) score += 100;
-        if (description.includes(termLower)) score += 50;
+      if (title.includes(termLower)) score += 100;
+      if (description.includes(termLower)) score += 50;
 
-        searchWords.forEach(word => {
-            const wordCompare = searchInTelugu ? word : word.toLowerCase();
-            if (title.includes(wordCompare)) score += 10;
-            if (description.includes(wordCompare)) score += 5;
-            if (category.includes(word.toLowerCase())) score += 2;
-        });
+      searchWords.forEach(word => {
+        const wordCompare = searchInTelugu ? word : word.toLowerCase();
+        if (title.includes(wordCompare)) score += 10;
+        if (description.includes(wordCompare)) score += 5;
+        if (category.includes(word.toLowerCase())) score += 2;
+      });
 
-        return { guide, score };
+      return { guide, score };
     });
 
     const results = scoredGuides
-        .filter(item => item.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .map(item => item.guide);
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.guide);
 
     return results;
   }, [searchTerm, guides]);
@@ -267,7 +267,7 @@ const PatientGuidesPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
@@ -459,7 +459,7 @@ const PatientGuidesPage = () => {
                         </div>
                         <CardHeader>
                           <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="secondary">{guide.categories.name}</Badge>
+                            <Badge variant="secondary">{guide.categories.name}</Badge>
                           </div>
                           <CardTitle className="text-lg leading-tight">
                             {getTranslatedGuide(guide, i18n.language).title}
@@ -483,17 +483,17 @@ const PatientGuidesPage = () => {
                           </div>
                           <div className="flex gap-2 mt-auto">
                             <Button asChild size="sm" className="flex-1" onClick={(e) => e.stopPropagation()}>
-                                <Link to={`/guides/${guide.id}`} className="w-full justify-center">
-                                    <Eye size={14} className="md:mr-1" />
-                                    <span className="hidden md:inline">{t('guides.read')}</span>
-                                </Link>
+                              <Link to={`/guides/${guide.id}`} className="w-full justify-center">
+                                <Eye size={14} className="md:mr-1" />
+                                <span className="hidden md:inline">{t('guides.read')}</span>
+                              </Link>
                             </Button>
                             <Button size="sm" variant="outline" className="flex-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guide.id); }} disabled={downloadingId === guide.id}>
                               {downloadingId === guide.id ? '...' : <><Download size={14} className="md:mr-1" /><span className="hidden md:inline">{t('guides.pdf')}</span></>}
                             </Button>
                             <Button size="sm" variant="outline" className="flex-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(guide); }}>
-                                <Share2 size={14} className="md:mr-1" />
-                                <span className="hidden md:inline">{t('guides.share', 'Share')}</span>
+                              <Share2 size={14} className="md:mr-1" />
+                              <span className="hidden md:inline">{t('guides.share', 'Share')}</span>
                             </Button>
                           </div>
                         </CardContent>
@@ -514,7 +514,7 @@ const PatientGuidesPage = () => {
                 <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                   {t('guides.customGuide.description')}
                 </p>
-                <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20a%20custom%20exercise%20guide.';}} size="lg">
+                <Button onClick={(e) => { e.preventDefault(); window.location.href = 'https://wa.me/919983849838?text=Hi.%20I%27d%20like%20a%20custom%20exercise%20guide.'; }} size="lg">
                   {t('guides.customGuide.button')}
                 </Button>
               </CardContent>
@@ -522,7 +522,7 @@ const PatientGuidesPage = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

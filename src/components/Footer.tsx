@@ -19,10 +19,10 @@ const Footer = () => {
                   <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd"></path>
                 </svg>
               </a>
-              <a href="https://wa.me/919866812555" className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary transition-colors">
+              <a href="https://wa.me/919983849838" className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary transition-colors">
                 <span className="sr-only">WhatsApp</span>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fillRule="evenodd" d="M19.44 4.552A10.413 10.413 0 0 0 12.044 1.5C6.281 1.5 1.59 6.168 1.588 11.906a10.341 10.341 0 0 0 1.396 5.203L1.5 22.5l5.543 -1.447a10.481 10.481 0 0 0 4.997 1.266h0.004c5.762 0 10.453 -4.668 10.456 -10.406A10.321 10.321 0 0 0 19.44 4.552M12.044 20.562h-0.004a8.707 8.707 0 0 1 -4.423 -1.206l-0.317 -0.188 -3.289 0.859 0.878 -3.192 -0.207 -0.328A8.6 8.6 0 0 1 3.353 11.906c0 -4.769 3.9 -8.648 8.694 -8.648a8.672 8.672 0 0 1 8.687 8.655c-0.002 4.769 -3.9 8.649 -8.691 8.649m4.767 -6.478c-0.261 -0.13 -1.547 -0.759 -1.785 -0.846s-0.414 -0.13 -0.588 0.13 -0.675 0.844 -0.827 1.02 -0.305 0.195 -0.566 0.065 -1.103 -0.405 -2.101 -1.29c-0.777 -0.69 -1.301 -1.541 -1.453 -1.801s-0.016 -0.401 0.114 -0.531c0.118 -0.117 0.261 -0.304 0.392 -0.456s0.174 -0.261 0.261 -0.434 0.044 -0.325 -0.022 -0.455 -0.588 -1.41 -0.805 -1.931c-0.212 -0.507 -0.427 -0.438 -0.588 -0.446 -0.152 -0.007 -0.328 -0.009 -0.501 -0.009a0.962 0.962 0 0 0 -0.697 0.325c-0.24 0.261 -0.915 0.891 -0.915 2.169s0.938 2.516 1.067 2.69 1.842 2.8 4.463 3.926a15.141 15.141 0 0 0 1.49 0.547c0.626 0.198 1.195 0.17 1.645 0.103 0.502 -0.075 1.547 -0.629 1.764 -1.237s0.217 -1.128 0.152 -1.236 -0.24 -0.174 -0.501 -0.304" clip-rule="evenodd"/>
+                  <path fillRule="evenodd" d="M19.44 4.552A10.413 10.413 0 0 0 12.044 1.5C6.281 1.5 1.59 6.168 1.588 11.906a10.341 10.341 0 0 0 1.396 5.203L1.5 22.5l5.543 -1.447a10.481 10.481 0 0 0 4.997 1.266h0.004c5.762 0 10.453 -4.668 10.456 -10.406A10.321 10.321 0 0 0 19.44 4.552M12.044 20.562h-0.004a8.707 8.707 0 0 1 -4.423 -1.206l-0.317 -0.188 -3.289 0.859 0.878 -3.192 -0.207 -0.328A8.6 8.6 0 0 1 3.353 11.906c0 -4.769 3.9 -8.648 8.694 -8.648a8.672 8.672 0 0 1 8.687 8.655c-0.002 4.769 -3.9 8.649 -8.691 8.649m4.767 -6.478c-0.261 -0.13 -1.547 -0.759 -1.785 -0.846s-0.414 -0.13 -0.588 0.13 -0.675 0.844 -0.827 1.02 -0.305 0.195 -0.566 0.065 -1.103 -0.405 -2.101 -1.29c-0.777 -0.69 -1.301 -1.541 -1.453 -1.801s-0.016 -0.401 0.114 -0.531c0.118 -0.117 0.261 -0.304 0.392 -0.456s0.174 -0.261 0.261 -0.434 0.044 -0.325 -0.022 -0.455 -0.588 -1.41 -0.805 -1.931c-0.212 -0.507 -0.427 -0.438 -0.588 -0.446 -0.152 -0.007 -0.328 -0.009 -0.501 -0.009a0.962 0.962 0 0 0 -0.697 0.325c-0.24 0.261 -0.915 0.891 -0.915 2.169s0.938 2.516 1.067 2.69 1.842 2.8 4.463 3.926a15.141 15.141 0 0 0 1.49 0.547c0.626 0.198 1.195 0.17 1.645 0.103 0.502 -0.075 1.547 -0.629 1.764 -1.237s0.217 -1.128 0.152 -1.236 -0.24 -0.174 -0.501 -0.304" clip-rule="evenodd" />
                 </svg>
               </a>
               <a href="https://www.instagram.com/cherukurisamuelmanoj/" className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary transition-colors">
@@ -49,7 +49,7 @@ const Footer = () => {
               <li>
                 <a href="/#contact" className="hover:text-primary transition-colors">Contact</a>
               </li>
-               <li>
+              <li>
                 <a href="/legal" className="hover:text-primary transition-colors">Terms & Conditions</a>
               </li>
               <li>
@@ -69,7 +69,7 @@ const Footer = () => {
                 <CheckCircle size={16} className="text-secondary" />
                 <span>Arthroscopy</span>
               </li>
-               <li className="flex items-center gap-2">
+              <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
                 <span>Joint Replacement</span>
               </li>
@@ -87,15 +87,15 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold text-lg mb-4">Contact Info</h3>
             <ul className="space-y-4">
-              <li onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} className="flex items-center gap-3">
+              <li onClick={(e) => { e.preventDefault(); window.location.href = 'tel:+919983849838'; }} className="flex items-center gap-3">
                 <Phone size={18} className="text-secondary" />
-                <span>9866812555</span>
+                <span>99 838 49 838</span>
               </li>
-              <li onClick={(e) => {e.preventDefault();window.location.href='https://g.page/orthosam/';}} className="flex items-start gap-3">
+              <li onClick={(e) => { e.preventDefault(); window.location.href = 'https://g.page/orthosam/'; }} className="flex items-start gap-3">
                 <MapPin size={18} className="text-secondary mt-1" />
                 <span>Road 3, R R Nagar, Kakinada- 03</span>
               </li>
-              <li onClick={(e) => {e.preventDefault();window.location.href='mailto:info@ortho.life';}} className="flex items-center gap-3">
+              <li onClick={(e) => { e.preventDefault(); window.location.href = 'mailto:info@ortho.life'; }} className="flex items-center gap-3">
                 <Mail size={18} className="text-secondary" />
                 <span>info@ortho.life</span>
               </li>

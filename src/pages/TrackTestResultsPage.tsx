@@ -67,7 +67,7 @@ const TrackTestResultsPage = () => {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    
+
     setIsSearching(true);
     setError(null);
     setResults({});
@@ -165,7 +165,7 @@ const TrackTestResultsPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
@@ -189,7 +189,7 @@ const TrackTestResultsPage = () => {
                   Enter your phone number to find your test results
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 <form onSubmit={handleSearch} className="space-y-4">
                   <div className="flex gap-4">
@@ -229,7 +229,7 @@ const TrackTestResultsPage = () => {
             {Object.keys(results).length > 0 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-heading font-semibold">Your Test Results</h2>
-                
+
                 {Object.entries(results).map(([patientName, tests]) => (
                   <Card key={patientName}>
                     <CardHeader>
@@ -343,17 +343,17 @@ const TrackTestResultsPage = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <h3 className="font-semibold mb-3">Contact Support</h3>
                     <p className="text-sm text-muted-foreground mb-3">
                       Can't find your results? Contact our support team.
                     </p>
                     <div className="space-y-2">
-                      <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} variant="outline" className="w-full justify-start">
-                        📞 Call: 9866812555
+                      <Button onClick={(e) => { e.preventDefault(); window.location.href = 'tel:+919983849838'; }} variant="outline" className="w-full justify-start">
+                        📞 Call: 99 838 49 838
                       </Button>
-                      <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%20have%20a%20question.';}} variant="outline" className="w-full justify-start">
+                      <Button onClick={(e) => { e.preventDefault(); window.location.href = 'https://wa.me/919983849838?text=Hi.%20I%20have%20a%20question.'; }} variant="outline" className="w-full justify-start">
                         💬 WhatsApp Support
                       </Button>
                     </div>
@@ -364,7 +364,7 @@ const TrackTestResultsPage = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

@@ -15,7 +15,6 @@
   "learn.faqs.subtitle": "Quick answers to common health questions",
   "learn.resources.title": "Health Resources",
   "learn.resources.subtitle": "Useful tools and resources for your health journey",
-
   "guides.featured": "Featured",
   "guides.readOnline": "Read Online",
   "guides.downloadPdf": "Download PDF",
@@ -24,7 +23,6 @@
   "guides.customGuide.title": "Need a Custom Guide?",
   "guides.customGuide.description": "Our medical team can create personalized guides based on your specific condition and treatment plan.",
   "guides.customGuide.button": "Request Custom Guide",
-
   "guides.guide1.title": "Pre-Surgery Preparation Guide",
   "guides.guide1.description": "Complete guide on how to prepare for orthopedic surgery, including diet, medications, and what to expect.",
   "guides.guide2.title": "Post-Operative Recovery Manual",
@@ -37,19 +35,17 @@
   "guides.guide5.description": "Essential nutrients, foods, and lifestyle changes to maintain strong and healthy bones.",
   "guides.guide6.title": "Understanding Joint Replacement",
   "guides.guide6.description": "Complete guide to joint replacement surgery, from decision-making to long-term care.",
-
   "faq.searchPlaceholder": "Search for answers...",
   "faq.noFaqsFound": "No FAQs found",
   "faq.noFaqsDescription": "Try adjusting your search or selecting a different category.",
   "faq.stillHaveQuestions": "Still Have Questions?",
   "faq.supportMessage": "Can't find the answer you're looking for? Our support team is here to help.",
-  "faq.call": "Call: 9866812555",
+  "faq.call": "Call: 99 838 49 838",
   "faq.whatsapp": "WhatsApp Support",
-
   "faq.q1.question": "How do I book an appointment online?",
   "faq.q1.answer": "You can easily book an appointment through our website by clicking on the \"Book Appointment\" button on the homepage. Select your preferred doctor, choose an available time slot, and fill in your details. You'll receive a confirmation email and SMS.",
   "faq.q2.question": "Can I reschedule or cancel my appointment?",
-  "faq.q2.answer": "Yes, you can reschedule or cancel your appointment up to 2 hours before the scheduled time. You can do this through the appointment link sent to your email or by calling our reception at 9866812555.",
+  "faq.q2.answer": "Yes, you can reschedule or cancel your appointment up to 2 hours before the scheduled time. You can do this through the appointment link sent to your email or by calling our reception at 99 838 49 838.",
   "faq.q3.question": "What should I expect before surgery?",
   "faq.q3.answer": "Before surgery, you'll have a pre-operative consultation where we'll review your medical history, conduct necessary tests, and provide detailed instructions about fasting, medications, and what to bring on the day of surgery.",
   "faq.q4.question": "How long is the typical recovery time?",
@@ -70,7 +66,6 @@
   "faq.q11.answer": "Physical therapy frequency varies based on your condition and goals. Typically, sessions are 2-3 times per week initially, then reduced as you progress. Your therapist will adjust the schedule based on your recovery.",
   "faq.q12.question": "Do you offer telemedicine consultations?",
   "faq.q12.answer": "Yes, we offer telemedicine consultations for follow-up appointments, medication reviews, and certain initial consultations. This option provides convenient care from the comfort of your home.",
-
   "resources.tools.title": "Interactive Tools & Calculators",
   "resources.tools.launch": "Launch Tool",
   "resources.tool1.title": "BMI Calculator",
@@ -79,14 +74,12 @@
   "resources.tool2.description": "Track your pain levels and patterns to share with your doctor.",
   "resources.tool3.title": "Recovery Progress Tracker",
   "resources.tool3.description": "Monitor your post-surgery recovery milestones and exercises.",
-
   "resources.apps.title": "Mobile Apps",
   "resources.apps.install": "Install App",
   "resources.app1.title": "OrthoLife Patient App",
   "resources.app1.description": "Book appointments, order medication and view your medical records.",
   "resources.app2.title": "Exercise & Recovery",
   "resources.app2.description": "Guided exercises and rehabilitation programs for faster recovery.",
-
   "resources.downloads.title": "Downloadable Resources",
   "resources.download1.title": "Pre-Surgery Checklist",
   "resources.download1.description": "Complete checklist to prepare for your orthopedic surgery.",
@@ -96,7 +89,6 @@
   "resources.download3.description": "Track your pain levels, triggers, and medication effectiveness.",
   "resources.download4.title": "Insurance Claims Guide",
   "resources.download4.description": "Step-by-step guide for filing and managing insurance claims.",
-
   "resources.external.title": "External Resources",
   "resources.external.visit": "Visit Site",
   "resources.external1.title": "OrthoSam.com",
@@ -105,18 +97,16 @@
   "resources.external2.description": "OrthoLife google business profile for address directions and patient reviews.",
   "resources.external3.title": "Dr Samuel Manoj Cherukuri on Google",
   "resources.external3.description": "Dr Samuel Manoj Cherukuri's google business profile for address directions and patient reviews.",
-
   "resources.emergency.title": "Emergency Contacts & Resources",
   "resources.emergency.numbersTitle": "Emergency Numbers",
   "resources.emergency.services": "Emergency Services: <strong>108</strong>",
-  "resources.emergency.hospital": "Hospital Emergency: <strong>9866812555</strong>",
+  "resources.emergency.hospital": "Hospital Emergency: <strong>99 838 49 838</strong>",
   "resources.emergency.poison": "Poison Control: <strong>1066</strong>",
   "resources.emergency.whenToSeekCare": "When to Seek Emergency Care",
   "resources.emergency.careItem1": "• Severe bleeding or trauma",
   "resources.emergency.careItem2": "• Loss of consciousness",
   "resources.emergency.careItem3": "• Severe difficulty breathing",
   "resources.emergency.careItem4": "• Signs of stroke or heart attack",
-
   "bmi.height": "Height (cm)",
   "bmi.weight": "Weight (kg)",
   "bmi.height_placeholder": "Enter your height in centimeters",
@@ -127,7 +117,6 @@
   "bmi.normal": "Normal weight",
   "bmi.overweight": "Overweight",
   "bmi.obese": "Obese",
-
   "pain.current_level": "Current Pain Level",
   "pain.log_pain": "Log Pain Level",
   "pain.history": "Pain History",
@@ -136,7 +125,6 @@
   "pain.mild": "Mild",
   "pain.moderate": "Moderate",
   "pain.severe": "Severe",
-
   "recovery.progress": "Progress",
   "recovery.milestone1": "First follow-up appointment attended",
   "recovery.milestone2": "Completed first week of physical therapy",
@@ -144,16 +132,12 @@
   "recovery.milestone4": "Achieved 90 degrees of motion",
   "recovery.milestone5": "Walked 1 mile without assistance",
   "common.reset": "Reset",
-  
   "common.whats_next": "Next steps",
-
   "forms.defaultNextSteps": "<ul><li><p>👨‍⚕️ Book an <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://ortho.life/appointment\"><strong><u>Appointment with Dr Samuel Manoj Cherukuri</u></strong></a></p></li></ul><p></p>",
-
   "mySpace.welcome": "Welcome to My Space",
   "mySpace.dashboardDescription": "Your personal health dashboard",
   "mySpace.logout": "Logout",
   "mySpace.switchPatient": "Switch Patient",
-
   "prescriptionsCard.title": "My Prescriptions and Records",
   "prescriptionsCard.loading": "Loading records...",
   "prescriptionsCard.view": "View",
@@ -163,7 +147,6 @@
   "prescriptionsCard.userUploadsTitle": "My Uploads",
   "prescriptionsCard.uploading": "Uploading...",
   "prescriptionsCard.upload": "Upload",
-
   "orderMedicationCard.title": "Order Medication",
   "orderMedicationCard.noMedication": "No medicine prescribed in the latest prescription.",
   "orderMedicationCard.orderNew": "Order New",
@@ -171,20 +154,17 @@
   "orderMedicationCard.medicine": "Medicine",
   "orderMedicationCard.quantity": "Quantity",
   "orderMedicationCard.orderNow": "Order Now",
-
   "orderTestsCard.title": "Order Tests",
   "orderTestsCard.noInvestigations": "No investigations prescribed in the latest prescription.",
   "orderTestsCard.orderNew": "Order New",
   "orderTestsCard.labTestsFromPrescription": "Lab tests from the latest prescription (you can edit the list below):",
   "orderTestsCard.orderNow": "Order Now",
   "orderTestsCard.radiologicalInvestigations": "Radiological Investigations:",
-
   "dietAndExercisesCard.title": "My Diet and Exercises",
   "dietAndExercisesCard.viewGuide": "View Guide",
   "dietAndExercisesCard.viewDiet": "View Diet",
   "dietAndExercisesCard.viewExercise": "View Exercise",
   "dietAndExercisesCard.noAdvice": "No specific advice provided.",
-
   "testResultsCard.title": "My Test Results",
   "testResultsCard.loading": "Loading test results...",
   "testResultsCard.noResults": "No test results found.",
@@ -203,7 +183,6 @@
   "testResultsCard.dialog.downloading": "Downloading...",
   "testResultsCard.dialog.downloadReport": "Download Report",
   "testResultsCard.dialog.reportPending": "Final Report Pending",
-
   "appointmentsCard.title": "My Appointments",
   "appointmentsCard.loading": "Loading appointments...",
   "appointmentsCard.upcoming": "Upcoming Appointments",

@@ -60,9 +60,9 @@ const FAQPage = () => {
     };
 
     if (categories.length > 0) {
-        fetchFAQs();
+      fetchFAQs();
     } else if (selectedCategory === 'All') {
-        fetchFAQs();
+      fetchFAQs();
     }
   }, [selectedCategory, categories]);
 
@@ -75,7 +75,7 @@ const FAQPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
@@ -178,11 +178,11 @@ const FAQPage = () => {
                   {t('faq.supportMessage')}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} className="flex items-center gap-2">
+                  <Button onClick={(e) => { e.preventDefault(); window.location.href = 'tel:+919983849838'; }} className="flex items-center gap-2">
                     <Phone size={16} />
                     {t('faq.call')}
                   </Button>
-                  <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%20have%20a%20question.';}} variant="outline" className="flex items-center gap-2">
+                  <Button onClick={(e) => { e.preventDefault(); window.location.href = 'https://wa.me/919983849838?text=Hi.%20I%20have%20a%20question.'; }} variant="outline" className="flex items-center gap-2">
                     <MessageCircle size={16} />
                     {t('faq.whatsapp')}
                   </Button>
@@ -192,7 +192,7 @@ const FAQPage = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

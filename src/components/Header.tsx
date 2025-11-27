@@ -17,7 +17,7 @@ const Header = () => {
   const withLang = (path: string) => {
     return lang ? `${path}?lang=${lang}` : path;
   };
-  
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -26,7 +26,7 @@ const Header = () => {
         setIsScrolled(false);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
 
@@ -39,7 +39,7 @@ const Header = () => {
           <div className="flex items-center">
             <Logo lineColor="white" />
           </div>
-          
+
           <nav className="hidden md:flex items-center">
             <NavigationMenu>
               <NavigationMenuList className="space-x-6">
@@ -221,12 +221,12 @@ const Header = () => {
               </NavigationMenuList>
             </NavigationMenu>
           </nav>
-          
+
           <div className="flex items-center space-x-2">
-            <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';}} variant="outline" className="hidden md:flex items-center gap-2">
+            <Button onClick={(e) => { e.preventDefault(); window.location.href = 'tel:+919983849838'; }} variant="outline" className="hidden md:flex items-center gap-2">
               <Phone size={16} />
             </Button>
-            <Button onClick={(e) => {e.preventDefault();window.location.href='https://wa.me/919866812555?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today';}} className="bg-primary hover:bg-primary/90 transition-colors">
+            <Button onClick={(e) => { e.preventDefault(); window.location.href = 'https://wa.me/919983849838?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today'; }} className="bg-primary hover:bg-primary/90 transition-colors">
               <MessageCircle />
             </Button>
 
@@ -246,7 +246,7 @@ const Header = () => {
                 </Button>
               </Link>
             )}
-            
+
             {/* Mobile menu button */}
             <Button
               variant="outline"
@@ -259,7 +259,7 @@ const Header = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-popover border-t shadow-lg">
@@ -267,7 +267,7 @@ const Header = () => {
             <a href="/#home" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</a>
             <a href="/#services" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
             <a href="/#about" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>About</a>
-            
+
             {/* Pharmacy Dropdown */}
             <div className="space-y-2">
               <span className="block font-medium text-primary">Pharmacy</span>
@@ -295,7 +295,7 @@ const Header = () => {
             </div>
 
             <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
-            
+
             {/* Mobile Login/Logout */}
             {user ? (
               <Link to="/my-space">
@@ -313,9 +313,9 @@ const Header = () => {
               </Link>
             )}
 
-            <Button onClick={(e) => {e.preventDefault();window.location.href='tel:+919866812555';setIsMobileMenuOpen(false);}} variant="outline" className="w-full flex items-center justify-center gap-2">
+            <Button onClick={(e) => { e.preventDefault(); window.location.href = 'tel:+919983849838'; setIsMobileMenuOpen(false); }} variant="outline" className="w-full flex items-center justify-center gap-2">
               <Phone size={16} />
-              <span>9866812555</span>
+              <span>99 838 49 838</span>
             </Button>
           </nav>
         </div>
