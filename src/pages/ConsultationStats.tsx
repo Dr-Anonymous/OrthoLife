@@ -37,6 +37,8 @@ const ConsultationStats = () => {
   const [monthlyStats, setMonthlyStats] = useState<Consultation[]>([]);
   const [monthlyData, setMonthlyData] = useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMonthlyStatsLoading, setIsMonthlyStatsLoading] = useState(false);
+  const [isDailyStatsLoading, setIsDailyStatsLoading] = useState(false);
   const [isMonthlyLoading, setIsMonthlyLoading] = useState(false);
   const [showDailyDetails, setShowDailyDetails] = useState(false);
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(false);
@@ -48,12 +50,17 @@ const ConsultationStats = () => {
   }, [selectedDate]);
 
   const fetchStats = async (date: Date) => {
-    setIsLoading(true);
+    // setIsLoading(true); // Removed global loading
     setShowDailyDetails(false);
     setShowMonthlyDetails(false);
 
     const monthKey = format(date, 'yyyy-MM');
     const includeMonthly = monthKey !== currentViewMonth;
+
+    setIsDailyStatsLoading(true);
+    if (includeMonthly) {
+      setIsMonthlyStatsLoading(true);
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke('get-consultation-stats', {
@@ -79,6 +86,8 @@ const ConsultationStats = () => {
       toast.error('Failed to fetch stats. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsDailyStatsLoading(false);
+      setIsMonthlyStatsLoading(false);
     }
   };
 
@@ -234,75 +243,83 @@ const ConsultationStats = () => {
                 <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="rounded-md border" />
               </div>
               <div className="space-y-4">
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-                ) : (
-                  <>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Monthly Summary</CardTitle>
-                        <CardDescription>Total consultations for {selectedDate ? format(selectedDate, 'MMMM yyyy') : 'the selected month'}.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-4xl font-bold">{monthlyCount ?? 'N/A'}</p>
-                        {monthlyStats.length > 0 && (
-                          <div className="mt-2 text-sm text-muted-foreground">
-                            {Object.entries(
-                              monthlyStats.reduce((acc: { [key: string]: number }, curr) => {
-                                const loc = curr.consultation_data?.location || 'Unknown';
-                                acc[loc] = (acc[loc] || 0) + 1;
-                                return acc;
-                              }, {})
-                            ).map(([loc, count], i) => (
-                              <span key={loc}>
-                                {i > 0 && ', '}
-                                {loc}: {count}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {monthlyCount !== null && monthlyCount > 0 && (
-                          <Button variant="link" onClick={() => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails()} className="px-0" disabled={isMonthlyLoading}>
-                            {isMonthlyLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                            {showMonthlyDetails ? 'Hide Details' : 'View Details'}
-                            <ChevronsRight className={`w-4 h-4 ml-1 transition-transform ${showMonthlyDetails ? 'transform rotate-90' : ''}`} />
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Daily Summary</CardTitle>
-                        <CardDescription>Consultations for {selectedDate ? format(selectedDate, 'PPP') : 'the selected day'}.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-4xl font-bold">{dailyData.length}</p>
-                        {dailyData.length > 0 && (
-                          <div className="mt-2 text-sm text-muted-foreground">
-                            {Object.entries(
-                              dailyData.reduce((acc: { [key: string]: number }, curr) => {
-                                const loc = curr.consultation_data?.location || 'Unknown';
-                                acc[loc] = (acc[loc] || 0) + 1;
-                                return acc;
-                              }, {})
-                            ).map(([loc, count], i) => (
-                              <span key={loc}>
-                                {i > 0 && ', '}
-                                {loc}: {count}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {dailyData.length > 0 && (
-                          <Button variant="link" onClick={() => setShowDailyDetails(!showDailyDetails)} className="px-0">
-                            {showDailyDetails ? 'Hide Details' : 'View Details'}
-                            <ChevronsRight className={`w-4 h-4 ml-1 transition-transform ${showDailyDetails ? 'transform rotate-90' : ''}`} />
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </>
-                )}
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Monthly Summary</CardTitle>
+                      <CardDescription>Total consultations for {selectedDate ? format(selectedDate, 'MMMM yyyy') : 'the selected month'}.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isMonthlyStatsLoading ? (
+                        <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                      ) : (
+                        <>
+                          <p className="text-4xl font-bold">{monthlyCount ?? 'N/A'}</p>
+                          {monthlyStats.length > 0 && (
+                            <div className="mt-2 text-sm text-muted-foreground">
+                              {Object.entries(
+                                monthlyStats.reduce((acc: { [key: string]: number }, curr) => {
+                                  const loc = curr.consultation_data?.location || 'Unknown';
+                                  acc[loc] = (acc[loc] || 0) + 1;
+                                  return acc;
+                                }, {})
+                              ).map(([loc, count], i) => (
+                                <span key={loc}>
+                                  {i > 0 && ', '}
+                                  {loc}: {count}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {monthlyCount !== null && monthlyCount > 0 && (
+                            <Button variant="link" onClick={() => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails()} className="px-0" disabled={isMonthlyLoading}>
+                              {isMonthlyLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                              {showMonthlyDetails ? 'Hide Details' : 'View Details'}
+                              <ChevronsRight className={`w-4 h-4 ml-1 transition-transform ${showMonthlyDetails ? 'transform rotate-90' : ''}`} />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Daily Summary</CardTitle>
+                      <CardDescription>Consultations for {selectedDate ? format(selectedDate, 'PPP') : 'the selected day'}.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isDailyStatsLoading ? (
+                        <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                      ) : (
+                        <>
+                          <p className="text-4xl font-bold">{dailyData.length}</p>
+                          {dailyData.length > 0 && (
+                            <div className="mt-2 text-sm text-muted-foreground">
+                              {Object.entries(
+                                dailyData.reduce((acc: { [key: string]: number }, curr) => {
+                                  const loc = curr.consultation_data?.location || 'Unknown';
+                                  acc[loc] = (acc[loc] || 0) + 1;
+                                  return acc;
+                                }, {})
+                              ).map(([loc, count], i) => (
+                                <span key={loc}>
+                                  {i > 0 && ', '}
+                                  {loc}: {count}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {dailyData.length > 0 && (
+                            <Button variant="link" onClick={() => setShowDailyDetails(!showDailyDetails)} className="px-0">
+                              {showDailyDetails ? 'Hide Details' : 'View Details'}
+                              <ChevronsRight className={`w-4 h-4 ml-1 transition-transform ${showDailyDetails ? 'transform rotate-90' : ''}`} />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
               </div>
             </div>
             {showMonthlyDetails && !isMonthlyLoading && renderDetailsTable(`Details for ${selectedDate ? format(selectedDate, 'MMMM yyyy') : ''}`, monthlyData)}
