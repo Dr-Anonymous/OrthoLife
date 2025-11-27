@@ -38,7 +38,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           style={{ backgroundImage: backgroundPattern }}
         >
           <div className="flex items-center">
-            <img src="/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
+            <img src="/images/logos/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
           </div>
           <div className="text-right">
             <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
@@ -63,7 +63,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           <div className="text-lg leading-relaxed space-y-6">
             <p>
               This is to certify that {patientPrefix} <strong>{patient.name}</strong>, bearing ID No.: <strong>{patient.id}</strong>
-              &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>.{ " " }
+              &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>.{" "}
               {pronounHeShe} is under treatment for the above condition from <strong>{format(treatmentFromDate, 'PPP')}</strong> to the present date.
             </p>
             <p>
@@ -83,18 +83,18 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
         </main>
 
         <footer className="mt-auto">
-            <div className="flex justify-between items-end">
-                <div></div>
-                <div className="text-center">
-                    <img src="/sign.png" alt="Doctor's Signature" className="h-20" />
-                    <div className="relative">
-                        <img src="/seal.png" alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />
-                    </div>
-                </div>
+          <div className="flex justify-between items-end">
+            <div></div>
+            <div className="text-center">
+              <img src="/images/assets/sign.png" alt="Doctor's Signature" className="h-20" />
+              <div className="relative">
+                <img src="/images/assets/seal.png" alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />
+              </div>
             </div>
+          </div>
           <div className="border-t-2 border-blue-600 pt-4 mt-8 text-center text-sm">
-             <p>OrthoLife</p>
-             <p>📍 Road No. 3, RR Nagar, Kakinada-03.</p>
+            <p>OrthoLife</p>
+            <p>📍 Road No. 3, RR Nagar, Kakinada-03.</p>
           </div>
         </footer>
       </div>
@@ -102,7 +102,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
       {/* Page 2 */}
       <div className="w-[210mm] h-[297mm] p-8 flex flex-col">
         <header className="flex justify-end items-start mb-8 h-8">
-            {/* Empty header for spacing, date removed */}
+          {/* Empty header for spacing, date removed */}
         </header>
         <main className="flex-grow flex items-center justify-center">
           <p className="text-xl font-semibold text-gray-600">
@@ -110,8 +110,8 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           </p>
         </main>
         <footer className="mt-auto border-t-2 border-blue-600 pt-4 text-center text-sm">
-             <p>OrthoLife</p>
-             <p>📍 Road No. 3, RR Nagar, Kakinada-03.</p>
+          <p>OrthoLife</p>
+          <p>📍 Road No. 3, RR Nagar, Kakinada-03.</p>
         </footer>
       </div>
     </div>

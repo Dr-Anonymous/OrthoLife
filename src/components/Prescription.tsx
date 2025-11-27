@@ -61,7 +61,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         style={{ backgroundImage: backgroundPattern }}
       >
         <div className="flex items-center">
-          <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", logoUrl === '/logo.png' ? 'h-20' : 'h-24')} />
+          <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", logoUrl === '/images/logos/logo.png' ? 'h-20' : 'h-24')} />
         </div>
         <div className="text-right">
           <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
@@ -202,7 +202,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         style={{ backgroundImage: backgroundPattern }}
       >
         <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
-        <img src="/qr-code.png" alt="QR Code" className="h-16 w-16" />
+        <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
       </footer>
     </div>
   );

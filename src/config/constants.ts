@@ -6,13 +6,13 @@ export const GOOGLE_DOCS_TEMPLATE_IDS = {
 export const HOSPITALS = [
   {
     name: "Badam",
-    logoUrl: "/badam-logo.png",
+    logoUrl: "/images/logos/badam-logo.png",
     lat: 16.983919058575893,
     lng: 82.24253810923248,
   },
   {
     name: "OrthoLife",
-    logoUrl: "/logo.png",
+    logoUrl: "/images/logos/logo.png",
     lat: 16.983641275998988,
     lng: 82.25270181107953,
   },

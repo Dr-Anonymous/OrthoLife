@@ -26,20 +26,20 @@ const preloadImages = (htmlContent: string): Promise<void> => {
     const images = Array.from(doc.querySelectorAll('img'));
 
     if (images.length === 0) {
-        return Promise.resolve();
+      return Promise.resolve();
     }
 
     const promises = images.map(img => {
-        return new Promise<void>((resolve) => {
-            const newImg = new Image();
-            newImg.src = img.src;
-            // Resolve regardless of success or failure to avoid blocking PDF generation
-            newImg.onload = () => resolve();
-            newImg.onerror = () => resolve();
-        });
+      return new Promise<void>((resolve) => {
+        const newImg = new Image();
+        newImg.src = img.src;
+        // Resolve regardless of success or failure to avoid blocking PDF generation
+        newImg.onload = () => resolve();
+        newImg.onerror = () => resolve();
+      });
     });
 
-    return Promise.all(promises).then(() => {});
+    return Promise.all(promises).then(() => { });
   } catch (error) {
     console.error("Error preloading images:", error);
     return Promise.resolve(); // Don't block PDF generation on parsing error
@@ -49,7 +49,7 @@ const preloadImages = (htmlContent: string): Promise<void> => {
 export const generatePdf = async (htmlContent: string, filename: string) => {
   let logoDataUri = '';
   try {
-    logoDataUri = await imageToDataUri('/logo.png');
+    logoDataUri = await imageToDataUri('/images/logos/logo.png');
   } catch (error) {
     console.error("Failed to load logo for PDF, proceeding without it.", error);
   }
@@ -75,12 +75,12 @@ export const generatePdf = async (htmlContent: string, filename: string) => {
   element.innerHTML = styledHtmlContent;
 
   const opt = {
-    margin:       1,
-    filename:     `${filename}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true },
-    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-    pagebreak:    { mode: 'avoid-all', avoid: 'img' }
+    margin: 1,
+    filename: `${filename}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+    pagebreak: { mode: 'avoid-all', avoid: 'img' }
   };
 
   // html2pdf.js does not have official type definitions
