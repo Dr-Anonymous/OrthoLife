@@ -21,12 +21,17 @@ interface Consultation {
   status: string;
   created_at: string;
   patient: Patient;
+  consultation_data?: {
+    location?: string;
+    [key: string]: any;
+  };
 }
 
 const ConsultationStats = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [monthlyCount, setMonthlyCount] = useState<number | null>(null);
   const [dailyData, setDailyData] = useState<Consultation[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState<Consultation[]>([]);
   const [monthlyData, setMonthlyData] = useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMonthlyLoading, setIsMonthlyLoading] = useState(false);
@@ -56,6 +61,7 @@ const ConsultationStats = () => {
       if (error) throw error;
 
       setMonthlyCount(data.monthlyCount);
+      setMonthlyStats(data.monthlyStats || []);
       setDailyData(data.dailyData);
     } catch (error) {
       console.error('Error fetching consultation stats:', error);
@@ -97,6 +103,7 @@ const ConsultationStats = () => {
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
             </tr>
           </thead>
@@ -114,6 +121,7 @@ const ConsultationStats = () => {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.consultation_data?.location || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${consultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                     {consultation.status}
@@ -157,6 +165,22 @@ const ConsultationStats = () => {
                       </CardHeader>
                       <CardContent>
                         <p className="text-4xl font-bold">{monthlyCount ?? 'N/A'}</p>
+                        {monthlyStats.length > 0 && (
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            {Object.entries(
+                              monthlyStats.reduce((acc: { [key: string]: number }, curr) => {
+                                const loc = curr.consultation_data?.location || 'Unknown';
+                                acc[loc] = (acc[loc] || 0) + 1;
+                                return acc;
+                              }, {})
+                            ).map(([loc, count], i) => (
+                              <span key={loc}>
+                                {i > 0 && ', '}
+                                {loc}: {count}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {monthlyCount !== null && monthlyCount > 0 && (
                           <Button variant="link" onClick={() => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails()} className="px-0" disabled={isMonthlyLoading}>
                             {isMonthlyLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -173,6 +197,22 @@ const ConsultationStats = () => {
                       </CardHeader>
                       <CardContent>
                         <p className="text-4xl font-bold">{dailyData.length}</p>
+                        {dailyData.length > 0 && (
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            {Object.entries(
+                              dailyData.reduce((acc: { [key: string]: number }, curr) => {
+                                const loc = curr.consultation_data?.location || 'Unknown';
+                                acc[loc] = (acc[loc] || 0) + 1;
+                                return acc;
+                              }, {})
+                            ).map(([loc, count], i) => (
+                              <span key={loc}>
+                                {i > 0 && ', '}
+                                {loc}: {count}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {dailyData.length > 0 && (
                           <Button variant="link" onClick={() => setShowDailyDetails(!showDailyDetails)} className="px-0">
                             {showDailyDetails ? 'Hide Details' : 'View Details'}

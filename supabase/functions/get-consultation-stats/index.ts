@@ -25,6 +25,7 @@ serve(async (req) => {
           id,
           status,
           created_at,
+          consultation_data,
           patient:patients (
             id,
             name,
@@ -47,13 +48,15 @@ serve(async (req) => {
     }
 
     // Default 'day' data type
-    const { count: monthlyCount, error: monthlyError } = await supabase
+    const { data: monthlyData, error: monthlyError } = await supabase
       .from('consultations')
-      .select('*', { count: 'exact', head: true })
+      .select('consultation_data')
       .gte('created_at', monthStartDate)
       .lte('created_at', monthEndDate);
 
     if (monthlyError) throw monthlyError;
+
+    const monthlyCount = monthlyData.length;
 
     const dayStartDate = new Date(year, month, day).toISOString();
     const dayEndDate = new Date(year, month, day + 1).toISOString();
@@ -64,6 +67,7 @@ serve(async (req) => {
         id,
         status,
         created_at,
+        consultation_data,
         patient:patients (
           id,
           name,
@@ -78,7 +82,7 @@ serve(async (req) => {
 
     if (dailyError) throw dailyError;
 
-    return new Response(JSON.stringify({ monthlyCount, dailyData }), {
+    return new Response(JSON.stringify({ monthlyCount, monthlyStats: monthlyData, dailyData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
