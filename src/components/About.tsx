@@ -11,9 +11,9 @@ const About = () => {
               <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/10 rounded-full"></div>
               <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-secondary/20 rounded-full"></div>
               <div className="relative rounded-lg overflow-hidden shadow-xl">
-                <img 
-                  src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/landing%20pics/surgery.jpeg" 
-                  alt="Medical team at OrthoLife clinic" 
+                <img
+                  src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/landing%20pics/surgery.jpeg"
+                  alt="Medical team at OrthoLife clinic"
                   className="w-full h-auto object-cover aspect-[4/3]"
                   loading="lazy"
                 />
@@ -28,7 +28,7 @@ const About = () => {
             <p className="text-gray-700">
               Whether you're an athlete recovering from an injury, someone seeking relief from chronic back or joint pain, or exploring non-surgical regenerative options, our team is here to guide you with compassion, precision, and innovation. At OrthoLife, we are committed to guiding you every step of the way — <i>Back to Health</i>.
             </p>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
               <div className="flex items-start gap-2">
                 <div className="rounded-full bg-primary/10 p-1">
@@ -63,8 +63,8 @@ const About = () => {
                 <span className="text-gray-700">Evidence-Based Treatment</span>
               </div>
             </div>
-            
-            <Button onClick={(e) => {e.preventDefault();window.location.href='https://orthosam.com';}} className="bg-primary hover:bg-primary/90 mt-4">Our Team</Button>
+
+
           </div>
         </div>
       </div>

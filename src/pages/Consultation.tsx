@@ -57,6 +57,16 @@ const processTextShortcuts = (
   shortcuts: TextShortcut[]
 ): { newValue: string, newCursorPosition: number } | null => {
   const textBeforeCursor = currentValue.substring(0, cursorPosition);
+
+  // Check for 3 spaces shortcut
+  if (textBeforeCursor.endsWith('   ')) {
+    const textBeforeContent = currentValue.substring(0, cursorPosition - 3);
+    const textAfter = currentValue.substring(cursorPosition);
+    const newValue = textBeforeContent + '. ' + textAfter;
+    const newCursorPosition = textBeforeContent.length + 2;
+    return { newValue, newCursorPosition };
+  }
+
   const shortcutRegex = /(^|\s|\n|\.\s)([a-zA-Z0-9_]+)\.\s$/;
   const match = textBeforeCursor.match(shortcutRegex);
 
