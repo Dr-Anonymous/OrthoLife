@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { month, year, day, dataType = 'day' } = await req.json();
+    const { month, year, day, dataType = 'day', includeMonthly = true } = await req.json();
 
     const monthStartDate = new Date(year, month, 1).toISOString();
     const monthEndDate = new Date(year, month + 1, 0).toISOString();
@@ -48,15 +48,20 @@ serve(async (req) => {
     }
 
     // Default 'day' data type
-    const { data: monthlyData, error: monthlyError } = await supabase
-      .from('consultations')
-      .select('consultation_data')
-      .gte('created_at', monthStartDate)
-      .lte('created_at', monthEndDate);
+    let monthlyCount = null;
+    let monthlyData = null;
 
-    if (monthlyError) throw monthlyError;
+    if (includeMonthly) {
+      const { data: mData, error: monthlyError } = await supabase
+        .from('consultations')
+        .select('consultation_data')
+        .gte('created_at', monthStartDate)
+        .lte('created_at', monthEndDate);
 
-    const monthlyCount = monthlyData.length;
+      if (monthlyError) throw monthlyError;
+      monthlyData = mData;
+      monthlyCount = monthlyData.length;
+    }
 
     const dayStartDate = new Date(year, month, day).toISOString();
     const dayEndDate = new Date(year, month, day + 1).toISOString();

@@ -4,7 +4,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, User, ChevronsRight } from 'lucide-react';
+import { Loader2, User, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { format, getMonth, getYear } from 'date-fns';
 
 interface Patient {
@@ -29,6 +29,9 @@ interface Consultation {
 
 const ConsultationStats = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [currentViewMonth, setCurrentViewMonth] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
   const [monthlyCount, setMonthlyCount] = useState<number | null>(null);
   const [dailyData, setDailyData] = useState<Consultation[]>([]);
   const [monthlyStats, setMonthlyStats] = useState<Consultation[]>([]);
@@ -48,6 +51,10 @@ const ConsultationStats = () => {
     setIsLoading(true);
     setShowDailyDetails(false);
     setShowMonthlyDetails(false);
+
+    const monthKey = format(date, 'yyyy-MM');
+    const includeMonthly = monthKey !== currentViewMonth;
+
     try {
       const { data, error } = await supabase.functions.invoke('get-consultation-stats', {
         body: {
@@ -55,13 +62,17 @@ const ConsultationStats = () => {
           month: getMonth(date),
           day: date.getDate(),
           dataType: 'day',
+          includeMonthly,
         },
       });
 
       if (error) throw error;
 
-      setMonthlyCount(data.monthlyCount);
-      setMonthlyStats(data.monthlyStats || []);
+      if (includeMonthly) {
+        setMonthlyCount(data.monthlyCount);
+        setMonthlyStats(data.monthlyStats || []);
+        setCurrentViewMonth(monthKey);
+      }
       setDailyData(data.dailyData);
     } catch (error) {
       console.error('Error fetching consultation stats:', error);
@@ -93,47 +104,116 @@ const ConsultationStats = () => {
     }
   };
 
-  const renderDetailsTable = (title: string, data: Consultation[]) => (
-    <div className="mt-8">
-      <h3 className="text-xl font-semibold mb-4">{title}</h3>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((consultation) => (
-              <tr key={consultation.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(consultation.created_at), 'PPP')}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {consultation.patient.drive_id ? (
-                    <a href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {consultation.patient.name}
-                    </a>
-                  ) : (
-                    consultation.patient.name
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.consultation_data?.location || '-'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${consultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {consultation.status}
-                  </span>
-                </td>
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortData = (data: Consultation[]) => {
+    if (!sortConfig) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue: any = '';
+      let bValue: any = '';
+
+      switch (sortConfig.key) {
+        case 'date':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case 'patient':
+          aValue = a.patient.name.toLowerCase();
+          bValue = b.patient.name.toLowerCase();
+          break;
+        case 'phone':
+          aValue = a.patient.phone;
+          bValue = b.patient.phone;
+          break;
+        case 'location':
+          aValue = (a.consultation_data?.location || '').toLowerCase();
+          bValue = (b.consultation_data?.location || '').toLowerCase();
+          break;
+        case 'status':
+          aValue = a.status.toLowerCase();
+          bValue = b.status.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const renderSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 inline-block text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' ?
+      <ArrowUp className="w-4 h-4 ml-1 inline-block text-primary" /> :
+      <ArrowDown className="w-4 h-4 ml-1 inline-block text-primary" />;
+  };
+
+  const renderDetailsTable = (title: string, data: Consultation[]) => {
+    const sortedData = sortData(data);
+
+    return (
+      <div className="mt-8">
+        <h3 className="text-xl font-semibold mb-4">{title}</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('date')}>
+                  Date {renderSortIcon('date')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('patient')}>
+                  Patient Name {renderSortIcon('patient')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('phone')}>
+                  Phone {renderSortIcon('phone')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('location')}>
+                  Location {renderSortIcon('location')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('status')}>
+                  Status {renderSortIcon('status')}
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sortedData.map((consultation) => (
+                <tr key={consultation.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(consultation.created_at), 'PPP')}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {consultation.patient.drive_id ? (
+                      <a href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {consultation.patient.name}
+                      </a>
+                    ) : (
+                      consultation.patient.name
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.consultation_data?.location || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${consultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {consultation.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
