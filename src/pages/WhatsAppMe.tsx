@@ -147,12 +147,12 @@ const WhatsAppMe = () => {
     switch (type) {
       case 2:
         return new Date().getDay() === 0
-          ? "\n\nAfter *_4 pm_* at  *OrthoLife* :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv"
-          : "\n\nAfter *_7:30 pm_* at  *OrthoLife* :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv";
+          ? "\n\nAfter 4 pm at  OrthoLife :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv"
+          : "\n\nAfter 7:30 pm at  OrthoLife :\nRoad number 3,\nR R Nagar, near RTO office,\nKakinada\n\nLocation:\nhttps://g.co/kgs/6ZEukv";
       case 3:
         return "\n\n9-5 pm at:\nLaxmi Hospital,\nGudarigunta, Kakinada\n\nLocation:\nhttps://g.co/kgs/5Xkr4FU";
       case 4:
-        return "\n\n *5-7 pm* at:\n _Badam clinical laboratory_ \nhttps://g.co/kgs/eAgkp5S";
+        return "\n\n5-7 pm at:\n Badam clinical laboratory \nhttps://g.co/kgs/eAgkp5S";
       default:
         return "";
     }
