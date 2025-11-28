@@ -1,7 +1,8 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
+import { cn, removeBracketedText } from '@/lib/utils';
+import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon } from 'lucide-react';
 
 interface Medication {
   name: string;
@@ -98,31 +99,34 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           {consultation.complaints && (
             <div>
               <h3 className="font-heading font-semibold">Complaints:</h3>
-              <p className="whitespace-pre-wrap">{consultation.complaints}</p>
+              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.complaints)}</p>
             </div>
           )}
           {consultation.findings && (
             <div>
               <h3 className="font-heading font-semibold">Findings:</h3>
-              <p className="whitespace-pre-wrap">{consultation.findings}</p>
+              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.findings)}</p>
             </div>
           )}
           {consultation.investigations && (
             <div>
               <h3 className="font-heading font-semibold">Investigations:</h3>
-              <p className="whitespace-pre-wrap">{consultation.investigations}</p>
+              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.investigations)}</p>
             </div>
           )}
           {consultation.diagnosis && (
             <div>
               <h3 className="font-heading font-semibold">Diagnosis:</h3>
-              <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
+              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.diagnosis)}</p>
             </div>
           )}
           {consultation.advice && (
             <div>
-              <h3 className="font-heading font-semibold">{t('prescription.advice')}:</h3>
-              <p className="whitespace-pre-wrap">{consultation.advice}</p>
+              <h3 className="font-heading font-semibold flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                {t('prescription.advice')}:
+              </h3>
+              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.advice)}</p>
             </div>
           )}
         </section>
@@ -130,14 +134,22 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {/* Medications */}
         {hasMedications && (
           <section className="mt-6">
-            <h3 className="font-heading font-semibold mb-2">{t('prescription.medication')}:</h3>
+            <h3 className="font-heading font-semibold mb-2 flex items-center gap-2">
+              <Pill className="h-4 w-4" />
+              {t('prescription.medication')}:
+            </h3>
             <table className="w-full border-collapse border border-border">
               <thead>
                 <tr className="bg-muted">
                   <th className="border border-border p-2 text-left">#</th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_name')}</th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_dose')}</th>
-                  <th className="border border-border p-2 text-center" colSpan={3}>{t('prescription.med_frequency')}</th>
+                  <th className="border border-border p-2 text-center" colSpan={3}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {t('prescription.med_frequency')}
+                    </div>
+                  </th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_duration')}</th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_instructions')}</th>
                 </tr>
@@ -145,9 +157,24 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                   <th className="border border-border p-1"></th>
                   <th className="border border-border p-1"></th>
                   <th className="border border-border p-1"></th>
-                  <th className="border border-border p-1 text-center text-xs">{t('prescription.med_morning')}</th>
-                  <th className="border border-border p-1 text-center text-xs">{t('prescription.med_noon')}</th>
-                  <th className="border border-border p-1 text-center text-xs">{t('prescription.med_night')}</th>
+                  <th className="border border-border p-1 text-center text-xs">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <Sun className="h-3 w-3" />
+                      {t('prescription.med_morning')}
+                    </div>
+                  </th>
+                  <th className="border border-border p-1 text-center text-xs">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <CloudSun className="h-3 w-3" />
+                      {t('prescription.med_noon')}
+                    </div>
+                  </th>
+                  <th className="border border-border p-1 text-center text-xs">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <Moon className="h-3 w-3" />
+                      {t('prescription.med_night')}
+                    </div>
+                  </th>
                   <th className="border border-border p-1"></th>
                   <th className="border border-border p-1"></th>
                 </tr>
@@ -157,11 +184,11 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                   <React.Fragment key={index}>
                     <tr>
                       <td className="border border-border p-2">{index + 1}</td>
-                      <td className="border border-border p-2">{med.name}</td>
-                      <td className="border border-border p-2">{med.dose}</td>
+                      <td className="border border-border p-2">{removeBracketedText(med.name)}</td>
+                      <td className="border border-border p-2">{removeBracketedText(med.dose)}</td>
                       {med.frequency ? (
                         <td colSpan={3} className="border border-border p-2 text-center">
-                          {med.frequency}
+                          {removeBracketedText(med.frequency)}
                         </td>
                       ) : (
                         <>
@@ -170,13 +197,13 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                           <td className="border border-border p-2 text-center">{med.freqNight ? '✔' : ''}</td>
                         </>
                       )}
-                      <td className="border border-border p-2">{med.duration}</td>
-                      <td className="border border-border p-2">{med.instructions}</td>
+                      <td className="border border-border p-2">{removeBracketedText(med.duration)}</td>
+                      <td className="border border-border p-2">{removeBracketedText(med.instructions)}</td>
                     </tr>
                     {med.notes && (
                       <tr>
                         <td colSpan={8} className="border border-border p-2 text-xs italic text-muted-foreground">
-                          {med.notes}
+                          {removeBracketedText(med.notes)}
                         </td>
                       </tr>
                     )}
@@ -190,8 +217,11 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {/* Followup */}
         {consultation.followup && (
           <section className="mt-6">
-            <h3 className="font-heading font-semibold">{t('prescription.followup')}:</h3>
-            <p className="whitespace-pre-wrap">{consultation.followup}</p>
+            <h3 className="font-heading font-semibold flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {t('prescription.followup')}:
+            </h3>
+            <p className="whitespace-pre-wrap">{removeBracketedText(consultation.followup)}</p>
           </section>
         )}
       </main>
