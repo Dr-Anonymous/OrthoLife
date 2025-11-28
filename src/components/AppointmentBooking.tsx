@@ -32,27 +32,32 @@ interface AppointmentBookingProps {
   paymentOption: 'online' | 'offline';
   onPaymentOptionChange: (option: 'online' | 'offline') => void;
   rescheduleData?: any;
+  initialServiceType?: string;
 }
 
 const services: ServiceType[] = [
   { name: 'Orthopaedic Consultation', duration: 15, price: 400 },
   { name: 'General Physician Consultation', duration: 20, price: 400 },
   { name: 'Follow-up Visit', duration: 10, price: 0 },
-  { name: 'House Visit', duration: 15, price: 1000 },
+  { name: 'Home Visit', duration: 15, price: 1000 },
 ];
 
-const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ 
-  onComplete, 
-  onBack, 
-  paymentOption, 
+const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
+  onComplete,
+  onBack,
+  paymentOption,
   onPaymentOptionChange,
-  rescheduleData
+  rescheduleData,
+  initialServiceType
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(rescheduleData ? new Date(rescheduleData.start) : undefined);
   const [selectedService, setSelectedService] = useState<string>(() => {
     if (rescheduleData?.description) {
       const serviceMatch = services.find(service => rescheduleData.description.includes(service.name));
       return serviceMatch ? serviceMatch.name : services[0].name;
+    }
+    if (initialServiceType) {
+      return initialServiceType;
     }
     return services[0].name;
   });
@@ -72,16 +77,16 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
   const fetchAvailableSlots = async () => {
     if (!selectedDate) return;
-    
+
     setLoading(true);
     setError('');
-    try {  
+    try {
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
-      
+
       const { data, error } = await supabase.functions.invoke('get-available-slots', {
-        body: { date: `${year}-${month}-${day}`}
+        body: { date: `${year}-${month}-${day}` }
       });
 
       if (error) {
@@ -93,7 +98,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
 
       //console.log('Received slots data:', data);
       setAvailableSlots(data?.slots || []);
-      
+
       if (!data?.slots || data.slots.length === 0) {
         setError('No available slots for this date. Please select another date.');
       }
@@ -152,7 +157,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
                 {services.map((service) => (
                   <SelectItem key={service.name} value={service.name}>
                     <div className="flex justify-between items-center w-full">
-                      <span>{service.name }{' '}</span>
+                      <span>{service.name}{' '}</span>
                       <span className="text-green-600 font-medium">₹{service.price}</span>
                     </div>
                   </SelectItem>
@@ -192,13 +197,13 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
               <label className="block text-sm font-medium mb-2">
                 Available Time Slots for {selectedDate.toLocaleDateString()}
               </label>
-              
+
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
                   <p className="text-red-700 text-sm">{error}</p>
                 </div>
               )}
-              
+
               {loading ? (
                 <div className="text-center py-4">Loading available slots...</div>
               ) : availableSlots.length > 0 ? (
@@ -275,7 +280,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
             <Button variant="outline" onClick={onBack} className="flex-1" disabled={isBooking}>
               Back
             </Button>
-            <Button 
+            <Button
               onClick={handleBookAppointment}
               disabled={!selectedSlot || !selectedService || isBooking}
               className="flex-1"

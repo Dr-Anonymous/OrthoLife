@@ -83,6 +83,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/appointment" element={<AppointmentPage />} />
+                <Route path="/appointment/:serviceType" element={<AppointmentPage />} />
                 <Route path="/legal" element={<LegalPoliciesPage />} />
                 <Route path="/wa" element={<WhatsAppMe />} />
                 <Route path="/badam" element={<PatientRegistration />} />

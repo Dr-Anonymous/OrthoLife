@@ -50,8 +50,8 @@ const doctors: Doctor[] = [
         },
         contact: {
             phone: "+919866812555",
-            phoneDisplay: "+91 98668 12555",
-            appointmentUrl: "https://ortho.life/appointment"
+            phoneDisplay: "98668 12555",
+            appointmentUrl: "https://ortho.life/appointment/ortho"
         }
     },
     {
@@ -73,8 +73,8 @@ const doctors: Doctor[] = [
         },
         contact: {
             phone: "+919177434455",
-            phoneDisplay: "91774 34455",
-            appointmentUrl: "https://wa.me/919177434455?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today"
+            phoneDisplay: "9177 43 44 55",
+            appointmentUrl: "https://ortho.life/appointment/physician"
         }
     }
 ];
