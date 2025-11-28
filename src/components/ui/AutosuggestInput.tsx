@@ -58,10 +58,14 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
     if (e.key === 'ArrowDown') {
       if (activeSuggestionIndex < filteredSuggestions.length - 1) {
         setActiveSuggestionIndex(activeSuggestionIndex + 1);
+      } else {
+        setActiveSuggestionIndex(0);
       }
     } else if (e.key === 'ArrowUp') {
       if (activeSuggestionIndex > 0) {
         setActiveSuggestionIndex(activeSuggestionIndex - 1);
+      } else {
+        setActiveSuggestionIndex(filteredSuggestions.length - 1);
       }
     } else if (e.key === 'Enter') {
       if (filteredSuggestions.length > 0) {
@@ -87,9 +91,8 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
               <li
                 key={suggestion.id}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className={`p-2 cursor-pointer ${
-                  index === activeSuggestionIndex ? 'bg-muted' : 'hover:bg-muted'
-                }`}
+                className={`p-2 cursor-pointer ${index === activeSuggestionIndex ? 'bg-muted' : 'hover:bg-muted'
+                  }`}
               >
                 {suggestion.name}
               </li>
