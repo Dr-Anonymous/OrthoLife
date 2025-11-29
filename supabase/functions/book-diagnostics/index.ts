@@ -1,18 +1,24 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
+import { sendOrderNotification } from '../_shared/order-notification.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 // Diagnostics calendar ID for home collection appointments
 const DIAGNOSTICS_CALENDAR_ID = '875a1e9d09f8c9bf9eca113cef0b24c6f06447b70cd0d544ab96757cb16e38d7@group.calendar.google.com';
-serve(async (req)=>{
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders
     });
   }
   try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
     const { patientData, timeSlotData, items, total } = await req.json();
     console.log('Booking diagnostics for:', patientData.name, 'at', timeSlotData.start);
     const appointmentId = crypto.randomUUID();
@@ -25,7 +31,7 @@ serve(async (req)=>{
       timeZone: 'UTC'
     })}.\n` + `Our technician will visit your home address.`);
     // Create test list
-    const testsList = items.map((item)=>`${item.name} x${item.quantity}`).join(', ');
+    const testsList = items.map((item) => `${item.name} x${item.quantity}`).join(', ');
     const accessToken = await getGoogleAccessToken();
     if (accessToken) {
       const calendarEvent = {
@@ -56,7 +62,7 @@ Appointment ID: ${appointmentId}`,
       if (!calendarResponse.ok) {
         const errorText = await calendarResponse.text();
         console.error('Failed to create diagnostics calendar event:', errorText);
-      // Continue with response even if calendar fails
+        // Continue with response even if calendar fails
       } else {
         const calendarEventData = await calendarResponse.json();
         console.log('Diagnostics Google Calendar event created:', calendarEventData.id);
@@ -64,6 +70,31 @@ Appointment ID: ${appointmentId}`,
     } else {
       console.log('No Google Calendar access token available, skipping diagnostics event creation');
     }
+
+    // Save order to database
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert([
+        {
+          user_id: patientData.phone, // Using phone number as ID
+          items,
+          total_amount: total,
+          status: 'scheduled', // Diagnostics are scheduled
+          // You might want to store appointmentId or timeSlotData in a separate column or within items/metadata if needed
+        }
+      ])
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error('Error saving diagnostics order:', orderError);
+      // We don't throw here to ensure the response returns success for the booking part at least, 
+      // but ideally this should be transactional. For now, we log it.
+    } else {
+      // Send notification using shared logic
+      await sendOrderNotification(order, 'placed');
+    }
+
     return new Response(JSON.stringify({
       success: true,
       appointmentId,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
@@ -13,7 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { ShoppingCart, Pill, Plus, Minus, RefreshCw } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ShoppingCart, Pill, Plus, Minus, RefreshCw, CalendarClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,7 +28,7 @@ interface SizeVariant {
 
 interface Medicine {
   id: string;
-  name:string;
+  name: string;
   description: string;
   price: number;
   category: string;
@@ -53,7 +54,9 @@ const PharmacyPage = () => {
   const [orderType, setOrderType] = useState<{ [key: string]: 'pack' | 'unit' }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
-  
+  const [autoReorder, setAutoReorder] = useState(false);
+  const [reorderFrequency, setReorderFrequency] = useState('monthly');
+
   const [patientData, setPatientData] = useState({
     name: '',
     phone: '',
@@ -61,7 +64,25 @@ const PharmacyPage = () => {
   });
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('pharmacyCart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error('Failed to parse cart from localStorage', e);
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('pharmacyCart', JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     trackEvent({
@@ -109,11 +130,11 @@ const PharmacyPage = () => {
       }
     }
 
-    if(itemsAdded) {
-        toast({
-            title: "Added to cart",
-            description: `${medicine.name} was automatically added to your cart.`,
-        });
+    if (itemsAdded) {
+      toast({
+        title: "Added to cart",
+        description: `${medicine.name} was automatically added to your cart.`,
+      });
     }
   };
 
@@ -121,15 +142,15 @@ const PharmacyPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error } = await supabase.functions.invoke('fetch-pharmacy-data');
-      
+
       if (error) {
         console.error('Error fetching medicines:', error);
         setError('Failed to load medicines. Please try again.');
         return [];
       }
-      
+
       const medicinesData = data?.medicines || [];
       setMedicines(medicinesData);
       return medicinesData;
@@ -144,35 +165,35 @@ const PharmacyPage = () => {
 
   useEffect(() => {
     const processUrlQuery = async () => {
-        const params = new URLSearchParams(window.location.search);
-        const query = params.get('q');
+      const params = new URLSearchParams(window.location.search);
+      const query = params.get('q');
 
-        const medicinesData = await fetchMedicines();
+      const medicinesData = await fetchMedicines();
 
-        if (query && query.includes('*')) {
-            const items = query.split(',').map(item => {
-                const parts = item.split('*');
-                return { name: parts[0].trim(), quantity: parseInt(parts[1] || '1', 10) };
-            });
+      if (query && query.includes('*')) {
+        const items = query.split(',').map(item => {
+          const parts = item.split('*');
+          return { name: parts[0].trim(), quantity: parseInt(parts[1] || '1', 10) };
+        });
 
-            const medicineNames = items.map(item => item.name).join(', ');
-            setSearchTerm(medicineNames);
+        const medicineNames = items.map(item => item.name).join(', ');
+        setSearchTerm(medicineNames);
 
-            items.forEach(item => {
-                const searchTerm = item.name.toLowerCase();
-                const medicine = medicinesData.find(m =>
-                    (m.name && m.name.toLowerCase().includes(searchTerm)) ||
-                    (m.category && m.category.toLowerCase().includes(searchTerm)) ||
-                    (m.description && m.description.toLowerCase().includes(searchTerm))
-                );
+        items.forEach(item => {
+          const searchTerm = item.name.toLowerCase();
+          const medicine = medicinesData.find(m =>
+            (m.name && m.name.toLowerCase().includes(searchTerm)) ||
+            (m.category && m.category.toLowerCase().includes(searchTerm)) ||
+            (m.description && m.description.toLowerCase().includes(searchTerm))
+          );
 
-                if (medicine) {
-                    addMultipleToCart(medicine, item.quantity);
-                }
-            });
-        } else if (query) {
-            setSearchTerm(query);
-        }
+          if (medicine) {
+            addMultipleToCart(medicine, item.quantity);
+          }
+        });
+      } else if (query) {
+        setSearchTerm(query);
+      }
     };
 
     processUrlQuery();
@@ -207,11 +228,11 @@ const PharmacyPage = () => {
   const getCartKey = (medicine: Medicine, size: string | undefined, type: 'pack' | 'unit'): string => {
     let baseKey = medicine.id;
     if (medicine.isGrouped && size) {
-        baseKey = `${medicine.id}-${size}`;
+      baseKey = `${medicine.id}-${size}`;
     }
 
     if (medicine.individual === 'TRUE') {
-        return `${baseKey}-${type}`;
+      return `${baseKey}-${type}`;
     }
 
     return baseKey;
@@ -227,10 +248,10 @@ const PharmacyPage = () => {
     }
 
     if (medicine.individual === 'TRUE' && type === 'unit' && medicine.packSize) {
-        const packSize = parseInt(medicine.packSize, 10);
-        if (!isNaN(packSize)) {
-            return stock * packSize;
-        }
+      const packSize = parseInt(medicine.packSize, 10);
+      if (!isNaN(packSize)) {
+        return stock * packSize;
+      }
     }
 
     return stock;
@@ -239,7 +260,7 @@ const PharmacyPage = () => {
   const addToCart = (medicineId: string, selectedSize?: string) => {
     const medicine = medicines.find(m => m.id === medicineId);
     if (!medicine) return;
-    
+
     if (medicine.isGrouped && !selectedSize) {
       toast({
         title: "Please select a size",
@@ -248,12 +269,12 @@ const PharmacyPage = () => {
       });
       return;
     }
-    
+
     const currentOrderType = orderType[medicine.id] || 'pack';
     const cartKey = getCartKey(medicine, selectedSize, currentOrderType);
     const currentCartQuantity = cart[cartKey] || 0;
     const availableStock = getAvailableStock(medicine, selectedSize, currentOrderType);
-    
+
     if (currentCartQuantity >= availableStock) {
       toast({
         title: "Stock limit reached",
@@ -276,7 +297,7 @@ const PharmacyPage = () => {
         orderType: currentOrderType,
       },
     });
-    
+
     setCart(prev => ({
       ...prev,
       [cartKey]: currentCartQuantity + 1
@@ -348,11 +369,11 @@ const PharmacyPage = () => {
 
         let size;
         if (medicine.isGrouped) {
-            if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
-                size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
-            } else {
-                size = cartKeyParts.slice(1).join('-');
-            }
+          if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
+            size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
+          } else {
+            size = cartKeyParts.slice(1).join('-');
+          }
         }
 
         const availableStock = getAvailableStock(medicine, size, orderType);
@@ -379,6 +400,15 @@ const PharmacyPage = () => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please login to place an order.",
+      });
+      navigate(`/auth?redirect=/pharmacy`);
+      return;
+    }
+
     setShowPatientForm(true);
   };
 
@@ -388,21 +418,21 @@ const PharmacyPage = () => {
         const cartKeyParts = cartKey.split('-');
         const medicineId = cartKeyParts[0];
         const medicine = medicines.find(m => m.id === medicineId);
-        
+
         if (!medicine) return null;
 
         let size;
         if (medicine.isGrouped) {
-            if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
-                size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
-            } else {
-                size = cartKeyParts.slice(1).join('-');
-            }
+          if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
+            size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
+          } else {
+            size = cartKeyParts.slice(1).join('-');
+          }
         }
 
         let nameForStockUpdate = medicine.name;
         if (medicine.isGrouped && size) {
-            nameForStockUpdate = `${medicine.name} ${size}`;
+          nameForStockUpdate = `${medicine.name} ${size}`;
         }
 
         let displayNameForEmail = medicine.name;
@@ -412,11 +442,11 @@ const PharmacyPage = () => {
 
         const orderType = cartKey.endsWith('-unit') ? 'unit' : 'pack';
         if (orderType === 'unit') {
-            displayNameForEmail = `${displayNameForEmail} (Units)`;
+          displayNameForEmail = `${displayNameForEmail} (Units)`;
         } else {
-            displayNameForEmail = `${displayNameForEmail} (Pack)`;
+          displayNameForEmail = `${displayNameForEmail} (Pack)`;
         }
-        
+
         let itemPrice = 0;
         if (orderType === 'unit' && medicine.packSize) {
           const packSize = parseInt(medicine.packSize, 10);
@@ -451,12 +481,12 @@ const PharmacyPage = () => {
         },
       });
 
-      const { error } = await supabase.functions.invoke('send-order-email', {
+      const { error } = await supabase.functions.invoke('place-order', {
         body: {
-          orderType: 'pharmacy',
-          patientData,
+          userId: user?.phoneNumber, // Using phone number as ID as requested
           items,
-          total: total
+          totalAmount: total,
+          subscription: autoReorder ? { frequency: reorderFrequency } : null
         }
       });
 
@@ -471,7 +501,7 @@ const PharmacyPage = () => {
           title: "Order placed successfully!",
           description: "Your medicines will be delivered within 2-3 hours.",
         });
-        
+
         fetchMedicines();
       }
 
@@ -568,184 +598,184 @@ const PharmacyPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                 {filteredMedicines.map((medicine) => {
-                   const selectedSize = selectedSizes[medicine.id];
-                   const currentOrderType = orderType[medicine.id] || 'pack';
-                   const cartKey = getCartKey(medicine, selectedSize, currentOrderType);
-                   const currentStock = getAvailableStock(medicine, selectedSize, currentOrderType);
-                   
-                   return (
-                     <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="text-sm text-muted-foreground font-medium mt-1">
-                                {medicine.category}
-                              </div>
-                              <CardTitle className="text-lg">{medicine.name}</CardTitle>
-                              {medicine.isGrouped && medicine.sizes ? (
-                                <div className="mt-2 space-y-2">
-                                  <Badge variant="outline" className="w-fit">
-                                    Available sizes: {medicine.sizes.map(s => s.size).join(', ')}
-                                  </Badge>
-                                  <Select
-                                    value={selectedSize || ''}
-                                    onValueChange={(value) => setSelectedSizes(prev => ({
-                                      ...prev,
-                                      [medicine.id]: value
-                                    }))}
-                                  >
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue placeholder="Select size" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {medicine.sizes.map((sizeVariant) => (
-                                        <SelectItem 
-                                          key={sizeVariant.size} 
-                                          value={sizeVariant.size}
-                                          disabled={!sizeVariant.inStock || sizeVariant.stockCount === 0}
-                                        >
-                                          {sizeVariant.size} {!sizeVariant.inStock || sizeVariant.stockCount === 0 ? '(Out of Stock)' : `(${sizeVariant.stockCount} available)`}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              ) : (
-                                <Badge variant={medicine.inStock ? "default" : "secondary"} className="w-fit mt-2">
-                                  {medicine.inStock ? "In Stock" : "Out of Stock"}
+                {filteredMedicines.map((medicine) => {
+                  const selectedSize = selectedSizes[medicine.id];
+                  const currentOrderType = orderType[medicine.id] || 'pack';
+                  const cartKey = getCartKey(medicine, selectedSize, currentOrderType);
+                  const currentStock = getAvailableStock(medicine, selectedSize, currentOrderType);
+
+                  return (
+                    <Card key={medicine.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="text-sm text-muted-foreground font-medium mt-1">
+                              {medicine.category}
+                            </div>
+                            <CardTitle className="text-lg">{medicine.name}</CardTitle>
+                            {medicine.isGrouped && medicine.sizes ? (
+                              <div className="mt-2 space-y-2">
+                                <Badge variant="outline" className="w-fit">
+                                  Available sizes: {medicine.sizes.map(s => s.size).join(', ')}
                                 </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <CardDescription className="mt-2">{medicine.description}</CardDescription>
-                          {(medicine.manufacturer || medicine.dosage || medicine.packSize) && (
-                            <div className="space-y-1 text-sm text-muted-foreground mt-2">
-                              {medicine.manufacturer && <div>Brand: {medicine.manufacturer}</div>}
-                              {medicine.dosage && <div>Dosage: {medicine.dosage}</div>}
-                              {medicine.packSize && <div>Pack Size: {medicine.packSize} unit(s)/pack</div>}
-                            </div>
-                          )}
-                        </CardHeader>
-                        <CardContent>
-                          {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
-                            <div className="mb-4">
-                                <Label>Order by:</Label>
-                                <RadioGroup
-                                    defaultValue="pack"
-                                    value={orderType[medicine.id] || 'pack'}
-                                    onValueChange={(value) => {
-                                        setOrderType(prev => ({
-                                            ...prev,
-                                            [medicine.id]: value as 'pack' | 'unit'
-                                        }));
-                                    }}
-                                    className="flex items-center space-x-4 mt-2"
+                                <Select
+                                  value={selectedSize || ''}
+                                  onValueChange={(value) => setSelectedSizes(prev => ({
+                                    ...prev,
+                                    [medicine.id]: value
+                                  }))}
                                 >
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="pack" id={`${medicine.id}-pack`} />
-                                        <Label htmlFor={`${medicine.id}-pack`}>Pack</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="unit" id={`${medicine.id}-unit`} />
-                                        <Label htmlFor={`${medicine.id}-unit`}>Unit</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
-                          )}
-                           <div className="flex justify-between items-center mb-4">
-                             <div className="flex flex-col">
-                               {!medicine.isGrouped && medicine.stockCount !== undefined && (
-                                 <div className="space-y-1">
-                                   <span className="text-xs text-muted-foreground">
-                                     Stock: {medicine.stockCount} packs available
-                                   </span>
-                                   {cart[medicine.id] && (
-                                     <span className="text-xs text-orange-600">
-                                       {" "}{medicine.stockCount - cart[medicine.id]} remaining
-                                     </span>
-                                   )}
-                                 </div>
-                               )}
-                               {medicine.isGrouped && selectedSize && (
-                                 <div className="space-y-1">
-                                   <span className="text-xs text-muted-foreground">
-                                     Stock: {currentStock} available
-                                   </span>
-                                   {cart[cartKey] && (
-                                     <span className="text-xs text-orange-600">
-                                       {" "}{currentStock - cart[cartKey]} remaining
-                                     </span>
-                                   )}
-                                 </div>
-                               )}
-                               {medicine.prescriptionRequired && (
-                                 <Badge variant="outline" className="w-fit mt-1">
-                                   Prescription Required
-                                 </Badge>
-                               )}
-                             </div>
-                            <div className="text-right">
-                              {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
-                                <div className="flex flex-col">
-                                  <span className="text-sm text-muted-foreground line-through">
-                                    ₹{Math.ceil(medicine.originalPrice)}
-                                  </span>
-                                  <span className="text-lg font-semibold text-green-600">
-                                    ₹{Math.ceil(medicine.price)}
-                                  </span>
-                                  {medicine.discount && medicine.discount > 0 && (
-                                    <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                      {Math.ceil(medicine.discount)}% OFF
-                                    </Badge>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-lg font-semibold">₹{medicine.price}</span>
-                              )}
-                              {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  (₹{(medicine.price / parseInt(medicine.packSize, 10)).toFixed(2)} / unit)
-                                </div>
-                              )}
-                            </div>
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select size" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {medicine.sizes.map((sizeVariant) => (
+                                      <SelectItem
+                                        key={sizeVariant.size}
+                                        value={sizeVariant.size}
+                                        disabled={!sizeVariant.inStock || sizeVariant.stockCount === 0}
+                                      >
+                                        {sizeVariant.size} {!sizeVariant.inStock || sizeVariant.stockCount === 0 ? '(Out of Stock)' : `(${sizeVariant.stockCount} available)`}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <Badge variant={medicine.inStock ? "default" : "secondary"} className="w-fit mt-2">
+                                {medicine.inStock ? "In Stock" : "Out of Stock"}
+                              </Badge>
+                            )}
                           </div>
-                        </CardContent>
-                       <CardFooter className="flex justify-between items-center">
-                         {cart[cartKey] ? (
-                           <div className="flex items-center gap-3">
-                             <Button
-                               variant="outline"
-                               size="icon"
-                               onClick={() => removeFromCart(cartKey)}
-                             >
-                               <Minus className="h-4 w-4" />
-                             </Button>
-                             <span className="font-medium">{cart[cartKey]}</span>
-                             <Button
-                               variant="outline"
-                               size="icon"
-                               onClick={() => addToCart(medicine.id, selectedSize)}
-                               disabled={!medicine.inStock || (cart[cartKey] || 0) >= currentStock}
-                             >
-                               <Plus className="h-4 w-4" />
-                             </Button>
-                           </div>
-                         ) : (
-                           <Button
-                             onClick={() => addToCart(medicine.id, selectedSize)}
-                             disabled={!medicine.inStock || currentStock === 0 || (medicine.isGrouped && !selectedSize)}
-                             className="flex items-center gap-2"
-                           >
-                             <Pill className="h-4 w-4" />
-                             {currentStock === 0 ? 'Out of Stock' : 
+                        </div>
+                        <CardDescription className="mt-2">{medicine.description}</CardDescription>
+                        {(medicine.manufacturer || medicine.dosage || medicine.packSize) && (
+                          <div className="space-y-1 text-sm text-muted-foreground mt-2">
+                            {medicine.manufacturer && <div>Brand: {medicine.manufacturer}</div>}
+                            {medicine.dosage && <div>Dosage: {medicine.dosage}</div>}
+                            {medicine.packSize && <div>Pack Size: {medicine.packSize} unit(s)/pack</div>}
+                          </div>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
+                          <div className="mb-4">
+                            <Label>Order by:</Label>
+                            <RadioGroup
+                              defaultValue="pack"
+                              value={orderType[medicine.id] || 'pack'}
+                              onValueChange={(value) => {
+                                setOrderType(prev => ({
+                                  ...prev,
+                                  [medicine.id]: value as 'pack' | 'unit'
+                                }));
+                              }}
+                              className="flex items-center space-x-4 mt-2"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="pack" id={`${medicine.id}-pack`} />
+                                <Label htmlFor={`${medicine.id}-pack`}>Pack</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="unit" id={`${medicine.id}-unit`} />
+                                <Label htmlFor={`${medicine.id}-unit`}>Unit</Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex flex-col">
+                            {!medicine.isGrouped && medicine.stockCount !== undefined && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">
+                                  Stock: {medicine.stockCount} packs available
+                                </span>
+                                {cart[medicine.id] && (
+                                  <span className="text-xs text-orange-600">
+                                    {" "}{medicine.stockCount - cart[medicine.id]} remaining
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {medicine.isGrouped && selectedSize && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">
+                                  Stock: {currentStock} available
+                                </span>
+                                {cart[cartKey] && (
+                                  <span className="text-xs text-orange-600">
+                                    {" "}{currentStock - cart[cartKey]} remaining
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {medicine.prescriptionRequired && (
+                              <Badge variant="outline" className="w-fit mt-1">
+                                Prescription Required
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
+                              <div className="flex flex-col">
+                                <span className="text-sm text-muted-foreground line-through">
+                                  ₹{Math.ceil(medicine.originalPrice)}
+                                </span>
+                                <span className="text-lg font-semibold text-green-600">
+                                  ₹{Math.ceil(medicine.price)}
+                                </span>
+                                {medicine.discount && medicine.discount > 0 && (
+                                  <Badge variant="destructive" className="text-xs w-fit ml-auto">
+                                    {Math.ceil(medicine.discount)}% OFF
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-lg font-semibold">₹{medicine.price}</span>
+                            )}
+                            {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                (₹{(medicine.price / parseInt(medicine.packSize, 10)).toFixed(2)} / unit)
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex justify-between items-center">
+                        {cart[cartKey] ? (
+                          <div className="flex items-center gap-3">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => removeFromCart(cartKey)}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="font-medium">{cart[cartKey]}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => addToCart(medicine.id, selectedSize)}
+                              disabled={!medicine.inStock || (cart[cartKey] || 0) >= currentStock}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={() => addToCart(medicine.id, selectedSize)}
+                            disabled={!medicine.inStock || currentStock === 0 || (medicine.isGrouped && !selectedSize)}
+                            className="flex items-center gap-2"
+                          >
+                            <Pill className="h-4 w-4" />
+                            {currentStock === 0 ? 'Out of Stock' :
                               medicine.isGrouped && !selectedSize ? 'Select Size First' : 'Add to Cart'}
-                           </Button>
-                         )}
-                       </CardFooter>
-                     </Card>
-                   );
-                 })}
+                          </Button>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
               </div>
             )}
 
@@ -773,16 +803,16 @@ const PharmacyPage = () => {
                         const cartKeyParts = cartKey.split('-');
                         const medicineId = cartKeyParts[0];
                         const medicine = medicines.find(m => m.id === medicineId);
-                        
+
                         if (!medicine) return null;
-                        
+
                         let size;
                         if (medicine.isGrouped) {
-                            if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
-                                size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
-                            } else {
-                                size = cartKeyParts.slice(1).join('-');
-                            }
+                          if (cartKey.endsWith('-unit') || cartKey.endsWith('-pack')) {
+                            size = cartKeyParts.slice(1, cartKeyParts.length - 1).join('-');
+                          } else {
+                            size = cartKeyParts.slice(1).join('-');
+                          }
                         }
 
                         let displayName;
@@ -793,11 +823,11 @@ const PharmacyPage = () => {
                         }
 
                         if (cartKey.endsWith('-unit')) {
-                            displayName = `${displayName} (Units)`;
+                          displayName = `${displayName} (Units)`;
                         } else if (cartKey.endsWith('-pack')) {
-                            displayName = `${displayName} (Pack)`;
+                          displayName = `${displayName} (Pack)`;
                         }
-                        
+
                         let itemPrice = 0;
                         if (cartKey.endsWith('-unit') && medicine.packSize) {
                           const packSize = parseInt(medicine.packSize, 10);

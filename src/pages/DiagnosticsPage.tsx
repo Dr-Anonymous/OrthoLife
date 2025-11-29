@@ -54,7 +54,7 @@ const DiagnosticsPage = () => {
       details: { page: 'diagnostics' }
     });
   }, [location.pathname, user]);
-  
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -67,15 +67,15 @@ const DiagnosticsPage = () => {
     }
   }, []);
 
-  
+
   const fetchTests = async (bustCache = false) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const url = bustCache ? `/lab-data.json?v=${new Date().getTime()}` : '/lab-data.json';
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           // File doesn't exist, which is a valid state before the first refresh.
@@ -87,7 +87,7 @@ const DiagnosticsPage = () => {
         }
         return;
       }
-      
+
       const responseText = await response.text();
       if (!responseText) {
         // The file is empty, treat it as if it's not there.
@@ -117,7 +117,7 @@ const DiagnosticsPage = () => {
       });
 
       const { error } = await supabase.functions.invoke('fetch-lab-data?refresh=true');
-      
+
       if (error) {
         console.error('Error refreshing tests:', error);
         setError('Failed to refresh tests. Please try again.');
@@ -276,7 +276,7 @@ const DiagnosticsPage = () => {
         },
       });
 
-      // Book the time slot in Google Calendar
+      // Book the time slot in Google Calendar and save order
       if (timeSlotData) {
         const { error: bookingError } = await supabase.functions.invoke('book-diagnostics', {
           body: {
@@ -289,30 +289,17 @@ const DiagnosticsPage = () => {
 
         if (bookingError) {
           console.error('Error booking diagnostics:', bookingError);
+          toast({
+            title: "Booking failed",
+            description: "Could not book your tests. Please try again.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Tests booked successfully!",
+            description: `Our technician will visit you on ${new Date(timeSlotData.start).toLocaleDateString()} at ${new Date(timeSlotData.start).toLocaleTimeString('en-US', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: true })}.`,
+          });
         }
-      }
-
-      // Send the email notification
-      const { error } = await supabase.functions.invoke('send-order-email', {
-        body: {
-          orderType: 'diagnostics',
-          patientData,
-          items,
-          total: getCartTotal()
-        }
-      });
-
-      if (error) {
-        console.error('Error sending email:', error);
-        toast({
-          title: "Tests booked!",
-          description: `Your tests have been booked successfully.${timeSlotData ? ` Home collection scheduled for ${new Date(timeSlotData.start).toLocaleDateString()} at ${new Date(timeSlotData.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}.` : ' We\'ll contact you soon.'}`,
-        });
-      } else {
-        toast({
-          title: "Tests booked successfully!",
-          description: `Our technician will visit you on ${timeSlotData ? new Date(timeSlotData.start).toLocaleDateString() + ' at ' + new Date(timeSlotData.start).toLocaleTimeString('en-US', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: true }) : 'the scheduled time'}.`,
-        });
       }
 
       // Reset all form states
