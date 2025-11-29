@@ -11,7 +11,7 @@ import LanguagePreferenceModal from '@/components/LanguagePreferenceModal';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import AppointmentsCard from '@/components/AppointmentsCard';
 import PrescriptionsCard from '@/components/PrescriptionsCard';
-import TestResultsCard from '@/components/TestResultsCard';
+
 import { supabase } from '@/integrations/supabase/client';
 import OrderMedicationCard from '@/components/OrderMedicationCard';
 import OrderTestsCard from '@/components/OrderTestsCard';
@@ -164,12 +164,11 @@ const MySpace = () => {
               <p className="text-red-500">{error}</p>
             ) : (
               <>
+                <PrescriptionsCard patientId={patientId} patientPhone={patientPhone} />
                 <DietAndExercisesCard advice={advice} />
-                <AppointmentsCard />
                 <OrderMedicationCard medications={medications} />
                 <OrderTestsCard investigations={investigations} />
-                <PrescriptionsCard patientId={patientId} patientPhone={patientPhone} />
-                <TestResultsCard />
+                <AppointmentsCard />
               </>
             )}
           </div>

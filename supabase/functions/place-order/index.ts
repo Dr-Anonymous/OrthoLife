@@ -69,7 +69,10 @@ serve(async (req) => {
                         items,
                         frequency: subscription.frequency,
                         next_run_date: nextRunDate.toISOString(),
-                        status: 'active'
+                        frequency: subscription.frequency,
+                        next_run_date: nextRunDate.toISOString(),
+                        status: 'active',
+                        type: 'pharmacy'
                     }
                 ])
 

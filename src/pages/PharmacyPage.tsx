@@ -372,6 +372,7 @@ const PharmacyPage = () => {
       }
       return total;
     }, 0);
+    return Math.round(total);
   };
 
   const scrollToCart = () => {
