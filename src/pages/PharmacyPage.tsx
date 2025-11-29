@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ShoppingCart, Pill, Plus, Minus, RefreshCw, CalendarClock } from 'lucide-react';
+import { ShoppingCart, Pill, Plus, Minus, RefreshCw, CalendarClock, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -93,6 +93,17 @@ const PharmacyPage = () => {
       details: { page: 'pharmacy' }
     });
   }, [location.pathname, user]);
+
+  // Autofill patient data from user profile
+  useEffect(() => {
+    if (user) {
+      setPatientData(prev => ({
+        ...prev,
+        name: user.displayName || prev.name,
+        phone: user.phoneNumber || prev.phone
+      }));
+    }
+  }, [user]);
 
   const addMultipleToCart = (medicine: Medicine, quantity: number) => {
     if (!medicine) return;
@@ -316,6 +327,14 @@ const PharmacyPage = () => {
       } else {
         delete newCart[cartKey];
       }
+      return newCart;
+    });
+  };
+
+  const removeLineItem = (cartKey: string) => {
+    setCart(prev => {
+      const newCart = { ...prev };
+      delete newCart[cartKey];
       return newCart;
     });
   };
@@ -685,30 +704,16 @@ const PharmacyPage = () => {
                         )}
                         <div className="flex justify-between items-center mb-4">
                           <div className="flex flex-col">
-                            {!medicine.isGrouped && medicine.stockCount !== undefined && (
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground">
-                                  Stock: {medicine.stockCount} packs available
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
+                                Stock: {currentStock} {currentOrderType === 'unit' ? 'units' : 'packs'} available
+                              </span>
+                              {(cart[cartKey] || 0) > 0 && (
+                                <span className="text-xs text-orange-600">
+                                  {" "}{currentStock - (cart[cartKey] || 0)} remaining
                                 </span>
-                                {cart[medicine.id] && (
-                                  <span className="text-xs text-orange-600">
-                                    {" "}{medicine.stockCount - cart[medicine.id]} remaining
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {medicine.isGrouped && selectedSize && (
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground">
-                                  Stock: {currentStock} available
-                                </span>
-                                {cart[cartKey] && (
-                                  <span className="text-xs text-orange-600">
-                                    {" "}{currentStock - cart[cartKey]} remaining
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                              )}
+                            </div>
                             {medicine.prescriptionRequired && (
                               <Badge variant="outline" className="w-fit mt-1">
                                 Prescription Required
@@ -839,14 +844,82 @@ const PharmacyPage = () => {
                           itemPrice = medicine.price * quantity;
                         }
 
+                        const currentStock = getAvailableStock(medicine, size, cartKey.endsWith('-unit') ? 'unit' : 'pack');
+
                         return (
-                          <div key={cartKey} className="flex justify-between">
-                            <span>{displayName} x{quantity}</span>
-                            <span>₹{itemPrice.toFixed(2)}</span>
+                          <div key={cartKey} className="flex justify-between items-center border-b pb-4 last:border-0">
+                            <div className="flex-1">
+                              <div className="font-medium">{displayName}</div>
+                              <div className="text-sm text-muted-foreground">
+                                ₹{itemPrice.toFixed(2)}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center border rounded-md">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-r-none"
+                                  onClick={() => removeFromCart(cartKey)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-l-none"
+                                  onClick={() => addToCart(medicine.id, size)}
+                                  disabled={quantity >= currentStock}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => removeLineItem(cartKey)}
+                                title="Remove item"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        id="auto-reorder"
+                        checked={autoReorder}
+                        onCheckedChange={(checked) => setAutoReorder(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="auto-reorder"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Automatically reorder
+                      </label>
+                    </div>
+                    {autoReorder && (
+                      <div className="mb-4">
+                        <Label htmlFor="frequency" className="mb-2 block">Reorder Frequency</Label>
+                        <Select value={reorderFrequency} onValueChange={setReorderFrequency}>
+                          <SelectTrigger id="frequency">
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
                     <div className="border-t pt-2 font-semibold">
                       Total: ₹{getCartTotal().toFixed(2)}
                     </div>

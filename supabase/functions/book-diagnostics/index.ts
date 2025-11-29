@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getGoogleAccessToken } from "../_shared/google-auth.ts";
-import { sendOrderNotification } from '../_shared/order-notification.ts';
+import { sendOrderNotification, sendOrderEmail } from '../_shared/order-notification.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
@@ -93,6 +93,7 @@ Appointment ID: ${appointmentId}`,
     } else {
       // Send notification using shared logic
       await sendOrderNotification(order, 'placed');
+      await sendOrderEmail(order, 'diagnostics');
     }
 
     return new Response(JSON.stringify({

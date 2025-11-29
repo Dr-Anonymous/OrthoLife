@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { sendOrderNotification } from '../_shared/order-notification.ts'
+import { sendOrderNotification, sendOrderEmail } from '../_shared/order-notification.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -68,6 +68,17 @@ serve(async (req) => {
 
         // 3. Send Notification
         await sendOrderNotification(order, 'placed')
+        await sendOrderEmail(order, 'pharmacy')
+
+        // 4. Update Pharmacy Stock
+        const { error: stockError } = await supabase.functions.invoke('update-pharmacy-stock', {
+            body: { items }
+        })
+
+        if (stockError) {
+            console.error('Error updating pharmacy stock:', stockError)
+            // We don't fail the order if stock update fails, but we log it
+        }
 
         return new Response(
             JSON.stringify({ success: true, order }),
