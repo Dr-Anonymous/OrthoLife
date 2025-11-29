@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ShoppingCart, Pill, Plus, Minus, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,12 +49,26 @@ const PharmacyPage = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cart, setCart] = useState<{ [key: string]: number }>({});
+
+  // State initialization: try to load from localStorage first
+  const [cart, setCart] = useState<{ [key: string]: number }>(() => {
+    const savedCart = localStorage.getItem('pharmacy_cart');
+    return savedCart ? JSON.parse(savedCart) : {};
+  });
+
   const [selectedSizes, setSelectedSizes] = useState<{ [key: string]: string }>({});
   const [orderType, setOrderType] = useState<{ [key: string]: 'pack' | 'unit' }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
   
+  // Subscription state
+  const [isAutoReorder, setIsAutoReorder] = useState(() => {
+    return localStorage.getItem('pharmacy_auto_reorder') === 'true';
+  });
+  const [reorderFrequency, setReorderFrequency] = useState(() => {
+    return localStorage.getItem('pharmacy_reorder_freq') || '1';
+  });
+
   const [patientData, setPatientData] = useState({
     name: '',
     phone: '',
@@ -61,7 +76,21 @@ const PharmacyPage = () => {
   });
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Persist cart and settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('pharmacy_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('pharmacy_auto_reorder', String(isAutoReorder));
+  }, [isAutoReorder]);
+
+  useEffect(() => {
+    localStorage.setItem('pharmacy_reorder_freq', reorderFrequency);
+  }, [reorderFrequency]);
 
   useEffect(() => {
     trackEvent({
@@ -147,6 +176,12 @@ const PharmacyPage = () => {
         const params = new URLSearchParams(window.location.search);
         const query = params.get('q');
 
+        // Only process query if cart is empty to avoid overwriting ongoing session?
+        // Or append? User might be redirected back here.
+        // If returning from auth, query might be gone or still there.
+        // We should check if we just added things via query.
+        // For now, let's allow query to add items.
+
         const medicinesData = await fetchMedicines();
 
         if (query && query.includes('*')) {
@@ -173,10 +208,29 @@ const PharmacyPage = () => {
         } else if (query) {
             setSearchTerm(query);
         }
+
+        // If returned from redirect and showForm was expected (implicit logic)
+        // We don't have a specific flag, but if cart is not empty and auto-reorder is checked,
+        // user probably wants to checkout.
+        if (localStorage.getItem('pharmacy_auto_reorder') === 'true' && Object.keys(cart).length > 0 && user) {
+             setShowPatientForm(true);
+        }
     };
 
     processUrlQuery();
-  }, []);
+  }, []); // Only run on mount. Cart persistence handles the rest.
+
+  // Pre-fill patient data if logged in
+  useEffect(() => {
+      if (user) {
+          // Try to get patient data from context or auth if available
+          setPatientData(prev => ({
+              ...prev,
+              phone: user.phoneNumber || prev.phone,
+              name: user.displayName || prev.name
+          }));
+      }
+  }, [user]);
 
   const filteredMedicines = (() => {
     const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
@@ -379,6 +433,16 @@ const PharmacyPage = () => {
       return;
     }
 
+    // Auth check for Auto-reorder
+    if (isAutoReorder && !user) {
+        toast({
+            title: "Login Required",
+            description: "Please login to setup automatic reorders.",
+        });
+        navigate('/auth?redirect=/pharmacy');
+        return;
+    }
+
     setShowPatientForm(true);
   };
 
@@ -448,36 +512,44 @@ const PharmacyPage = () => {
           page: 'pharmacy',
           items: items,
           total: total,
+          isAutoReorder,
+          reorderFrequency: isAutoReorder ? reorderFrequency : null
         },
       });
 
-      const { error } = await supabase.functions.invoke('send-order-email', {
+      // Use the new place-order function
+      const { error } = await supabase.functions.invoke('place-order', {
         body: {
           orderType: 'pharmacy',
           patientData,
           items,
-          total: total
+          total: total,
+          subscription: isAutoReorder ? { frequency: reorderFrequency } : undefined
         }
       });
 
       if (error) {
-        console.error('Error sending email:', error);
+        console.error('Error sending order:', error);
         toast({
           title: "Order placed!",
-          description: "Your order has been placed successfully. We'll contact you soon.",
+          description: "Your order has been placed. We'll contact you soon.",
         });
       } else {
         toast({
           title: "Order placed successfully!",
-          description: "Your medicines will be delivered within 2-3 hours.",
+          description: isAutoReorder
+            ? "Your order is placed and subscription is active."
+            : "Your medicines will be delivered within 2-3 hours.",
         });
         
         fetchMedicines();
       }
 
       setCart({});
+      localStorage.removeItem('pharmacy_cart'); // Clear persisted cart
       setShowPatientForm(false);
       setPatientData({ name: '', phone: '', address: '' });
+      setIsAutoReorder(false); // Reset
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -485,8 +557,10 @@ const PharmacyPage = () => {
         description: "Your order has been placed successfully. We'll contact you soon.",
       });
       setCart({});
+      localStorage.removeItem('pharmacy_cart');
       setShowPatientForm(false);
       setPatientData({ name: '', phone: '', address: '' });
+      setIsAutoReorder(false);
     }
   };
 
@@ -817,7 +891,42 @@ const PharmacyPage = () => {
                         );
                       })}
                     </div>
-                    <div className="border-t pt-2 font-semibold">
+
+                    <div className="border-t border-b py-4 my-4 space-y-4">
+                        <div className="flex items-start space-x-2">
+                            <Checkbox
+                                id="auto-reorder"
+                                checked={isAutoReorder}
+                                onCheckedChange={(checked) => setIsAutoReorder(checked as boolean)}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor="auto-reorder" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Automatically reorder
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    We will automatically place this order for you.
+                                </p>
+                            </div>
+                        </div>
+
+                        {isAutoReorder && (
+                             <div className="pl-6">
+                                <Label className="text-sm mb-2 block">Frequency</Label>
+                                <Select value={reorderFrequency} onValueChange={setReorderFrequency}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Select frequency" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">Every 1 Month</SelectItem>
+                                        <SelectItem value="2">Every 2 Months</SelectItem>
+                                        <SelectItem value="3">Every 3 Months</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                             </div>
+                        )}
+                    </div>
+
+                    <div className="pt-2 font-semibold">
                       Total: ₹{getCartTotal().toFixed(2)}
                     </div>
                   </CardContent>
