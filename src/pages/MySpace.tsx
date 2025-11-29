@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Pill } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageLoader from '@/components/PageLoader';
 import Header from '@/components/Header';
@@ -127,18 +127,18 @@ const MySpace = () => {
               {patientName && <p className="mt-1 text-lg text-gray-600">{t('mySpace.dashboardDescription')}</p>}
             </div>
             <div className="flex flex-col items-end gap-2 mt-4 sm:mt-0">
-                <div className="flex items-center gap-4">
-                    <LanguageSwitcher />
-                    {patientList.length > 1 && (
-                        <Button onClick={() => setIsPatientSelectionModalOpen(true)} variant="outline">
-                        {t('mySpace.switchPatient')}
-                        </Button>
-                    )}
-                    <Button onClick={handleLogout} variant="outline">
-                        <LogOut className="mr-2 h-4 w-4" /> {t('mySpace.logout')}
-                    </Button>
-                </div>
-                {user?.phoneNumber && <p className="text-sm text-gray-600"><strong>{user.phoneNumber}</strong></p>}
+              <div className="flex items-center gap-4">
+                <LanguageSwitcher />
+                {patientList.length > 1 && (
+                  <Button onClick={() => setIsPatientSelectionModalOpen(true)} variant="outline">
+                    {t('mySpace.switchPatient')}
+                  </Button>
+                )}
+                <Button onClick={handleLogout} variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" /> {t('mySpace.logout')}
+                </Button>
+              </div>
+              {user?.phoneNumber && <p className="text-sm text-gray-600"><strong>{user.phoneNumber}</strong></p>}
             </div>
           </header>
 
@@ -150,7 +150,7 @@ const MySpace = () => {
           />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-            
+
             {loading || isSelectionPending ? (
               <>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>

@@ -59,12 +59,21 @@ serve(async (req) => {
 
                 // 3. Update next_run_date
                 const nextRunDate = new Date(sub.next_run_date)
-                if (sub.frequency === 'monthly') {
-                    nextRunDate.setMonth(nextRunDate.getMonth() + 1)
-                } else if (sub.frequency === 'weekly') {
-                    nextRunDate.setDate(nextRunDate.getDate() + 7)
+
+                let count = 1;
+                let unit = sub.frequency;
+
+                if (sub.frequency.includes('-')) {
+                    const parts = sub.frequency.split('-');
+                    count = parseInt(parts[0]) || 1;
+                    unit = parts[1];
                 }
-                // Add more frequencies as needed
+
+                if (unit === 'monthly') {
+                    nextRunDate.setMonth(nextRunDate.getMonth() + count)
+                } else if (unit === 'weekly') {
+                    nextRunDate.setDate(nextRunDate.getDate() + (count * 7))
+                }
 
                 const { error: updateError } = await supabase
                     .from('subscriptions')

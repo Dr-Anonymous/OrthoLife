@@ -55,7 +55,8 @@ const PharmacyPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientForm, setShowPatientForm] = useState(false);
   const [autoReorder, setAutoReorder] = useState(false);
-  const [reorderFrequency, setReorderFrequency] = useState('monthly');
+  const [reorderFrequencyCount, setReorderFrequencyCount] = useState(1);
+  const [reorderFrequencyUnit, setReorderFrequencyUnit] = useState('monthly');
 
   const [patientData, setPatientData] = useState({
     name: '',
@@ -505,7 +506,7 @@ const PharmacyPage = () => {
           userId: user?.phoneNumber, // Using phone number as ID as requested
           items,
           totalAmount: total,
-          subscription: autoReorder ? { frequency: reorderFrequency } : null
+          subscription: autoReorder ? { frequency: `${reorderFrequencyCount}-${reorderFrequencyUnit}` } : null
         }
       });
 
@@ -906,17 +907,25 @@ const PharmacyPage = () => {
                     </div>
                     {autoReorder && (
                       <div className="mb-4">
-                        <Label htmlFor="frequency" className="mb-2 block">Reorder Frequency</Label>
-                        <Select value={reorderFrequency} onValueChange={setReorderFrequency}>
-                          <SelectTrigger id="frequency">
-                            <SelectValue placeholder="Select frequency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="quarterly">Quarterly</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label className="mb-2 block">Reorder Frequency</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={reorderFrequencyCount}
+                            onChange={(e) => setReorderFrequencyCount(parseInt(e.target.value) || 1)}
+                            className="w-20"
+                          />
+                          <Select value={reorderFrequencyUnit} onValueChange={setReorderFrequencyUnit}>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="weekly">Weeks</SelectItem>
+                              <SelectItem value="monthly">Months</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     )}
 

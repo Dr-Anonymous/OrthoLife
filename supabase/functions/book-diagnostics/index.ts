@@ -19,7 +19,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-    const { patientData, timeSlotData, items, total } = await req.json();
+    const { patientData, timeSlotData, items, total, subscription } = await req.json();
     console.log('Booking diagnostics for:', patientData.name, 'at', timeSlotData.start);
     const appointmentId = crypto.randomUUID();
     // Create WhatsApp message
@@ -94,6 +94,40 @@ Appointment ID: ${appointmentId}`,
       // Send notification using shared logic
       await sendOrderNotification(order, 'placed');
       await sendOrderEmail(order, 'diagnostics');
+
+      // Create Subscription if requested
+      if (subscription && subscription.frequency) {
+        const nextRunDate = new Date()
+
+        let count = 1;
+        let unit = subscription.frequency;
+
+        if (subscription.frequency.includes('-')) {
+          const parts = subscription.frequency.split('-');
+          count = parseInt(parts[0]) || 1;
+          unit = parts[1];
+        }
+
+        if (unit === 'monthly') {
+          nextRunDate.setMonth(nextRunDate.getMonth() + count)
+        } else if (unit === 'weekly') {
+          nextRunDate.setDate(nextRunDate.getDate() + (count * 7))
+        }
+
+        const { error: subError } = await supabase
+          .from('subscriptions')
+          .insert([
+            {
+              user_id: patientData.phone,
+              items,
+              frequency: subscription.frequency,
+              next_run_date: nextRunDate.toISOString(),
+              status: 'active'
+            }
+          ])
+
+        if (subError) console.error('Error creating diagnostics subscription:', subError)
+      }
     }
 
     return new Response(JSON.stringify({

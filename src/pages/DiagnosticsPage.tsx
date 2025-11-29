@@ -10,8 +10,11 @@ import FloatingCart from '@/components/FloatingCart';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, TestTubes, Plus, Minus, Clock, RefreshCw } from 'lucide-react';
+import { Calendar, TestTubes, Plus, Minus, Clock, RefreshCw, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,6 +44,9 @@ const DiagnosticsPage = () => {
     phone: '',
     address: ''
   });
+  const [autoReorder, setAutoReorder] = useState(false);
+  const [reorderFrequencyCount, setReorderFrequencyCount] = useState(1);
+  const [reorderFrequencyUnit, setReorderFrequencyUnit] = useState('monthly');
   const { toast } = useToast();
   const location = useLocation();
   const { user } = useAuth();
@@ -54,6 +60,17 @@ const DiagnosticsPage = () => {
       details: { page: 'diagnostics' }
     });
   }, [location.pathname, user]);
+
+  // Autofill patient data from user profile
+  useEffect(() => {
+    if (user) {
+      setPatientData(prev => ({
+        ...prev,
+        name: user.displayName || prev.name,
+        phone: user.phoneNumber || prev.phone
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -216,6 +233,14 @@ const DiagnosticsPage = () => {
     });
   };
 
+  const removeLineItem = (testId: string) => {
+    setCart(prev => {
+      const newCart = { ...prev };
+      delete newCart[testId];
+      return newCart;
+    });
+  };
+
   const getCartTotal = () => {
     return Object.entries(cart).reduce((total, [testId, quantity]) => {
       const test = tests.find(t => t.id === testId);
@@ -283,7 +308,8 @@ const DiagnosticsPage = () => {
             patientData,
             timeSlotData,
             items,
-            total: getCartTotal()
+            total: getCartTotal(),
+            subscription: autoReorder ? { frequency: `${reorderFrequencyCount}-${reorderFrequencyUnit}` } : null
           }
         });
 
@@ -518,13 +544,86 @@ const DiagnosticsPage = () => {
                         if (!test) return null;
                         const price = isOffer ? test.price : (test.marketPrice || test.price);
                         return (
-                          <div key={testId} className="flex justify-between">
-                            <span>{test.name} x{quantity}</span>
-                            <span>₹{price * quantity}</span>
+                          <div key={testId} className="flex justify-between items-center border-b pb-4 last:border-0">
+                            <div className="flex-1">
+                              <div className="font-medium">{test.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                ₹{price * quantity}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center border rounded-md">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-r-none"
+                                  onClick={() => removeFromCart(testId)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-l-none"
+                                  onClick={() => addToCart(testId)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => removeLineItem(testId)}
+                                title="Remove item"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        id="auto-reorder"
+                        checked={autoReorder}
+                        onCheckedChange={(checked) => setAutoReorder(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="auto-reorder"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Automatically reorder
+                      </label>
+                    </div>
+                    {autoReorder && (
+                      <div className="mb-4">
+                        <Label className="mb-2 block">Reorder Frequency</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={reorderFrequencyCount}
+                            onChange={(e) => setReorderFrequencyCount(parseInt(e.target.value) || 1)}
+                            className="w-20"
+                          />
+                          <Select value={reorderFrequencyUnit} onValueChange={setReorderFrequencyUnit}>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="weekly">Weeks</SelectItem>
+                              <SelectItem value="monthly">Months</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="border-t pt-2 font-semibold">
                       Total: ₹{getCartTotal()}
                     </div>

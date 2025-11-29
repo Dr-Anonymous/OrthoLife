@@ -43,13 +43,21 @@ serve(async (req) => {
         // 2. Create Subscription if requested
         if (subscription && subscription.frequency) {
             const nextRunDate = new Date()
-            // Simple logic for next run date based on frequency
-            if (subscription.frequency === 'monthly') {
-                nextRunDate.setMonth(nextRunDate.getMonth() + 1)
-            } else if (subscription.frequency === 'weekly') {
-                nextRunDate.setDate(nextRunDate.getDate() + 7)
+
+            let count = 1;
+            let unit = subscription.frequency;
+
+            if (subscription.frequency.includes('-')) {
+                const parts = subscription.frequency.split('-');
+                count = parseInt(parts[0]) || 1;
+                unit = parts[1];
             }
-            // Add more frequencies as needed
+
+            if (unit === 'monthly') {
+                nextRunDate.setMonth(nextRunDate.getMonth() + count)
+            } else if (unit === 'weekly') {
+                nextRunDate.setDate(nextRunDate.getDate() + (count * 7))
+            }
 
             const { error: subError } = await supabase
                 .from('subscriptions')
