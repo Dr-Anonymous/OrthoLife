@@ -55,7 +55,11 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
 
       if (error) throw error;
 
-      setOrders(data.orders || []);
+      // Filter for pharmacy orders (type is 'pharmacy' or null/undefined for backward compatibility)
+      const pharmacyOrders = (data.orders || []).filter((order: any) =>
+        order.type === 'pharmacy' || !order.type
+      );
+      setOrders(pharmacyOrders);
       // Filter for pharmacy subscriptions (type is 'pharmacy' or null/undefined for backward compatibility)
       const pharmacySubs = (data.subscriptions || []).filter((sub: any) =>
         sub.type === 'pharmacy' || !sub.type

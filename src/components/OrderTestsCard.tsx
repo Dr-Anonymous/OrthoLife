@@ -52,8 +52,9 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
   const [resultsError, setResultsError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Reorders State
+  // Reorders and History State
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [cancellingSub, setCancellingSub] = useState<string | null>(null);
 
@@ -114,6 +115,12 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
         sub.type === 'diagnostics'
       );
       setSubscriptions(diagnosticsSubs);
+
+      // Filter for diagnostics orders
+      const diagnosticsOrders = (data.orders || []).filter((order: any) =>
+        order.type === 'diagnostics'
+      );
+      setOrders(diagnosticsOrders);
     } catch (error) {
       console.error('Error fetching history:', error);
     } finally {
@@ -249,9 +256,10 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="prescribed" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="prescribed">Prescribed Tests</TabsTrigger>
-            <TabsTrigger value="results">Test Results</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="prescribed">Prescribed</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="results">Results</TabsTrigger>
             <TabsTrigger value="reorders">Reorders</TabsTrigger>
           </TabsList>
 
@@ -291,6 +299,52 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
                   </div>
                 )}
               </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="history">
+            {loadingHistory ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No past orders found.
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {orders.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-3 text-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-medium">Order #{order.id.slice(0, 8)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(order.created_at), 'PPP')}
+                        </div>
+                      </div>
+                      <Badge variant={order.status === 'pending' ? 'outline' : 'default'}>
+                        {order.status}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground mb-3">
+                      {Array.isArray(order.items) ? (
+                        <ul className="list-disc list-inside">
+                          {order.items.map((item: any, idx: number) => (
+                            <li key={idx}>
+                              {item.name || item.displayName} x {item.quantity}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span>{order.items.length} items</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">₹{order.total_amount}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </TabsContent>
 

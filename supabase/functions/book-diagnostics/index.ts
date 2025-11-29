@@ -80,7 +80,8 @@ Appointment ID: ${appointmentId}`,
           items,
           total_amount: total,
           status: 'scheduled', // Diagnostics are scheduled
-          delivery_info: patientData
+          delivery_info: patientData,
+          type: 'diagnostics'
           // You might want to store appointmentId or timeSlotData in a separate column or within items/metadata if needed
         }
       ])

@@ -32,9 +32,9 @@ serve(async (req) => {
                     user_id: userId,
                     items,
                     total_amount: totalAmount,
-                    total_amount: totalAmount,
                     status: 'pending',
-                    delivery_info: patientData
+                    delivery_info: patientData,
+                    type: 'pharmacy'
                 }
             ])
             .select()
