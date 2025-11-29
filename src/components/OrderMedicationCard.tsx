@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Loader2, RefreshCw, XCircle } from 'lucide-react';
+import { Loader2, RefreshCw, XCircle, Pill } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Medication {
