@@ -50,6 +50,7 @@ export const sendOrderEmail = async (order: any, type: 'pharmacy' | 'diagnostics
         const html = `
       <h2>${subject}</h2>
       <p><strong>User ID/Phone:</strong> ${order.user_id}</p>
+      ${order.delivery_info ? `<p><strong>Delivery Address:</strong> ${order.delivery_info.address}</p>` : ''}
       <p><strong>Total Amount:</strong> ₹${order.total_amount}</p>
       
       <h3>Items:</h3>

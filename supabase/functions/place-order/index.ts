@@ -18,7 +18,7 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        const { userId, items, totalAmount, subscription } = await req.json()
+        const { userId, items, totalAmount, subscription, patientData } = await req.json()
 
         if (!userId || !items || !totalAmount) {
             throw new Error('Missing required fields')
@@ -32,7 +32,9 @@ serve(async (req) => {
                     user_id: userId,
                     items,
                     total_amount: totalAmount,
-                    status: 'pending'
+                    total_amount: totalAmount,
+                    status: 'pending',
+                    delivery_info: patientData
                 }
             ])
             .select()

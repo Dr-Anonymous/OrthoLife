@@ -30,6 +30,7 @@ interface OrderMedicationCardProps {
 const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }) => {
   const { t } = useTranslation();
   const [medicationQuantities, setMedicationQuantities] = useState<Record<string, number>>({});
+  const [medicationTypes, setMedicationTypes] = useState<Record<string, 'pack' | 'unit' | 'auto'>>({});
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -98,7 +99,8 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
       .map((item: any) => {
         const name = item.name || item.displayName;
         const quantity = item.quantity;
-        return `${encodeURIComponent(cleanMedicationName(name))}*${quantity}`;
+        const type = item.orderType || 'pack'; // Default to pack if not specified
+        return `${encodeURIComponent(cleanMedicationName(name))}*${quantity}*${type}`;
       })
       .join(',');
     navigate(`/pharmacy?q=${query}`);
@@ -106,10 +108,13 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
 
   useEffect(() => {
     const initialQuantities: Record<string, number> = {};
+    const initialTypes: Record<string, 'pack' | 'unit' | 'auto'> = {};
     medications.forEach(med => {
       initialQuantities[med.name] = calculateQuantity(med);
+      initialTypes[med.name] = 'auto';
     });
     setMedicationQuantities(initialQuantities);
+    setMedicationTypes(initialTypes);
   }, [medications]);
 
   const calculateQuantity = (med: Medication): number => {
@@ -188,13 +193,26 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
     }));
   };
 
+  const handleTypeChange = (name: string, type: 'pack' | 'unit' | 'auto') => {
+    setMedicationTypes(prev => ({
+      ...prev,
+      [name]: type,
+    }));
+  };
+
   const cleanMedicationName = (name: string) => {
     return name.replace(/^(?:T|Cap|Syr)\.?\s*/i, '');
   };
 
   const handleOrderNow = () => {
     const query = Object.entries(medicationQuantities)
-      .map(([name, quantity]) => `${encodeURIComponent(cleanMedicationName(name))}*${quantity}`)
+      .map(([name, quantity]) => {
+        const type = medicationTypes[name] || 'auto';
+        if (type === 'auto') {
+          return `${encodeURIComponent(cleanMedicationName(name))}*${quantity}`;
+        }
+        return `${encodeURIComponent(cleanMedicationName(name))}*${quantity}*${type}`;
+      })
       .join(',');
     navigate(`/pharmacy?q=${query}`);
   };
@@ -253,13 +271,22 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
                       {medications.map((med, index) => (
                         <tr key={index} className="group">
                           <td className="py-2 text-sm">{med.name}</td>
-                          <td className="text-right py-2">
+                          <td className="text-right py-2 flex items-center justify-end gap-2">
                             <Input
                               type="number"
                               value={medicationQuantities[med.name] || ''}
                               onChange={(e) => handleQuantityChange(med.name, e.target.value)}
-                              className="w-20 ml-auto h-8"
+                              className="w-20 h-8"
                             />
+                            <select
+                              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                              value={medicationTypes[med.name] || 'auto'}
+                              onChange={(e) => handleTypeChange(med.name, e.target.value as 'pack' | 'unit' | 'auto')}
+                            >
+                              <option value="auto">Auto</option>
+                              <option value="pack">Pack</option>
+                              <option value="unit">Unit</option>
+                            </select>
                           </td>
                         </tr>
                       ))}

@@ -185,7 +185,11 @@ const PharmacyPage = () => {
       if (query && query.includes('*')) {
         const items = query.split(',').map(item => {
           const parts = item.split('*');
-          return { name: parts[0].trim(), quantity: parseInt(parts[1] || '1', 10) };
+          return {
+            name: parts[0].trim(),
+            quantity: parseInt(parts[1] || '1', 10),
+            type: parts[2] as 'pack' | 'unit' | undefined
+          };
         });
 
         const medicineNames = items.map(item => item.name).join(', ');
@@ -200,7 +204,17 @@ const PharmacyPage = () => {
           );
 
           if (medicine) {
-            addMultipleToCart(medicine, item.quantity);
+            // If type is specified, use it. Otherwise default to logic in addMultipleToCart
+            if (item.type) {
+              const cartKey = getCartKey(medicine, undefined, item.type);
+              const availableStock = getAvailableStock(medicine, undefined, item.type);
+              if (item.quantity <= availableStock) {
+                setCart(prev => ({ ...prev, [cartKey]: (prev[cartKey] || 0) + item.quantity }));
+                setOrderType(prev => ({ ...prev, [medicine.id]: item.type! }));
+              }
+            } else {
+              addMultipleToCart(medicine, item.quantity);
+            }
           }
         });
       } else if (query) {
@@ -506,7 +520,10 @@ const PharmacyPage = () => {
           userId: user?.phoneNumber, // Using phone number as ID as requested
           items,
           totalAmount: total,
-          subscription: autoReorder ? { frequency: `${reorderFrequencyCount}-${reorderFrequencyUnit}` } : null
+          items,
+          totalAmount: total,
+          subscription: autoReorder ? { frequency: `${reorderFrequencyCount}-${reorderFrequencyUnit}` } : null,
+          patientData: patientData
         }
       });
 
