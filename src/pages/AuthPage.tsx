@@ -24,11 +24,16 @@ const AuthPage = () => {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       if (user) {
-        navigate('/my-space');
+        const redirectUrl = searchParams.get('redirect');
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        } else {
+          navigate('/my-space');
+        }
       }
     });
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   useEffect(() => {
     const phoneFromUrl = searchParams.get('phone') || phoneParam;
@@ -96,7 +101,7 @@ const AuthPage = () => {
         await confirmationResult.confirm(otp);
       }
       toast.success('Successfully logged in!');
-      navigate('/my-space');
+      // Navigation is handled by the onAuthStateChanged listener
     } catch (error) {
       const err = error as Error;
       console.error('Error verifying OTP:', err);
