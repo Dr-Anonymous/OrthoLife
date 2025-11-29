@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
-import { Pill } from 'lucide-react';
+import { Pill, RotateCw, History, CalendarClock, Ban, ShoppingBag } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface Medication {
   name: string;
@@ -24,7 +29,12 @@ interface OrderMedicationCardProps {
 const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }) => {
   const { t } = useTranslation();
   const [medicationQuantities, setMedicationQuantities] = useState<Record<string, number>>({});
+  const [orders, setOrders] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const initialQuantities: Record<string, number> = {};
@@ -33,6 +43,33 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
     });
     setMedicationQuantities(initialQuantities);
   }, [medications]);
+
+  // Fetch Orders and Subscriptions when user is available
+  useEffect(() => {
+    if (user) {
+        fetchHistory();
+    }
+  }, [user]);
+
+  const fetchHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        // Use Edge Function instead of direct DB access
+        const { data, error } = await supabase.functions.invoke('get-order-history', {
+            body: { userId: user?.uid }
+        });
+
+        if (error) throw error;
+
+        setOrders(data?.orders || []);
+        setSubscriptions(data?.subscriptions || []);
+
+      } catch (error) {
+          console.error("Error fetching history:", error);
+      } finally {
+          setIsLoadingHistory(false);
+      }
+  };
 
   const calculateQuantity = (med: Medication): number => {
     const durationMatch = med.duration.match(/(\d+)\s*(day|week|month)s?/i);
@@ -121,57 +158,196 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
     navigate(`/pharmacy?q=${query}`);
   };
 
-  if (medications.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center space-x-3">
-          <Pill className="h-6 w-6 text-primary" />
-          <CardTitle>{t('orderMedicationCard.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-500 text-center py-4">{t('orderMedicationCard.noMedication')}</p>
-          <Button onClick={() => navigate('/pharmacy')} className="w-full mt-4">
-            {t('orderMedicationCard.orderNew')}
-          </Button>
-        </CardContent>
-      </Card>
-    );
+  const handleReorder = (items: any[]) => {
+      const query = items
+      .map((item: any) => `${encodeURIComponent(cleanMedicationName(item.name))}*${item.quantity}`)
+      .join(',');
+      navigate(`/pharmacy?q=${query}`);
+  }
+
+  const handleCancelSubscription = async (subId: string) => {
+      try {
+          // This also needs to be via Edge Function if we block direct write
+          // But for now, let's assume update is blocked and we need a function.
+          // Or we can just use the Service Role via another function call?
+          // Simplest is to add 'cancel-subscription' endpoint or reuse 'place-order' logic?
+          // Let's rely on 'get-order-history' to also handle cancel? No that's a GET.
+          // Let's create a small function 'cancel-subscription' or just assume user can update their own rows?
+          // But we disabled RLS for direct access.
+          // So we MUST create 'cancel-subscription'.
+          // For this specific step I will just log it as I didn't plan for a separate cancel function in this turn.
+          // Wait, I can add it to 'place-order' or make a generic 'manage-subscription'.
+
+          // Actually, I'll just use the supabase client and hope the user is granted RLS if I enable it for specific cases?
+          // No, I disabled RLS logic relying on auth.uid().
+          // I will stub this for now with a toast "Contact support to cancel" or
+          // I will quickly add a cancel block to `process-subscriptions`? No.
+
+          // I will create `cancel-subscription` function quickly.
+          const { error } = await supabase.functions.invoke('cancel-subscription', {
+              body: { subscriptionId: subId }
+          });
+
+          if (error) throw error;
+
+          toast.success("Subscription cancelled successfully.");
+          fetchHistory(); // Refresh list
+      } catch (err) {
+          console.error("Error cancelling subscription:", err);
+          toast.error("Failed to cancel subscription.");
+      }
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center space-x-3">
-        <Pill className="h-6 w-6 text-primary" />
-        <CardTitle>{t('orderMedicationCard.title')}</CardTitle>
+    <Card className="w-full">
+      <CardHeader>
+          <div className="flex flex-row items-center space-x-3">
+            <Pill className="h-6 w-6 text-primary" />
+            <CardTitle>Medication Orders</CardTitle>
+          </div>
+          <CardDescription>Manage your prescriptions and orders</CardDescription>
       </CardHeader>
       <CardContent>
-        <p>{t('orderMedicationCard.fromLatestPrescription')}</p>
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="text-left">{t('orderMedicationCard.medicine')}</th>
-              <th className="text-right">{t('orderMedicationCard.quantity')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {medications.map((med, index) => (
-              <tr key={index}>
-                <td>{med.name}</td>
-                <td className="text-right">
-                  <Input
-                    type="number"
-                    value={medicationQuantities[med.name] || ''}
-                    onChange={(e) => handleQuantityChange(med.name, e.target.value)}
-                    className="w-20 ml-auto"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <Button onClick={handleOrderNow} className="w-full mt-4">
-          {t('orderMedicationCard.orderNow')}
-        </Button>
+        <Tabs defaultValue="prescription" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="prescription">Latest Rx</TabsTrigger>
+            <TabsTrigger value="history">Order History</TabsTrigger>
+            <TabsTrigger value="reorders">Reorders</TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: Latest Prescription */}
+          <TabsContent value="prescription" className="mt-4">
+            {medications.length === 0 ? (
+                <div className="text-center py-6">
+                    <p className="text-gray-500 mb-4">{t('orderMedicationCard.noMedication')}</p>
+                    <Button onClick={() => navigate('/pharmacy')} className="w-full">
+                        {t('orderMedicationCard.orderNew')}
+                    </Button>
+                </div>
+            ) : (
+                <>
+                    <p className="text-sm text-muted-foreground mb-4">{t('orderMedicationCard.fromLatestPrescription')}</p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full mb-4">
+                        <thead>
+                            <tr className="border-b">
+                            <th className="text-left py-2 font-medium">{t('orderMedicationCard.medicine')}</th>
+                            <th className="text-right py-2 font-medium w-24">{t('orderMedicationCard.quantity')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {medications.map((med, index) => (
+                            <tr key={index} className="border-b last:border-0">
+                                <td className="py-2 text-sm">{med.name}</td>
+                                <td className="text-right py-2">
+                                <Input
+                                    type="number"
+                                    value={medicationQuantities[med.name] || ''}
+                                    onChange={(e) => handleQuantityChange(med.name, e.target.value)}
+                                    className="w-20 ml-auto h-8"
+                                />
+                                </td>
+                            </tr>
+                            ))}
+                        </tbody>
+                        </table>
+                    </div>
+                    <Button onClick={handleOrderNow} className="w-full gap-2">
+                        <ShoppingBag className="w-4 h-4"/> {t('orderMedicationCard.orderNow')}
+                    </Button>
+                </>
+            )}
+          </TabsContent>
+
+          {/* Tab 2: Order History */}
+          <TabsContent value="history" className="mt-4 space-y-4">
+             {isLoadingHistory ? (
+                 <p className="text-center py-4">Loading history...</p>
+             ) : orders.length === 0 ? (
+                 <div className="text-center py-6 text-muted-foreground">
+                     <History className="w-8 h-8 mx-auto mb-2 opacity-50"/>
+                     <p>No past orders found.</p>
+                 </div>
+             ) : (
+                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                     {orders.map((order) => (
+                         <div key={order.id} className="border rounded-lg p-3 space-y-2">
+                             <div className="flex justify-between items-start">
+                                 <div>
+                                     <p className="font-medium text-sm">
+                                         {new Date(order.created_at).toLocaleDateString()}
+                                     </p>
+                                     <Badge variant={order.status === 'completed' ? 'default' : 'secondary'} className="mt-1 text-xs">
+                                         {order.status}
+                                     </Badge>
+                                 </div>
+                                 <div className="text-right">
+                                     <p className="font-bold">₹{order.total_amount}</p>
+                                     <p className="text-xs text-muted-foreground">{order.items?.length} items</p>
+                                 </div>
+                             </div>
+                             <div className="text-xs text-muted-foreground line-clamp-2">
+                                 {order.items?.map((i: any) => i.name).join(', ')}
+                             </div>
+                             <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => handleReorder(order.items)}>
+                                 <RotateCw className="w-3 h-3 mr-2"/> Reorder
+                             </Button>
+                         </div>
+                     ))}
+                 </div>
+             )}
+          </TabsContent>
+
+          {/* Tab 3: Subscriptions (Reorders) */}
+          <TabsContent value="reorders" className="mt-4 space-y-4">
+            {isLoadingHistory ? (
+                 <p className="text-center py-4">Loading subscriptions...</p>
+             ) : subscriptions.length === 0 ? (
+                 <div className="text-center py-6 text-muted-foreground">
+                     <CalendarClock className="w-8 h-8 mx-auto mb-2 opacity-50"/>
+                     <p>No active auto-reorders.</p>
+                     <Button variant="link" onClick={() => navigate('/pharmacy')} className="mt-2">
+                         Setup in Pharmacy
+                     </Button>
+                 </div>
+             ) : (
+                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                     {subscriptions.map((sub) => (
+                         <div key={sub.id} className="border rounded-lg p-3 space-y-2 bg-muted/20">
+                             <div className="flex justify-between items-start">
+                                 <div>
+                                     <div className="flex items-center gap-2">
+                                         <p className="font-medium text-sm">Every {sub.frequency_months} Month(s)</p>
+                                         <Badge variant={sub.status === 'active' ? 'default' : 'destructive'} className="text-[10px] px-1 py-0 h-5">
+                                             {sub.status}
+                                         </Badge>
+                                     </div>
+                                     <p className="text-xs text-muted-foreground mt-1">
+                                         Next: {new Date(sub.next_run_date).toLocaleDateString()}
+                                     </p>
+                                 </div>
+                             </div>
+                             <div className="text-xs text-muted-foreground">
+                                 {sub.items?.map((i: any) => i.name).join(', ')}
+                             </div>
+                             {sub.status === 'active' && (
+                                <div className="flex gap-2 mt-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full text-destructive hover:text-destructive"
+                                        onClick={() => handleCancelSubscription(sub.id)}
+                                    >
+                                        <Ban className="w-3 h-3 mr-2"/> Cancel Auto-reorder
+                                    </Button>
+                                </div>
+                             )}
+                         </div>
+                     ))}
+                 </div>
+             )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
