@@ -2289,7 +2289,7 @@ const Consultation = () => {
         advice={extraData.advice}
       />
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
