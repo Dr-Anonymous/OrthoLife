@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search, MapPin } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search, MapPin, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -44,6 +44,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ConflictResolutionModal } from '@/components/ConflictResolutionModal';
 import { PatientConflictModal } from '@/components/PatientConflictModal';
 import { ConsultationSearchModal } from '@/components/ConsultationSearchModal';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface TextShortcut {
   id: string;
@@ -423,6 +424,10 @@ const Consultation = () => {
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
   const [pendingSyncIds, setPendingSyncIds] = useState<string[]>([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [consultationToDelete, setConsultationToDelete] = useState<Consultation | null>(null);
+  const [isOnlyConsultation, setIsOnlyConsultation] = useState(false);
+  const [deletePatientAlso, setDeletePatientAlso] = useState(false);
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -1696,6 +1701,66 @@ const Consultation = () => {
     }
   };
 
+  const handleDeleteClick = async (e: React.MouseEvent, consultation: Consultation) => {
+    e.stopPropagation();
+    setConsultationToDelete(consultation);
+
+    const { count, error } = await supabase
+      .from('consultations')
+      .select('*', { count: 'exact', head: true })
+      .eq('patient_id', consultation.patient.id);
+
+    if (error) {
+      console.error('Error checking consultation count:', error);
+      setIsOnlyConsultation(false);
+    } else {
+      setIsOnlyConsultation(count === 1);
+      if (count === 1) {
+        setDeletePatientAlso(true);
+      }
+    }
+
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!consultationToDelete) return;
+
+    try {
+      const { error: deleteConsultationError } = await supabase
+        .from('consultations')
+        .delete()
+        .eq('id', consultationToDelete.id);
+
+      if (deleteConsultationError) throw deleteConsultationError;
+
+      if (deletePatientAlso && isOnlyConsultation) {
+        const { error: deletePatientError } = await supabase
+          .from('patients')
+          .delete()
+          .eq('id', consultationToDelete.patient.id);
+
+        if (deletePatientError) throw deletePatientError;
+      }
+
+      toast({ title: 'Deleted', description: 'Consultation deleted successfully.' });
+
+      if (selectedDate) fetchConsultations(selectedDate);
+
+      if (selectedConsultation?.id === consultationToDelete.id) {
+        setSelectedConsultation(null);
+      }
+
+    } catch (error) {
+      console.error('Error deleting:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete.' });
+    } finally {
+      setIsDeleteModalOpen(false);
+      setConsultationToDelete(null);
+      setDeletePatientAlso(false);
+    }
+  };
+
   return (
     <>
       {!isOnline && (
@@ -1801,10 +1866,15 @@ const Consultation = () => {
                       ) : (
                         <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
                           {pendingConsultations.map(c => (
-                            <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
-                              <span>{c.patient.name}</span>
-                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
-                            </Button>
+                            <div key={c.id} className="flex items-center gap-2">
+                              <Button variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => handleSelectConsultation(c)}>
+                                <span>{c.patient.name}</span>
+                                {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => handleDeleteClick(e, c)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           ))}
                           {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
                         </div>
@@ -1822,10 +1892,15 @@ const Consultation = () => {
                       ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isEvaluationCollapsed ? "max-h-0" : "max-h-60")}>
                           {evaluationConsultations.map(c => (
-                            <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
-                              <span>{c.patient.name}</span>
-                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
-                            </Button>
+                            <div key={c.id} className="flex items-center gap-2">
+                              <Button variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => handleSelectConsultation(c)}>
+                                <span>{c.patient.name}</span>
+                                {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => handleDeleteClick(e, c)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           ))}
                           {evaluationConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
                         </div>
@@ -1843,10 +1918,15 @@ const Consultation = () => {
                       ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
                           {completedConsultations.map(c => (
-                            <Button key={c.id} variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="w-full justify-between" onClick={() => handleSelectConsultation(c)}>
-                              <span>{c.patient.name}</span>
-                              {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
-                            </Button>
+                            <div key={c.id} className="flex items-center gap-2">
+                              <Button variant={selectedConsultation?.id === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => handleSelectConsultation(c)}>
+                                <span>{c.patient.name}</span>
+                                {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => handleDeleteClick(e, c)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           ))}
                           {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
                         </div>
@@ -2208,6 +2288,30 @@ const Consultation = () => {
         medications={extraData.medications}
         advice={extraData.advice}
       />
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this consultation? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {isOnlyConsultation && (
+            <div className="flex items-center space-x-2 py-4">
+              <Checkbox
+                id="delete-patient"
+                checked={deletePatientAlso}
+                onCheckedChange={(checked) => setDeletePatientAlso(checked as boolean)}
+              />
+              <Label htmlFor="delete-patient">Delete patient also</Label>
+            </div>
+          )}
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <TextShortcutManagementModal
         isOpen={isShortcutModalOpen}
         onClose={() => setIsShortcutModalOpen(false)}
