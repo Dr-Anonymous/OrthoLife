@@ -1081,6 +1081,10 @@ const Consultation = () => {
       if (selectedConsultation.consultation_data?.language) {
         i18n.changeLanguage(selectedConsultation.consultation_data.language);
       }
+      if (selectedConsultation.consultation_data?.location) {
+        const hospital = HOSPITALS.find(h => h.name === selectedConsultation.consultation_data.location);
+        if (hospital) setSelectedHospital(hospital);
+      }
       translationCache.current = { en: {}, te: {} };
     } else {
       setEditablePatientDetails(null);
@@ -1441,6 +1445,7 @@ const Consultation = () => {
 
     const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
     const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
+    const locationChanged = selectedHospital.name !== (initialExtraData?.location || HOSPITALS[0].name);
 
     const isPrinting = options.markAsCompleted;
     const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
@@ -1451,17 +1456,23 @@ const Consultation = () => {
     }
     const statusChanged = newStatus !== selectedConsultation.status;
 
-    if (!patientDetailsChanged && !extraDataChanged && !statusChanged) {
+    if (!patientDetailsChanged && !extraDataChanged && !statusChanged && !locationChanged) {
       toast({ title: 'No Changes', description: 'No new changes to save.' });
       return true; // No changes, but operation is "successful"
     }
 
     setIsSaving(true);
     try {
+      const dataToSave = {
+        ...extraData,
+        language: i18n.language,
+        location: selectedHospital.name
+      };
+
       if (!isOnline) {
         const offlineData = {
           patientDetails: editablePatientDetails,
-          extraData,
+          extraData: dataToSave,
           status: newStatus,
           timestamp: new Date().toISOString(),
         };
@@ -1483,12 +1494,8 @@ const Consultation = () => {
         }
 
         const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
-        const dataToSave = { ...extraData, language: i18n.language };
-        if (isPrinting) {
-          dataToSave.location = selectedHospital.name;
-        }
 
-        if (extraDataChanged) {
+        if (extraDataChanged || locationChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
         }
         if (statusChanged) {
@@ -1646,14 +1653,7 @@ const Consultation = () => {
         folderId: editablePatientDetails.drive_id,
       };
 
-      const { error: updateError } = await supabase
-        .from('consultations')
-        .update({ consultation_data: extraData })
-        .eq('id', selectedConsultation.id);
 
-      if (updateError) {
-        throw new Error(`Failed to save draft: ${updateError.message}`);
-      }
 
       const { data, error } = await supabase.functions.invoke('create-docs-prescription', {
         body: payload,
