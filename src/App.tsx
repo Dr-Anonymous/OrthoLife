@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PageLoader from "./components/PageLoader";
 import { usePWAInstall } from "./hooks/usePWAInstall";
@@ -118,7 +118,8 @@ const App = () => {
                 {/* login routes */}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/p/:phone" element={<AuthPage />} />
-                <Route path="/my-space" element={<MySpace />} />
+                <Route path="/my" element={<MySpace />} />
+                <Route path="/my-space" element={<Navigate to="/my" replace />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/whatsapp" element={<SendWhatsApp />} />
 

@@ -4,6 +4,13 @@ import { Star, Quote, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface Review {
   id: string;
@@ -34,11 +41,11 @@ const PatientReviews = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('fetch-google-reviews');
-      
+
       if (error) {
         throw error;
       }
-      
+
       setReviewsData(data);
     } catch (err) {
       console.error('Error fetching reviews:', err);
@@ -52,9 +59,8 @@ const PatientReviews = () => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`w-5 h-5 ${
-          i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-        }`}
+        className={`w-5 h-5 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+          }`}
       />
     ));
   };
@@ -126,45 +132,59 @@ const PatientReviews = () => {
         </div>
 
         {reviewsData && reviewsData.reviews.length > 0 && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reviewsData.reviews.slice(0, 6).map((review) => (
-              <Card key={review.id} className="p-6 hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="flex-shrink-0">
-                      {review.profilePhoto ? (
-                        <img
-                          src={review.profilePhoto}
-                          alt={review.author}
-                          className="w-12 h-12 rounded-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-blue-600" />
+          <div className="relative px-12">
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-4">
+                {reviewsData.reviews.slice(0, 6).map((review) => (
+                  <CarouselItem key={review.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                    <Card className="p-6 hover:shadow-lg transition-shadow h-full">
+                      <CardContent className="p-0">
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="flex-shrink-0">
+                            {review.profilePhoto ? (
+                              <img
+                                src={review.profilePhoto}
+                                alt={review.author}
+                                className="w-12 h-12 rounded-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <User className="w-6 h-6 text-blue-600" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900">{review.author}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              {renderStars(review.rating)}
+                              <span className="text-sm text-gray-500">
+                                {formatDate(review.date)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{review.author}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        {renderStars(review.rating)}
-                        <span className="text-sm text-gray-500">
-                          {formatDate(review.date)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="relative">
-                    <Quote className="w-6 h-6 text-blue-200 absolute -top-2 -left-1" />
-                    <p className="text-gray-700 leading-relaxed pl-4">
-                      {review.text}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+
+                        <div className="relative">
+                          <Quote className="w-6 h-6 text-blue-200 absolute -top-2 -left-1" />
+                          <p className="text-gray-700 leading-relaxed pl-4">
+                            {review.text}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 h-10 w-10 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground" />
+              <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 h-10 w-10 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground" />
+            </Carousel>
           </div>
         )}
 

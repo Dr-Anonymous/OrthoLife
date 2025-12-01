@@ -232,7 +232,7 @@ const Header = () => {
 
             {/* User Menu */}
             {user ? (
-              <Link to="/my-space">
+              <Link to="/my">
                 <Button variant="ghost" className="hidden md:flex items-center gap-2">
                   <User size={16} />
                   <span>My Space</span>
@@ -298,7 +298,7 @@ const Header = () => {
 
             {/* Mobile Login/Logout */}
             {user ? (
-              <Link to="/my-space">
+              <Link to="/my">
                 <Button onClick={() => setIsMobileMenuOpen(false)} variant="outline" className="w-full flex items-center justify-center gap-2">
                   <User size={16} />
                   <span>My Space</span>

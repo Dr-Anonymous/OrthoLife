@@ -194,8 +194,8 @@ const Doctors = () => {
                                 </CarouselItem>
                             ))}
                         </CarouselContent>
-                        <CarouselPrevious />
-                        <CarouselNext />
+                        <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 h-10 w-10 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground" />
+                        <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 h-10 w-10 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground" />
                     </Carousel>
                 </div>
             </div>

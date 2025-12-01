@@ -28,7 +28,7 @@ const AuthPage = () => {
         if (redirectUrl) {
           navigate(redirectUrl);
         } else {
-          navigate('/my-space');
+          navigate('/my');
         }
       }
     });
@@ -105,7 +105,7 @@ const AuthPage = () => {
       if (redirectUrl) {
         navigate(redirectUrl);
       } else {
-        navigate('/my-space');
+        navigate('/my');
       }
     } catch (error) {
       const err = error as Error;

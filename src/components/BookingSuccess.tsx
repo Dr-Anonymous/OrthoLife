@@ -65,7 +65,7 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({ paymentOption }) => {
 
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
-            onClick={() => window.location.href = '/my-space'}
+            onClick={() => window.location.href = '/my'}
             className="w-full"
             variant="secondary"
           >
