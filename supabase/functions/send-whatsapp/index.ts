@@ -9,9 +9,9 @@ serve(async (req) => {
   }
 
   try {
-    const { number, message } = await req.json()
+    const { number, message, attachment } = await req.json()
 
-    const result = await sendWhatsAppMessage(number, message)
+    const result = await sendWhatsAppMessage(number, message, attachment)
 
     if (!result) {
       throw new Error("Failed to send WhatsApp message via shared helper.")
