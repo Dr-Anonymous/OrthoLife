@@ -4,7 +4,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-export async function sendWhatsAppMessage(number: string, message: string) {
+export async function sendWhatsAppMessage(number: string, message: string, prescriptionUrl?: string) {
   try {
     if (!number || !message) {
       throw new Error('Missing number or message')
@@ -28,7 +28,8 @@ export async function sendWhatsAppMessage(number: string, message: string) {
 
     const payload = {
       number: formattedNumber,
-      message: message
+      message: message,
+      prescriptionUrl: prescriptionUrl
     }
 
     const response = await fetch(url, {
