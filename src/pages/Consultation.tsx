@@ -1426,8 +1426,8 @@ const Consultation = () => {
     try {
       let attachmentUrl = `https://ortho.life/prescription/${patientPhone}`; // Fallback
 
-      // Generate PDF and upload to Supabase Storage
-      if (printRef.current) {
+      // Generate PDF and upload to Supabase Storage (ONLY if enabled)
+      if (isPdfAttachmentEnabled && printRef.current) {
         try {
           const pdfBlob = await generatePdfBlob(printRef.current);
           const fileName = `${patientPhone}/${new Date().toISOString()}.pdf`;
@@ -2230,6 +2230,10 @@ const Consultation = () => {
                               <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
                                 <FileText className="w-4 h-4 mr-2" />
                                 {isGenerateDocEnabled ? 'Disable' : 'Enable'} Google Doc
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setIsPdfAttachmentEnabled(prev => !prev)}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                {isPdfAttachmentEnabled ? 'Disable' : 'Enable'} PDF Attachment
                               </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => setIsSaveBundleModalOpen(true)}>
                                 <PackagePlus className="w-4 h-4 mr-2" />
