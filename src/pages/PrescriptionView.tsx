@@ -65,7 +65,7 @@ const PrescriptionView = () => {
     }
 
     return (
-        <div className="min-h-screen bg-white p-4">
+        <div className="bg-white">
             <Prescription
                 patient={consultation.patients}
                 consultation={consultation.consultation_data}
