@@ -90,7 +90,7 @@ const Doctors = () => {
                     </p>
                 </div>
 
-                <div className="relative px-12">
+                <div className="relative px-4 md:px-12">
                     <Carousel className="w-full max-w-5xl mx-auto" opts={{ loop: true }}>
                         <CarouselContent>
                             {doctors.map((doctor, index) => (

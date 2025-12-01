@@ -132,7 +132,7 @@ const PatientReviews = () => {
         </div>
 
         {reviewsData && reviewsData.reviews.length > 0 && (
-          <div className="relative px-12">
+          <div className="relative px-4 md:px-12">
             <Carousel
               opts={{
                 align: "start",
