@@ -18,7 +18,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, formatDistanceToNow } from 'date-fns';
-import { generatePdf, generatePdfBlob } from '../lib/pdfUtils';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -381,14 +380,6 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
 };
 
 const Consultation = () => {
-  const [isPdfAttachmentEnabled, setIsPdfAttachmentEnabled] = useState(() => {
-    const saved = localStorage.getItem('isPdfAttachmentEnabled');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('isPdfAttachmentEnabled', JSON.stringify(isPdfAttachmentEnabled));
-  }, [isPdfAttachmentEnabled]);
   const isOnline = useOnlineStatus();
   const { i18n, t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -1432,47 +1423,13 @@ const Consultation = () => {
 
   const sendConsultationCompletionNotification = async (patientName: string, patientPhone: string) => {
     try {
-      let attachmentUrl = `https://ortho.life/prescription/${patientPhone}`; // Fallback
-
-      // Generate PDF and upload to Supabase Storage (ONLY if enabled)
-      if (isPdfAttachmentEnabled && printRef.current) {
-        try {
-          const pdfBlob = await generatePdfBlob(printRef.current);
-          const fileName = `${patientPhone}/${new Date().toISOString()}.pdf`;
-
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('prescriptions')
-            .upload(fileName, pdfBlob, {
-              contentType: 'application/pdf',
-              upsert: true
-            });
-
-          if (uploadError) {
-            console.error('Failed to upload PDF:', uploadError);
-          } else {
-            const { data: publicUrlData } = supabase.storage
-              .from('prescriptions')
-              .getPublicUrl(fileName);
-
-            attachmentUrl = publicUrlData.publicUrl;
-            console.log('PDF uploaded successfully, public URL:', attachmentUrl);
-          }
-        } catch (genError) {
-          console.error('Failed to generate PDF for upload:', genError);
-        }
-      }
-
       const isTelugu = i18n.language === 'te';
       const message = isTelugu
-        ? `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను చూడవచ్చు 📋\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు\n- మందులు 💊 & పరీక్షలను 🧪 ఆర్డర్ చేయవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`
-        : `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- View your prescription 📋\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\nhttps://ortho.life/p/${patientPhone}`;
+        ? `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను చూడవచ్చు 📋\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు\n- మందులు 💊 & పరీక్షలను 🧪 ఆర్డర్ చేయవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}\n\nప్రిస్క్రిప్షన్ డౌన్లోడ్ చేసుకోండి:\nhttps://ortho.life/prescription/${patientPhone}`
+        : `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- View your prescription 📋\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\nhttps://ortho.life/p/${patientPhone}\n\nDownload Prescription:\nhttps://ortho.life/prescription/${patientPhone}`;
 
       const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          number: patientPhone,
-          message,
-          attachment: attachmentUrl
-        },
+        body: { number: patientPhone, message },
       });
       if (error) throw error;
     } catch (err) {
@@ -2238,10 +2195,6 @@ const Consultation = () => {
                               <DropdownMenuItem onSelect={() => setIsGenerateDocEnabled(prev => !prev)} disabled={isSubmitting}>
                                 <FileText className="w-4 h-4 mr-2" />
                                 {isGenerateDocEnabled ? 'Disable' : 'Enable'} Google Doc
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => setIsPdfAttachmentEnabled(prev => !prev)}>
-                                <FileText className="w-4 h-4 mr-2" />
-                                {isPdfAttachmentEnabled ? 'Disable' : 'Enable'} PDF Attachment
                               </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => setIsSaveBundleModalOpen(true)}>
                                 <PackagePlus className="w-4 h-4 mr-2" />
