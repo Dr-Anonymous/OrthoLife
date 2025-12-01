@@ -36,6 +36,7 @@ const SymptomCheckerPage = lazy(() => import("./pages/SymptomCheckerPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const MySpace = lazy(() => import("./pages/MySpace"));
 const SendWhatsApp = lazy(() => import("./pages/SendWhatsApp"));
+const PrescriptionDownload = lazy(() => import("./pages/PrescriptionDownload"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -122,6 +123,7 @@ const App = () => {
                 <Route path="/my-space" element={<Navigate to="/my" replace />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/whatsapp" element={<SendWhatsApp />} />
+                <Route path="/prescription/:patientPhone" element={<PrescriptionDownload />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
