@@ -60,6 +60,14 @@ const WhatsAppMe = () => {
   const [recentCallsOpen, setRecentCallsOpen] = useState("");
   const [recentChatsOpen, setRecentChatsOpen] = useState("");
 
+  const [hasWhatsApp, setHasWhatsApp] = useState(true);
+
+  useEffect(() => {
+    if (window.Android) {
+      setHasWhatsApp(window.Android.isWhatsAppInstalled() || window.Android.isWhatsAppBusinessInstalled());
+    }
+  }, []);
+
   const getRecentChats = (): RecentChat[] => {
     const chats = localStorage.getItem('recentChats');
     return chats ? JSON.parse(chats) : [];
@@ -484,22 +492,26 @@ const WhatsAppMe = () => {
             Send this address-
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant={isSmsMode ? "default" : "outline"}
-              onClick={() => setIsSmsMode(!isSmsMode)}
-              className="h-auto py-2 flex-col gap-1"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>SMS</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => process(1)}
-              className="h-auto py-2 flex-col gap-1"
-            >
-              <Phone className="w-4 h-4" />
-              <span>WhatsApp</span>
-            </Button>
+            {hasWhatsApp && (
+              <>
+                <Button
+                  variant={isSmsMode ? "default" : "outline"}
+                  onClick={() => setIsSmsMode(!isSmsMode)}
+                  className="h-auto py-2 flex-col gap-1"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>SMS</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => process(1)}
+                  className="h-auto py-2 flex-col gap-1"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </Button>
+              </>
+            )}
 
             <Button
               variant="outline"
