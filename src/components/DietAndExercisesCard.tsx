@@ -65,7 +65,7 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) =
                     {buttonInfo && (
                       <Button
                         variant="link"
-                        onClick={() => navigate(`/guides?q=${encodeURIComponent(buttonInfo.query.replace(/[\(\[].*?[\)\]]/g, "").trim())}`)}
+                        onClick={() => navigate(`/guides?q=${encodeURIComponent(buttonInfo.query.replace(/[\(\[].*?[\)\]]/g, "").replace(/[.\s]+$/, ""))}`)}
                         className="ml-4"
                       >
                         {buttonInfo.text}
