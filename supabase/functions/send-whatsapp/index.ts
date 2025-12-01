@@ -11,11 +11,7 @@ serve(async (req) => {
   try {
     const { number, message } = await req.json()
 
-    const baseUrl = 'https://ortho.life';
-    const cleanNumber = number.replace(/\D/g, '');
-    const prescriptionUrl = `${baseUrl}/prescription-view/${number}`;
-
-    const result = await sendWhatsAppMessage(number, message, prescriptionUrl)
+    const result = await sendWhatsAppMessage(number, message)
 
     if (!result) {
       throw new Error("Failed to send WhatsApp message via shared helper.")
