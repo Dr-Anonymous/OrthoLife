@@ -381,6 +381,14 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
 };
 
 const Consultation = () => {
+  const [isPdfAttachmentEnabled, setIsPdfAttachmentEnabled] = useState(() => {
+    const saved = localStorage.getItem('isPdfAttachmentEnabled');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('isPdfAttachmentEnabled', JSON.stringify(isPdfAttachmentEnabled));
+  }, [isPdfAttachmentEnabled]);
   const isOnline = useOnlineStatus();
   const { i18n, t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
