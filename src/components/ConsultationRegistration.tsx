@@ -44,9 +44,10 @@ interface FormData {
 
 interface ConsultationRegistrationProps {
   onSuccess?: (newPatient: any, consultationData?: any) => void;
+  location?: string;
 }
 
-const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess }) => {
+const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location }) => {
   const isOnline = useOnlineStatus();
   const [formData, setFormData] = useState<FormData>({
     id: null,
@@ -220,7 +221,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           id: `offline-consultation-${Date.now()}`,
           patient_id: tempId,
           status: 'pending',
-          consultation_data: {},
+          consultation_data: { location },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           patient: newPatient
@@ -268,6 +269,20 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           });
           handleSelectPatient(data.patient.id.toString(), [data.patient]);
         } else if (data.status === 'success') {
+          // Update location if provided
+          if (location) {
+            const { error: updateError } = await supabase
+              .from('consultations')
+              .update({ consultation_data: { ...data.consultation.consultation_data, location } })
+              .eq('id', data.consultation.id);
+
+            if (updateError) {
+              console.error("Error updating location:", updateError);
+            } else {
+              data.consultation.consultation_data = { ...data.consultation.consultation_data, location };
+            }
+          }
+
           toast({
             title: 'Patient Registered for Consultation',
             description: `${formData.name} has been successfully registered.`,
@@ -297,7 +312,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i);
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-                  'August', 'September', 'October', 'November', 'December'];
+    'August', 'September', 'October', 'November', 'December'];
 
   const handleSelectFromModal = (patientId: string) => {
     handleSelectPatient(patientId, matchingPatients);
@@ -350,7 +365,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   id="name"
                   value={formData.name}
                   onChange={e => handleInputChange('name', e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); }}}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); } }}
                   className={cn("pl-10 pr-10", errors.name && "border-destructive")}
                   placeholder="Enter full name"
                 />
@@ -368,7 +383,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   id="phone"
                   value={formData.phone}
                   onChange={e => handleInputChange('phone', e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('phone'); }}}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('phone'); } }}
                   className={cn("pl-10 pr-10", errors.phone && "border-destructive")}
                   placeholder="Enter 10-digit number"
                 />

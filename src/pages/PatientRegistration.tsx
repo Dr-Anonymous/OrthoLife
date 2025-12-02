@@ -8,10 +8,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { Badge } from '@/components/ui/badge';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
+import { useLocation } from 'react-router-dom';
+import { HOSPITALS } from '@/config/constants';
 
 const PatientRegistration = () => {
   const [todaysConsultations, setTodaysConsultations] = useState<any[]>([]);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
+  const location = useLocation();
+
+  const getLocationName = () => {
+    if (location.pathname.includes('/badam')) return 'Badam';
+    if (location.pathname.includes('/laxmi')) return 'Laxmi';
+    if (location.pathname.includes('/ortholife')) return 'OrthoLife';
+    return 'Badam'; // Default fallback
+  };
+
+  const locationName = getLocationName();
+  const hospital = HOSPITALS.find(h => h.name === locationName);
 
   const fetchTodaysConsultations = async () => {
     setIsFetchingConsultations(true);
@@ -41,7 +54,7 @@ const PatientRegistration = () => {
   }, []);
 
   const filteredConsultations = todaysConsultations.filter(
-    c => c.consultation_data?.location !== 'OrthoLife'
+    c => c.consultation_data?.location === locationName
   );
 
   return (
@@ -50,20 +63,20 @@ const PatientRegistration = () => {
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <CardHeader className="text-center pb-8">
             <CardTitle className="flex items-center justify-center gap-3 text-3xl font-bold text-primary">
-              <img src="/images/logos/badam-logo.png" alt="Logo" className="h-32" />
+              {hospital && <img src={hospital.logoUrl} alt={`${locationName} Logo`} className="h-32" />}
               Patient Registration
             </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
-              Register new patients and create consultations
+              Register new patients and create consultations for {locationName}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            <ConsultationRegistration onSuccess={fetchTodaysConsultations} />
+            <ConsultationRegistration onSuccess={fetchTodaysConsultations} location={locationName} />
           </CardContent>
         </Card>
 
         <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-4 text-center">Today's Consultations ({filteredConsultations.length})</h3>
+          <h3 className="text-xl font-semibold mb-4 text-center">Today's Consultations at {locationName} ({filteredConsultations.length})</h3>
           {isFetchingConsultations ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -87,7 +100,7 @@ const PatientRegistration = () => {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground">No consultations scheduled for today.</p>
+            <p className="text-center text-muted-foreground">No consultations scheduled for today at {locationName}.</p>
           )}
         </div>
       </div>
