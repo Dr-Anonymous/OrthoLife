@@ -1,29 +1,36 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Prescription } from '@/components/Prescription';
 import { HOSPITALS } from '@/config/constants';
 import { useTranslation } from 'react-i18next';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const PrescriptionDownload = () => {
     const { patientPhone } = useParams<{ patientPhone: string }>();
+    const navigate = useNavigate();
     const { i18n } = useTranslation();
     const [consultation, setConsultation] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [downloadStarted, setDownloadStarted] = useState(false);
+    const [inputPhone, setInputPhone] = useState('');
 
     useEffect(() => {
         const fetchConsultation = async () => {
             if (!patientPhone) {
-                setError("No phone number provided");
                 setLoading(false);
                 return;
             }
+
+            setLoading(true);
+            setError(null);
 
             try {
                 // 1. Find patient by phone
@@ -91,6 +98,42 @@ const PrescriptionDownload = () => {
         }
     }, [consultation, downloadStarted]);
 
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (inputPhone.trim()) {
+            navigate(`/prescription/${inputPhone.trim()}`);
+        }
+    };
+
+    if (!patientPhone) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+                <Card className="w-full max-w-md">
+                    <CardHeader>
+                        <CardTitle className="text-center">Download Prescription</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSearch} className="space-y-4">
+                            <div className="space-y-2">
+                                <Input
+                                    type="tel"
+                                    placeholder="Enter Patient Phone Number"
+                                    value={inputPhone}
+                                    onChange={(e) => setInputPhone(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <Button type="submit" className="w-full">
+                                <Search className="mr-2 h-4 w-4" />
+                                Search & Download
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -102,8 +145,11 @@ const PrescriptionDownload = () => {
 
     if (error) {
         return (
-            <div className="flex items-center justify-center h-screen text-red-500">
-                {error}
+            <div className="flex flex-col items-center justify-center h-screen text-red-500 gap-4">
+                <p>{error}</p>
+                <Button variant="outline" onClick={() => navigate('/prescription')}>
+                    Try Another Number
+                </Button>
             </div>
         );
     }

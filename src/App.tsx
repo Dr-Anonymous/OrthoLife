@@ -126,6 +126,7 @@ const App = () => {
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/whatsapp" element={<SendWhatsApp />} />
                 <Route path="/prescription/:patientPhone" element={<PrescriptionDownload />} />
+                <Route path="/prescription" element={<PrescriptionDownload />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
