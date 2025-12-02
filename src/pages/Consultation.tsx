@@ -384,9 +384,6 @@ const Consultation = () => {
   const { i18n, t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
-  const [pendingConsultations, setPendingConsultations] = useState<Consultation[]>([]);
-  const [evaluationConsultations, setEvaluationConsultations] = useState<Consultation[]>([]);
-  const [completedConsultations, setCompletedConsultations] = useState<Consultation[]>([]);
   const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(true);
   const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
@@ -475,6 +472,14 @@ const Consultation = () => {
   });
   const isGenerateDocEnabledRef = useRef(isGenerateDocEnabled);
   const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
+
+  const filteredConsultations = React.useMemo(() => {
+    return allConsultations.filter(c => !c.consultation_data?.location || c.consultation_data.location === selectedHospital.name);
+  }, [allConsultations, selectedHospital]);
+
+  const pendingConsultations = React.useMemo(() => filteredConsultations.filter(c => c.status === 'pending'), [filteredConsultations]);
+  const evaluationConsultations = React.useMemo(() => filteredConsultations.filter(c => c.status === 'under_evaluation'), [filteredConsultations]);
+  const completedConsultations = React.useMemo(() => filteredConsultations.filter(c => c.status === 'completed'), [filteredConsultations]);
   const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
     const storedValue = localStorage.getItem('isGpsEnabled');
     return storedValue !== null ? JSON.parse(storedValue) : true;
@@ -979,9 +984,6 @@ const Consultation = () => {
     setIsFetchingConsultations(true);
     if (!patientIdToRestore) {
       setAllConsultations([]);
-      setPendingConsultations([]);
-      setEvaluationConsultations([]);
-      setCompletedConsultations([]);
       setSelectedConsultation(null);
     }
     try {
@@ -994,9 +996,6 @@ const Consultation = () => {
 
       const consultations = data.consultations || [];
       setAllConsultations(consultations);
-      setPendingConsultations(consultations.filter(c => c.status === 'pending'));
-      setEvaluationConsultations(consultations.filter(c => c.status === 'under_evaluation'));
-      setCompletedConsultations(consultations.filter(c => c.status === 'completed'));
       if (patientIdToRestore) {
         const restoredConsultation = consultations.find(c => c.patient.id === patientIdToRestore);
         if (restoredConsultation) {
@@ -1540,9 +1539,6 @@ const Consultation = () => {
         c.id === updatedConsultation.id ? updatedConsultation : c
       );
       setAllConsultations(updatedAllConsultations);
-      setPendingConsultations(updatedAllConsultations.filter(c => c.status === 'pending'));
-      setEvaluationConsultations(updatedAllConsultations.filter(c => c.status === 'under_evaluation'));
-      setCompletedConsultations(updatedAllConsultations.filter(c => c.status === 'completed'));
 
       return true;
     } catch (error) {
@@ -1683,9 +1679,6 @@ const Consultation = () => {
             : c
         );
         setAllConsultations(updatedAllConsultations);
-        setPendingConsultations(updatedAllConsultations.filter(c => c.status === 'pending'));
-        setEvaluationConsultations(updatedAllConsultations.filter(c => c.status === 'under_evaluation'));
-        setCompletedConsultations(updatedAllConsultations.filter(c => c.status === 'completed'));
       }
 
       toast({
@@ -1857,7 +1850,7 @@ const Consultation = () => {
                   </div>
                   <div className="space-y-4">
                     <div className="font-semibold">
-                      Total Consultations: {allConsultations.length}
+                      Total Consultations: {filteredConsultations.length}
                     </div>
                     <div>
                       <Label>Pending Consultations: {pendingConsultations.length}</Label>
@@ -2356,7 +2349,6 @@ const Consultation = () => {
                 setIsRegistrationModalOpen(false);
                 if (String(newConsultation.patient_id).startsWith('offline-')) {
                   setAllConsultations(prev => [newConsultation, ...prev]);
-                  setPendingConsultations(prev => [newConsultation, ...prev]);
                   setSelectedConsultation(newConsultation);
                   setPendingSyncIds(prev => [...new Set([...prev, newConsultation.patient_id])]);
                 } else if (selectedDate) {

@@ -41,9 +41,10 @@ interface PrescriptionProps {
   age: number | '';
   language: string;
   logoUrl: string;
+  className?: string;
 }
 
-export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl }, ref) => {
+export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, className }, ref) => {
   const { t, i18n } = useTranslation();
 
   React.useEffect(() => {
@@ -55,7 +56,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
   return (
-    <div ref={ref} className="p-8 font-sans text-sm bg-background text-foreground flex flex-col min-h-screen" style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
+    <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col min-h-screen", className)} style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
       {/* Header */}
       <header
         className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
