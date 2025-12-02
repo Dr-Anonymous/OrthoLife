@@ -123,7 +123,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           )}
           {consultation.advice && (
             <div>
-              <h3 className="font-heading font-semibold flex items-center gap-2">
+              <h3 className="font-heading font-semibold text-base flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
                 {t('prescription.advice')}:
               </h3>
@@ -135,7 +135,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {/* Medications */}
         {hasMedications && (
           <section className="mt-6">
-            <h3 className="font-heading font-semibold mb-2 flex items-center gap-2">
+            <h3 className="font-heading font-semibold text-base mb-2 flex items-center gap-2">
               <Pill className="h-4 w-4" />
               {t('prescription.medication')}:
             </h3>
@@ -218,7 +218,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {/* Followup */}
         {consultation.followup && (
           <section className="mt-6">
-            <h3 className="font-heading font-semibold flex items-center gap-2">
+            <h3 className="font-heading font-semibold text-base flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               {t('prescription.followup')}:
             </h3>
