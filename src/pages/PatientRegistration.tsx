@@ -40,7 +40,10 @@ const PatientRegistration = () => {
 
   useEffect(() => {
     if (printingConsultation) {
-      handlePrint();
+      // Small timeout to ensure state update has propagated to the hidden component
+      setTimeout(() => {
+        handlePrint();
+      }, 100);
     }
   }, [printingConsultation, handlePrint]);
 
