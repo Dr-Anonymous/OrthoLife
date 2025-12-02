@@ -124,7 +124,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           {consultation.advice && (
             <div>
               <h3 className="font-heading font-semibold text-base flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
+                <span className="flex items-center h-6"><MessageSquare className="h-4 w-4" /></span>
                 {t('prescription.advice')}:
               </h3>
               <p className="whitespace-pre-wrap">{removeBracketedText(consultation.advice)}</p>
@@ -136,7 +136,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {hasMedications && (
           <section className="mt-6">
             <h3 className="font-heading font-semibold text-base mb-2 flex items-center gap-2">
-              <Pill className="h-4 w-4" />
+              <span className="flex items-center h-6"><Pill className="h-4 w-4" /></span>
               {t('prescription.medication')}:
             </h3>
             <table className="w-full border-collapse border border-border">
@@ -219,7 +219,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {consultation.followup && (
           <section className="mt-6">
             <h3 className="font-heading font-semibold text-base flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <span className="flex items-center h-6"><Calendar className="h-4 w-4" /></span>
               {t('prescription.followup')}:
             </h3>
             <p className="whitespace-pre-wrap">{removeBracketedText(consultation.followup)}</p>
