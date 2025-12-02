@@ -124,7 +124,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           {consultation.advice && (
             <div>
               <h3 className="font-heading font-semibold text-base flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 mt-[2px]" />
+                <MessageSquare className="h-4 w-4 relative top-[4px]" />
                 {t('prescription.advice')}:
               </h3>
               <p className="whitespace-pre-wrap">{removeBracketedText(consultation.advice)}</p>
@@ -136,7 +136,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {hasMedications && (
           <section className="mt-6">
             <h3 className="font-heading font-semibold text-base mb-2 flex items-center gap-2">
-              <Pill className="h-4 w-4 mt-[2px]" />
+              <Pill className="h-4 w-4 relative top-[4px]" />
               {t('prescription.medication')}:
             </h3>
             <table className="w-full border-collapse border border-border">
@@ -147,7 +147,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                   <th className="border border-border p-2 text-left">{t('prescription.med_dose')}</th>
                   <th className="border border-border p-2 text-center" colSpan={3}>
                     <div className="flex items-center justify-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-3 w-3 relative top-[3px]" />
                       {t('prescription.med_frequency')}
                     </div>
                   </th>
@@ -219,7 +219,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {consultation.followup && (
           <section className="mt-6">
             <h3 className="font-heading font-semibold text-base flex items-center gap-2">
-              <Calendar className="h-4 w-4 mt-[2px]" />
+              <Calendar className="h-4 w-4 relative top-[4px]" />
               {t('prescription.followup')}:
             </h3>
             <p className="whitespace-pre-wrap">{removeBracketedText(consultation.followup)}</p>
