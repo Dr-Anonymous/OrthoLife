@@ -34,7 +34,7 @@ const PatientRegistration = () => {
   const hospital = HOSPITALS.find(h => h.name === locationName);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     onAfterPrint: () => setPrintingConsultation(null),
   });
 
