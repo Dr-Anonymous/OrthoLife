@@ -140,15 +140,29 @@ const PatientRegistration = () => {
       </div>
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={printRef}>
-          {printingConsultation && (
+          {printingConsultation ? (
             <Prescription
               patient={printingConsultation.patient}
               consultation={printingConsultation.consultation_data}
               consultationDate={new Date(printingConsultation.created_at)}
               age={calculateAge(new Date(printingConsultation.patient.dob))}
-              language={i18n.language}
+              language={printingConsultation.consultation_data?.language || i18n.language}
               logoUrl={hospital?.logoUrl}
             />
+          ) : (
+            // Render a dummy component or null when not printing, but keep the ref attached to a div
+            // Actually, react-to-print needs the ref to be attached to the element that WILL be printed.
+            // If we render nothing, ref.current might be null or empty.
+            // Let's render an empty div if no consultation is selected, but keep the ref on the parent.
+            // Wait, the ref is on the parent div `div ref={printRef}`.
+            // So `printRef.current` will be that div.
+            // If `printingConsultation` is null, that div is empty.
+            // `react-to-print` might complain if the content is empty?
+            // The error "contentWindow ... did not load" usually means the iframe didn't load.
+            // This can happen if we try to print too fast.
+            // But I'm using a timeout.
+            // Let's try to keep the structure simple.
+            <div />
           )}
         </div>
       </div>
