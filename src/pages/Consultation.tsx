@@ -1056,11 +1056,7 @@ const Consultation = () => {
       }
       setEditablePatientDetails(selectedConsultation.patient);
       fetchLastVisitDate(selectedConsultation.patient.id);
-      const newExtraData = selectedConsultation.consultation_data ? {
-        ...extraData,
-        ...selectedConsultation.consultation_data,
-        personalNote: selectedConsultation.consultation_data.personalNote || '',
-      } : {
+      const defaultExtraData = {
         complaints: '',
         findings: '',
         investigations: '',
@@ -1070,6 +1066,12 @@ const Consultation = () => {
         personalNote: '',
         medications: [],
       };
+
+      const newExtraData = selectedConsultation.consultation_data ? {
+        ...defaultExtraData,
+        ...selectedConsultation.consultation_data,
+        personalNote: selectedConsultation.consultation_data.personalNote || '',
+      } : defaultExtraData;
       setExtraData(newExtraData);
       setInitialExtraData(newExtraData);
       setInitialPatientDetails(selectedConsultation.patient);
