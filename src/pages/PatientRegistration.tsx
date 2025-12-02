@@ -123,8 +123,13 @@ const PatientRegistration = () => {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => setPrintingConsultation(c)}
+                          disabled={!!printingConsultation}
                         >
-                          <Printer className="h-4 w-4" />
+                          {printingConsultation?.id === c.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Printer className="h-4 w-4" />
+                          )}
                           <span className="sr-only">Print Prescription</span>
                         </Button>
                       )}
