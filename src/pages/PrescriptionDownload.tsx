@@ -19,6 +19,7 @@ const PrescriptionDownload = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+    const printRef = useRef<HTMLDivElement>(null);
     const [downloadStarted, setDownloadStarted] = useState(false);
     const [inputPhone, setInputPhone] = useState('');
 
@@ -75,16 +76,16 @@ const PrescriptionDownload = () => {
     }, [patientPhone]);
 
     useEffect(() => {
-        if (consultation && contentRef.current && !downloadStarted) {
+        if (consultation && printRef.current && !downloadStarted) {
             setDownloadStarted(true);
             // Small delay to ensure rendering is complete
             setTimeout(() => {
-                const element = contentRef.current;
+                const element = printRef.current;
                 const opt = {
-                    margin: 0,
+                    margin: [0, 0, 0, 0], // Top, Left, Bottom, Right margins in mm
                     filename: `Prescription-${consultation.patient.name}-${format(new Date(consultation.created_at), 'yyyy-MM-dd')}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
 
@@ -162,8 +163,7 @@ const PrescriptionDownload = () => {
             </div>
 
             <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-3xl w-full">
-                {/* We render the prescription here so html2pdf can capture it. 
-              It serves as a preview as well. */}
+                {/* Preview */}
                 {consultation && (
                     <Prescription
                         ref={contentRef}
@@ -175,6 +175,22 @@ const PrescriptionDownload = () => {
                         logoUrl={HOSPITALS.find(h => h.name === consultation.consultation_data.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                     />
                 )}
+            </div>
+
+            {/* Hidden Print Version - Fixed A4 Width */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                <div ref={printRef} style={{ width: '210mm', minHeight: '297mm', backgroundColor: 'white' }}>
+                    {consultation && (
+                        <Prescription
+                            patient={consultation.patient}
+                            consultation={consultation.consultation_data}
+                            consultationDate={new Date(consultation.created_at)}
+                            age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
+                            language={consultation.consultation_data.language || i18n.language}
+                            logoUrl={HOSPITALS.find(h => h.name === consultation.consultation_data.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     );
