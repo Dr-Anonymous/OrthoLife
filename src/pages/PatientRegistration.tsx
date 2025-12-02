@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -10,11 +10,18 @@ import { Badge } from '@/components/ui/badge';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { useLocation } from 'react-router-dom';
 import { HOSPITALS } from '@/config/constants';
+import { useReactToPrint } from 'react-to-print';
+import { Prescription } from '@/components/Prescription';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 
 const PatientRegistration = () => {
   const [todaysConsultations, setTodaysConsultations] = useState<any[]>([]);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
   const location = useLocation();
+  const { i18n } = useTranslation();
+  const [printingConsultation, setPrintingConsultation] = useState<any | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const getLocationName = () => {
     if (location.pathname.includes('/badam')) return 'Badam';
@@ -25,6 +32,17 @@ const PatientRegistration = () => {
 
   const locationName = getLocationName();
   const hospital = HOSPITALS.find(h => h.name === locationName);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    onAfterPrint: () => setPrintingConsultation(null),
+  });
+
+  useEffect(() => {
+    if (printingConsultation) {
+      handlePrint();
+    }
+  }, [printingConsultation, handlePrint]);
 
   const fetchTodaysConsultations = async () => {
     setIsFetchingConsultations(true);
@@ -92,15 +110,42 @@ const PatientRegistration = () => {
                         {calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} / {c.patient.phone}
                       </p>
                     </div>
-                    <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'warning' : 'default'}>
-                      {c.status}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'warning' : 'default'}>
+                        {c.status}
+                      </Badge>
+                      {c.status === 'completed' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setPrintingConsultation(c)}
+                        >
+                          <Printer className="h-4 w-4" />
+                          <span className="sr-only">Print Prescription</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <p className="text-center text-muted-foreground">No consultations scheduled for today at {locationName}.</p>
+          )}
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: '-9999px' }}>
+        <div ref={printRef}>
+          {printingConsultation && (
+            <Prescription
+              patient={printingConsultation.patient}
+              consultation={printingConsultation.consultation_data}
+              consultationDate={new Date(printingConsultation.created_at)}
+              age={calculateAge(new Date(printingConsultation.patient.dob))}
+              language={i18n.language}
+              logoUrl={hospital?.logoUrl}
+            />
           )}
         </div>
       </div>
