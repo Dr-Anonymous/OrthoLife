@@ -169,7 +169,7 @@ const PrescriptionDownload = () => {
                     <Prescription
                         ref={contentRef}
                         patient={consultation.patient}
-                        consultation={consultation.consultation_data}
+                        consultation={cleanConsultationData(consultation.consultation_data)}
                         consultationDate={new Date(consultation.created_at)}
                         age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                         language={consultation.consultation_data.language || i18n.language}

@@ -32,5 +32,7 @@ export function cleanConsultationData(data: any): any {
     advice: removeBracketedText(data.advice),
     followup: removeBracketedText(data.followup),
     medications: data.medications?.map(cleanMedication) || [],
+    procedure: removeBracketedText(data.procedure),
+    referred_to: removeBracketedText(data.referred_to),
   };
 }

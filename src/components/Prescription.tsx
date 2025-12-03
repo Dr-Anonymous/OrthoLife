@@ -2,7 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon } from 'lucide-react';
+import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share } from 'lucide-react';
 
 interface Medication {
   name: string;
@@ -32,6 +32,8 @@ interface ConsultationData {
   advice: string;
   followup: string;
   medications: Medication[];
+  procedure?: string;
+  referred_to?: string;
 }
 
 interface PrescriptionProps {
@@ -119,6 +121,15 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
             <div>
               <h3 className="font-heading font-semibold">Diagnosis:</h3>
               <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
+            </div>
+          )}
+          {consultation.procedure && (
+            <div>
+              <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+                <Syringe className="h-4 w-4" />
+                <span>Procedure Done:</span>
+              </h3>
+              <p className="whitespace-pre-wrap">{consultation.procedure}</p>
             </div>
           )}
           {consultation.advice && (
@@ -212,6 +223,17 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                 ))}
               </tbody>
             </table>
+          </section>
+        )}
+
+        {/* Referred To */}
+        {consultation.referred_to && (
+          <section className="mt-6">
+            <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+              <Share className="h-4 w-4" />
+              <span>Referred To:</span>
+            </h3>
+            <p className="whitespace-pre-wrap">{consultation.referred_to}</p>
           </section>
         )}
 

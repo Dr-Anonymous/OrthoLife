@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search, MapPin, Trash2 } from 'lucide-react';
+import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search, MapPin, Trash2, Syringe, Share } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -434,7 +434,9 @@ const Consultation = () => {
     advice: '',
     followup: '',
     personalNote: '',
-    medications: [] as Medication[]
+    medications: [] as Medication[],
+    procedure: '',
+    referred_to: ''
   });
 
   const [suggestedMedications, setSuggestedMedications] = useState<Medication[]>([]);
@@ -556,6 +558,8 @@ const Consultation = () => {
   const adviceRef = useRef<HTMLTextAreaElement>(null);
   const followupRef = useRef<HTMLTextAreaElement>(null);
   const personalNoteRef = useRef<HTMLTextAreaElement>(null);
+  const procedureRef = useRef<HTMLTextAreaElement>(null);
+  const referredToRef = useRef<HTMLInputElement>(null);
   const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
   const medDurationRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const medInstructionsRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
@@ -628,6 +632,8 @@ const Consultation = () => {
           case 'advice': element = adviceRef.current; break;
           case 'followup': element = followupRef.current; break;
           case 'personalNote': element = personalNoteRef.current; break;
+          case 'procedure': element = procedureRef.current; break;
+          case 'referred_to': element = referredToRef.current; break;
         }
       }
 
@@ -2090,6 +2096,11 @@ const Consultation = () => {
                         </div>
 
                         <div className="space-y-2">
+                          <Label htmlFor="procedure" className="text-sm font-medium">Procedure Done</Label>
+                          <Textarea ref={procedureRef} id="procedure" value={extraData.procedure} onChange={e => handleExtraChange('procedure', e.target.value, e.target.selectionStart)} placeholder="Procedure done..." className="min-h-[80px]" />
+                        </div>
+
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
                             <LanguageSwitcher />
@@ -2149,6 +2160,11 @@ const Consultation = () => {
                             <Plus className="h-4 w-4" />
                             <span className="sr-only">Add Medication</span>
                           </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="referred_to" className="text-sm font-medium">Referred To</Label>
+                          <Input ref={referredToRef} id="referred_to" value={extraData.referred_to} onChange={e => handleExtraChange('referred_to', e.target.value, e.target.selectionStart)} placeholder="Referred to..." />
                         </div>
 
                         <div className="space-y-2">
