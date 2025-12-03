@@ -70,9 +70,9 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           <p className="text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
           <p className="text-muted-foreground">Orthopaedic Surgeon</p>
           <p className="mt-2 text-gray-700">
-            <span className="font-semibold">📞 98668 12555</span>
+            <a href="tel:9866812555" className="font-semibold hover:underline">📞 98668 12555</a>
             <span className="mx-2">|</span>
-            <span className="font-semibold">📧 info@ortho.life</span>
+            <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
           </p>
         </div>
       </header>
@@ -123,9 +123,9 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           )}
           {consultation.advice && (
             <div>
-              <h3 className="font-heading font-semibold text-base flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 relative top-[4px]" />
-                {t('prescription.advice')}:
+              <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+                <MessageSquare className="h-4 w-4" />
+                <span>{t('prescription.advice')}:</span>
               </h3>
               <p className="whitespace-pre-wrap">{removeBracketedText(consultation.advice)}</p>
             </div>
@@ -135,9 +135,9 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {/* Medications */}
         {hasMedications && (
           <section className="mt-6">
-            <h3 className="font-heading font-semibold text-base mb-2 flex items-center gap-2">
-              <Pill className="h-4 w-4 relative top-[4px]" />
-              {t('prescription.medication')}:
+            <h3 className="font-heading font-semibold mb-2 flex items-center gap-2 leading-none">
+              <Pill className="h-4 w-4" />
+              <span>{t('prescription.medication')}:</span>
             </h3>
             <table className="w-full border-collapse border border-border">
               <thead>
@@ -146,9 +146,9 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                   <th className="border border-border p-2 text-left">{t('prescription.med_name')}</th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_dose')}</th>
                   <th className="border border-border p-2 text-center" colSpan={3}>
-                    <div className="flex items-center justify-center gap-1">
-                      <Clock className="h-3 w-3 relative top-[3px]" />
-                      {t('prescription.med_frequency')}
+                    <div className="flex items-center justify-center gap-1 leading-none">
+                      <Clock className="h-3 w-3" />
+                      <span>{t('prescription.med_frequency')}</span>
                     </div>
                   </th>
                   <th className="border border-border p-2 text-left">{t('prescription.med_duration')}</th>
@@ -159,21 +159,21 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                   <th className="border border-border p-1"></th>
                   <th className="border border-border p-1"></th>
                   <th className="border border-border p-1 text-center text-xs">
-                    <div className="flex flex-col items-center justify-center gap-1">
+                    <div className="flex flex-col items-center justify-center gap-1 leading-none">
                       <Sun className="h-3 w-3" />
-                      {t('prescription.med_morning')}
+                      <span>{t('prescription.med_morning')}</span>
                     </div>
                   </th>
                   <th className="border border-border p-1 text-center text-xs">
-                    <div className="flex flex-col items-center justify-center gap-1">
+                    <div className="flex flex-col items-center justify-center gap-1 leading-none">
                       <CloudSun className="h-3 w-3" />
-                      {t('prescription.med_noon')}
+                      <span>{t('prescription.med_noon')}</span>
                     </div>
                   </th>
                   <th className="border border-border p-1 text-center text-xs">
-                    <div className="flex flex-col items-center justify-center gap-1">
+                    <div className="flex flex-col items-center justify-center gap-1 leading-none">
                       <Moon className="h-3 w-3" />
-                      {t('prescription.med_night')}
+                      <span>{t('prescription.med_night')}</span>
                     </div>
                   </th>
                   <th className="border border-border p-1"></th>
@@ -218,9 +218,9 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         {/* Followup */}
         {consultation.followup && (
           <section className="mt-6">
-            <h3 className="font-heading font-semibold text-base flex items-center gap-2">
-              <Calendar className="h-4 w-4 relative top-[4px]" />
-              {t('prescription.followup')}:
+            <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+              <Calendar className="h-4 w-4" />
+              <span>{t('prescription.followup')}:</span>
             </h3>
             <p className="whitespace-pre-wrap">{removeBracketedText(consultation.followup)}</p>
           </section>
@@ -232,7 +232,9 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
         style={{ backgroundImage: backgroundPattern }}
       >
-        <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
+        <p className="text-primary font-semibold text-xs">
+          Visit <a href="https://ortho.life/my" target="_blank" rel="noopener noreferrer" className="underline">ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.
+        </p>
         <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
       </footer>
     </div>
