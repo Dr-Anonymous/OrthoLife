@@ -399,6 +399,7 @@ const Consultation = () => {
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isTimerPausedRef = useRef<boolean>(false);
   const activeTimerIdRef = useRef<string | null>(null);
+  const ignoreLanguageChangeRef = useRef(false);
 
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
@@ -685,6 +686,10 @@ const Consultation = () => {
   }, [selectedConsultation, extraData, editablePatientDetails]);
 
   useEffect(() => {
+    if (ignoreLanguageChangeRef.current) {
+      ignoreLanguageChangeRef.current = false;
+      return;
+    }
     handleLanguageChange(i18n.language);
   }, [i18n.language]);
 
@@ -839,20 +844,16 @@ const Consultation = () => {
       }
     };
 
-    const fetchReferralDoctors = async (text: string) => {
-      if (text.trim() === '') {
-        setReferralDoctors([]);
-        return;
-      }
-
+    const fetchReferralDoctors = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-referral-doctors', {
-          body: { search: text },
-        });
+        const { data, error } = await supabase
+          .from('referral_doctors')
+          .select('id, name, specialization, address')
+          .order('name');
 
         if (error) throw error;
-        if (data && data.doctors) {
-          setReferralDoctors(data.doctors);
+        if (data) {
+          setReferralDoctors(data);
         }
       } catch (error) {
         console.error('Error fetching referral doctors:', error);
@@ -861,11 +862,13 @@ const Consultation = () => {
 
     const debounceFetch = setTimeout(() => {
       fetchSuggestions(extraData.complaints);
-      fetchReferralDoctors(extraData.referred_to);
     }, 500);
 
+    // Fetch referral doctors once on mount (or when language changes if needed, though names are likely static)
+    fetchReferralDoctors();
+
     return () => clearTimeout(debounceFetch);
-  }, [extraData.complaints, extraData.referred_to, i18n.language]);
+  }, [extraData.complaints, i18n.language]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
@@ -1109,7 +1112,10 @@ const Consultation = () => {
       setSuggestedInvestigations([]);
       setSuggestedFollowup([]);
       if (selectedConsultation.consultation_data?.language) {
-        i18n.changeLanguage(selectedConsultation.consultation_data.language);
+        if (i18n.language !== selectedConsultation.consultation_data.language) {
+          ignoreLanguageChangeRef.current = true;
+          i18n.changeLanguage(selectedConsultation.consultation_data.language);
+        }
       }
       if (selectedConsultation.consultation_data?.location) {
         const hospital = HOSPITALS.find(h => h.name === selectedConsultation.consultation_data.location);
