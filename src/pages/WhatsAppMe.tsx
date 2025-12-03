@@ -342,19 +342,19 @@ const WhatsAppMe = () => {
 
         <div className="flex overflow-x-auto space-x-4 py-2">
           {prescription && (
-            <Card className="min-w-[300px] flex-shrink-0">
+            <Card className="min-w-[300px] max-w-[85vw] flex-shrink-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clipboard className="w-4 h-4" /> Prescription Details
                 </CardTitle>
                 {prescription.created_at && (
                   <CardDescription>
-                    {format(new Date(prescription.created_at), 'PPP')}
+                    {formatDistanceToNow(new Date(prescription.created_at), { addSuffix: true })} ({format(new Date(prescription.created_at), 'dd.MM.yyyy')})
                   </CardDescription>
                 )}
               </CardHeader>
               <CardContent className="space-y-3">
-                <p><strong>Name:</strong> {prescription.name}</p>
+                <p><strong>Name:</strong> {prescription.name} {prescription.location && <span className="text-muted-foreground text-sm">({prescription.location})</span>}</p>
                 {[
                   { Icon: NotebookText, label: "Doctor's Personal Note", value: prescription.personalNote },
                   { Icon: Stethoscope, label: 'Complaints', value: prescription.complaints },
@@ -365,7 +365,7 @@ const WhatsAppMe = () => {
                   { Icon: FileText, label: 'Advice', value: prescription.advice },
                   { Icon: Undo2, label: 'Follow-up', value: prescription.followup },
                 ].map(({ Icon, label, value }, index) => {
-                  if (!value || (Array.isArray(value) && value.length === 0)) return null;
+                  if (!value || (typeof value === 'string' && !value.trim()) || (Array.isArray(value) && value.length === 0)) return null;
 
                   const displayValue = Array.isArray(value)
                     ? value.map((med: any) => `${med.name}${med.duration ? ` - ${med.duration}` : ''}`).join(', ')
