@@ -444,7 +444,8 @@ const Consultation = () => {
   const [suggestedAdvice, setSuggestedAdvice] = useState<string[]>([]);
   const [suggestedInvestigations, setSuggestedInvestigations] = useState<string[]>([]);
   const [suggestedFollowup, setSuggestedFollowup] = useState<string[]>([]);
-  const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string }[]>([]);
+  const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string, phone?: string }[]>([]);
+  const [autofillKeywords, setAutofillKeywords] = useState<any[]>([]);
 
   const cleanedConsultationData = React.useMemo(() => cleanConsultationData(extraData), [extraData]);
 
@@ -777,78 +778,75 @@ const Consultation = () => {
   }, [handleKeyDown]);
 
   useEffect(() => {
-    const fetchSuggestions = async (text: string) => {
-      if (text.trim() === '') return;
-
-      try {
-        const { data, error } = await supabase.functions.invoke('get-autofill-medications', {
-          body: { text, language: i18n.language },
-        });
-
-        if (error) throw error;
-        if (!data) return;
-
-        const { medications, advice, investigations, followup } = data;
-
-        if (medications && medications.length > 0) {
-          const newMedications = medications.map(med => ({
-            ...med,
-            id: crypto.randomUUID(),
-            freqMorning: med.freq_morning,
-            freqNoon: med.freq_noon,
-            freqNight: med.freq_night,
-          }));
-
-          const existingMedNames = new Set(extraData.medications.map(m => m.name));
-          const uniqueNewMeds = newMedications.filter(m => !existingMedNames.has(m.name));
-
-          setSuggestedMedications(prev => {
-            const suggestedMedNames = new Set(prev.map(m => m.name));
-            const finalNewMeds = uniqueNewMeds.filter(m => !suggestedMedNames.has(m.name));
-            return [...prev, ...finalNewMeds];
-          });
-        }
-
-        if (advice) {
-          const adviceItems = advice.split('\n').filter(item => item.trim() !== '');
-          const uniqueAdviceItems = adviceItems.filter(item => !extraData.advice.includes(item));
-
-          setSuggestedAdvice(prev => {
-            const newItems = uniqueAdviceItems.filter(item => !prev.includes(item));
-            return [...prev, ...newItems];
-          });
-        }
-
-        if (investigations) {
-          const investigationItems = investigations.split('\n').filter(item => item.trim() !== '');
-          const uniqueInvestigationItems = investigationItems.filter(item => !extraData.investigations.includes(item));
-
-          setSuggestedInvestigations(prev => {
-            const newItems = uniqueInvestigationItems.filter(item => !prev.includes(item));
-            return [...prev, ...newItems];
-          });
-        }
-
-        if (followup) {
-          const followupItems = followup.split('\n').filter(item => item.trim() !== '');
-          const uniqueFollowupItems = followupItems.filter(item => !extraData.followup.includes(item));
-
-          setSuggestedFollowup(prev => {
-            const newItems = uniqueFollowupItems.filter(item => !prev.includes(item));
-            return [...prev, ...newItems];
-          });
-        }
-
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
+    const fetchSuggestions = (text: string) => {
+      if (!text || text.trim() === '') {
+        setSuggestedMedications([]);
+        setSuggestedAdvice([]);
+        setSuggestedInvestigations([]);
+        setSuggestedFollowup([]);
+        return;
       }
+
+      const cleanedText = text.toLowerCase().replace(/[.,?;]/g, '');
+      const inputTextWords = cleanedText.split(/\s+/);
+      const medicationIds = new Set<number>();
+      const adviceTexts = new Set<string>();
+      const investigationTexts = new Set<string>();
+      const followupTexts = new Set<string>();
+
+      const adviceColumn = i18n.language === 'te' ? 'advice_te' : 'advice';
+      const followupColumn = i18n.language === 'te' ? 'followup_te' : 'followup';
+
+      for (const mapping of autofillKeywords) {
+        if (mapping.keywords) {
+          for (const keyword of mapping.keywords) {
+            const cleanedKeyword = keyword.toLowerCase().replace(/[.,?;]/g, '');
+            let isMatch = false;
+
+            if (cleanedKeyword.includes(' ')) {
+              if (cleanedText.includes(cleanedKeyword)) {
+                isMatch = true;
+              }
+            } else {
+              if (inputTextWords.includes(cleanedKeyword)) {
+                isMatch = true;
+              }
+            }
+
+            if (isMatch) {
+              for (const id of mapping.medication_ids) {
+                medicationIds.add(id);
+              }
+              const advice = mapping[adviceColumn];
+              if (advice) {
+                adviceTexts.add(advice);
+              }
+              const investigations = mapping['investigations'];
+              if (investigations) {
+                investigationTexts.add(investigations);
+              }
+              const followup = mapping[followupColumn];
+              if (followup) {
+                followupTexts.add(followup);
+              }
+              break;
+            }
+          }
+        }
+      }
+
+      const medications = savedMedications.filter(med => medicationIds.has(med.id));
+      setSuggestedMedications(medications);
+      setSuggestedAdvice(Array.from(adviceTexts));
+      setSuggestedInvestigations(Array.from(investigationTexts));
+      setSuggestedFollowup(Array.from(followupTexts));
     };
 
     const fetchReferralDoctors = async () => {
       try {
         const { data, error } = await supabase
           .from('referral_doctors')
-          .select('id, name, specialization, address')
+          .select('id, name, specialization, address, phone')
           .order('name');
 
         if (error) throw error;
@@ -860,15 +858,27 @@ const Consultation = () => {
       }
     };
 
+    const fetchAutofillKeywords = async () => {
+      const { data, error } = await supabase
+        .from('autofill_keywords')
+        .select('*');
+      if (error) {
+        console.error('Error fetching autofill keywords:', error);
+      } else {
+        setAutofillKeywords(data || []);
+      }
+    };
+
     const debounceFetch = setTimeout(() => {
       fetchSuggestions(extraData.complaints);
     }, 500);
 
-    // Fetch referral doctors once on mount (or when language changes if needed, though names are likely static)
+    // Fetch referral doctors and autofill keywords once on mount
     fetchReferralDoctors();
+    fetchAutofillKeywords();
 
     return () => clearTimeout(debounceFetch);
-  }, [extraData.complaints, i18n.language]);
+  }, [extraData.complaints, i18n.language, autofillKeywords, savedMedications]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
