@@ -92,11 +92,11 @@ const AppointmentsCard = () => {
     const truncatedDesc = cutoff !== -1 ? description.substring(0, cutoff) : description;
     return truncatedDesc.replace(/\n/g, '<br />');
   };
-  
+
   const bookAppointment = () => {
     navigate('/appointment');
   };
-  
+
   const now = new Date();
   const upcomingAppointments = appointments.filter(event => new Date(event.start) >= now);
   const pastAppointments = appointments.filter(event => new Date(event.start) < now).reverse();
@@ -124,7 +124,7 @@ const AppointmentsCard = () => {
                           className="text-gray-600 mt-1"
                           dangerouslySetInnerHTML={{ __html: formatAppointmentDescription(event.description) }}
                         />
-                        {event.attachments && <a href={event.attachments} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 inline-block">{t('appointmentsCard.viewAttachment')}</a>}
+                        {event.attachments && <a href={event.attachments} target="_blank" className="text-blue-600 hover:underline mt-2 inline-block">{t('appointmentsCard.viewAttachment')}</a>}
                         <div className="flex space-x-2 mt-4">
                           <Button variant="outline" size="sm" onClick={() => navigate(`/appointment?reschedule=true&eventId=${event.id}&start=${event.start}&description=${encodeURIComponent(event.description)}`)}>
                             {t('appointmentsCard.reschedule')}
@@ -173,12 +173,12 @@ const AppointmentsCard = () => {
                           className="text-gray-600 mt-1"
                           dangerouslySetInnerHTML={{ __html: formatAppointmentDescription(event.description) }}
                         />
-                        {event.attachments && <a href={event.attachments} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 inline-block">{t('appointmentsCard.viewAttachment')}</a>}
+                        {event.attachments && <a href={event.attachments} target="_blank" className="text-blue-600 hover:underline mt-2 inline-block">{t('appointmentsCard.viewAttachment')}</a>}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                   <p className="text-gray-500">{t('appointmentsCard.noPast')}</p>
+                  <p className="text-gray-500">{t('appointmentsCard.noPast')}</p>
                 )}
               </div>
             </div>

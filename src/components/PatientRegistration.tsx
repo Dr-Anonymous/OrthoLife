@@ -47,19 +47,19 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof PatientData, string>> = {};
-    
+
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     //if (!formData.address.trim()) newErrors.address = 'Address is required';
-    
+
     if (formData.phone && !/^\d{10,12}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     } else {
       if (formData.phone.startsWith('91') && formData.phone.length === 12) {
-      formData.phone =  formData.phone.slice(2);
+        formData.phone = formData.phone.slice(2);
       }
       if (formData.phone.startsWith('0') && formData.phone.length === 11) {
-      formData.phone =  formData.phone.slice(1);
+        formData.phone = formData.phone.slice(1);
       }
     }
 
@@ -70,7 +70,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
@@ -110,7 +110,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
   // Generate years from 1930 to current year
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i);
-  
+
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -219,7 +219,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
             {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
           </div>
 
-           <div>
+          <div>
             <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -255,10 +255,9 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
           </Button>
           <p className="text-xs text-muted-foreground text-center">
             By booking, you agree to our{' '}
-            <a 
-              href="/legal" 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <a
+              href="/legal"
+              target="_blank"
               className="text-primary underline hover:text-primary/80"
             >
               Terms&Conditions and Cancellation&Refund policies

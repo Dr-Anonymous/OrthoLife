@@ -194,7 +194,6 @@ const PatientReviews = () => {
             <a
               href="https://search.google.com/local/writereview?placeid=ChIJT6k-_1soODoRmW1kWN7Fa2E"
               target="_blank"
-              rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
               Google

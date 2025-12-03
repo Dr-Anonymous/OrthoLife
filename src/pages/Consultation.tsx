@@ -1963,7 +1963,7 @@ const Consultation = () => {
                             </Button>
                           </div>
                           {editablePatientDetails.drive_id && (
-                            <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank" rel="noopener noreferrer">
+                            <a href={`https://drive.google.com/drive/folders/${editablePatientDetails.drive_id}`} target="_blank">
                               <Folder className="w-5 h-5 text-blue-500 hover:text-blue-700" />
                             </a>
                           )}

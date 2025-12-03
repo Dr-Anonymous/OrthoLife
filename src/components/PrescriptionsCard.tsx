@@ -192,7 +192,6 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                                               : `https://drive.google.com/file/d/${subFile.id}/view`
                                         }
                                         target="_blank"
-                                        rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline"
                                       >
                                         {t('prescriptionsCard.view')}
@@ -219,7 +218,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                                       : `https://drive.google.com/file/d/${file.id}/view`
                                 }
                                 target="_blank"
-                                rel="noopener noreferrer"
+
                                 className="text-blue-600 hover:underline"
                               >
                                 {t('prescriptionsCard.view')}
@@ -253,7 +252,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                   <a
                     href={`https://drive.google.com/file/d/${file.id}/view`}
                     target="_blank"
-                    rel="noopener noreferrer"
+
                     className="text-blue-600 hover:underline"
                   >
                     {t('prescriptionsCard.view')}

@@ -133,7 +133,7 @@
   "recovery.milestone5": "Walked 1 mile without assistance",
   "common.reset": "Reset",
   "common.whats_next": "Next steps",
-  "forms.defaultNextSteps": "<ul><li><p>👨‍⚕️ Book an <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://ortho.life/appointment\"><strong><u>Appointment with Dr Samuel Manoj Cherukuri</u></strong></a></p></li></ul><p></p>",
+  "forms.defaultNextSteps": "<ul><li><p>👨‍⚕️ Book an <a target=\"_blank\" href=\"https://ortho.life/appointment\"><strong><u>Appointment with Dr Samuel Manoj Cherukuri</u></strong></a></p></li></ul><p></p>",
   "mySpace.welcome": "Welcome to My Space",
   "mySpace.dashboardDescription": "Your personal health dashboard",
   "mySpace.logout": "Logout",
@@ -217,7 +217,7 @@
   "prescription.med_noon": "A.Noon",
   "prescription.med_night": "Night",
   "prescription.followup": "Follow-up",
-  "prescription.footer_text": "Visit <a href='https://ortho.life/my' target='_blank' rel='noopener noreferrer' className='underline'>ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.",
+  "prescription.footer_text": "Visit <a href=\"https://ortho.life/my\" target=\"_blank\" className=\"underline\">ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.",
   "patientSelectionModal.title": "Select a Patient",
   "patientSelectionModal.description": "Multiple patients are associated with this phone number. Please select one to continue."
 }

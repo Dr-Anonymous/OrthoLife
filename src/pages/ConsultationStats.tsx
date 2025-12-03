@@ -201,7 +201,7 @@ const ConsultationStats = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(consultation.created_at), 'PPP')}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {consultation.patient.drive_id ? (
-                      <a href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      <a href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`} target="_blank" className="text-blue-600 hover:underline">
                         {consultation.patient.name}
                       </a>
                     ) : (
