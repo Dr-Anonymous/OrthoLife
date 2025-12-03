@@ -443,6 +443,7 @@ const Consultation = () => {
   const [suggestedAdvice, setSuggestedAdvice] = useState<string[]>([]);
   const [suggestedInvestigations, setSuggestedInvestigations] = useState<string[]>([]);
   const [suggestedFollowup, setSuggestedFollowup] = useState<string[]>([]);
+  const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string }[]>([]);
 
   const cleanedConsultationData = React.useMemo(() => cleanConsultationData(extraData), [extraData]);
 
@@ -832,19 +833,39 @@ const Consultation = () => {
             return [...prev, ...newItems];
           });
         }
+
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
     };
 
-    setSuggestedMedications([]);
-    setSuggestedAdvice([]);
-    setSuggestedInvestigations([]);
-    setSuggestedFollowup([]);
+    const fetchReferralDoctors = async (text: string) => {
+      if (text.trim() === '') {
+        setReferralDoctors([]);
+        return;
+      }
 
-    fetchSuggestions(debouncedComplaints);
-    fetchSuggestions(debouncedDiagnosis);
-  }, [debouncedComplaints, debouncedDiagnosis, i18n.language]);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-referral-doctors', {
+          body: { search: text },
+        });
+
+        if (error) throw error;
+        if (data && data.doctors) {
+          setReferralDoctors(data.doctors);
+        }
+      } catch (error) {
+        console.error('Error fetching referral doctors:', error);
+      }
+    };
+
+    const debounceFetch = setTimeout(() => {
+      fetchSuggestions(extraData.complaints);
+      fetchReferralDoctors(extraData.referred_to);
+    }, 500);
+
+    return () => clearTimeout(debounceFetch);
+  }, [extraData.complaints, extraData.referred_to, i18n.language]);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
@@ -1232,31 +1253,29 @@ const Consultation = () => {
     setIsConsultationDatePickerOpen(false);
   };
 
-  const handleExtraChange = (
-    field: string,
-    value: string,
-    cursorPosition: number | null
-  ) => {
-    // Open shortcut modal
-    if ((field === 'complaints' || field === 'diagnosis') && value.includes('//')) {
+  const handleExtraChange = (field: string, value: any, cursorPosition: number | null = null) => {
+    let newValue = value;
+    let newCursorPosition = cursorPosition;
+
+    // Handle shortcut modal trigger
+    if ((field === 'complaints' || field === 'diagnosis') && typeof value === 'string' && value.includes('//')) {
       setIsShortcutModalOpen(true);
-      setExtraData(prev => ({ ...prev, [field]: value.replace('//', '') }));
-      return;
+      newValue = value.replace('//', '');
     }
 
-    if (['complaints', 'diagnosis', 'findings', 'investigations', 'advice', 'personalNote'].includes(field) && cursorPosition !== null) {
+    // Process text shortcuts for relevant fields
+    if (typeof value === 'string' && cursorPosition !== null) {
       const shortcutResult = processTextShortcuts(value, cursorPosition, textShortcuts);
       if (shortcutResult) {
-        setExtraData(prev => ({ ...prev, [field]: shortcutResult.newValue }));
-        setCursorPosition({ [field]: shortcutResult.newCursorPosition });
-        return;
+        newValue = shortcutResult.newValue;
+        newCursorPosition = shortcutResult.newCursorPosition;
       }
     }
 
-
-    if (field === 'followup') {
+    // Handle followup date shortcuts
+    if (field === 'followup' && typeof newValue === 'string') {
       const shortcutRegex = /(\d+)([dwm])\./i; // d=day, w=week, m=month. Dot is required.
-      const match = value.match(shortcutRegex);
+      const match = newValue.match(shortcutRegex);
 
       if (match) {
         const shortcut = match[0]; // e.g., "2w."
@@ -1278,22 +1297,17 @@ const Consultation = () => {
 
         if (unitKey) {
           const unitText = t(unitKey);
-          const replacementText = t('followup_message_structure', { count, unit: unitText });
-          const newValue = value.replace(shortcut, replacementText);
-          setExtraData(prev => ({ ...prev, followup: newValue }));
-          return;
-        }
-      }
-      if (cursorPosition !== null) {
-        const shortcutResult = processTextShortcuts(value, cursorPosition, textShortcuts);
-        if (shortcutResult) {
-          setExtraData(prev => ({ ...prev, [field]: shortcutResult.newValue }));
-          setCursorPosition({ [field]: shortcutResult.newCursorPosition });
-          return;
+          newValue = newValue.replace(shortcut, t('followup_message_structure', { count, unit: unitText }));
         }
       }
     }
-    setExtraData(prev => ({ ...prev, [field]: value }));
+
+    setExtraData(prev => ({ ...prev, [field]: newValue }));
+    setIsFormDirty(true);
+
+    if (newCursorPosition !== null) {
+      setCursorPosition(prev => ({ ...prev, [field]: newCursorPosition }));
+    }
   };
 
   const handleSelectConsultation = (consultation: Consultation) => {
@@ -2164,7 +2178,17 @@ const Consultation = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="referred_to" className="text-sm font-medium">Referred To</Label>
-                          <Input ref={referredToRef} id="referred_to" value={extraData.referred_to} onChange={e => handleExtraChange('referred_to', e.target.value, e.target.selectionStart)} placeholder="Referred to..." />
+                          <AutosuggestInput
+                            ref={referredToRef as any}
+                            value={extraData.referred_to}
+                            onChange={value => handleExtraChange('referred_to', value, (referredToRef.current as any)?.selectionStart || value.length)}
+                            suggestions={referralDoctors.map(d => ({
+                              id: d.id,
+                              name: `${d.name}${d.specialization ? `, ${d.specialization}` : ''}${d.address ? `, ${d.address}` : ''}`
+                            }))}
+                            onSuggestionSelected={suggestion => handleExtraChange('referred_to', suggestion.name)}
+                            placeholder="Referred to..."
+                          />
                         </div>
 
                         <div className="space-y-2">

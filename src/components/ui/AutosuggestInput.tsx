@@ -13,6 +13,7 @@ interface AutosuggestInputProps {
   onSuggestionSelected: (suggestion: Suggestion) => void;
   suggestions: Suggestion[];
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  placeholder?: string;
 }
 
 const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProps>(({
@@ -21,6 +22,7 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
   onSuggestionSelected,
   suggestions,
   onKeyDown,
+  placeholder = "Enter medicine name",
 }, ref) => {
   const [filteredSuggestions, setFilteredSuggestions] = useState<Suggestion[]>([]);
   const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
@@ -82,7 +84,7 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        placeholder="Enter medicine name"
+        placeholder={placeholder}
       />
       {isSuggestionsVisible && filteredSuggestions.length > 0 && (
         <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg">
