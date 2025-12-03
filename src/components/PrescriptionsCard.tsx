@@ -11,6 +11,7 @@ import { Prescription } from '@/components/Prescription';
 import { format } from 'date-fns';
 import { HOSPITALS } from '@/config/constants';
 import { useToast } from '@/components/ui/use-toast';
+import { cleanConsultationData } from '@/lib/utils';
 
 interface PrescriptionsCardProps {
   patientId: string | undefined;
@@ -99,16 +100,16 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
       try {
         const fileContent = reader.result as string;
         const { error } = await supabase.functions.invoke('upload-file-to-drive', {
-            body: {
-                patientId,
-                fileName: selectedFile.name,
-                fileContent,
-                mimeType: selectedFile.type
-            },
+          body: {
+            patientId,
+            fileName: selectedFile.name,
+            fileContent,
+            mimeType: selectedFile.type
+          },
         });
 
         if (error) throw new Error(`Upload failed: ${error.message}`);
-        
+
         setSelectedFile(null);
         await fetchRecords();
         if (fileInputRef.current) {
@@ -131,8 +132,8 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
       }
     };
     reader.onerror = () => {
-        setError('Failed to read file.');
-        setUploading(false);
+      setError('Failed to read file.');
+      setUploading(false);
     };
   };
 
@@ -286,7 +287,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
             {printingConsultation && (
               <Prescription
                 patient={printingConsultation.patient}
-                consultation={printingConsultation.consultation_data}
+                consultation={cleanConsultationData(printingConsultation.consultation_data)}
                 consultationDate={new Date(printingConsultation.created_at)}
                 age={printingConsultation.patient.dob ? Math.floor((new Date() - new Date(printingConsultation.patient.dob)) / 31557600000) : ''}
                 language={i18n.language}

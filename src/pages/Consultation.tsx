@@ -18,7 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, formatDistanceToNow } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, cleanConsultationData } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
@@ -441,6 +441,8 @@ const Consultation = () => {
   const [suggestedAdvice, setSuggestedAdvice] = useState<string[]>([]);
   const [suggestedInvestigations, setSuggestedInvestigations] = useState<string[]>([]);
   const [suggestedFollowup, setSuggestedFollowup] = useState<string[]>([]);
+
+  const cleanedConsultationData = React.useMemo(() => cleanConsultationData(extraData), [extraData]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -2225,7 +2227,7 @@ const Consultation = () => {
           {selectedConsultation && editablePatientDetails && (
             <Prescription
               patient={editablePatientDetails}
-              consultation={extraData}
+              consultation={cleanedConsultationData}
               consultationDate={selectedDate || new Date()}
               age={age}
               language={i18n.language}

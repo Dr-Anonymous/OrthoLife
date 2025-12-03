@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cleanConsultationData } from '@/lib/utils';
 
 const PrescriptionDownload = () => {
     const { patientPhone } = useParams<{ patientPhone: string }>();
@@ -184,7 +185,7 @@ const PrescriptionDownload = () => {
                         <Prescription
                             className="min-h-[296mm]"
                             patient={consultation.patient}
-                            consultation={consultation.consultation_data}
+                            consultation={cleanConsultationData(consultation.consultation_data)}
                             consultationDate={new Date(consultation.created_at)}
                             age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                             language={consultation.consultation_data.language || i18n.language}

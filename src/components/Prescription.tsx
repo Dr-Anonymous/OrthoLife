@@ -1,7 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { cn, removeBracketedText } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon } from 'lucide-react';
 
 interface Medication {
@@ -70,7 +70,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           <p className="text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
           <p className="text-muted-foreground">Orthopaedic Surgeon</p>
           <p className="mt-2 text-gray-700">
-            <a href="tel:9866812555" className="font-semibold hover:underline">📞 98668 12555</a>
+            <a href="tel:+919983849838" className="font-semibold hover:underline">📞 99 838 49 838</a>
             <span className="mx-2">|</span>
             <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
           </p>
@@ -100,25 +100,25 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
           {consultation.complaints && (
             <div>
               <h3 className="font-heading font-semibold">Complaints:</h3>
-              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.complaints)}</p>
+              <p className="whitespace-pre-wrap">{consultation.complaints}</p>
             </div>
           )}
           {consultation.findings && (
             <div>
               <h3 className="font-heading font-semibold">Findings:</h3>
-              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.findings)}</p>
+              <p className="whitespace-pre-wrap">{consultation.findings}</p>
             </div>
           )}
           {consultation.investigations && (
             <div>
               <h3 className="font-heading font-semibold">Investigations:</h3>
-              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.investigations)}</p>
+              <p className="whitespace-pre-wrap">{consultation.investigations}</p>
             </div>
           )}
           {consultation.diagnosis && (
             <div>
               <h3 className="font-heading font-semibold">Diagnosis:</h3>
-              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.diagnosis)}</p>
+              <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
             </div>
           )}
           {consultation.advice && (
@@ -127,7 +127,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                 <MessageSquare className="h-4 w-4" />
                 <span>{t('prescription.advice')}:</span>
               </h3>
-              <p className="whitespace-pre-wrap">{removeBracketedText(consultation.advice)}</p>
+              <p className="whitespace-pre-wrap">{consultation.advice}</p>
             </div>
           )}
         </section>
@@ -185,11 +185,11 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                   <React.Fragment key={index}>
                     <tr>
                       <td className="border border-border p-2">{index + 1}</td>
-                      <td className="border border-border p-2">{removeBracketedText(med.name)}</td>
-                      <td className="border border-border p-2">{removeBracketedText(med.dose)}</td>
+                      <td className="border border-border p-2">{med.name}</td>
+                      <td className="border border-border p-2">{med.dose}</td>
                       {med.frequency ? (
                         <td colSpan={3} className="border border-border p-2 text-center">
-                          {removeBracketedText(med.frequency)}
+                          {med.frequency}
                         </td>
                       ) : (
                         <>
@@ -198,13 +198,13 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                           <td className="border border-border p-2 text-center">{med.freqNight ? '✔' : ''}</td>
                         </>
                       )}
-                      <td className="border border-border p-2">{removeBracketedText(med.duration)}</td>
-                      <td className="border border-border p-2">{removeBracketedText(med.instructions)}</td>
+                      <td className="border border-border p-2">{med.duration}</td>
+                      <td className="border border-border p-2">{med.instructions}</td>
                     </tr>
                     {med.notes && (
                       <tr>
                         <td colSpan={8} className="border border-border p-2 text-xs italic text-muted-foreground">
-                          {removeBracketedText(med.notes)}
+                          {med.notes}
                         </td>
                       </tr>
                     )}
@@ -222,7 +222,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
               <Calendar className="h-4 w-4" />
               <span>{t('prescription.followup')}:</span>
             </h3>
-            <p className="whitespace-pre-wrap">{removeBracketedText(consultation.followup)}</p>
+            <p className="whitespace-pre-wrap">{consultation.followup}</p>
           </section>
         )}
       </main>
@@ -232,9 +232,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
         style={{ backgroundImage: backgroundPattern }}
       >
-        <p className="text-primary font-semibold text-xs">
-          Visit <a href="https://ortho.life/my" target="_blank" rel="noopener noreferrer" className="underline">ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.
-        </p>
+        <p className="text-primary font-semibold text-xs">{t('prescription.footer_text')}</p>
         <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
       </footer>
     </div>

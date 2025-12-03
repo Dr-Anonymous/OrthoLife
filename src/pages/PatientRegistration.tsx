@@ -6,6 +6,7 @@ import { Loader2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
+import { cleanConsultationData } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import ConsultationRegistration from '@/components/ConsultationRegistration';
 import { useLocation } from 'react-router-dom';
@@ -148,7 +149,7 @@ const PatientRegistration = () => {
           {printingConsultation ? (
             <Prescription
               patient={printingConsultation.patient}
-              consultation={printingConsultation.consultation_data}
+              consultation={cleanConsultationData(printingConsultation.consultation_data)}
               consultationDate={new Date(printingConsultation.created_at)}
               age={calculateAge(new Date(printingConsultation.patient.dob))}
               language={printingConsultation.consultation_data?.language || i18n.language}
