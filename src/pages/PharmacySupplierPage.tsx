@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Pencil, Loader2, Search, Plus } from 'lucide-react';
+import { Pencil, Loader2, Search, Plus, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -47,6 +47,8 @@ const PharmacySupplierPage = () => {
         discount_percentage: 0,
         is_individual: true
     });
+
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
     useEffect(() => {
         fetchInventory();
@@ -133,8 +135,7 @@ const PharmacySupplierPage = () => {
                     name: newMedicineData.name,
                     category: 'Medicines', // Default category
                     pack_size: newMedicineData.pack_size,
-                    requires_prescription: false,
-                    is_grouped: false
+                    prescription_required: false
                 }])
                 .select()
                 .single();
@@ -185,7 +186,41 @@ const PharmacySupplierPage = () => {
         setIsDialogOpen(true);
     };
 
-    const filteredInventory = inventory.filter(item =>
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedInventory = [...inventory].sort((a, b) => {
+        if (!sortConfig) return 0;
+
+        let aValue: any = a;
+        let bValue: any = b;
+
+        if (sortConfig.key === 'name') {
+            aValue = a.pharmacy_items?.name || '';
+            bValue = b.pharmacy_items?.name || '';
+        } else if (sortConfig.key === 'stock') {
+            aValue = a.stock;
+            bValue = b.stock;
+        } else if (sortConfig.key === 'price') {
+            aValue = a.sale_price;
+            bValue = b.sale_price;
+        }
+
+        if (aValue < bValue) {
+            return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+            return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+
+    const filteredInventory = sortedInventory.filter(item =>
         item.pharmacy_items?.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -432,10 +467,34 @@ const PharmacySupplierPage = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Medicine Name</TableHead>
+                                    <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
+                                        <div className="flex items-center gap-2">
+                                            Medicine Name
+                                            {sortConfig?.key === 'name' && (
+                                                sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                            )}
+                                            {!sortConfig || sortConfig.key !== 'name' && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                                        </div>
+                                    </TableHead>
                                     <TableHead>Pack Size</TableHead>
-                                    <TableHead>Stock</TableHead>
-                                    <TableHead>Sale Price</TableHead>
+                                    <TableHead className="cursor-pointer" onClick={() => handleSort('stock')}>
+                                        <div className="flex items-center gap-2">
+                                            Stock
+                                            {sortConfig?.key === 'stock' && (
+                                                sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                            )}
+                                            {!sortConfig || sortConfig.key !== 'stock' && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer" onClick={() => handleSort('price')}>
+                                        <div className="flex items-center gap-2">
+                                            Sale Price
+                                            {sortConfig?.key === 'price' && (
+                                                sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                            )}
+                                            {!sortConfig || sortConfig.key !== 'price' && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                                        </div>
+                                    </TableHead>
                                     <TableHead>Original Price</TableHead>
                                     <TableHead>Discount</TableHead>
                                     <TableHead>Individual Sale</TableHead>

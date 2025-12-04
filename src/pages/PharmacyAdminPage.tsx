@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, Search } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -24,6 +24,7 @@ interface PharmacyItem {
 const PharmacyAdminPage = () => {
     const [items, setItems] = useState<PharmacyItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<PharmacyItem | null>(null);
     const [isCustomCategory, setIsCustomCategory] = useState(false);
@@ -82,12 +83,33 @@ const PharmacyAdminPage = () => {
                 if (error) throw error;
                 toast.success('Item updated successfully');
             } else {
-                const { error } = await supabase
+                const { data: newItem, error: itemError } = await supabase
                     .from('pharmacy_items')
-                    .insert([itemData]);
+                    .insert([itemData])
+                    .select()
+                    .single();
 
-                if (error) throw error;
-                toast.success('Item added successfully');
+                if (itemError) throw itemError;
+
+                // Create corresponding inventory entry
+                const { error: inventoryError } = await supabase
+                    .from('pharmacy_inventory')
+                    .insert([{
+                        item_id: newItem.id,
+                        stock: 0,
+                        sale_price: 0,
+                        original_price: 0,
+                        discount_percentage: 0,
+                        is_individual: true
+                    }]);
+
+                if (inventoryError) {
+                    console.error('Error creating inventory:', inventoryError);
+                    // Optional: Delete the item if inventory creation fails
+                    toast.error('Item created but inventory init failed');
+                } else {
+                    toast.success('Item added successfully');
+                }
             }
 
             setIsDialogOpen(false);
@@ -140,112 +162,128 @@ const PharmacyAdminPage = () => {
         setIsDialogOpen(true);
     };
 
+    const filteredItems = items.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
             <main className="flex-grow container mx-auto px-4 py-8 pt-24">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold">Pharmacy Admin - Medicines</h1>
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button onClick={() => {
-                                setEditingItem(null);
-                                setFormData({
-                                    name: '',
-                                    description: '',
-                                    category: 'Tablet',
-                                    prescription_required: false,
-                                    pack_size: ''
-                                });
-                                setIsCustomCategory(false);
-                                setCustomCategory('');
-                            }}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Medicine
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>{editingItem ? 'Edit Medicine' : 'Add New Medicine'}</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="category">Category</Label>
-                                    <Select
-                                        value={formData.category}
-                                        onValueChange={(value) => {
-                                            if (value === 'Other') {
-                                                setIsCustomCategory(true);
-                                                setFormData({ ...formData, category: value });
-                                            } else {
-                                                setIsCustomCategory(false);
-                                                setFormData({ ...formData, category: value });
-                                            }
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select category" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Tablet">Tablet</SelectItem>
-                                            <SelectItem value="Capsule">Capsule</SelectItem>
-                                            <SelectItem value="Syrup">Syrup</SelectItem>
-                                            <SelectItem value="Applicant">Applicant</SelectItem>
-                                            <SelectItem value="Brace">Brace</SelectItem>
-                                            <SelectItem value="Injection">Injection</SelectItem>
-                                            <SelectItem value="Other">Other (Custom)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    {isCustomCategory && (
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="relative flex-grow md:w-64">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search medicines..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-8"
+                            />
+                        </div>
+                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={() => {
+                                    setEditingItem(null);
+                                    setFormData({
+                                        name: '',
+                                        description: '',
+                                        category: 'Tablet',
+                                        prescription_required: false,
+                                        pack_size: ''
+                                    });
+                                    setIsCustomCategory(false);
+                                    setCustomCategory('');
+                                }}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add Medicine
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>{editingItem ? 'Edit Medicine' : 'Add New Medicine'}</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="category">Category</Label>
+                                        <Select
+                                            value={formData.category}
+                                            onValueChange={(value) => {
+                                                if (value === 'Other') {
+                                                    setIsCustomCategory(true);
+                                                    setFormData({ ...formData, category: value });
+                                                } else {
+                                                    setIsCustomCategory(false);
+                                                    setFormData({ ...formData, category: value });
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Tablet">Tablet</SelectItem>
+                                                <SelectItem value="Capsule">Capsule</SelectItem>
+                                                <SelectItem value="Syrup">Syrup</SelectItem>
+                                                <SelectItem value="Applicant">Applicant</SelectItem>
+                                                <SelectItem value="Brace">Brace</SelectItem>
+                                                <SelectItem value="Injection">Injection</SelectItem>
+                                                <SelectItem value="Other">Other (Custom)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {isCustomCategory && (
+                                            <Input
+                                                className="mt-2"
+                                                placeholder="Enter custom category"
+                                                value={customCategory}
+                                                onChange={(e) => setCustomCategory(e.target.value)}
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="name">Name</Label>
                                         <Input
-                                            className="mt-2"
-                                            placeholder="Enter custom category"
-                                            value={customCategory}
-                                            onChange={(e) => setCustomCategory(e.target.value)}
+                                            id="name"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
-                                    )}
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="description">Description</Label>
+                                        <Textarea
+                                            id="description"
+                                            value={formData.description || ''}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="pack_size">Pack Size (e.g., "10")</Label>
+                                        <Input
+                                            id="pack_size"
+                                            value={formData.pack_size || ''}
+                                            onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="prescription_required"
+                                            checked={formData.prescription_required}
+                                            onChange={(e) => setFormData({ ...formData, prescription_required: e.target.checked })}
+                                            className="h-4 w-4 rounded border-gray-300"
+                                        />
+                                        <Label htmlFor="prescription_required">Requires Prescription</Label>
+                                    </div>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    />
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleSave}>Save</Button>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="description">Description</Label>
-                                    <Textarea
-                                        id="description"
-                                        value={formData.description || ''}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="pack_size">Pack Size (e.g., "10")</Label>
-                                    <Input
-                                        id="pack_size"
-                                        value={formData.pack_size || ''}
-                                        onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id="prescription_required"
-                                        checked={formData.prescription_required}
-                                        onChange={(e) => setFormData({ ...formData, prescription_required: e.target.checked })}
-                                        className="h-4 w-4 rounded border-gray-300"
-                                    />
-                                    <Label htmlFor="prescription_required">Requires Prescription</Label>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                                <Button onClick={handleSave}>Save</Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
 
                 {
@@ -267,7 +305,7 @@ const PharmacyAdminPage = () => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {items.map((item) => (
+                                    {filteredItems.map((item) => (
                                         <TableRow key={item.id}>
                                             <TableCell className="font-medium">{item.name}</TableCell>
                                             <TableCell className="max-w-xs truncate" title={item.description || ''}>{item.description || '-'}</TableCell>
