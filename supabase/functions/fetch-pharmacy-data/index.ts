@@ -68,7 +68,12 @@ serve(async (req) => {
 
     for (const item of items) {
       // Flatten the structure
-      const inventory = item.pharmacy_inventory?.[0] || {}; // Assuming one supplier for now
+      let inventory = {};
+      if (Array.isArray(item.pharmacy_inventory)) {
+        inventory = item.pharmacy_inventory[0] || {};
+      } else if (item.pharmacy_inventory) {
+        inventory = item.pharmacy_inventory;
+      }
 
       const medicine = {
         id: item.id,
