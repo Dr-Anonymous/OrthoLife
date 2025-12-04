@@ -17,9 +17,7 @@ interface PharmacyItem {
     name: string;
     description: string | null;
     category: string;
-    image_url: string | null;
-    requires_prescription: boolean;
-    is_grouped: boolean;
+    prescription_required: boolean;
     pack_size: string | null;
 }
 
@@ -32,8 +30,7 @@ const PharmacyAdminPage = () => {
         name: '',
         description: '',
         category: 'Medicines',
-        requires_prescription: false,
-        is_grouped: false,
+        prescription_required: false,
         pack_size: ''
     });
 
@@ -70,8 +67,7 @@ const PharmacyAdminPage = () => {
                 name: formData.name,
                 description: formData.description,
                 category: formData.category,
-                requires_prescription: formData.requires_prescription,
-                is_grouped: formData.is_grouped,
+                prescription_required: formData.prescription_required,
                 pack_size: formData.pack_size
             };
 
@@ -98,8 +94,7 @@ const PharmacyAdminPage = () => {
                 name: '',
                 description: '',
                 category: 'Medicines',
-                requires_prescription: false,
-                is_grouped: false,
+                prescription_required: false,
                 pack_size: ''
             });
             fetchItems();
@@ -136,7 +131,7 @@ const PharmacyAdminPage = () => {
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
-            <main className="flex-grow container mx-auto px-4 py-8">
+            <main className="flex-grow container mx-auto px-4 py-8 pt-24">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold">Pharmacy Admin - Medicines</h1>
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -147,8 +142,7 @@ const PharmacyAdminPage = () => {
                                     name: '',
                                     description: '',
                                     category: 'Medicines',
-                                    requires_prescription: false,
-                                    is_grouped: false,
+                                    prescription_required: false,
                                     pack_size: ''
                                 });
                             }}>
@@ -204,22 +198,12 @@ const PharmacyAdminPage = () => {
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="checkbox"
-                                        id="is_grouped"
-                                        checked={formData.is_grouped}
-                                        onChange={(e) => setFormData({ ...formData, is_grouped: e.target.checked })}
+                                        id="prescription_required"
+                                        checked={formData.prescription_required}
+                                        onChange={(e) => setFormData({ ...formData, prescription_required: e.target.checked })}
                                         className="h-4 w-4 rounded border-gray-300"
                                     />
-                                    <Label htmlFor="is_grouped">Is Grouped (Has sizes/variants)</Label>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id="requires_prescription"
-                                        checked={formData.requires_prescription}
-                                        onChange={(e) => setFormData({ ...formData, requires_prescription: e.target.checked })}
-                                        className="h-4 w-4 rounded border-gray-300"
-                                    />
-                                    <Label htmlFor="requires_prescription">Requires Prescription</Label>
+                                    <Label htmlFor="prescription_required">Requires Prescription</Label>
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2">
@@ -230,48 +214,50 @@ const PharmacyAdminPage = () => {
                     </Dialog>
                 </div>
 
-                {loading ? (
-                    <div className="flex justify-center py-8">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead>Pack Size</TableHead>
-                                    <TableHead>Grouped</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {items.map((item) => (
-                                    <TableRow key={item.id}>
-                                        <TableCell className="font-medium">{item.name}</TableCell>
-                                        <TableCell>{item.category}</TableCell>
-                                        <TableCell>{item.pack_size || '-'}</TableCell>
-                                        <TableCell>{item.is_grouped ? 'Yes' : 'No'}</TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)}>
-                                                    <Pencil className="w-4 h-4 text-blue-600" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                {
+                    loading ? (
+                        <div className="flex justify-center py-8">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Pack Size</TableHead>
+                                        <TableHead>Rx Required</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
-            </main>
+                                </TableHeader>
+                                <TableBody>
+                                    {items.map((item) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="font-medium">{item.name}</TableCell>
+                                            <TableCell>{item.category}</TableCell>
+                                            <TableCell>{item.pack_size || '-'}</TableCell>
+                                            <TableCell>{item.prescription_required ? 'Yes' : 'No'}</TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)}>
+                                                        <Pencil className="w-4 h-4 text-blue-600" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                                                        <Trash2 className="w-4 h-4 text-red-600" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )
+                }
+            </main >
             <Footer />
-        </div>
+        </div >
     );
 };
 

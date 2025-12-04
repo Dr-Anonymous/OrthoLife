@@ -11,7 +11,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 interface InventoryItem {
-    id: string; // This is the inventory ID
     item_id: string;
     stock: number;
     sale_price: number;
@@ -49,7 +48,6 @@ const PharmacySupplierPage = () => {
             const { data, error } = await supabase
                 .from('pharmacy_inventory')
                 .select(`
-          id,
           item_id,
           stock,
           sale_price,
@@ -63,7 +61,6 @@ const PharmacySupplierPage = () => {
 
             // Transform data to match interface
             const transformedData = (data || []).map((item: any) => ({
-                id: item.id,
                 item_id: item.item_id,
                 stock: item.stock,
                 sale_price: item.sale_price,
@@ -89,7 +86,7 @@ const PharmacySupplierPage = () => {
                     stock: formData.stock,
                     sale_price: formData.sale_price
                 })
-                .eq('id', editingItem.id);
+                .eq('item_id', editingItem.item_id);
 
             if (error) throw error;
             toast.success('Inventory updated successfully');
@@ -161,7 +158,7 @@ const PharmacySupplierPage = () => {
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
-            <main className="flex-grow container mx-auto px-4 py-8">
+            <main className="flex-grow container mx-auto px-4 py-8 pt-24">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold">Pharmacy Supplier - Inventory</h1>
                     <div className="flex gap-2 w-full md:w-auto">
@@ -273,7 +270,7 @@ const PharmacySupplierPage = () => {
                             </TableHeader>
                             <TableBody>
                                 {filteredInventory.map((item) => (
-                                    <TableRow key={item.id}>
+                                    <TableRow key={item.item_id}>
                                         <TableCell className="font-medium">{item.pharmacy_items?.name || 'Unknown Item'}</TableCell>
                                         <TableCell>{item.pharmacy_items?.pack_size || '-'}</TableCell>
                                         <TableCell>
