@@ -37,7 +37,7 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const MySpace = lazy(() => import("./pages/MySpace"));
 const SendWhatsApp = lazy(() => import("./pages/SendWhatsApp"));
 const PrescriptionDownload = lazy(() => import("./pages/PrescriptionDownload"));
-const PrescriptionDownload = lazy(() => import("./pages/PrescriptionDownload"));
+
 const PharmacyAdminPage = lazy(() => import("./pages/PharmacyAdminPage"));
 const PharmacySupplierPage = lazy(() => import("./pages/PharmacySupplierPage"));
 const PharmacyAuthGuard = lazy(() => import("./components/PharmacyAuthGuard"));
