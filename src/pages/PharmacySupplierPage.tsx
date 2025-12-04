@@ -14,6 +14,9 @@ interface InventoryItem {
     item_id: string;
     stock: number;
     sale_price: number;
+    original_price: number;
+    discount_percentage: number;
+    is_individual: boolean;
     pharmacy_items: {
         name: string;
         pack_size: string | null;
@@ -29,13 +32,20 @@ const PharmacySupplierPage = () => {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [newMedicineData, setNewMedicineData] = useState({
         name: '',
+        pack_size: '',
         stock: 0,
-        sale_price: 0
+        sale_price: 0,
+        original_price: 0,
+        discount_percentage: 0,
+        is_individual: true
     });
 
     const [formData, setFormData] = useState({
         stock: 0,
-        sale_price: 0
+        sale_price: 0,
+        original_price: 0,
+        discount_percentage: 0,
+        is_individual: true
     });
 
     useEffect(() => {
@@ -51,6 +61,9 @@ const PharmacySupplierPage = () => {
           item_id,
           stock,
           sale_price,
+          original_price,
+          discount_percentage,
+          is_individual,
           pharmacy_items (
             name,
             pack_size
@@ -64,6 +77,9 @@ const PharmacySupplierPage = () => {
                 item_id: item.item_id,
                 stock: item.stock,
                 sale_price: item.sale_price,
+                original_price: item.original_price,
+                discount_percentage: item.discount_percentage,
+                is_individual: item.is_individual,
                 pharmacy_items: item.pharmacy_items
             }));
 
@@ -84,7 +100,10 @@ const PharmacySupplierPage = () => {
                 .from('pharmacy_inventory')
                 .update({
                     stock: formData.stock,
-                    sale_price: formData.sale_price
+                    sale_price: formData.sale_price,
+                    original_price: formData.original_price,
+                    discount_percentage: formData.discount_percentage,
+                    is_individual: formData.is_individual
                 })
                 .eq('item_id', editingItem.item_id);
 
@@ -113,6 +132,7 @@ const PharmacySupplierPage = () => {
                 .insert([{
                     name: newMedicineData.name,
                     category: 'Medicines', // Default category
+                    pack_size: newMedicineData.pack_size,
                     requires_prescription: false,
                     is_grouped: false
                 }])
@@ -127,14 +147,25 @@ const PharmacySupplierPage = () => {
                 .insert([{
                     item_id: itemData.id,
                     stock: newMedicineData.stock,
-                    sale_price: newMedicineData.sale_price
+                    sale_price: newMedicineData.sale_price,
+                    original_price: newMedicineData.original_price,
+                    discount_percentage: newMedicineData.discount_percentage,
+                    is_individual: newMedicineData.is_individual
                 }]);
 
             if (inventoryError) throw inventoryError;
 
             toast.success('Medicine added successfully');
             setIsAddDialogOpen(false);
-            setNewMedicineData({ name: '', stock: 0, sale_price: 0 });
+            setNewMedicineData({
+                name: '',
+                pack_size: '',
+                stock: 0,
+                sale_price: 0,
+                original_price: 0,
+                discount_percentage: 0,
+                is_individual: true
+            });
             fetchInventory();
         } catch (error) {
             console.error('Error adding medicine:', error);
@@ -146,7 +177,10 @@ const PharmacySupplierPage = () => {
         setEditingItem(item);
         setFormData({
             stock: item.stock,
-            sale_price: item.sale_price
+            sale_price: item.sale_price,
+            original_price: item.original_price,
+            discount_percentage: item.discount_percentage,
+            is_individual: item.is_individual
         });
         setIsDialogOpen(true);
     };
@@ -193,6 +227,15 @@ const PharmacySupplierPage = () => {
                                         />
                                     </div>
                                     <div className="grid gap-2">
+                                        <Label htmlFor="new-pack-size">Pack Size (e.g., "10")</Label>
+                                        <Input
+                                            id="new-pack-size"
+                                            value={newMedicineData.pack_size}
+                                            onChange={(e) => setNewMedicineData({ ...newMedicineData, pack_size: e.target.value })}
+                                            placeholder="Enter pack size"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
                                         <Label htmlFor="new-stock">Initial Stock</Label>
                                         <Input
                                             id="new-stock"
@@ -202,13 +245,77 @@ const PharmacySupplierPage = () => {
                                         />
                                     </div>
                                     <div className="grid gap-2">
+                                        <Label htmlFor="new-original-price">Original Price (₹)</Label>
+                                        <Input
+                                            id="new-original-price"
+                                            type="number"
+                                            value={newMedicineData.original_price}
+                                            onChange={(e) => {
+                                                const originalPrice = parseFloat(e.target.value) || 0;
+                                                const discount = newMedicineData.discount_percentage;
+                                                const salePrice = discount > 0
+                                                    ? Math.round(originalPrice - (originalPrice * discount / 100))
+                                                    : newMedicineData.sale_price;
+
+                                                setNewMedicineData({
+                                                    ...newMedicineData,
+                                                    original_price: originalPrice,
+                                                    sale_price: salePrice
+                                                });
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="new-discount">Discount (%)</Label>
+                                        <Input
+                                            id="new-discount"
+                                            type="number"
+                                            value={newMedicineData.discount_percentage}
+                                            onChange={(e) => {
+                                                const discount = parseFloat(e.target.value) || 0;
+                                                const originalPrice = newMedicineData.original_price;
+                                                const salePrice = originalPrice > 0
+                                                    ? Math.round(originalPrice - (originalPrice * discount / 100))
+                                                    : newMedicineData.sale_price;
+
+                                                setNewMedicineData({
+                                                    ...newMedicineData,
+                                                    discount_percentage: discount,
+                                                    sale_price: salePrice
+                                                });
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
                                         <Label htmlFor="new-price">Sale Price (₹)</Label>
                                         <Input
                                             id="new-price"
                                             type="number"
                                             value={newMedicineData.sale_price}
-                                            onChange={(e) => setNewMedicineData({ ...newMedicineData, sale_price: parseFloat(e.target.value) || 0 })}
+                                            onChange={(e) => {
+                                                const salePrice = parseFloat(e.target.value) || 0;
+                                                const originalPrice = newMedicineData.original_price;
+                                                const discount = originalPrice > 0
+                                                    ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+                                                    : 0;
+
+                                                setNewMedicineData({
+                                                    ...newMedicineData,
+                                                    sale_price: salePrice,
+                                                    discount_percentage: discount
+                                                });
+                                            }}
                                         />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="new-is-individual"
+                                            checked={newMedicineData.is_individual}
+                                            onChange={(e) => setNewMedicineData({ ...newMedicineData, is_individual: e.target.checked })}
+                                            className="h-4 w-4 rounded border-gray-300"
+                                        />
+                                        <Label htmlFor="new-is-individual">Individual Sale</Label>
                                     </div>
                                 </div>
                                 <div className="flex justify-end gap-2">
@@ -236,13 +343,77 @@ const PharmacySupplierPage = () => {
                                 />
                             </div>
                             <div className="grid gap-2">
+                                <Label htmlFor="original_price">Original Price (₹)</Label>
+                                <Input
+                                    id="original_price"
+                                    type="number"
+                                    value={formData.original_price}
+                                    onChange={(e) => {
+                                        const originalPrice = parseFloat(e.target.value) || 0;
+                                        const discount = formData.discount_percentage;
+                                        const salePrice = discount > 0
+                                            ? Math.round(originalPrice - (originalPrice * discount / 100))
+                                            : formData.sale_price;
+
+                                        setFormData({
+                                            ...formData,
+                                            original_price: originalPrice,
+                                            sale_price: salePrice
+                                        });
+                                    }}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="discount_percentage">Discount (%)</Label>
+                                <Input
+                                    id="discount_percentage"
+                                    type="number"
+                                    value={formData.discount_percentage}
+                                    onChange={(e) => {
+                                        const discount = parseFloat(e.target.value) || 0;
+                                        const originalPrice = formData.original_price;
+                                        const salePrice = originalPrice > 0
+                                            ? Math.round(originalPrice - (originalPrice * discount / 100))
+                                            : formData.sale_price;
+
+                                        setFormData({
+                                            ...formData,
+                                            discount_percentage: discount,
+                                            sale_price: salePrice
+                                        });
+                                    }}
+                                />
+                            </div>
+                            <div className="grid gap-2">
                                 <Label htmlFor="sale_price">Sale Price (₹)</Label>
                                 <Input
                                     id="sale_price"
                                     type="number"
                                     value={formData.sale_price}
-                                    onChange={(e) => setFormData({ ...formData, sale_price: parseFloat(e.target.value) || 0 })}
+                                    onChange={(e) => {
+                                        const salePrice = parseFloat(e.target.value) || 0;
+                                        const originalPrice = formData.original_price;
+                                        const discount = originalPrice > 0
+                                            ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+                                            : 0;
+
+                                        setFormData({
+                                            ...formData,
+                                            sale_price: salePrice,
+                                            discount_percentage: discount
+                                        });
+                                    }}
                                 />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_individual"
+                                    checked={formData.is_individual}
+                                    onChange={(e) => setFormData({ ...formData, is_individual: e.target.checked })}
+                                    className="h-4 w-4 rounded border-gray-300"
+                                />
+                                <Label htmlFor="is_individual">Individual Sale</Label>
                             </div>
                         </div>
                         <div className="flex justify-end gap-2">
@@ -264,7 +435,10 @@ const PharmacySupplierPage = () => {
                                     <TableHead>Medicine Name</TableHead>
                                     <TableHead>Pack Size</TableHead>
                                     <TableHead>Stock</TableHead>
-                                    <TableHead>Price (₹)</TableHead>
+                                    <TableHead>Sale Price</TableHead>
+                                    <TableHead>Original Price</TableHead>
+                                    <TableHead>Discount</TableHead>
+                                    <TableHead>Individual Sale</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -282,6 +456,9 @@ const PharmacySupplierPage = () => {
                                             </span>
                                         </TableCell>
                                         <TableCell>₹{item.sale_price}</TableCell>
+                                        <TableCell>₹{item.original_price || '-'}</TableCell>
+                                        <TableCell>{item.discount_percentage ? `${item.discount_percentage}%` : '-'}</TableCell>
+                                        <TableCell>{item.is_individual ? 'Yes' : 'No'}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)}>
                                                 <Pencil className="w-4 h-4 mr-2" />

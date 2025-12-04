@@ -26,10 +26,12 @@ const PharmacyAdminPage = () => {
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<PharmacyItem | null>(null);
+    const [isCustomCategory, setIsCustomCategory] = useState(false);
+    const [customCategory, setCustomCategory] = useState('');
     const [formData, setFormData] = useState<Partial<PharmacyItem>>({
         name: '',
         description: '',
-        category: 'Medicines',
+        category: 'Tablet',
         prescription_required: false,
         pack_size: ''
     });
@@ -66,7 +68,7 @@ const PharmacyAdminPage = () => {
             const itemData = {
                 name: formData.name,
                 description: formData.description,
-                category: formData.category,
+                category: isCustomCategory ? customCategory : formData.category,
                 prescription_required: formData.prescription_required,
                 pack_size: formData.pack_size
             };
@@ -93,10 +95,12 @@ const PharmacyAdminPage = () => {
             setFormData({
                 name: '',
                 description: '',
-                category: 'Medicines',
+                category: 'Tablet',
                 prescription_required: false,
                 pack_size: ''
             });
+            setIsCustomCategory(false);
+            setCustomCategory('');
             fetchItems();
         } catch (error) {
             console.error('Error saving item:', error);
@@ -125,6 +129,14 @@ const PharmacyAdminPage = () => {
     const openEditDialog = (item: PharmacyItem) => {
         setEditingItem(item);
         setFormData(item);
+        if (!['Tablet', 'Capsule', 'Syrup', 'Applicant', 'Brace', 'Injection'].includes(item.category)) {
+            setIsCustomCategory(true);
+            setCustomCategory(item.category);
+            setFormData({ ...item, category: 'Other' });
+        } else {
+            setIsCustomCategory(false);
+            setCustomCategory('');
+        }
         setIsDialogOpen(true);
     };
 
@@ -141,10 +153,12 @@ const PharmacyAdminPage = () => {
                                 setFormData({
                                     name: '',
                                     description: '',
-                                    category: 'Medicines',
+                                    category: 'Tablet',
                                     prescription_required: false,
                                     pack_size: ''
                                 });
+                                setIsCustomCategory(false);
+                                setCustomCategory('');
                             }}>
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Medicine
@@ -155,6 +169,42 @@ const PharmacyAdminPage = () => {
                                 <DialogTitle>{editingItem ? 'Edit Medicine' : 'Add New Medicine'}</DialogTitle>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="category">Category</Label>
+                                    <Select
+                                        value={formData.category}
+                                        onValueChange={(value) => {
+                                            if (value === 'Other') {
+                                                setIsCustomCategory(true);
+                                                setFormData({ ...formData, category: value });
+                                            } else {
+                                                setIsCustomCategory(false);
+                                                setFormData({ ...formData, category: value });
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Tablet">Tablet</SelectItem>
+                                            <SelectItem value="Capsule">Capsule</SelectItem>
+                                            <SelectItem value="Syrup">Syrup</SelectItem>
+                                            <SelectItem value="Applicant">Applicant</SelectItem>
+                                            <SelectItem value="Brace">Brace</SelectItem>
+                                            <SelectItem value="Injection">Injection</SelectItem>
+                                            <SelectItem value="Other">Other (Custom)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {isCustomCategory && (
+                                        <Input
+                                            className="mt-2"
+                                            placeholder="Enter custom category"
+                                            value={customCategory}
+                                            onChange={(e) => setCustomCategory(e.target.value)}
+                                        />
+                                    )}
+                                </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="name">Name</Label>
                                     <Input
@@ -170,22 +220,6 @@ const PharmacyAdminPage = () => {
                                         value={formData.description || ''}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="category">Category</Label>
-                                    <Select
-                                        value={formData.category}
-                                        onValueChange={(value) => setFormData({ ...formData, category: value })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select category" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Medicines">Medicines</SelectItem>
-                                            <SelectItem value="Supplements">Supplements</SelectItem>
-                                            <SelectItem value="Equipment">Equipment</SelectItem>
-                                        </SelectContent>
-                                    </Select>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="pack_size">Pack Size (e.g., "10")</Label>
@@ -225,6 +259,7 @@ const PharmacyAdminPage = () => {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Name</TableHead>
+                                        <TableHead>Description</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead>Pack Size</TableHead>
                                         <TableHead>Rx Required</TableHead>
@@ -235,6 +270,7 @@ const PharmacyAdminPage = () => {
                                     {items.map((item) => (
                                         <TableRow key={item.id}>
                                             <TableCell className="font-medium">{item.name}</TableCell>
+                                            <TableCell className="max-w-xs truncate" title={item.description || ''}>{item.description || '-'}</TableCell>
                                             <TableCell>{item.category}</TableCell>
                                             <TableCell>{item.pack_size || '-'}</TableCell>
                                             <TableCell>{item.prescription_required ? 'Yes' : 'No'}</TableCell>
