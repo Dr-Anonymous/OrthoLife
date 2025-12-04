@@ -850,11 +850,11 @@ const Consultation = () => {
     };
 
     const debounceFetch = setTimeout(() => {
-      fetchSuggestions(extraData.complaints);
+      fetchSuggestions(extraData.complaints + ' ' + extraData.diagnosis);
     }, 500);
 
     return () => clearTimeout(debounceFetch);
-  }, [extraData.complaints, i18n.language, processedAutofillKeywords, savedMedications]);
+  }, [extraData.complaints, extraData.diagnosis, i18n.language, processedAutofillKeywords, savedMedications]);
 
   useEffect(() => {
     const fetchReferralDoctors = async () => {
@@ -1332,7 +1332,12 @@ const Consultation = () => {
 
         if (unitKey) {
           const unitText = t(unitKey);
-          newValue = newValue.replace(shortcut, t('followup_message_structure', { count, unit: unitText }));
+          const expandedText = t('followup_message_structure', { count, unit: unitText });
+          const shortcutIndex = newValue.indexOf(shortcut);
+          newValue = newValue.replace(shortcut, expandedText);
+          if (shortcutIndex !== -1) {
+            newCursorPosition = shortcutIndex + expandedText.length;
+          }
         }
       }
     }

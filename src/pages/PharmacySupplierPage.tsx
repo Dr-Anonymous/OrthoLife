@@ -87,7 +87,11 @@ const PharmacySupplierPage = () => {
                 is_individual: item.is_individual,
                 pharmacy_items: item.pharmacy_items,
                 created_at: item.pharmacy_items?.created_at
-            }));
+            })).sort((a, b) => {
+                const dateA = new Date(a.created_at || 0).getTime();
+                const dateB = new Date(b.created_at || 0).getTime();
+                return dateB - dateA;
+            });
 
             setInventory(transformedData);
         } catch (error) {
