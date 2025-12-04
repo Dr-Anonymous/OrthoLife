@@ -163,3 +163,4 @@ function addMinutes(date) {
   // Convert IST to UTC for Google Calendar
   return new Date(new Date(date).getTime() - 330 * 60000).toISOString();
 }
+

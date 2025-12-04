@@ -97,14 +97,47 @@ const PharmacyPage = () => {
 
   // Autofill patient data from user profile
   useEffect(() => {
-    if (user) {
-      setPatientData(prev => ({
-        ...prev,
-        name: user.displayName || prev.name,
-        phone: user.phoneNumber || prev.phone
-      }));
-    }
+    const fetchPatientDetails = async () => {
+      if (user?.phoneNumber) {
+        // Extract last 10 digits for matching
+        const phone = user.phoneNumber.slice(-10);
+
+        try {
+          const { data, error } = await supabase
+            .from('patients')
+            .select('name')
+            .eq('phone', phone)
+            .maybeSingle();
+
+          setPatientData(prev => ({
+            ...prev,
+            name: data?.name || user.displayName || prev.name,
+            phone: user.phoneNumber || prev.phone
+          }));
+        } catch (err) {
+          console.error('Error fetching patient details:', err);
+          // Fallback to user object details
+          setPatientData(prev => ({
+            ...prev,
+            name: user.displayName || prev.name,
+            phone: user.phoneNumber || prev.phone
+          }));
+        }
+      }
+    };
+
+    fetchPatientDetails();
   }, [user]);
+
+  // Auto-scroll to cart if hash is #cart
+  useEffect(() => {
+    if (location.hash === '#cart') {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        scrollToCart();
+      }, 500);
+    }
+  }, [location.hash]);
 
   const addMultipleToCart = (medicine: Medicine, quantity: number) => {
     if (!medicine) return;
@@ -440,7 +473,7 @@ const PharmacyPage = () => {
         title: "Login required",
         description: "Please login to place an order.",
       });
-      navigate(`/auth?redirect=/pharmacy`);
+      navigate(`/auth?redirect=/pharmacy#cart`);
       return;
     }
 
@@ -743,19 +776,19 @@ const PharmacyPage = () => {
                             {medicine.originalPrice && medicine.originalPrice > medicine.price ? (
                               <div className="flex flex-col">
                                 <span className="text-sm text-muted-foreground line-through">
-                                  ₹{Math.ceil(medicine.originalPrice)}
+                                  ₹{Math.round(medicine.originalPrice)}
                                 </span>
                                 <span className="text-lg font-semibold text-green-600">
-                                  ₹{Math.ceil(medicine.price)}
+                                  ₹{Math.round(medicine.price)}
                                 </span>
                                 {medicine.discount && medicine.discount > 0 && (
                                   <Badge variant="destructive" className="text-xs w-fit ml-auto">
-                                    {Math.ceil(medicine.discount)}% OFF
+                                    {Math.round(medicine.discount)}% OFF
                                   </Badge>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-lg font-semibold">₹{medicine.price}</span>
+                              <span className="text-lg font-semibold">₹{Math.round(medicine.price)}</span>
                             )}
                             {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
                               <div className="text-xs text-muted-foreground mt-1">
@@ -870,7 +903,7 @@ const PharmacyPage = () => {
                             <div className="flex-1">
                               <div className="font-medium">{displayName}</div>
                               <div className="text-sm text-muted-foreground">
-                                ₹{itemPrice.toFixed(2)}
+                                ₹{Math.round(itemPrice)}
                               </div>
                             </div>
 
@@ -948,7 +981,7 @@ const PharmacyPage = () => {
                     )}
 
                     <div className="border-t pt-2 font-semibold">
-                      Total: ₹{getCartTotal().toFixed(2)}
+                      Total: ₹{Math.round(getCartTotal())}
                     </div>
                   </CardContent>
                   <CardFooter>
@@ -964,7 +997,7 @@ const PharmacyPage = () => {
       </main>
       <FloatingCart
         itemCount={Object.values(cart).reduce((sum, qty) => sum + qty, 0)}
-        total={parseInt(getCartTotal().toFixed(1))}
+        total={Math.round(getCartTotal())}
         onViewCart={scrollToCart}
         type="pharmacy"
       />

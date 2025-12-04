@@ -5,14 +5,14 @@ export const sendOrderNotification = async (order: any, type: 'placed' | 'proces
 
     try {
         const itemsList = Array.isArray(order.items)
-            ? order.items.map((item: any) => `${item.name || item.displayName} x${item.quantity}`).join(', ')
+            ? order.items.map((item: any) => `${item.name || item.displayName} x${item.quantity} ${item.orderType === 'pack' ? 'pack' : item.orderType === 'unit' ? 'unit' : ''}`).join(', ')
             : 'Items';
 
         let message = '';
         if (type === 'placed') {
-            message = `Your order #${order.id.slice(0, 8)} has been placed successfully.\nItems: ${itemsList}\nTotal: ₹${order.total_amount}`;
+            message = `Your order #${order.id.slice(0, 8)} has been placed successfully.\nItems: ${itemsList}\nTotal: ₹${Math.round(order.total_amount)}`;
         } else if (type === 'processed') {
-            message = `Your subscription order #${order.id.slice(0, 8)} has been processed.\nItems: ${itemsList}\nTotal: ₹${order.total_amount}`;
+            message = `Your subscription order #${order.id.slice(0, 8)} has been processed.\nItems: ${itemsList}\nTotal: ₹${Math.round(order.total_amount)}`;
         } else {
             message = `Update for order #${order.id.slice(0, 8)}: ${type}`;
         }
@@ -40,7 +40,7 @@ export const sendOrderEmail = async (order: any, type: 'pharmacy' | 'diagnostics
 
     try {
         const itemsHtml = Array.isArray(order.items)
-            ? order.items.map((item: any) => `<li>${item.name || item.displayName} x${item.quantity} - ₹${item.price * item.quantity}</li>`).join('')
+            ? order.items.map((item: any) => `<li>${item.name || item.displayName} x${item.quantity} ${item.orderType === 'pack' ? 'pack' : item.orderType === 'unit' ? 'unit' : ''} - ₹${Math.round(item.price * item.quantity)}</li>`).join('')
             : `<li>${order.items.length} items</li>`;
 
         const subject = type === 'pharmacy'
@@ -51,7 +51,7 @@ export const sendOrderEmail = async (order: any, type: 'pharmacy' | 'diagnostics
       <h2>${subject}</h2>
       <p><strong>User ID/Phone:</strong> ${order.user_id}</p>
       ${order.delivery_info ? `<p><strong>Delivery Address:</strong> ${order.delivery_info.address}</p>` : ''}
-      <p><strong>Total Amount:</strong> ₹${order.total_amount}</p>
+      <p><strong>Total Amount:</strong> ₹${Math.round(order.total_amount)}</p>
       
       <h3>Items:</h3>
       <ul>
