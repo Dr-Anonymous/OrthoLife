@@ -835,7 +835,8 @@ const Consultation = () => {
         }
       }
 
-      const medications = savedMedications.filter(med => medicationIds.has(med.id));
+      const existingMedNames = new Set(extraData.medications.map(m => m.name));
+      const medications = savedMedications.filter(med => medicationIds.has(med.id) && !existingMedNames.has(med.name));
       setSuggestedMedications(medications);
 
       const processSuggestions = (texts: Set<string>, currentText: string) => {
