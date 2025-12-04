@@ -446,6 +446,7 @@ const Consultation = () => {
   const [suggestedFollowup, setSuggestedFollowup] = useState<string[]>([]);
   const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string, phone?: string }[]>([]);
   const [autofillKeywords, setAutofillKeywords] = useState<any[]>([]);
+  const [processedAutofillKeywords, setProcessedAutofillKeywords] = useState<any[]>([]);
 
   const cleanedConsultationData = React.useMemo(() => cleanConsultationData(extraData), [extraData]);
 
@@ -788,7 +789,7 @@ const Consultation = () => {
       }
 
       const cleanedText = text.toLowerCase().replace(/[.,?;]/g, '');
-      const inputTextWords = cleanedText.split(/\s+/);
+      const inputTextWords = new Set(cleanedText.split(/\s+/));
       const medicationIds = new Set<number>();
       const adviceTexts = new Set<string>();
       const investigationTexts = new Set<string>();
@@ -797,10 +798,9 @@ const Consultation = () => {
       const adviceColumn = i18n.language === 'te' ? 'advice_te' : 'advice';
       const followupColumn = i18n.language === 'te' ? 'followup_te' : 'followup';
 
-      for (const mapping of autofillKeywords) {
-        if (mapping.keywords) {
-          for (const keyword of mapping.keywords) {
-            const cleanedKeyword = keyword.toLowerCase().replace(/[.,?;]/g, '');
+      for (const mapping of processedAutofillKeywords) {
+        if (mapping.processedKeywords) {
+          for (const { cleaned: cleanedKeyword } of mapping.processedKeywords) {
             let isMatch = false;
 
             if (cleanedKeyword.includes(' ')) {
@@ -808,7 +808,7 @@ const Consultation = () => {
                 isMatch = true;
               }
             } else {
-              if (inputTextWords.includes(cleanedKeyword)) {
+              if (inputTextWords.has(cleanedKeyword)) {
                 isMatch = true;
               }
             }
@@ -842,6 +842,14 @@ const Consultation = () => {
       setSuggestedFollowup(Array.from(followupTexts));
     };
 
+    const debounceFetch = setTimeout(() => {
+      fetchSuggestions(extraData.complaints);
+    }, 500);
+
+    return () => clearTimeout(debounceFetch);
+  }, [extraData.complaints, i18n.language, processedAutofillKeywords, savedMedications]);
+
+  useEffect(() => {
     const fetchReferralDoctors = async () => {
       try {
         const { data, error } = await supabase
@@ -866,19 +874,23 @@ const Consultation = () => {
         console.error('Error fetching autofill keywords:', error);
       } else {
         setAutofillKeywords(data || []);
+        if (data) {
+          const processed = data.map(mapping => ({
+            ...mapping,
+            processedKeywords: mapping.keywords ? mapping.keywords.map((k: string) => ({
+              original: k,
+              cleaned: k.toLowerCase().replace(/[.,?;]/g, '')
+            })) : []
+          }));
+          setProcessedAutofillKeywords(processed);
+        }
       }
     };
-
-    const debounceFetch = setTimeout(() => {
-      fetchSuggestions(extraData.complaints);
-    }, 500);
 
     // Fetch referral doctors and autofill keywords once on mount
     fetchReferralDoctors();
     fetchAutofillKeywords();
-
-    return () => clearTimeout(debounceFetch);
-  }, [extraData.complaints, i18n.language, autofillKeywords, savedMedications]);
+  }, []);
 
   const fetchSavedMedications = async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('name');
@@ -2200,7 +2212,7 @@ const Consultation = () => {
                             onChange={value => handleExtraChange('referred_to', value, (referredToRef.current as any)?.selectionStart || value.length)}
                             suggestions={referralDoctors.map(d => ({
                               id: d.id,
-                              name: `${d.name}${d.specialization ? `, ${d.specialization}` : ''}${d.address ? `, ${d.address}` : ''}`
+                              name: `${d.name}${d.specialization ? `, ${d.specialization}` : ''}${d.address ? `, ${d.address}` : ''}${d.phone ? `, ${d.phone}` : ''}`
                             }))}
                             onSuggestionSelected={suggestion => handleExtraChange('referred_to', suggestion.name)}
                             placeholder="Referred to..."
