@@ -37,6 +37,10 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const MySpace = lazy(() => import("./pages/MySpace"));
 const SendWhatsApp = lazy(() => import("./pages/SendWhatsApp"));
 const PrescriptionDownload = lazy(() => import("./pages/PrescriptionDownload"));
+const PrescriptionDownload = lazy(() => import("./pages/PrescriptionDownload"));
+const PharmacyAdminPage = lazy(() => import("./pages/PharmacyAdminPage"));
+const PharmacySupplierPage = lazy(() => import("./pages/PharmacySupplierPage"));
+const PharmacyAuthGuard = lazy(() => import("./components/PharmacyAuthGuard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -95,6 +99,22 @@ const App = () => {
 
                 {/* Pharmacy Routes */}
                 <Route path="/pharmacy" element={<PharmacyPage />} />
+                <Route
+                  path="/pharmacy/admin"
+                  element={
+                    <PharmacyAuthGuard allowedRoles={['owner']}>
+                      <PharmacyAdminPage />
+                    </PharmacyAuthGuard>
+                  }
+                />
+                <Route
+                  path="/pharmacy/supplier"
+                  element={
+                    <PharmacyAuthGuard allowedRoles={['owner', 'supplier']}>
+                      <PharmacySupplierPage />
+                    </PharmacyAuthGuard>
+                  }
+                />
                 <Route path="/upload-prescription" element={<UploadPrescriptionPage />} />
 
                 {/* Diagnostics Routes */}

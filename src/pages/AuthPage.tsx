@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import { auth } from '@/integrations/firebase/client';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import Footer from '@/components/Footer';
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { phone: phoneParam } = useParams();
   const [phone, setPhone] = useState('');
@@ -26,14 +27,14 @@ const AuthPage = () => {
       if (user) {
         const redirectUrl = searchParams.get('redirect');
         if (redirectUrl) {
-          navigate(redirectUrl);
+          navigate(redirectUrl + location.hash);
         } else {
           navigate('/my');
         }
       }
     });
     return () => unsubscribe();
-  }, [navigate, searchParams]);
+  }, [navigate, searchParams, location.hash]);
 
   useEffect(() => {
     const phoneFromUrl = searchParams.get('phone') || phoneParam;
@@ -103,7 +104,7 @@ const AuthPage = () => {
       toast.success('Successfully logged in!');
       const redirectUrl = searchParams.get('redirect');
       if (redirectUrl) {
-        navigate(redirectUrl);
+        navigate(redirectUrl + location.hash);
       } else {
         navigate('/my');
       }
