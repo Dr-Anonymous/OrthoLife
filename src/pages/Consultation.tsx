@@ -479,7 +479,10 @@ const Consultation = () => {
     return storedValue !== null ? JSON.parse(storedValue) : false;
   });
   const isGenerateDocEnabledRef = useRef(isGenerateDocEnabled);
-  const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[0]);
+  const [selectedHospital, setSelectedHospital] = useState(() => {
+    const storedHospital = localStorage.getItem('selectedHospital');
+    return HOSPITALS.find(h => h.name === storedHospital) || HOSPITALS[0];
+  });
 
   const filteredConsultations = React.useMemo(() => {
     return allConsultations.filter(c => !c.consultation_data?.location || c.consultation_data.location === selectedHospital.name);
@@ -524,10 +527,6 @@ const Consultation = () => {
           }
         );
       }
-    } else {
-      const storedHospital = localStorage.getItem('selectedHospital');
-      const foundHospital = HOSPITALS.find(h => h.name === storedHospital) || HOSPITALS[0];
-      setSelectedHospital(foundHospital);
     }
   }, [isGpsEnabled]);
 

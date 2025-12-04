@@ -1,32 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { getGoogleAccessToken } from "../_shared/google-auth.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-
-const SPREADSHEET_ID = '1jKYd6tawgBeKO4ijqxg0dv38kBuV76mNHZYbqXWSMA4';
-
-async function fetchSheetData(accessToken, sheetName) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}!A:Z`;
-  
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Failed to fetch sheet ${sheetName}:`, errorText);
-    return null;
-  }
-
-  const data = await response.json();
-  return data.values || [];
-}
 
 function extractBaseNameAndSize(name) {
   // Common size patterns to detect
@@ -42,189 +20,90 @@ function extractBaseNameAndSize(name) {
     if (match) {
       const baseName = name.replace(pattern, '').trim();
       const size = match[1].toUpperCase();
-      
+
       // Normalize size names
-      const normalizedSize = size === 'EXTRA SMALL' ? 'XS' : 
-                           size === 'SMALL' ? 'S' : 
-                           size === 'MEDIUM' ? 'M' : 
-                           size === 'LARGE' ? 'L' : 
-                           size === 'EXTRA LARGE' ? 'XL' : size;
-      
+      const normalizedSize = size === 'EXTRA SMALL' ? 'XS' :
+        size === 'SMALL' ? 'S' :
+          size === 'MEDIUM' ? 'M' :
+            size === 'LARGE' ? 'L' :
+              size === 'EXTRA LARGE' ? 'XL' : size;
+
       return { baseName, size: normalizedSize };
     }
   }
-  
+
   return { baseName: name, size: null };
 }
 
-function parseBaseSheetRow(row, headers) {
-  if (!row || row.length === 0) return null;
-  
-  const medicine = {};
-  
-  headers.forEach((header, index) => {
-    const value = row[index] || '';
-    const lowerHeader = header.toLowerCase().trim();
-    
-    if (lowerHeader === 'item id') {
-      medicine.id = value;
-    } else if (lowerHeader === 'type') {
-      medicine.category = value;
-    } else if (lowerHeader === 'name') {
-      medicine.name = value;
-    } else if (lowerHeader === 'qty/unit') {
-      medicine.packSize = value;
-    } else if (lowerHeader === 'control') {
-      medicine.prescriptionRequired = value.toLowerCase() === 'prescription';
-    } else if (lowerHeader === 'notes') {
-      medicine.description = value;
-    }
-  });
-
-  if (!medicine.name || medicine.name.trim() === '') return null;
-
-  // Set defaults
-  if (!medicine.id) medicine.id = Math.random().toString(36).substr(2, 9);
-  if (!medicine.description) medicine.description = medicine.name;
-  if (!medicine.category) medicine.category = 'General';
-
-  return medicine;
-}
-
-function parseSupplierSheetRow(row, headers) {
-  if (!row || row.length === 0) return null;
-  
-  const medicine = {};
-  
-  headers.forEach((header, index) => {
-    const value = row[index] || '';
-    const lowerHeader = header.toLowerCase().trim();
-    
-    if (lowerHeader === 'name') {
-      medicine.name = value;
-    } else if (lowerHeader === 'mrp') {
-      medicine.originalPrice = parseFloat(value.toString().replace(/[^\d.]/g, '')) || 0;
-    } else if (lowerHeader === 'final price') {
-      medicine.price = parseFloat(value.toString().replace(/[^\d.]/g, '')) || 0;
-    } else if (lowerHeader === 'stock') {
-      const stockCount = parseInt(value) || 0;
-      medicine.stockCount = stockCount;
-      medicine.inStock = stockCount > 0;
-    } else if (lowerHeader === 'discount %') {
-      medicine.discount = parseFloat(value) || 0;
-    } else if (lowerHeader === 'individual') {
-      medicine.individual = value || true;
-    }
-  });
-
-  if (!medicine.name || medicine.name.trim() === '') return null;
-  
-  return medicine;
-}
-
-const handler = async (req) => {
-  console.log('Fetching pharmacy data from Google Sheets...');
-  
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const accessToken = await getGoogleAccessToken();
-    if (!accessToken) {
-      console.error('Failed to get Google access token');
-      return new Response(JSON.stringify({ error: 'Failed to authenticate with Google' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      });
-    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    console.log('Successfully obtained access token, fetching sheet data...');
+    // Fetch all items with their inventory
+    const { data: items, error } = await supabase
+      .from('pharmacy_items')
+      .select(`
+        *,
+        pharmacy_inventory (
+          sale_price,
+          original_price,
+          stock,
+          discount_percentage,
+          is_individual
+        )
+      `);
 
-    // Fetch data from both sheets
-    const [baseData, supplier1Data] = await Promise.all([
-      fetchSheetData(accessToken, 'Base'),
-      fetchSheetData(accessToken, 'Supplier1')
-    ]);
+    if (error) throw error;
 
     const medicines = [];
-    const medicineMap = new Map();
-
-    // Process Base sheet first (primary data)
-    if (baseData && baseData.length > 1) {
-      const headers = baseData[0];
-      console.log('Base sheet headers:', headers);
-      
-      for (let i = 1; i < baseData.length; i++) {
-        const medicine = parseBaseSheetRow(baseData[i], headers);
-        if (medicine && medicine.name) {
-          const completeMedicine = {
-            id: medicine.id,
-            name: medicine.name,
-            description: medicine.description || medicine.name,
-            category: medicine.category, // FIX: Added missing category
-            price: 0,
-            inStock: false,
-            packSize: medicine.packSize,
-            prescriptionRequired: medicine.prescriptionRequired || false
-          };
-          medicineMap.set(medicine.name.toLowerCase(), completeMedicine);
-        }
-      }
-    }
-
-    // Process Supplier1 sheet (merge with base data)
-    if (supplier1Data && supplier1Data.length > 1) {
-      const headers = supplier1Data[0];
-      console.log('Supplier1 sheet headers:', headers);
-      
-      for (let i = 1; i < supplier1Data.length; i++) {
-        const supplierMedicine = parseSupplierSheetRow(supplier1Data[i], headers);
-        if (supplierMedicine && supplierMedicine.name) {
-          const key = supplierMedicine.name.toLowerCase();
-          const existingMedicine = medicineMap.get(key);
-          
-          if (existingMedicine) {
-            // Merge supplier data with base data
-            const mergedMedicine = {
-              ...existingMedicine,
-              price: supplierMedicine.price || 0,
-              inStock: supplierMedicine.inStock || false,
-              originalPrice: supplierMedicine.originalPrice || 0,
-              stockCount: supplierMedicine.stockCount || 0,
-              discount: supplierMedicine.discount || 0,
-              individual: supplierMedicine.individual
-            };
-            medicineMap.set(key, mergedMedicine);
-          }
-        }
-      }
-    }
-
-    // Group medicines by base name and price for size variants
     const groupedMedicines = new Map();
     const individualMedicines = [];
 
-    for (const medicine of medicineMap.values()) {
+    for (const item of items) {
+      // Flatten the structure
+      const inventory = item.pharmacy_inventory?.[0] || {}; // Assuming one supplier for now
+
+      const medicine = {
+        id: item.id,
+        name: item.name,
+        description: item.description || item.name,
+        category: item.category,
+        price: Number(inventory.sale_price) || 0,
+        inStock: (inventory.stock || 0) > 0,
+        stockCount: inventory.stock || 0,
+        packSize: item.pack_size,
+        prescriptionRequired: item.prescription_required,
+        originalPrice: Number(inventory.original_price) || 0,
+        discount: Number(inventory.discount_percentage) || 0,
+        individual: inventory.is_individual ? 'TRUE' : 'FALSE' // Maintain string format for frontend compatibility if needed, or check frontend
+      };
+
       const { baseName, size } = extractBaseNameAndSize(medicine.name);
-      
+
       if (size) {
         const groupKey = `${baseName}-${medicine.price}`;
         if (groupedMedicines.has(groupKey)) {
           const existingGroup = groupedMedicines.get(groupKey);
           existingGroup.sizes.push({
             size: size,
-            stockCount: medicine.stockCount || 0,
-            inStock: medicine.inStock || false,
+            stockCount: medicine.stockCount,
+            inStock: medicine.inStock,
             originalName: medicine.name,
             id: medicine.id
           });
         } else {
           groupedMedicines.set(groupKey, {
-            id: medicine.id,
+            id: medicine.id, // Use the first item's ID as group ID
             name: baseName,
             description: medicine.description,
-            category: medicine.category, // FIX: Ensure category is included
+            category: medicine.category,
             price: medicine.price,
             inStock: medicine.inStock,
             packSize: medicine.packSize,
@@ -234,8 +113,8 @@ const handler = async (req) => {
             isGrouped: true,
             sizes: [{
               size: size,
-              stockCount: medicine.stockCount || 0,
-              inStock: medicine.inStock || false,
+              stockCount: medicine.stockCount,
+              inStock: medicine.inStock,
               originalName: medicine.name,
               id: medicine.id
             }]
@@ -262,13 +141,13 @@ const handler = async (req) => {
       // Update group stock status based on all sizes
       group.inStock = group.sizes.some(s => s.inStock);
       group.stockCount = group.sizes.reduce((total, s) => total + s.stockCount, 0);
-      
+
       return group;
     });
 
     // Only create grouped items if they have multiple sizes
     const filteredGroupedMedicines = finalGroupedMedicines.filter(group => group.sizes.length > 1);
-    
+
     const ungroupedSingleSizes = finalGroupedMedicines.filter(group => group.sizes.length === 1).map(group => {
       const sizeInfo = group.sizes[0];
       return {
@@ -282,13 +161,12 @@ const handler = async (req) => {
         prescriptionRequired: group.prescriptionRequired,
         originalPrice: group.originalPrice,
         stockCount: sizeInfo.stockCount,
-        discount: group.discount
+        discount: group.discount,
+        individual: 'TRUE' // Default to true for single items
       };
     });
 
     medicines.push(...ungroupedSingleSizes, ...individualMedicines, ...filteredGroupedMedicines);
-
-    console.log(`Successfully processed ${medicines.length} medicines (${filteredGroupedMedicines.length} grouped items)`);
 
     return new Response(JSON.stringify({ medicines }), {
       status: 200,
@@ -296,12 +174,10 @@ const handler = async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in fetch-pharmacy-data function:', error);
+    console.error('Error fetching pharmacy data:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch pharmacy data' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
-};
-
-serve(handler);
+});

@@ -1,124 +1,109 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { getGoogleAccessToken } from "../_shared/google-auth.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-const SPREADSHEET_ID = '1jKYd6tawgBeKO4ijqxg0dv38kBuV76mNHZYbqXWSMA4';
-async function updateStockInSheet(accessToken, stockUpdates) {
-  // First, fetch current data to find the rows to update
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Supplier1!A:Z`;
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch sheet data: ${response.statusText}`);
-  }
-  const data = await response.json();
-  const values = data.values || [];
-  if (values.length < 2) {
-    throw new Error('Sheet does not have enough data');
-  }
-  const headers = values[0];
-  const nameIndex = headers.findIndex((h)=>h.toLowerCase().trim() === 'name');
-  const stockIndex = headers.findIndex((h)=>h.toLowerCase().trim() === 'stock');
-  if (nameIndex === -1 || stockIndex === -1) {
-    throw new Error('Name or Stock column not found in sheet');
-  }
-  // Prepare batch update requests
-  const batchUpdateData = [];
-  for (const update of stockUpdates){
-    // Find the row for this medicine
-    const rowIndex = values.findIndex((row, index)=>index > 0 && row[nameIndex]?.toLowerCase().trim() === update.name.toLowerCase().trim());
-    if (rowIndex !== -1) {
-      const currentStock = parseInt(values[rowIndex][stockIndex]) || 0;
 
-      let quantityToDecrement = update.quantity;
-      if (update.orderType === 'unit' && update.packSize && update.packSize > 0) {
-        quantityToDecrement = Math.ceil(update.quantity / update.packSize);
-      }
-
-      const newStock = Math.max(0, currentStock - quantityToDecrement);
-      // Add to batch update
-      batchUpdateData.push({
-        range: `Supplier1!${String.fromCharCode(65 + stockIndex)}${rowIndex + 1}`,
-        values: [
-          [
-            newStock.toString()
-          ]
-        ]
-      });
-      console.log(`Updating ${update.name}: ${currentStock} -> ${newStock} (reduced by ${quantityToDecrement} packs)`);
-    } else {
-      console.warn(`Medicine not found in sheet: ${update.name}`);
-    }
-  }
-  if (batchUpdateData.length === 0) {
-    console.log('No stock updates to perform');
-    return;
-  }
-  // Perform batch update
-  const batchUpdateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchUpdate`;
-  const batchResponse = await fetch(batchUpdateUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      valueInputOption: 'RAW',
-      data: batchUpdateData
-    })
-  });
-  if (!batchResponse.ok) {
-    const errorText = await batchResponse.text();
-    throw new Error(`Failed to update stock: ${errorText}`);
-  }
-  console.log(`Successfully updated stock for ${batchUpdateData.length} medicines`);
-}
-const handler = async (req)=>{
+serve(async (req) => {
   console.log('Update pharmacy stock function called');
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders
-    });
+    return new Response(null, { headers: corsHeaders });
   }
+
   try {
     const { items } = await req.json();
+
     if (!items || !Array.isArray(items)) {
-      return new Response(JSON.stringify({
-        error: 'Invalid items data'
-      }), {
+      return new Response(JSON.stringify({ error: 'Invalid items data' }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
-    const stockUpdates = items.map((item)=>({
-        name: item.name,
-        quantity: item.quantity,
-        orderType: item.orderType,
-        packSize: item.packSize
-      }));
-    const accessToken = await getGoogleAccessToken();
-    if (!accessToken) {
-      throw new Error('Failed to get Google access token');
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const updates = [];
+    const errors = [];
+
+    for (const item of items) {
+      try {
+        // Calculate quantity to decrement
+        let quantityToDecrement = item.quantity;
+        if (item.orderType === 'unit' && item.packSize && item.packSize > 0) {
+          quantityToDecrement = Math.ceil(item.quantity / item.packSize);
+        }
+
+        // Find the item by name
+        const { data: pharmacyItem, error: itemError } = await supabase
+          .from('pharmacy_items')
+          .select('id')
+          .eq('name', item.name) // nameForStockUpdate from frontend matches DB name
+          .single();
+
+        if (itemError || !pharmacyItem) {
+          console.warn(`Item not found: ${item.name}`);
+          errors.push(`Item not found: ${item.name}`);
+          continue;
+        }
+
+        // Update inventory
+        // We use a stored procedure or just a direct update. 
+        // Since we need to decrement, we should fetch current stock first or use an RPC.
+        // For simplicity, let's fetch and update, but RPC is better for concurrency.
+        // Let's stick to simple fetch-update for now as per original logic, 
+        // or better, use a simple decrement logic if possible.
+        // Supabase doesn't have a direct 'decrement' in JS client without RPC.
+        // So I will fetch current stock and update.
+
+        const { data: inventory, error: inventoryError } = await supabase
+          .from('pharmacy_inventory')
+          .select('stock')
+          .eq('item_id', pharmacyItem.id)
+          .single();
+
+        if (inventoryError || !inventory) {
+          console.warn(`Inventory not found for item: ${item.name}`);
+          errors.push(`Inventory not found for item: ${item.name}`);
+          continue;
+        }
+
+        const newStock = Math.max(0, inventory.stock - quantityToDecrement);
+
+        const { error: updateError } = await supabase
+          .from('pharmacy_inventory')
+          .update({ stock: newStock })
+          .eq('item_id', pharmacyItem.id);
+
+        if (updateError) {
+          console.error(`Failed to update stock for ${item.name}:`, updateError);
+          errors.push(`Failed to update stock for ${item.name}`);
+        } else {
+          updates.push({ name: item.name, previous: inventory.stock, new: newStock });
+        }
+
+      } catch (err) {
+        console.error(`Error processing item ${item.name}:`, err);
+        errors.push(`Error processing item ${item.name}`);
+      }
     }
-    await updateStockInSheet(accessToken, stockUpdates);
+
+    console.log(`Updated stock for ${updates.length} items`);
+
     return new Response(JSON.stringify({
-      success: true
+      success: true,
+      updates,
+      errors: errors.length > 0 ? errors : undefined
     }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
+
   } catch (error) {
     console.error('Error updating stock:', error);
     return new Response(JSON.stringify({
@@ -126,11 +111,7 @@ const handler = async (req)=>{
       details: error.message
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
-};
-serve(handler);
+});
