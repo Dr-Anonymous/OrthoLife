@@ -2,7 +2,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
+
 import vitePrerender from 'vite-plugin-prerender';
 import fs from 'fs';
 
@@ -42,8 +42,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+
     vitePrerender({
       staticDir: path.join(__dirname, 'dist'),
       routes: [...staticRoutes, ...discoveredRoutes],

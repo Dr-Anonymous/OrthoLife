@@ -101,7 +101,6 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
-    "lovable-tagger": "^1.1.7",
     "patch-package": "^8.0.0",
     "postcss": "^8.4.47",
     "supabase": "^2.39.2",
@@ -113,5 +112,10 @@
     "typescript-eslint": "^8.0.1",
     "vite": "^7.2.2",
     "vite-plugin-prerender": "^1.0.8"
+  },
+  "overrides": {
+    "react-day-picker": {
+      "date-fns": "$date-fns"
+    }
   }
 }
