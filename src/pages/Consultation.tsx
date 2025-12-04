@@ -837,9 +837,16 @@ const Consultation = () => {
 
       const medications = savedMedications.filter(med => medicationIds.has(med.id));
       setSuggestedMedications(medications);
-      setSuggestedAdvice(Array.from(adviceTexts));
-      setSuggestedInvestigations(Array.from(investigationTexts));
-      setSuggestedFollowup(Array.from(followupTexts));
+
+      const processSuggestions = (texts: Set<string>, currentText: string) => {
+        const allItems = Array.from(texts).flatMap(text => text.split('\n'));
+        const uniqueItems = Array.from(new Set(allItems)).filter(item => item.trim() !== '');
+        return uniqueItems.filter(item => !currentText.includes(item));
+      };
+
+      setSuggestedAdvice(processSuggestions(adviceTexts, extraData.advice));
+      setSuggestedInvestigations(processSuggestions(investigationTexts, extraData.investigations));
+      setSuggestedFollowup(processSuggestions(followupTexts, extraData.followup));
     };
 
     const debounceFetch = setTimeout(() => {
