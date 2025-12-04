@@ -19,7 +19,20 @@ interface PharmacyItem {
     category: string;
     prescription_required: boolean;
     pack_size: string | null;
+    created_at: string;
 }
+
+const getCategoryAbbreviation = (category: string) => {
+    switch (category) {
+        case 'Tablet': return 'Tab.';
+        case 'Capsule': return 'Cap.';
+        case 'Syrup': return 'Syp.';
+        case 'Injection': return 'Inj.';
+        case 'Brace': return 'Brace';
+        case 'Applicant': return 'App.';
+        default: return category;
+    }
+};
 
 const PharmacyAdminPage = () => {
     const [items, setItems] = useState<PharmacyItem[]>([]);
@@ -47,7 +60,7 @@ const PharmacyAdminPage = () => {
             const { data, error } = await supabase
                 .from('pharmacy_items')
                 .select('*')
-                .order('name');
+                .order('created_at', { ascending: false });
 
             if (error) throw error;
             setItems(data || []);
@@ -298,7 +311,6 @@ const PharmacyAdminPage = () => {
                                     <TableRow>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Description</TableHead>
-                                        <TableHead>Category</TableHead>
                                         <TableHead>Pack Size</TableHead>
                                         <TableHead>Rx Required</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -307,9 +319,11 @@ const PharmacyAdminPage = () => {
                                 <TableBody>
                                     {filteredItems.map((item) => (
                                         <TableRow key={item.id}>
-                                            <TableCell className="font-medium">{item.name}</TableCell>
+                                            <TableCell className="font-medium">
+                                                <span className="text-muted-foreground mr-1">{getCategoryAbbreviation(item.category)}</span>
+                                                {item.name}
+                                            </TableCell>
                                             <TableCell className="max-w-xs truncate" title={item.description || ''}>{item.description || '-'}</TableCell>
-                                            <TableCell>{item.category}</TableCell>
                                             <TableCell>{item.pack_size || '-'}</TableCell>
                                             <TableCell>{item.prescription_required ? 'Yes' : 'No'}</TableCell>
                                             <TableCell className="text-right">

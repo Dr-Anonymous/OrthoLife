@@ -68,9 +68,11 @@ const PharmacySupplierPage = () => {
           is_individual,
           pharmacy_items (
             name,
-            pack_size
+            pack_size,
+            created_at
           )
-        `);
+        `)
+                .order('created_at', { foreignTable: 'pharmacy_items', ascending: false });
 
             if (error) throw error;
 
@@ -82,7 +84,9 @@ const PharmacySupplierPage = () => {
                 original_price: item.original_price,
                 discount_percentage: item.discount_percentage,
                 is_individual: item.is_individual,
-                pharmacy_items: item.pharmacy_items
+                is_individual: item.is_individual,
+                pharmacy_items: item.pharmacy_items,
+                created_at: item.pharmacy_items?.created_at
             }));
 
             setInventory(transformedData);
@@ -133,7 +137,7 @@ const PharmacySupplierPage = () => {
                 .from('pharmacy_items')
                 .insert([{
                     name: newMedicineData.name,
-                    category: 'Medicines', // Default category
+                    category: 'Tablet', // Default category
                     pack_size: newMedicineData.pack_size,
                     prescription_required: false
                 }])
