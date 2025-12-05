@@ -40,11 +40,11 @@ serve(async (req) => {
 
     // Mode 1: Direct fetch by patientId. This is the most specific search and takes priority.
     if (patientId) {
-        const patientData = await getPatientDataById(patientId);
-        return new Response(JSON.stringify(patientData), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-        });
+      const patientData = await getPatientDataById(patientId);
+      return new Response(JSON.stringify(patientData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     }
 
     // Mode 2: Search by term. Requires both searchTerm and searchType.
@@ -73,7 +73,7 @@ serve(async (req) => {
       const patientsWithConsultations = await Promise.all(dbData.map(async (patient) => {
         const { data: lastConsultation } = await supabase
           .from('consultations')
-          .select('consultation_data')
+          .select('consultation_data, created_at')
           .eq('patient_id', patient.id)
           .not('consultation_data', 'is', null)
           .order('created_at', { ascending: false })
@@ -83,6 +83,7 @@ serve(async (req) => {
         return {
           ...patient,
           ...lastConsultation?.consultation_data,
+          created_at: lastConsultation?.created_at || patient.created_at,
           source: 'database'
         };
       }));
@@ -126,26 +127,27 @@ serve(async (req) => {
  * @returns A single patient object with their latest consultation data.
  */
 async function getPatientDataById(patientId: string) {
-    const { data: patient, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('id', patientId)
-        .single();
+  const { data: patient, error } = await supabase
+    .from('patients')
+    .select('*')
+    .eq('id', patientId)
+    .single();
 
-    if (error) throw error;
+  if (error) throw error;
 
-    const { data: lastConsultation } = await supabase
-        .from('consultations')
-        .select('consultation_data')
-        .eq('patient_id', patient.id)
-        .not('consultation_data', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+  const { data: lastConsultation } = await supabase
+    .from('consultations')
+    .select('consultation_data, created_at')
+    .eq('patient_id', patient.id)
+    .not('consultation_data', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
 
-    return {
-        ...patient,
-        ...lastConsultation?.consultation_data,
-        source: 'database'
-    };
+  return {
+    ...patient,
+    ...lastConsultation?.consultation_data,
+    created_at: lastConsultation?.created_at || patient.created_at,
+    source: 'database'
+  };
 }
