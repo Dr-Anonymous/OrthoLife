@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, FileText, Stethoscope, X, GripVertical, Plus, Printer, Languages, Folder, BarChart, Save, ChevronDown, Star, RefreshCw, Eye, EyeOff, History, PackagePlus, UserPlus, MoreVertical, CloudOff, Search, MapPin, Trash2, Syringe, Share } from 'lucide-react';
@@ -437,7 +438,8 @@ const Consultation = () => {
     personalNote: '',
     medications: [] as Medication[],
     procedure: '',
-    referred_to: ''
+    referred_to: '',
+    visit_type: 'free'
   });
 
   const [suggestedMedications, setSuggestedMedications] = useState<Medication[]>([]);
@@ -1125,12 +1127,14 @@ const Consultation = () => {
         followup: '',
         personalNote: '',
         medications: [],
+        visit_type: 'free',
       };
 
       const newExtraData = selectedConsultation.consultation_data ? {
         ...defaultExtraData,
         ...selectedConsultation.consultation_data,
         personalNote: selectedConsultation.consultation_data.personalNote || '',
+        visit_type: selectedConsultation.consultation_data.visit_type || 'free',
       } : defaultExtraData;
       setExtraData(newExtraData);
       setInitialExtraData(newExtraData);
@@ -1163,6 +1167,7 @@ const Consultation = () => {
         followup: '',
         personalNote: '',
         medications: [],
+        visit_type: 'free',
       });
       setIsFormDirty(false);
       setInitialPatientDetails(null);
@@ -2015,8 +2020,15 @@ const Consultation = () => {
                         <div className="flex flex-wrap items-center justify-between mb-4">
                           <div className="flex flex-wrap items-center gap-2">
                             <User className="w-5 h-5 text-primary" />
-                            <h3 className="text-lg font-semibold text-foreground">
+                            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                               Demographic details of {editablePatientDetails.name}
+                              <Badge
+                                variant={extraData.visit_type === 'free' ? 'secondary' : 'default'}
+                                className={cn("cursor-pointer hover:opacity-80 select-none", extraData.visit_type === 'free' ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-blue-100 text-blue-800 hover:bg-blue-200")}
+                                onClick={() => handleExtraChange('visit_type', extraData.visit_type === 'paid' ? 'free' : 'paid')}
+                              >
+                                {extraData.visit_type === 'free' ? 'Free' : 'Paid'}
+                              </Badge>
                             </h3>
                             {lastVisitDate && (
                               <span className="text-sm text-muted-foreground">

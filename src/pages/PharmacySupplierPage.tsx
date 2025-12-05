@@ -48,7 +48,7 @@ const PharmacySupplierPage = () => {
         is_individual: true
     });
 
-    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'stock', direction: 'asc' });
 
     useEffect(() => {
         fetchInventory();
@@ -87,11 +87,7 @@ const PharmacySupplierPage = () => {
                 is_individual: item.is_individual,
                 pharmacy_items: item.pharmacy_items,
                 created_at: item.pharmacy_items?.created_at
-            })).sort((a, b) => {
-                const dateA = new Date(a.created_at || 0).getTime();
-                const dateB = new Date(b.created_at || 0).getTime();
-                return dateB - dateA;
-            });
+            }));
 
             setInventory(transformedData);
         } catch (error) {
@@ -481,7 +477,7 @@ const PharmacySupplierPage = () => {
                                             {sortConfig?.key === 'name' && (
                                                 sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
                                             )}
-                                            {!sortConfig || sortConfig.key !== 'name' && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                                            {(!sortConfig || sortConfig.key !== 'name') && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                                         </div>
                                     </TableHead>
                                     <TableHead>Pack Size</TableHead>
@@ -491,7 +487,7 @@ const PharmacySupplierPage = () => {
                                             {sortConfig?.key === 'stock' && (
                                                 sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
                                             )}
-                                            {!sortConfig || sortConfig.key !== 'stock' && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                                            {(!sortConfig || sortConfig.key !== 'stock') && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                                         </div>
                                     </TableHead>
                                     <TableHead className="cursor-pointer" onClick={() => handleSort('price')}>
@@ -500,7 +496,7 @@ const PharmacySupplierPage = () => {
                                             {sortConfig?.key === 'price' && (
                                                 sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
                                             )}
-                                            {!sortConfig || sortConfig.key !== 'price' && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                                            {(!sortConfig || sortConfig.key !== 'price') && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                                         </div>
                                     </TableHead>
                                     <TableHead>Original Price</TableHead>

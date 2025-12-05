@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -269,18 +269,47 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           });
           handleSelectPatient(data.patient.id.toString(), [data.patient]);
         } else if (data.status === 'success') {
-          // Update location if provided
-          if (location) {
-            const { error: updateError } = await supabase
-              .from('consultations')
-              .update({ consultation_data: { ...data.consultation.consultation_data, location } })
-              .eq('id', data.consultation.id);
+          // Calculate visit_type
+          let visitType = 'paid';
+          const patientId = data.consultation.patient_id;
 
-            if (updateError) {
-              console.error("Error updating location:", updateError);
-            } else {
-              data.consultation.consultation_data = { ...data.consultation.consultation_data, location };
+          // Check for previous paid consultations
+          const { data: lastPaidConsultation, error: fetchError } = await supabase
+            .from('consultations')
+            .select('created_at')
+            .eq('patient_id', patientId)
+            .neq('id', data.consultation.id) // Exclude current one
+            .filter('consultation_data->>visit_type', 'eq', 'paid')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!fetchError && lastPaidConsultation) {
+            const daysSinceLastPaid = differenceInDays(new Date(), new Date(lastPaidConsultation.created_at));
+            if (daysSinceLastPaid <= 14) {
+              visitType = 'free';
             }
+          }
+
+          // Update location and visit_type
+          const updates: any = {
+            ...data.consultation.consultation_data,
+            visit_type: visitType
+          };
+
+          if (location) {
+            updates.location = location;
+          }
+
+          const { error: updateError } = await supabase
+            .from('consultations')
+            .update({ consultation_data: updates })
+            .eq('id', data.consultation.id);
+
+          if (updateError) {
+            console.error("Error updating consultation data:", updateError);
+          } else {
+            data.consultation.consultation_data = updates;
           }
 
           toast({
