@@ -1549,7 +1549,8 @@ const Consultation = () => {
     setIsSaving(true);
     try {
       // Exclude migrated fields from consultation_data to avoid duplication
-      const { visit_type, ...restExtraData } = extraData;
+      // We must explicitly destructure them out in case they exist in extraData from legacy JSON
+      const { visit_type, location, language, ...restExtraData } = extraData as any;
       const dataToSave = {
         ...restExtraData
       };
