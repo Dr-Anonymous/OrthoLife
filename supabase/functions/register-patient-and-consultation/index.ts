@@ -130,12 +130,7 @@ serve(async (req) => {
         patient_id: newPatient.id,
         status: 'pending',
         visit_type: 'paid',
-        // location and language are usually set in the frontend after registration or default to something, 
-        // but we can initialize them here if we passed them.
-        // For now, based on current logic, they are updated LATER in ConsultationRegistration.tsx
-        // But if we want to support them in insert:
-        // location: location, 
-        // language: 'en' // default?
+        consultation_data: {} // Empty initial consultation data, now that location/language are in columns
       })
       .select()
       .single();

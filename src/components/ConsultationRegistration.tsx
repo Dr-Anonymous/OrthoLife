@@ -292,17 +292,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           }
 
           // Update location and visit_type
-          const updates: any = {
-            ...data.consultation.consultation_data,
-            visit_type: visitType
-          };
-
-          if (location) {
-            updates.location = location;
-          }
-
           const updatePayload: any = {
-            consultation_data: updates,
             visit_type: visitType
           };
 
@@ -318,7 +308,10 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           if (updateError) {
             console.error("Error updating consultation data:", updateError);
           } else {
-            data.consultation.consultation_data = updates;
+            // We don't need to update data.consultation.consultation_data here since we didn't add the fields to it.
+            // But if we want to reflect the change locally, we can update the dedicated properties.
+            data.consultation.visit_type = visitType;
+            if (location) data.consultation.location = location;
           }
 
           toast({
