@@ -144,10 +144,10 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                             <Calendar className="w-4 h-4 text-muted-foreground" />
                             <p className="font-semibold">{format(new Date(consultation.created_at), 'PPP')}</p>
                           </div>
-                          {consultation.consultation_data?.location && (
+                          {consultation.location && (
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <p className="text-sm text-muted-foreground">{consultation.consultation_data.location}</p>
+                              <p className="text-sm text-muted-foreground">{consultation.location}</p>
                             </div>
                           )}
                         </div>

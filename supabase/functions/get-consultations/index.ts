@@ -42,8 +42,11 @@ serve(async (req) => {
       .select(`
         id,
         status,
+        status,
         consultation_data,
         visit_type,
+        location,
+        language,
         created_at,
         patient:patients (
           id,

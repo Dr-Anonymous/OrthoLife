@@ -22,6 +22,8 @@ interface Consultation {
   created_at: string;
   patient: Patient;
   visit_type?: string;
+  location?: string;
+  language?: string;
   consultation_data?: {
     location?: string;
     [key: string]: any;
@@ -143,8 +145,8 @@ const ConsultationStats = () => {
           bValue = b.patient.phone;
           break;
         case 'location':
-          aValue = (a.consultation_data?.location || '').toLowerCase();
-          bValue = (b.consultation_data?.location || '').toLowerCase();
+          aValue = (a.location || '').toLowerCase();
+          bValue = (b.location || '').toLowerCase();
           break;
         case 'status':
           aValue = a.status.toLowerCase();
@@ -210,7 +212,7 @@ const ConsultationStats = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.consultation_data?.location || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.location || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${consultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                       {consultation.status}
@@ -260,7 +262,7 @@ const ConsultationStats = () => {
                             <div className="mt-2 text-sm text-muted-foreground">
                               {Object.entries(
                                 monthlyStats.reduce((acc: { [key: string]: number }, curr) => {
-                                  const loc = curr.consultation_data?.location || 'Unknown';
+                                  const loc = curr.location || 'Unknown';
                                   acc[loc] = (acc[loc] || 0) + 1;
                                   return acc;
                                 }, {})
@@ -273,7 +275,7 @@ const ConsultationStats = () => {
                             </div>
                           )}
                           <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Number of paid visits: {monthlyStats.filter(c => c.visit_type === 'paid' || c.consultation_data?.visit_type === 'paid').length}
+                            Number of paid visits: {monthlyStats.filter(c => c.visit_type === 'paid').length}
                           </div>
                           {monthlyCount !== null && monthlyCount > 0 && (
                             <Button variant="link" onClick={() => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails()} className="px-0" disabled={isMonthlyLoading}>
@@ -301,7 +303,7 @@ const ConsultationStats = () => {
                             <div className="mt-2 text-sm text-muted-foreground">
                               {Object.entries(
                                 dailyData.reduce((acc: { [key: string]: number }, curr) => {
-                                  const loc = curr.consultation_data?.location || 'Unknown';
+                                  const loc = curr.location || 'Unknown';
                                   acc[loc] = (acc[loc] || 0) + 1;
                                   return acc;
                                 }, {})
@@ -314,7 +316,7 @@ const ConsultationStats = () => {
                             </div>
                           )}
                           <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Number of paid visits: {dailyData.filter(c => c.visit_type === 'paid' || c.consultation_data?.visit_type === 'paid').length}
+                            Number of paid visits: {dailyData.filter(c => c.visit_type === 'paid').length}
                           </div>
                           {dailyData.length > 0 && (
                             <Button variant="link" onClick={() => setShowDailyDetails(!showDailyDetails)} className="px-0">

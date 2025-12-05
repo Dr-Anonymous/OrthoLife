@@ -69,10 +69,10 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                         <Calendar className="w-4 h-4 text-muted-foreground" />
                         <p className="font-semibold">{format(new Date(item.created_at), 'PPP')}</p>
                       </div>
-                      {item.consultation_data?.location && (
+                      {item.location && (
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">{item.consultation_data.location}</p>
+                          <p className="text-sm text-muted-foreground">{item.location}</p>
                         </div>
                       )}
                       <span className={`px-2 py-0.5 text-xs rounded-full ${item.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>

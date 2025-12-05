@@ -301,12 +301,18 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             updates.location = location;
           }
 
+          const updatePayload: any = {
+            consultation_data: updates,
+            visit_type: visitType
+          };
+
+          if (location) {
+            updatePayload.location = location;
+          }
+
           const { error: updateError } = await supabase
             .from('consultations')
-            .update({
-              consultation_data: updates,
-              visit_type: visitType
-            })
+            .update(updatePayload)
             .eq('id', data.consultation.id);
 
           if (updateError) {

@@ -135,6 +135,8 @@ interface Consultation {
   status: string;
   created_at: string;
   visit_type?: string;
+  location?: string;
+  language?: string;
   patient: Patient;
   consultation_data?: any;
 }
@@ -1136,26 +1138,33 @@ const Consultation = () => {
         ...defaultExtraData,
         ...selectedConsultation.consultation_data,
         personalNote: selectedConsultation.consultation_data.personalNote || '',
-        visit_type: selectedConsultation.visit_type || selectedConsultation.consultation_data.visit_type || 'free',
+        visit_type: selectedConsultation.visit_type || 'free',
       } : defaultExtraData;
       setExtraData(newExtraData);
       setInitialExtraData(newExtraData);
+      setEditablePatientDetails({ ...selectedConsultation.patient });
+
+      // Determine location and language from columns, or defaults
+      const initialLocationName = selectedConsultation.location || HOSPITALS[0].name;
+      const initialLanguage = selectedConsultation.language || i18n.language;
+
+      const matchedHospital = HOSPITALS.find(h => h.name === initialLocationName) || HOSPITALS[0];
+      setSelectedHospital(matchedHospital);
+
+      // Update language if it's different from current
+      if (initialLanguage !== i18n.language) {
+        i18n.changeLanguage(initialLanguage);
+      }
+      if (selectedConsultation.location) {
+        const hospital = HOSPITALS.find(h => h.name === selectedConsultation.location);
+        if (hospital) setSelectedHospital(hospital);
+      }
       setInitialPatientDetails(selectedConsultation.patient);
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
       setSuggestedInvestigations([]);
       setSuggestedFollowup([]);
-      if (selectedConsultation.consultation_data?.language) {
-        if (i18n.language !== selectedConsultation.consultation_data.language) {
-          ignoreLanguageChangeRef.current = true;
-          i18n.changeLanguage(selectedConsultation.consultation_data.language);
-        }
-      }
-      if (selectedConsultation.consultation_data?.location) {
-        const hospital = HOSPITALS.find(h => h.name === selectedConsultation.consultation_data.location);
-        if (hospital) setSelectedHospital(hospital);
-      }
       translationCache.current = { en: {}, te: {} };
     } else {
       setEditablePatientDetails(null);
@@ -1569,11 +1578,13 @@ const Consultation = () => {
           if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
         }
 
-        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string } = {};
+        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string } = {};
 
         if (extraDataChanged || locationChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
           consultationUpdatePayload.visit_type = extraData.visit_type;
+          consultationUpdatePayload.location = selectedHospital.name;
+          consultationUpdatePayload.language = i18n.language;
         }
         if (statusChanged) {
           consultationUpdatePayload.status = newStatus;
@@ -1605,6 +1616,8 @@ const Consultation = () => {
         patient: { ...editablePatientDetails },
         consultation_data: { ...extraData, language: i18n.language },
         visit_type: extraData.visit_type,
+        location: selectedHospital.name,
+        language: i18n.language,
         status: newStatus as 'pending' | 'completed' | 'under_evaluation',
       };
 

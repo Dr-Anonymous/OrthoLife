@@ -172,8 +172,8 @@ const PrescriptionDownload = () => {
                         consultation={cleanConsultationData(consultation.consultation_data)}
                         consultationDate={new Date(consultation.created_at)}
                         age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
-                        language={consultation.consultation_data.language || i18n.language}
-                        logoUrl={HOSPITALS.find(h => h.name === consultation.consultation_data.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                        language={consultation.language || i18n.language}
+                        logoUrl={HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                     />
                 )}
             </div>
@@ -188,8 +188,8 @@ const PrescriptionDownload = () => {
                             consultation={cleanConsultationData(consultation.consultation_data)}
                             consultationDate={new Date(consultation.created_at)}
                             age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
-                            language={consultation.consultation_data.language || i18n.language}
-                            logoUrl={HOSPITALS.find(h => h.name === consultation.consultation_data.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                            language={consultation.language || i18n.language}
+                            logoUrl={HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                         />
                     )}
                 </div>

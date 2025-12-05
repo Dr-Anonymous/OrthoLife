@@ -76,7 +76,7 @@ const PatientRegistration = () => {
   }, []);
 
   const filteredConsultations = todaysConsultations.filter(
-    c => c.consultation_data?.location === locationName
+    c => c.location === locationName
   );
 
   return (
@@ -152,7 +152,7 @@ const PatientRegistration = () => {
               consultation={cleanConsultationData(printingConsultation.consultation_data)}
               consultationDate={new Date(printingConsultation.created_at)}
               age={calculateAge(new Date(printingConsultation.patient.dob))}
-              language={printingConsultation.consultation_data?.language || i18n.language}
+              language={printingConsultation.language || i18n.language}
               logoUrl={hospital?.logoUrl}
             />
           ) : (
