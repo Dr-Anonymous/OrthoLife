@@ -1438,7 +1438,7 @@ const Consultation = () => {
       setIsMedicationsModalOpen(true);
       setExtraData(prev => {
         const newMeds = [...prev.medications];
-        newMeds[index].name = '';
+        newMeds[index] = { ...newMeds[index], name: '' };
         return { ...prev, medications: newMeds };
       });
       return;
@@ -1464,7 +1464,7 @@ const Consultation = () => {
       if (shortcutResult) {
         setExtraData(prev => {
           const newMeds = [...prev.medications];
-          newMeds[index][field] = shortcutResult.newValue as never;
+          newMeds[index] = { ...newMeds[index], [field]: shortcutResult.newValue };
           return { ...prev, medications: newMeds };
         });
         setCursorPosition({ [`medications.${index}.${field}`]: shortcutResult.newCursorPosition });
@@ -1474,7 +1474,7 @@ const Consultation = () => {
 
     setExtraData(prev => {
       const newMeds = [...prev.medications];
-      newMeds[index][field] = value as never;
+      newMeds[index] = { ...newMeds[index], [field]: value };
       return { ...prev, medications: newMeds };
     });
   };
@@ -1604,6 +1604,7 @@ const Consultation = () => {
         ...selectedConsultation,
         patient: { ...editablePatientDetails },
         consultation_data: { ...extraData, language: i18n.language },
+        visit_type: extraData.visit_type,
         status: newStatus as 'pending' | 'completed' | 'under_evaluation',
       };
 
