@@ -21,6 +21,7 @@ interface Consultation {
   status: string;
   created_at: string;
   patient: Patient;
+  visit_type?: string;
   consultation_data?: {
     location?: string;
     [key: string]: any;
@@ -272,7 +273,7 @@ const ConsultationStats = () => {
                             </div>
                           )}
                           <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Number of paid visits: {monthlyStats.filter(c => c.consultation_data?.visit_type === 'paid').length}
+                            Number of paid visits: {monthlyStats.filter(c => c.visit_type === 'paid' || c.consultation_data?.visit_type === 'paid').length}
                           </div>
                           {monthlyCount !== null && monthlyCount > 0 && (
                             <Button variant="link" onClick={() => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails()} className="px-0" disabled={isMonthlyLoading}>
@@ -313,7 +314,7 @@ const ConsultationStats = () => {
                             </div>
                           )}
                           <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Number of paid visits: {dailyData.filter(c => c.consultation_data?.visit_type === 'paid').length}
+                            Number of paid visits: {dailyData.filter(c => c.visit_type === 'paid' || c.consultation_data?.visit_type === 'paid').length}
                           </div>
                           {dailyData.length > 0 && (
                             <Button variant="link" onClick={() => setShowDailyDetails(!showDailyDetails)} className="px-0">

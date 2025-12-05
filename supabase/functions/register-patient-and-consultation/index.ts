@@ -129,6 +129,7 @@ serve(async (req) => {
       .insert({
         patient_id: newPatient.id,
         status: 'pending',
+        visit_type: 'paid',
       })
       .select()
       .single();

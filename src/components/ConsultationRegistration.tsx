@@ -279,7 +279,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             .select('created_at')
             .eq('patient_id', patientId)
             .neq('id', data.consultation.id) // Exclude current one
-            .filter('consultation_data->>visit_type', 'eq', 'paid')
+            .eq('visit_type', 'paid')
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -303,7 +303,10 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
           const { error: updateError } = await supabase
             .from('consultations')
-            .update({ consultation_data: updates })
+            .update({
+              consultation_data: updates,
+              visit_type: visitType
+            })
             .eq('id', data.consultation.id);
 
           if (updateError) {

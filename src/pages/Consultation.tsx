@@ -132,9 +132,11 @@ interface Patient {
 
 interface Consultation {
   id: string;
+  status: string;
+  created_at: string;
+  visit_type?: string;
   patient: Patient;
-  consultation_data: any;
-  status: 'pending' | 'completed' | 'under_evaluation';
+  consultation_data?: any;
 }
 
 const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications, i18n, medFrequencyRefs, medDurationRefs, medInstructionsRefs, medNotesRefs }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void, i18n: any, medFrequencyRefs: React.RefObject<{ [key: string]: HTMLTextAreaElement | null }>, medDurationRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }>, medInstructionsRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }>, medNotesRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }> }) => {
@@ -1134,7 +1136,7 @@ const Consultation = () => {
         ...defaultExtraData,
         ...selectedConsultation.consultation_data,
         personalNote: selectedConsultation.consultation_data.personalNote || '',
-        visit_type: selectedConsultation.consultation_data.visit_type || 'free',
+        visit_type: selectedConsultation.visit_type || selectedConsultation.consultation_data.visit_type || 'free',
       } : defaultExtraData;
       setExtraData(newExtraData);
       setInitialExtraData(newExtraData);
@@ -1567,10 +1569,11 @@ const Consultation = () => {
           if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
         }
 
-        const consultationUpdatePayload: { consultation_data?: any, status?: string } = {};
+        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string } = {};
 
         if (extraDataChanged || locationChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
+          consultationUpdatePayload.visit_type = extraData.visit_type;
         }
         if (statusChanged) {
           consultationUpdatePayload.status = newStatus;

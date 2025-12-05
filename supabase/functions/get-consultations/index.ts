@@ -43,6 +43,7 @@ serve(async (req) => {
         id,
         status,
         consultation_data,
+        visit_type,
         created_at,
         patient:patients (
           id,
