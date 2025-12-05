@@ -84,7 +84,6 @@ const PharmacySupplierPage = () => {
                 original_price: item.original_price,
                 discount_percentage: item.discount_percentage,
                 is_individual: item.is_individual,
-                is_individual: item.is_individual,
                 pharmacy_items: item.pharmacy_items,
                 created_at: item.pharmacy_items?.created_at
             }));

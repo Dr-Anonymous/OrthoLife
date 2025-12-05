@@ -554,8 +554,6 @@ const PharmacyPage = () => {
           userId: user?.phoneNumber, // Using phone number as ID as requested
           items,
           totalAmount: total,
-          items,
-          totalAmount: total,
           subscription: autoReorder ? { frequency: `${reorderFrequencyCount}-${reorderFrequencyUnit}` } : null,
           patientData: patientData
         }
