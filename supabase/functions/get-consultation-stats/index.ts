@@ -26,6 +26,9 @@ serve(async (req) => {
           status,
           created_at,
           consultation_data,
+          visit_type,
+          location,
+          language,
           patient:patients (
             id,
             name,
@@ -54,7 +57,7 @@ serve(async (req) => {
     if (includeMonthly) {
       const { data: mData, error: monthlyError } = await supabase
         .from('consultations')
-        .select('consultation_data')
+        .select('consultation_data, visit_type, location, language')
         .gte('created_at', monthStartDate)
         .lte('created_at', monthEndDate);
 
@@ -73,6 +76,9 @@ serve(async (req) => {
         status,
         created_at,
         consultation_data,
+        visit_type,
+        location,
+        language,
         patient:patients (
           id,
           name,
