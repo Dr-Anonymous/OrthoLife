@@ -1096,7 +1096,7 @@ const Consultation = () => {
     const fetchLastVisitDate = async (patientId: string) => {
       const { data, error } = await supabase
         .from('consultations')
-        .select('created_at')
+        .select('created_at, consultation_data, visit_type')
         .eq('patient_id', patientId)
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
@@ -1108,7 +1108,37 @@ const Consultation = () => {
       } else if (!data || data.length === 0) {
         setLastVisitDate('First Consultation');
       } else {
-        setLastVisitDate(formatDistanceToNow(new Date(data[0].created_at), { addSuffix: true }));
+        const lastConsultation = data[0];
+        setLastVisitDate(formatDistanceToNow(new Date(lastConsultation.created_at), { addSuffix: true }));
+
+        // Autofill logic for new consultations
+        if ((!selectedConsultation?.consultation_data || Object.keys(selectedConsultation.consultation_data).length === 0) && lastConsultation.consultation_data) {
+          const lastData = lastConsultation.consultation_data;
+
+          setExtraData(prev => ({
+            ...prev,
+            complaints: lastData.complaints || '',
+            findings: lastData.findings || '',
+            investigations: lastData.investigations || '',
+            diagnosis: lastData.diagnosis || '',
+            advice: lastData.advice || '',
+            followup: lastData.followup || '',
+            // Do not copy personalNote as it's likely specific to that visit
+            medications: (lastData.medications || []).map((m: any) => ({
+              ...m,
+              id: crypto.randomUUID() // Generate new IDs for the new consultation
+            })),
+            // Preserve the current visit type, do not copy from last visit
+            visit_type: prev.visit_type
+          }));
+
+          // Note: We don't update initialExtraData so that isFormDirty becomes true
+          // indicating there are changes (the autofilled data) to be saved.
+          toast({
+            title: "Autofilled",
+            description: "Data from the last consultation has been loaded.",
+          });
+        }
       }
     };
 
