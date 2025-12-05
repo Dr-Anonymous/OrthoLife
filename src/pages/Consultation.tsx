@@ -491,7 +491,7 @@ const Consultation = () => {
   });
 
   const filteredConsultations = React.useMemo(() => {
-    return allConsultations.filter(c => !c.consultation_data?.location || c.consultation_data.location === selectedHospital.name);
+    return allConsultations.filter(c => !c.location || c.location === selectedHospital.name);
   }, [allConsultations, selectedHospital]);
 
   const pendingConsultations = React.useMemo(() => filteredConsultations.filter(c => c.status === 'pending'), [filteredConsultations]);
@@ -1548,10 +1548,10 @@ const Consultation = () => {
 
     setIsSaving(true);
     try {
+      // Exclude migrated fields from consultation_data to avoid duplication
+      const { visit_type, ...restExtraData } = extraData;
       const dataToSave = {
-        ...extraData,
-        language: i18n.language,
-        location: selectedHospital.name
+        ...restExtraData
       };
 
       if (!isOnline) {
