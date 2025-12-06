@@ -1131,6 +1131,8 @@ const Consultation = () => {
         followup: '',
         personalNote: '',
         medications: [],
+        procedure: '',
+        referred_to: '',
         visit_type: 'free',
       };
 
@@ -1178,6 +1180,8 @@ const Consultation = () => {
         followup: '',
         personalNote: '',
         medications: [],
+        procedure: '',
+        referred_to: '',
         visit_type: 'free',
       });
       setIsFormDirty(false);
