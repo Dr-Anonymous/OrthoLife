@@ -148,6 +148,10 @@ const ConsultationStats = () => {
           aValue = (a.location || '').toLowerCase();
           bValue = (b.location || '').toLowerCase();
           break;
+        case 'visit_type':
+          aValue = (a.visit_type || '').toLowerCase();
+          bValue = (b.visit_type || '').toLowerCase();
+          break;
         case 'status':
           aValue = a.status.toLowerCase();
           bValue = b.status.toLowerCase();
@@ -193,6 +197,9 @@ const ConsultationStats = () => {
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('location')}>
                   Location {renderSortIcon('location')}
                 </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('visit_type')}>
+                  Payment {renderSortIcon('visit_type')}
+                </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('status')}>
                   Status {renderSortIcon('status')}
                 </th>
@@ -213,6 +220,7 @@ const ConsultationStats = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.location || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{consultation.visit_type || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${consultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                       {consultation.status}
@@ -275,7 +283,29 @@ const ConsultationStats = () => {
                             </div>
                           )}
                           <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Number of paid visits: {monthlyStats.filter(c => c.visit_type === 'paid').length}
+                            Paid visits: {monthlyStats.filter(c => c.visit_type === 'paid').length > 0 ? (
+                              monthlyStats
+                                .filter(c => c.visit_type === 'paid')
+                                .reduce((acc: { [key: string]: number }, curr) => {
+                                  const loc = curr.location || 'Unknown';
+                                  acc[loc] = (acc[loc] || 0) + 1;
+                                  return acc;
+                                }, {})
+                              && Object.entries(
+                                monthlyStats
+                                  .filter(c => c.visit_type === 'paid')
+                                  .reduce((acc: { [key: string]: number }, curr) => {
+                                    const loc = curr.location || 'Unknown';
+                                    acc[loc] = (acc[loc] || 0) + 1;
+                                    return acc;
+                                  }, {})
+                              ).map(([loc, count], i) => (
+                                <span key={loc}>
+                                  {i > 0 && ', '}
+                                  {loc}: {count}
+                                </span>
+                              ))
+                            ) : '0'}
                           </div>
                           {monthlyCount !== null && monthlyCount > 0 && (
                             <Button variant="link" onClick={() => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails()} className="px-0" disabled={isMonthlyLoading}>
@@ -316,7 +346,22 @@ const ConsultationStats = () => {
                             </div>
                           )}
                           <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Number of paid visits: {dailyData.filter(c => c.visit_type === 'paid').length}
+                            Paid visits: {dailyData.filter(c => c.visit_type === 'paid').length > 0 ? (
+                              Object.entries(
+                                dailyData
+                                  .filter(c => c.visit_type === 'paid')
+                                  .reduce((acc: { [key: string]: number }, curr) => {
+                                    const loc = curr.location || 'Unknown';
+                                    acc[loc] = (acc[loc] || 0) + 1;
+                                    return acc;
+                                  }, {})
+                              ).map(([loc, count], i) => (
+                                <span key={loc}>
+                                  {i > 0 && ', '}
+                                  {loc}: {count}
+                                </span>
+                              ))
+                            ) : '0'}
                           </div>
                           {dailyData.length > 0 && (
                             <Button variant="link" onClick={() => setShowDailyDetails(!showDailyDetails)} className="px-0">
