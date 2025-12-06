@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Pill, FileText, NotebookText, Undo2, Calendar, Stethoscope, MapPin } from 'lucide-react';
 
 const ConsultationSearchResultItem = ({ consultation, highlightKeyword }) => {
@@ -142,12 +142,18 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <p className="font-semibold">{format(new Date(consultation.created_at), 'PPP')}</p>
+                            <p className="font-semibold">
+                              {formatDistanceToNow(new Date(consultation.created_at), { addSuffix: true })} ({format(new Date(consultation.created_at), 'PPP')})
+                            </p>
                           </div>
-                          {consultation.location && (
+                          {(consultation.location || consultation.visit_type) && (
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <p className="text-sm text-muted-foreground">{consultation.location}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {consultation.location}
+                                {consultation.location && consultation.visit_type && ' - '}
+                                {consultation.visit_type}
+                              </p>
                             </div>
                           )}
                         </div>
