@@ -2467,6 +2467,7 @@ const Consultation = () => {
           </DialogHeader>
           <div className="py-4">
             <ConsultationRegistration
+              location={selectedHospital.name}
               onSuccess={(newConsultation, consultationData) => {
                 setIsRegistrationModalOpen(false);
                 if (String(newConsultation.patient_id).startsWith('offline-')) {
