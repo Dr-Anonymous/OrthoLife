@@ -73,7 +73,7 @@ serve(async (req) => {
       const patientsWithConsultations = await Promise.all(dbData.map(async (patient) => {
         const { data: lastConsultation } = await supabase
           .from('consultations')
-          .select('consultation_data, created_at')
+          .select('consultation_data, visit_type, location, language, created_at')
           .eq('patient_id', patient.id)
           .not('consultation_data', 'is', null)
           .order('created_at', { ascending: false })
@@ -83,6 +83,9 @@ serve(async (req) => {
         return {
           ...patient,
           ...lastConsultation?.consultation_data,
+          visit_type: lastConsultation?.visit_type,
+          location: lastConsultation?.location,
+          language: lastConsultation?.language,
           created_at: lastConsultation?.created_at || patient.created_at,
           source: 'database'
         };
@@ -137,7 +140,7 @@ async function getPatientDataById(patientId: string) {
 
   const { data: lastConsultation } = await supabase
     .from('consultations')
-    .select('consultation_data, created_at')
+    .select('consultation_data, visit_type, location, language, created_at')
     .eq('patient_id', patient.id)
     .not('consultation_data', 'is', null)
     .order('created_at', { ascending: false })
@@ -147,6 +150,9 @@ async function getPatientDataById(patientId: string) {
   return {
     ...patient,
     ...lastConsultation?.consultation_data,
+    visit_type: lastConsultation?.visit_type,
+    location: lastConsultation?.location,
+    language: lastConsultation?.language,
     created_at: lastConsultation?.created_at || patient.created_at,
     source: 'database'
   };
