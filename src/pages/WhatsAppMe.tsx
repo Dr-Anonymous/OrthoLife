@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText, NotebookText, Undo2 } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText, NotebookText, Undo2, MapPin } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -352,9 +352,15 @@ const WhatsAppMe = () => {
                     {formatDistanceToNow(new Date(prescription.created_at), { addSuffix: true })} ({format(new Date(prescription.created_at), 'dd.MM.yyyy')})
                   </CardDescription>
                 )}
+                {prescription.location && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="w-3 h-3" />
+                    <span>{prescription.location}</span>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
-                <p><strong>Name:</strong> {prescription.name} {prescription.location && <span className="text-muted-foreground text-sm">({prescription.location})</span>}</p>
+                <p><strong>Name:</strong> {prescription.name}</p>
                 {[
                   { Icon: NotebookText, label: "Doctor's Personal Note", value: prescription.personalNote },
                   { Icon: Stethoscope, label: 'Complaints', value: prescription.complaints },
