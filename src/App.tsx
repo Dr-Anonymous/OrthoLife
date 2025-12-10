@@ -140,12 +140,12 @@ const App = () => {
 
                 {/* login routes */}
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="/p/:phone" element={<AuthPage />} />
+                <Route path="/u/:phone" element={<AuthPage />} />
                 <Route path="/my" element={<MySpace />} />
                 <Route path="/my-space" element={<Navigate to="/my" replace />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/whatsapp" element={<SendWhatsApp />} />
-                <Route path="/prescription/:patientPhone" element={<PrescriptionDownload />} />
+                <Route path="/p/:patientPhone" element={<PrescriptionDownload />} />
                 <Route path="/prescription" element={<PrescriptionDownload />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

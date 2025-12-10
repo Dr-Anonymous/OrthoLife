@@ -1513,12 +1513,10 @@ const Consultation = () => {
   const sendConsultationCompletionNotification = async (patientName: string, patientPhone: string) => {
     try {
       const isTelugu = i18n.language === 'te';
-      const message = isTelugu
-        ? `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/prescription/${patientPhone}\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు\n- మందులు 💊 & పరీక్షలు 🧪 ఆర్డర్ చేయవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`
-        : `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- Download your prescription 📋-\n\nhttps://ortho.life/prescription/${patientPhone}\n\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\nhttps://ortho.life/p/${patientPhone}`;
+      const advice = extraData.advice;
 
-      const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: { number: patientPhone, message },
+      const { error } = await supabase.functions.invoke('send-consultation-completion', {
+        body: { patientName, patientPhone, advice, isTelugu },
       });
       if (error) throw error;
     } catch (err) {

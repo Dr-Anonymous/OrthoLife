@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText, NotebookText, Undo2, MapPin } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText, NotebookText, Undo2, MapPin, Syringe, Share } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -368,8 +368,10 @@ const WhatsAppMe = () => {
                   { Icon: FileText, label: 'Investigations', value: prescription.investigations },
                   { Icon: Stethoscope, label: 'Diagnosis', value: prescription.diagnosis },
                   { Icon: Pill, label: 'Medications', value: prescription.medications },
+                  { Icon: Syringe, label: 'Procedure Done', value: prescription.procedure },
                   { Icon: FileText, label: 'Advice', value: prescription.advice },
                   { Icon: Undo2, label: 'Follow-up', value: prescription.followup },
+                  { Icon: Share, label: 'Referred To', value: prescription.referred_to },
                 ].map(({ Icon, label, value }, index) => {
                   if (!value || (typeof value === 'string' && !value.trim()) || (Array.isArray(value) && value.length === 0)) return null;
 

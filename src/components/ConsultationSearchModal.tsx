@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, formatDistanceToNow } from 'date-fns';
-import { Pill, FileText, NotebookText, Undo2, Calendar, Stethoscope, MapPin } from 'lucide-react';
+import { Pill, FileText, NotebookText, Undo2, Calendar, Stethoscope, MapPin, Syringe, Share } from 'lucide-react';
 
 const ConsultationSearchResultItem = ({ consultation, highlightKeyword }) => {
   const {
@@ -18,6 +18,8 @@ const ConsultationSearchResultItem = ({ consultation, highlightKeyword }) => {
     medications,
     advice,
     followup,
+    procedure,
+    referred_to,
   } = consultation.consultation_data || {};
 
   const renderField = (Icon, label, value) => {
@@ -46,6 +48,8 @@ const ConsultationSearchResultItem = ({ consultation, highlightKeyword }) => {
       {renderField(FileText, 'Investigations', investigations)}
       {renderField(Stethoscope, 'Diagnosis', diagnosis)}
       {renderField(Pill, 'Medications', medications)}
+      {renderField(Syringe, 'Procedure Done', procedure)}
+      {renderField(Share, 'Referred To', referred_to)}
       {renderField(FileText, 'Advice', advice)}
       {renderField(Undo2, 'Follow-up', followup)}
     </div>
@@ -122,7 +126,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
           {isLoading ? (
             <p>Loading...</p>
           ) : (
-            <Accordion type="multiple" collapsible>
+            <Accordion type="multiple">
               {results.map((patient) => (
                 <AccordionItem value={`patient-${patient.id}`} key={patient.id}>
                   <AccordionTrigger>

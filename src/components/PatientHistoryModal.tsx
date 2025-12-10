@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Calendar, Stethoscope, Pill, FileText, MapPin, NotebookText } from 'lucide-react';
+import { Loader2, Calendar, Stethoscope, Pill, FileText, MapPin, NotebookText, Syringe, Share } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PatientHistoryModalProps {
@@ -104,6 +104,15 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                           </div>
                         </div>
                       )}
+                      {item.consultation_data?.procedure && (
+                        <div className="flex items-start gap-3">
+                          <Syringe className="w-5 h-5 mt-1 text-primary" />
+                          <div>
+                            <h4 className="font-semibold">Procedure Done</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.procedure}</p>
+                          </div>
+                        </div>
+                      )}
                       {item.consultation_data?.advice && (
                         <div className="flex items-start gap-3">
                           <FileText className="w-5 h-5 mt-1 text-primary" />
@@ -119,6 +128,15 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                           <div>
                             <h4 className="font-semibold">Doctor's Note</h4>
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.personalNote}</p>
+                          </div>
+                        </div>
+                      )}
+                      {item.consultation_data?.referred_to && (
+                        <div className="flex items-start gap-3">
+                          <Share className="w-5 h-5 mt-1 text-primary" />
+                          <div>
+                            <h4 className="font-semibold">Referred To</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.referred_to}</p>
                           </div>
                         </div>
                       )}
