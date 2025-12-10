@@ -216,7 +216,7 @@
   "prescription.med_noon": "మధ్యాహ్నం",
   "prescription.med_night": "రాత్రి",
   "prescription.followup": "తదుపరి",
-  "prescription.footer_text": "మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా యాక్సెస్ చేయడానికి <a href=\"https://ortho.life/my\" target=\"_blank\" class=\"underline\">ortho.life/my</a> సందర్శించండి.",
+  "prescription.footer_text": "మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా చూడటానికి <a href=\"https://ortho.life/my\" target=\"_blank\" class=\"underline\">ortho.life/my</a> సందర్శించండి.",
   "patientSelectionModal.title": "రోగిని ఎంచుకోండి",
   "patientSelectionModal.description": "ఈ ఫోన్ నంబర్‌తో బహుళ రోగులు అనుబంధించబడ్డారు. కొనసాగించడానికి దయచేసి ఒకరిని ఎంచుకోండి."
 }

@@ -39,19 +39,28 @@ serve(async (req) => {
         }
 
         // 1. Extract query from advice
-        // Advice is always in English per user feedback
+        // Logic adapted from DietAndExercisesCard.tsx
         let query = '';
 
         if (advice) {
             const lines = advice.split('\n').filter((line: string) => line.trim() !== '');
 
             for (const line of lines) {
-                const lowerLine = line.toLowerCase();
-                // Check for key terms
-                const hasDiet = lowerLine.includes('diet');
-                const hasExercises = lowerLine.includes('exercise');
+                let isMatch = false;
+                if (isTeluguText(line) || isTelugu) {
+                    // Telugu checks
+                    const hasDiet = line.includes('ఆహారం');
+                    const hasExercises = line.includes('వ్యాయామం') || line.includes('వ్యాయామాలు');
+                    if (hasDiet || hasExercises) isMatch = true;
+                } else {
+                    // English checks
+                    const lowerLine = line.toLowerCase();
+                    const hasDiet = lowerLine.includes('diet');
+                    const hasExercises = lowerLine.includes('exercise');
+                    if (hasDiet || hasExercises) isMatch = true;
+                }
 
-                if (hasDiet || hasExercises) {
+                if (isMatch) {
                     // Clean up the query similar to frontend
                     query = line.replace(/[\(\[].*?[\)\]]/g, "").replace(/[.\s]+$/, "").trim();
                     break; // Use the first matching line
@@ -64,14 +73,15 @@ serve(async (req) => {
         let guideLink = null;
 
         if (query) {
-            // Fetch all guides to perform scoring
+            // Fetch all guides to perform scoring (exact logic from PatientGuidesPage.tsx)
             const { data: guides, error } = await supabase
                 .from('guides')
-                .select('id, title, description, categories(name)');
+                .select('id, title, description, categories(name), guide_translations(language, title, description)');
 
             if (!error && guides && guides.length > 0) {
                 const term = query.trim();
-                const termLower = term.toLowerCase();
+                const searchInTelugu = isTeluguText(term);
+                const termLower = searchInTelugu ? term : term.toLowerCase();
 
                 // Remove stopwords 'exercises', 'diet' from scoring for better relevance
                 const searchWords = term.split(/\s+/).filter(w => {
@@ -82,18 +92,31 @@ serve(async (req) => {
                 if (searchWords.length > 0) {
                     const scoredGuides = guides.map((guide: any) => {
                         let score = 0;
-                        let title = guide.title.toLowerCase();
-                        let description = guide.description?.toLowerCase() || '';
+                        let title = '';
+                        let description = '';
                         const category = guide.categories?.name?.toLowerCase() || '';
+
+                        if (searchInTelugu) {
+                            const translation = guide.guide_translations.find((t: any) => t.language === 'te');
+                            if (translation) {
+                                title = translation.title;
+                                description = translation.description;
+                            } else {
+                                return { guide, score: 0 };
+                            }
+                        } else {
+                            title = guide.title.toLowerCase();
+                            description = guide.description?.toLowerCase() || '';
+                        }
 
                         if (title.includes(termLower)) score += 100;
                         if (description.includes(termLower)) score += 50;
 
                         searchWords.forEach(word => {
-                            const wordLower = word.toLowerCase();
-                            if (title.includes(wordLower)) score += 10;
-                            if (description.includes(wordLower)) score += 5;
-                            if (category.includes(wordLower)) score += 2;
+                            const wordCompare = searchInTelugu ? word : word.toLowerCase();
+                            if (title.includes(wordCompare)) score += 10;
+                            if (description.includes(wordCompare)) score += 5;
+                            if (category.includes(word.toLowerCase())) score += 2;
                         });
 
                         return { guide, score };
@@ -108,7 +131,7 @@ serve(async (req) => {
                     if (bestMatch && bestMatch.score > 0) {
                         guideLink = `https://ortho.life${langPrefix}/guides/${bestMatch.guide.id}`;
                     }
-                    // Else stays null - "Then stop the message at prescription link."
+                    // Else stays null
                 }
             }
         }
@@ -120,13 +143,13 @@ serve(async (req) => {
             message = `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`;
 
             if (guideLink) {
-                message += `\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు\n- మందులు 💊 & పరీక్షలు 🧪 ఆర్డర్ చేయవచ్చు-\n\n${guideLink}`;
+                message += `\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు-\n\n${guideLink}`;
             }
         } else {
             message = `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- Download your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}`;
 
             if (guideLink) {
-                message += `\n\n- Read diet 🍚 & exercise 🧘‍♀️ advice \n- Order medicines 💊 & tests 🧪 at-\n\n${guideLink}`;
+                message += `\n\n- Read diet 🍚 & exercise 🧘 advice-\n\n${guideLink}`;
             }
         }
 
