@@ -150,79 +150,81 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
               <Pill className="h-4 w-4" />
               <span>{t('prescription.medication')}:</span>
             </h3>
-            <table className="w-full border-collapse border border-border">
-              <thead>
-                <tr className="bg-muted">
-                  <th className="border border-border p-2 text-left">#</th>
-                  <th className="border border-border p-2 text-left">{t('prescription.med_name')}</th>
-                  <th className="border border-border p-2 text-left">{t('prescription.med_dose')}</th>
-                  <th className="border border-border p-2 text-center" colSpan={3}>
-                    <div className="flex items-center justify-center gap-1 leading-none">
-                      <Clock className="h-3 w-3" />
-                      <span>{t('prescription.med_frequency')}</span>
-                    </div>
-                  </th>
-                  <th className="border border-border p-2 text-left">{t('prescription.med_duration')}</th>
-                  <th className="border border-border p-2 text-left">{t('prescription.med_instructions')}</th>
-                </tr>
-                <tr className="bg-muted">
-                  <th className="border border-border p-1"></th>
-                  <th className="border border-border p-1"></th>
-                  <th className="border border-border p-1"></th>
-                  <th className="border border-border p-1 text-center text-xs">
-                    <div className="flex flex-col items-center justify-center gap-1 leading-none">
-                      <Sun className="h-3 w-3" />
-                      <span>{t('prescription.med_morning')}</span>
-                    </div>
-                  </th>
-                  <th className="border border-border p-1 text-center text-xs">
-                    <div className="flex flex-col items-center justify-center gap-1 leading-none">
-                      <CloudSun className="h-3 w-3" />
-                      <span>{t('prescription.med_noon')}</span>
-                    </div>
-                  </th>
-                  <th className="border border-border p-1 text-center text-xs">
-                    <div className="flex flex-col items-center justify-center gap-1 leading-none">
-                      <Moon className="h-3 w-3" />
-                      <span>{t('prescription.med_night')}</span>
-                    </div>
-                  </th>
-                  <th className="border border-border p-1"></th>
-                  <th className="border border-border p-1"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {consultation.medications.map((med, index) => (
-                  <React.Fragment key={index}>
-                    <tr>
-                      <td className="border border-border p-2">{index + 1}</td>
-                      <td className="border border-border p-2">{med.name}</td>
-                      <td className="border border-border p-2">{med.dose}</td>
-                      {med.frequency ? (
-                        <td colSpan={3} className="border border-border p-2 text-center">
-                          {med.frequency}
-                        </td>
-                      ) : (
-                        <>
-                          <td className="border border-border p-2 text-center">{med.freqMorning ? '✔' : ''}</td>
-                          <td className="border border-border p-2 text-center">{med.freqNoon ? '✔' : ''}</td>
-                          <td className="border border-border p-2 text-center">{med.freqNight ? '✔' : ''}</td>
-                        </>
-                      )}
-                      <td className="border border-border p-2">{med.duration}</td>
-                      <td className="border border-border p-2">{med.instructions}</td>
-                    </tr>
-                    {med.notes && (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-border min-w-[600px]">
+                <thead>
+                  <tr className="bg-muted">
+                    <th className="border border-border p-2 text-left">#</th>
+                    <th className="border border-border p-2 text-left">{t('prescription.med_name')}</th>
+                    <th className="border border-border p-2 text-left">{t('prescription.med_dose')}</th>
+                    <th className="border border-border p-2 text-center" colSpan={3}>
+                      <div className="flex items-center justify-center gap-1 leading-none">
+                        <Clock className="h-3 w-3" />
+                        <span>{t('prescription.med_frequency')}</span>
+                      </div>
+                    </th>
+                    <th className="border border-border p-2 text-left">{t('prescription.med_duration')}</th>
+                    <th className="border border-border p-2 text-left">{t('prescription.med_instructions')}</th>
+                  </tr>
+                  <tr className="bg-muted">
+                    <th className="border border-border p-1"></th>
+                    <th className="border border-border p-1"></th>
+                    <th className="border border-border p-1"></th>
+                    <th className="border border-border p-1 text-center text-xs">
+                      <div className="flex flex-col items-center justify-center gap-1 leading-none">
+                        <Sun className="h-3 w-3" />
+                        <span>{t('prescription.med_morning')}</span>
+                      </div>
+                    </th>
+                    <th className="border border-border p-1 text-center text-xs">
+                      <div className="flex flex-col items-center justify-center gap-1 leading-none">
+                        <CloudSun className="h-3 w-3" />
+                        <span>{t('prescription.med_noon')}</span>
+                      </div>
+                    </th>
+                    <th className="border border-border p-1 text-center text-xs">
+                      <div className="flex flex-col items-center justify-center gap-1 leading-none">
+                        <Moon className="h-3 w-3" />
+                        <span>{t('prescription.med_night')}</span>
+                      </div>
+                    </th>
+                    <th className="border border-border p-1"></th>
+                    <th className="border border-border p-1"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {consultation.medications.map((med, index) => (
+                    <React.Fragment key={index}>
                       <tr>
-                        <td colSpan={8} className="border border-border p-2 text-xs italic text-muted-foreground">
-                          {med.notes}
-                        </td>
+                        <td className="border border-border p-2">{index + 1}</td>
+                        <td className="border border-border p-2">{med.name}</td>
+                        <td className="border border-border p-2">{med.dose}</td>
+                        {med.frequency ? (
+                          <td colSpan={3} className="border border-border p-2 text-center">
+                            {med.frequency}
+                          </td>
+                        ) : (
+                          <>
+                            <td className="border border-border p-2 text-center">{med.freqMorning ? '✔' : ''}</td>
+                            <td className="border border-border p-2 text-center">{med.freqNoon ? '✔' : ''}</td>
+                            <td className="border border-border p-2 text-center">{med.freqNight ? '✔' : ''}</td>
+                          </>
+                        )}
+                        <td className="border border-border p-2">{med.duration}</td>
+                        <td className="border border-border p-2">{med.instructions}</td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                      {med.notes && (
+                        <tr>
+                          <td colSpan={8} className="border border-border p-2 text-xs italic text-muted-foreground">
+                            {med.notes}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 

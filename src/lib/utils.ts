@@ -34,5 +34,9 @@ export function cleanConsultationData(data: any): any {
     medications: data.medications?.map(cleanMedication) || [],
     procedure: removeBracketedText(data.procedure),
     referred_to: removeBracketedText(data.referred_to),
+    weight: removeBracketedText(data.weight),
+    bp: removeBracketedText(data.bp),
+    temperature: removeBracketedText(data.temperature),
+    allergy: removeBracketedText(data.allergy),
   };
 }

@@ -443,7 +443,11 @@ const Consultation = () => {
     medications: [] as Medication[],
     procedure: '',
     referred_to: '',
-    visit_type: 'free'
+    visit_type: 'free',
+    weight: '',
+    bp: '',
+    temperature: '',
+    allergy: ''
   });
 
   const [suggestedMedications, setSuggestedMedications] = useState<Medication[]>([]);
@@ -1134,6 +1138,10 @@ const Consultation = () => {
         procedure: '',
         referred_to: '',
         visit_type: 'free',
+        weight: '',
+        bp: '',
+        temperature: '',
+        allergy: '',
       };
 
       const newExtraData = selectedConsultation.consultation_data ? {
@@ -2153,6 +2161,25 @@ const Consultation = () => {
                           <div className="flex items-center gap-2">
                             <FileText className="w-5 h-5 text-primary" />
                             <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="weight" className="text-sm font-medium">Weight</Label>
+                            <Input id="weight" value={extraData.weight} onChange={e => handleExtraChange('weight', e.target.value)} placeholder="e.g., 70kg" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bp" className="text-sm font-medium">BP</Label>
+                            <Input id="bp" value={extraData.bp} onChange={e => handleExtraChange('bp', e.target.value)} placeholder="e.g., 120/80" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="temperature" className="text-sm font-medium">Temperature</Label>
+                            <Input id="temperature" value={extraData.temperature} onChange={e => handleExtraChange('temperature', e.target.value)} placeholder="e.g., 98.6F" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="allergy" className="text-sm font-medium">Allergy</Label>
+                            <Input id="allergy" value={extraData.allergy} onChange={e => handleExtraChange('allergy', e.target.value)} placeholder="e.g., Penicillin" />
                           </div>
                         </div>
 
