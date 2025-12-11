@@ -62,10 +62,11 @@ interface FilterState {
 
 export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTableProps) => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters, setFilters] = useState<FilterState & { hasProcedure: boolean }>({
     location: [],
     visit_type: [],
     status: [],
+    hasProcedure: false,
   });
 
   // Extract unique values for filters
@@ -114,11 +115,16 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
     });
   };
 
+  const toggleHasProcedure = () => {
+    setFilters(prev => ({ ...prev, hasProcedure: !prev.hasProcedure }));
+  };
+
   const resetFilters = () => {
     setFilters({
       location: [],
       visit_type: [],
       status: [],
+      hasProcedure: false,
     });
   };
 
@@ -134,6 +140,9 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
     }
     if (filters.status.length > 0) {
       result = result.filter(item => filters.status.includes(item.status));
+    }
+    if (filters.hasProcedure) {
+      result = result.filter(item => !!item.consultation_data?.procedure);
     }
 
     // Apply sort
@@ -180,7 +189,10 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
     return result;
   }, [data, filters, sortConfig]);
 
-  const activeFilterCount = Object.values(filters).reduce((acc, curr) => acc + curr.length, 0);
+  const activeFilterCount = Object.values(filters).reduce((acc, curr) => {
+    if (typeof curr === 'boolean') return acc + (curr ? 1 : 0);
+    return acc + curr.length;
+  }, 0);
 
   return (
     <div className="mt-8 space-y-4">
@@ -203,13 +215,22 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
                         {activeFilterCount} selected
                       </Badge>
                     ) : (
-                      Object.entries(filters).flatMap(([category, values]) =>
-                        values.map(value => (
-                          <Badge variant="secondary" key={`${category}-${value}`} className="rounded-sm px-1 font-normal">
-                            {value}
-                          </Badge>
-                        ))
-                      )
+                      <>
+                        {Object.entries(filters).flatMap(([category, values]) => {
+                          if (category === 'hasProcedure') {
+                            return values ? [
+                              <Badge variant="secondary" key="has-procedure" className="rounded-sm px-1 font-normal">
+                                With Procedure
+                              </Badge>
+                            ] : [];
+                          }
+                          return (values as string[]).map(value => (
+                            <Badge variant="secondary" key={`${category}-${value}`} className="rounded-sm px-1 font-normal">
+                              {value}
+                            </Badge>
+                          ));
+                        })}
+                      </>
                     )}
                   </div>
                 </>
@@ -221,7 +242,25 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
               <CommandInput placeholder="Filter statistics..." />
               <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>
-                
+
+                <CommandGroup heading="Options">
+                  <CommandItem
+                    onSelect={toggleHasProcedure}
+                  >
+                    <div
+                      className={cn(
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        filters.hasProcedure
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible"
+                      )}
+                    >
+                      <Check className={cn("h-4 w-4")} />
+                    </div>
+                    <span>With Procedure</span>
+                  </CommandItem>
+                </CommandGroup>
+
                 {filterOptions.location.length > 0 && (
                   <CommandGroup heading="Location">
                     {filterOptions.location.map(option => (
@@ -345,13 +384,20 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
               filteredAndSortedData.map((consultation) => (
                 <tr key={consultation.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(consultation.created_at), 'PPP')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {consultation.patient.drive_id ? (
-                      <a href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`} target="_blank" className="text-blue-600 hover:underline">
-                        {consultation.patient.name}
-                      </a>
-                    ) : (
-                      consultation.patient.name
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <div>
+                      {consultation.patient.drive_id ? (
+                        <a href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`} target="_blank" className="text-blue-600 hover:underline">
+                          {consultation.patient.name}
+                        </a>
+                      ) : (
+                        consultation.patient.name
+                      )}
+                    </div>
+                    {consultation.consultation_data?.procedure && (
+                      <div className="text-xs text-gray-500 font-normal mt-0.5">
+                        {consultation.consultation_data.procedure}
+                      </div>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
