@@ -2170,8 +2170,28 @@ const Consultation = () => {
                             <Input id="weight" value={extraData.weight} onChange={e => handleExtraChange('weight', e.target.value)} placeholder="e.g., 70kg" />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="bp" className="text-sm font-medium">BP</Label>
-                            <Input id="bp" value={extraData.bp} onChange={e => handleExtraChange('bp', e.target.value)} placeholder="e.g., 120/80" />
+                            <Label className="text-sm font-medium">BP (mmHg)</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="Systolic"
+                                value={extraData.bp ? extraData.bp.split('/')[0] : ''}
+                                onChange={e => {
+                                  const parts = extraData.bp ? extraData.bp.split('/') : ['', ''];
+                                  handleExtraChange('bp', `${e.target.value}/${parts[1] || ''}`);
+                                }}
+                                className="text-center"
+                              />
+                              <span className="text-xl text-muted-foreground">/</span>
+                              <Input
+                                placeholder="Diastolic"
+                                value={extraData.bp ? extraData.bp.split('/')[1] || '' : ''}
+                                onChange={e => {
+                                  const parts = extraData.bp ? extraData.bp.split('/') : ['', ''];
+                                  handleExtraChange('bp', `${parts[0] || ''}/${e.target.value}`);
+                                }}
+                                className="text-center"
+                              />
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="temperature" className="text-sm font-medium">Temperature</Label>

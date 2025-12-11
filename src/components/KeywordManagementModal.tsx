@@ -48,23 +48,23 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
   useEffect(() => {
     const translateAdvice = async () => {
-        if (!advice || !advice.trim()) {
-            setAdviceTe('');
-            return;
-        };
-        setIsTranslating(true);
-        try {
-          const { data, error } = await supabase.functions.invoke('translate-content', {
-            body: { text: advice, targetLanguage: 'te' },
-          });
-          if (error) throw error;
-          setAdviceTe(data?.translatedText || '');
-        } catch (err) {
-          console.error('Translation error:', err);
-          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
-        } finally {
-          setIsTranslating(false);
-        }
+      if (!advice || !advice.trim()) {
+        setAdviceTe('');
+        return;
+      };
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-content', {
+          body: { text: advice, targetLanguage: 'te' },
+        });
+        if (error) throw error;
+        setAdviceTe(data?.translatedText || '');
+      } catch (err) {
+        console.error('Translation error:', err);
+        toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
+      } finally {
+        setIsTranslating(false);
+      }
     };
 
     if (editingKeyword) {
@@ -72,31 +72,31 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         translateAdvice();
       }
     } else { // Always auto-translate when creating new
-        if (debouncedAdvice) {
-            translateAdvice();
-        }
+      if (debouncedAdvice) {
+        translateAdvice();
+      }
     }
   }, [debouncedAdvice, editingKeyword]);
 
   useEffect(() => {
     const translateFollowup = async () => {
-        if (!followup || !followup.trim()) {
-            setFollowupTe('');
-            return;
-        };
-        setIsTranslating(true);
-        try {
-          const { data, error } = await supabase.functions.invoke('translate-content', {
-            body: { text: followup, targetLanguage: 'te' },
-          });
-          if (error) throw error;
-          setFollowupTe(data?.translatedText || '');
-        } catch (err) {
-          console.error('Translation error:', err);
-          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
-        } finally {
-          setIsTranslating(false);
-        }
+      if (!followup || !followup.trim()) {
+        setFollowupTe('');
+        return;
+      };
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-content', {
+          body: { text: followup, targetLanguage: 'te' },
+        });
+        if (error) throw error;
+        setFollowupTe(data?.translatedText || '');
+      } catch (err) {
+        console.error('Translation error:', err);
+        toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
+      } finally {
+        setIsTranslating(false);
+      }
     };
 
     if (editingKeyword) {
@@ -104,11 +104,11 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         translateFollowup();
       }
     } else { // Always auto-translate when creating new
-        if (debouncedFollowup) {
-            translateFollowup();
-        }
+      if (debouncedFollowup) {
+        translateFollowup();
+      }
     }
-    }, [debouncedFollowup, editingKeyword]);
+  }, [debouncedFollowup, editingKeyword]);
 
   const fetchKeywords = async () => {
     setIsLoading(true);
@@ -139,8 +139,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
   const handleSaveKeyword = async () => {
     const keywordsArray = newKeywords.split(',').map(kw => kw.trim().toLowerCase()).filter(Boolean);
-    if (keywordsArray.length === 0 || selectedMeds.length === 0) {
-      toast({ variant: 'destructive', title: 'Invalid input', description: 'Please provide at least one keyword and select at least one medication.' });
+    if (keywordsArray.length === 0) {
+      toast({ variant: 'destructive', title: 'Invalid input', description: 'Please provide at least one keyword.' });
       return;
     }
 
@@ -153,8 +153,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         if (error) throw error;
       } else {
         const selectedMedicationObjects = selectedMeds.map(id => {
-            const med = medications.find(m => m.id === id);
-            return { id: med?.id, name: med?.name };
+          const med = medications.find(m => m.id === id);
+          return { id: med?.id, name: med?.name };
         });
 
         const { error } = await supabase.functions.invoke('save-autofill-bundle', {
