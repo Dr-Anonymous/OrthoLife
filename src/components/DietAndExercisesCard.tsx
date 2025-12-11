@@ -32,8 +32,9 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) =
       const lowerLine = line.toLowerCase();
       const hasDiet = lowerLine.includes('diet');
       const hasExercises = lowerLine.includes('exercise');
+      const hasGuide = lowerLine.includes('guide');
 
-      if (hasDiet && hasExercises) {
+      if ((hasDiet && hasExercises) || hasGuide) {
         return { text: t('dietAndExercisesCard.viewGuide'), query: line };
       }
       if (hasDiet) {

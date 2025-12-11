@@ -57,7 +57,8 @@ serve(async (req) => {
                     const lowerLine = line.toLowerCase();
                     const hasDiet = lowerLine.includes('diet');
                     const hasExercises = lowerLine.includes('exercise');
-                    if (hasDiet || hasExercises) isMatch = true;
+                    const hasGuide = lowerLine.includes('guide');
+                    if (hasDiet || hasExercises || hasGuide) isMatch = true;
                 }
 
                 if (isMatch) {
@@ -83,10 +84,10 @@ serve(async (req) => {
                 const searchInTelugu = isTeluguText(term);
                 const termLower = searchInTelugu ? term : term.toLowerCase();
 
-                // Remove stopwords 'exercises', 'diet' from scoring for better relevance
+                // Remove stopwords 'exercises', 'diet', 'guide' from scoring for better relevance
                 const searchWords = term.split(/\s+/).filter(w => {
                     const lowerW = w.toLowerCase();
-                    return w.length > 0 && !['exercises', 'diet'].includes(lowerW);
+                    return w.length > 0 && !['exercises', 'diet', 'guide'].includes(lowerW);
                 });
 
                 if (searchWords.length > 0) {

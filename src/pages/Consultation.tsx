@@ -860,11 +860,11 @@ const Consultation = () => {
     };
 
     const debounceFetch = setTimeout(() => {
-      fetchSuggestions(extraData.complaints + ' ' + extraData.diagnosis);
+      fetchSuggestions(extraData.complaints + ' ' + extraData.diagnosis + ' ' + extraData.procedure);
     }, 500);
 
     return () => clearTimeout(debounceFetch);
-  }, [extraData.complaints, extraData.diagnosis, i18n.language, processedAutofillKeywords, savedMedications]);
+  }, [extraData.complaints, extraData.diagnosis, extraData.procedure, i18n.language, processedAutofillKeywords, savedMedications]);
 
   useEffect(() => {
     const fetchReferralDoctors = async () => {
@@ -1879,7 +1879,7 @@ const Consultation = () => {
             </CardHeader>
             <CardContent className="p-4 md:p-6 space-y-6 sm:space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1 space-y-4">
+                <div className="lg:col-span-1 space-y-4 sticky top-4 self-start h-[calc(100vh-2rem)] overflow-y-auto pr-2">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="location-select" className="flex-shrink-0">Location</Label>
                     <Select value={selectedHospital.name} onValueChange={(value) => {
@@ -1949,6 +1949,21 @@ const Consultation = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
+                  {selectedConsultation && (
+                    <div className="space-y-2 p-3 bg-secondary/10 rounded-md border border-secondary/20">
+                      <Label htmlFor="personalNoteSidebar" className="text-sm font-medium flex items-center gap-2">
+                        <Stethoscope className="w-4 h-4 text-primary" />
+                        Doctor's Personal Note
+                      </Label>
+                      <Textarea
+                        id="personalNoteSidebar"
+                        value={extraData.personalNote}
+                        onChange={e => handleExtraChange('personalNote', e.target.value)}
+                        placeholder="Private notes..."
+                        className="min-h-[100px] text-sm bg-background/50 resize-y"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-4">
                     <div className="font-semibold">
                       Total Consultations: {filteredConsultations.length}
@@ -2326,11 +2341,6 @@ const Consultation = () => {
                             ))}
                           </div>
                           <Textarea ref={followupRef} id="followup" value={extraData.followup} onChange={e => handleExtraChange('followup', e.target.value, e.target.selectionStart)} placeholder="Follow-up instructions..." className="min-h-[80px]" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="personalNote" className="text-sm font-medium">Doctor's Personal Note</Label>
-                          <Textarea ref={personalNoteRef} id="personalNote" value={extraData.personalNote} onChange={e => handleExtraChange('personalNote', e.target.value, e.target.selectionStart)} placeholder="e.g., Patient seemed anxious, follow up on test results..." className="min-h-[80px]" />
                         </div>
                       </div>
 
