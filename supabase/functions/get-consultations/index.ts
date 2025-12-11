@@ -56,7 +56,8 @@ serve(async (req) => {
           phone,
           drive_id
         )
-      `);
+      `)
+      .order('created_at', { ascending: false });
 
     // Mode 1: Fetch by patientId for a complete history.
     if (patientId) {

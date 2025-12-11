@@ -1957,8 +1957,9 @@ const Consultation = () => {
                       </Label>
                       <Textarea
                         id="personalNoteSidebar"
+                        ref={personalNoteRef}
                         value={extraData.personalNote}
-                        onChange={e => handleExtraChange('personalNote', e.target.value)}
+                        onChange={e => handleExtraChange('personalNote', e.target.value, e.target.selectionStart)}
                         placeholder="Private notes..."
                         className="min-h-[100px] text-sm bg-background/50 resize-y"
                       />
