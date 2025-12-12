@@ -205,7 +205,8 @@ const PatientGuidesPage = () => {
     const termLower = searchInTelugu ? term : term.toLowerCase();
     const searchWords = term.split(/\s+/).filter(w => {
       const lowerW = w.toLowerCase();
-      return w.length > 0 && !['exercises', 'diet'].includes(lowerW);
+      const stopwords = ['exercise', 'exercises', 'diet', 'guide', 'ఆహారం', 'వ్యాయామం', 'వ్యాయామాలు', 'మార్గదర్శి'];
+      return w.length > 0 && !stopwords.includes(lowerW);
     });
 
     if (searchWords.length === 0) {

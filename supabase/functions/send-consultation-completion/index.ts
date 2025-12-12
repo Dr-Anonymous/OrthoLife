@@ -84,10 +84,11 @@ serve(async (req) => {
                 const searchInTelugu = isTeluguText(term);
                 const termLower = searchInTelugu ? term : term.toLowerCase();
 
-                // Remove stopwords 'exercises', 'diet', 'guide' from scoring for better relevance
+                // Remove stopwords 'exercises', 'diet', 'guide' and their Telugu equivalents from scoring for better relevance
+                const stopwords = ['exercise', 'exercises', 'diet', 'guide', 'ఆహారం', 'వ్యాయామం', 'వ్యాయామాలు', 'మార్గదర్శి'];
                 const searchWords = term.split(/\s+/).filter(w => {
                     const lowerW = w.toLowerCase();
-                    return w.length > 0 && !['exercises', 'diet', 'guide'].includes(lowerW);
+                    return w.length > 0 && !stopwords.includes(lowerW);
                 });
 
                 if (searchWords.length > 0) {
