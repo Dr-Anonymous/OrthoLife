@@ -12,26 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cleanConsultationData } from '@/lib/utils';
 
-const convertImageToBase64 = (url: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.src = url;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/png'));
-            } else {
-                reject(new Error('Failed to get canvas context'));
-            }
-        };
-        img.onerror = (error) => reject(error);
-    });
-};
 
 const PrescriptionDownload = () => {
     const { patientPhone } = useParams<{ patientPhone: string }>();
@@ -44,8 +24,6 @@ const PrescriptionDownload = () => {
     const printRef = useRef<HTMLDivElement>(null);
     const [downloadStarted, setDownloadStarted] = useState(false);
     const [inputPhone, setInputPhone] = useState('');
-    const [base64Logo, setBase64Logo] = useState<string>('');
-    const [base64Qr, setBase64Qr] = useState<string>('');
 
     useEffect(() => {
         const fetchConsultation = async () => {
@@ -105,26 +83,14 @@ const PrescriptionDownload = () => {
                 setDownloadStarted(true);
 
                 try {
-                    // Convert images to base64
-                    const logoUrl = HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png';
-                    const qrUrl = '/images/assets/qr-code.png';
-
-                    const [logoBase64, qrBase64] = await Promise.all([
-                        convertImageToBase64(logoUrl),
-                        convertImageToBase64(qrUrl)
-                    ]);
-
-                    setBase64Logo(logoBase64);
-                    setBase64Qr(qrBase64);
-
-                    // Small delay to ensure rendering is complete with new images
+                    // Small delay to ensure rendering is complete
                     setTimeout(() => {
                         const element = printRef.current;
                         const opt = {
                             margin: [0, 0, 0, 0], // Top, Left, Bottom, Right margins in mm
                             filename: `Prescription-${consultation.patient.name}-${format(new Date(consultation.created_at), 'yyyy-MM-dd')}.pdf`,
                             image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 1, useCORS: false, logging: false, scrollY: 0 },
+                            html2canvas: { scale: 2, useCORS: false, logging: false, scrollY: 0 },
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                         };
 
@@ -136,7 +102,6 @@ const PrescriptionDownload = () => {
                         });
                     }, 1000);
                 } catch (err) {
-                    console.error("Failed to load images", err);
                     setError("Failed to prepare PDF generation");
                 }
             };
@@ -234,8 +199,8 @@ const PrescriptionDownload = () => {
                             consultationDate={new Date(consultation.created_at)}
                             age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                             language={consultation.language || i18n.language}
-                            logoUrl={base64Logo || HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
-                            qrCodeUrl={base64Qr}
+                            logoUrl={HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                            qrCodeUrl="/images/assets/qr-code.png"
                             noBackground={true}
                         />
                     )}
