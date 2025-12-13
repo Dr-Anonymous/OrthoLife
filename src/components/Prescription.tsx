@@ -43,10 +43,11 @@ interface PrescriptionProps {
   age: number | '';
   language: string;
   logoUrl: string;
+  qrCodeUrl?: string;
   className?: string;
 }
 
-export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, className }, ref) => {
+export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, className }, ref) => {
   const { t, i18n } = useTranslation();
 
   React.useEffect(() => {
@@ -257,7 +258,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         style={{ backgroundImage: backgroundPattern }}
       >
         <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
-        <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
+        <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />
       </footer>
     </div>
   );
