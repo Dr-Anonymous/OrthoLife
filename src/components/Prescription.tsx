@@ -44,10 +44,11 @@ interface PrescriptionProps {
   language: string;
   logoUrl: string;
   qrCodeUrl?: string;
+  noBackground?: boolean;
   className?: string;
 }
 
-export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, className }, ref) => {
+export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className }, ref) => {
   const { t, i18n } = useTranslation();
 
   React.useEffect(() => {
@@ -63,7 +64,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
       {/* Header */}
       <header
         className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
-        style={{ backgroundImage: backgroundPattern }}
+        style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
       >
         <div className="flex items-center">
           <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", logoUrl === '/images/logos/logo.png' ? 'h-20' : 'h-24')} />
@@ -255,7 +256,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
       {/* Footer */}
       <footer
         className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
-        style={{ backgroundImage: backgroundPattern }}
+        style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
       >
         <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
         <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />

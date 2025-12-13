@@ -124,7 +124,7 @@ const PrescriptionDownload = () => {
                             margin: [0, 0, 0, 0], // Top, Left, Bottom, Right margins in mm
                             filename: `Prescription-${consultation.patient.name}-${format(new Date(consultation.created_at), 'yyyy-MM-dd')}.pdf`,
                             image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+                            html2canvas: { scale: 1, useCORS: false, logging: false, scrollY: 0 },
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                         };
 
@@ -236,6 +236,7 @@ const PrescriptionDownload = () => {
                             language={consultation.language || i18n.language}
                             logoUrl={base64Logo || HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                             qrCodeUrl={base64Qr}
+                            noBackground={true}
                         />
                     )}
                 </div>
