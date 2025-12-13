@@ -22,7 +22,7 @@ export async function sendWhatsAppMessage(number: string, message: string) {
     // 3. Ensure it starts with +
     const formattedNumber = '+' + digits
 
-    const uniqueId = crypto.randomUUID()
+    const uniqueId = Date.now().toString()
     const firebaseDbUrl = "https://whatsauto-9cf91-default-rtdb.firebaseio.com"
     const url = `${firebaseDbUrl}/${uniqueId}.json`
 
