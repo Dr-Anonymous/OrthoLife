@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Calendar, Stethoscope, Pill, FileText, MapPin, NotebookText, Syringe, Share } from 'lucide-react';
+import { Loader2, Calendar, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
+import ConsultationCard from './ConsultationCard';
 
 interface PatientHistoryModalProps {
   isOpen: boolean;
@@ -60,7 +61,7 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
           ) : (
             <div className="relative pl-6">
               <div className="absolute left-3 top-0 h-full w-0.5 bg-border"></div>
-              {history.map((item, index) => (
+              {history.map((item) => (
                 <div key={item.id} className="mb-8 relative">
                   <div className="absolute -left-5 top-1.5 h-4 w-4 rounded-full bg-primary"></div>
                   <div className="pl-4">
@@ -79,67 +80,9 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                         {item.status}
                       </span>
                     </div>
-                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                      {(item.consultation_data?.diagnosis || item.consultation_data?.complaints) && (
-                        <div className="flex items-start gap-3">
-                          <Stethoscope className="w-5 h-5 mt-1 text-primary" />
-                          <div>
-                            <h4 className="font-semibold">{item.consultation_data.diagnosis ? 'Diagnosis' : 'Complaints'}</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                              {item.consultation_data.diagnosis || item.consultation_data.complaints}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      {item.consultation_data?.medications?.length > 0 && (
-                        <div className="flex items-start gap-3">
-                          <Pill className="w-5 h-5 mt-1 text-primary" />
-                          <div>
-                            <h4 className="font-semibold">Medications</h4>
-                            <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                              {item.consultation_data.medications.map((med: any, index: number) => (
-                                <li key={index}>{med.name} - {med.dose}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                      {item.consultation_data?.procedure && (
-                        <div className="flex items-start gap-3">
-                          <Syringe className="w-5 h-5 mt-1 text-primary" />
-                          <div>
-                            <h4 className="font-semibold">Procedure Done</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.procedure}</p>
-                          </div>
-                        </div>
-                      )}
-                      {item.consultation_data?.advice && (
-                        <div className="flex items-start gap-3">
-                          <FileText className="w-5 h-5 mt-1 text-primary" />
-                          <div>
-                            <h4 className="font-semibold">Advice</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.advice}</p>
-                          </div>
-                        </div>
-                      )}
-                      {item.consultation_data?.personalNote && (
-                        <div className="flex items-start gap-3">
-                          <NotebookText className="w-5 h-5 mt-1 text-primary" />
-                          <div>
-                            <h4 className="font-semibold">Doctor's Note</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.personalNote}</p>
-                          </div>
-                        </div>
-                      )}
-                      {item.consultation_data?.referred_to && (
-                        <div className="flex items-start gap-3">
-                          <Share className="w-5 h-5 mt-1 text-primary" />
-                          <div>
-                            <h4 className="font-semibold">Referred To</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{item.consultation_data.referred_to}</p>
-                          </div>
-                        </div>
-                      )}
+
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <ConsultationCard data={item.consultation_data} />
                     </div>
                   </div>
                 </div>

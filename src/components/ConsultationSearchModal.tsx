@@ -6,56 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, formatDistanceToNow } from 'date-fns';
-import { Pill, FileText, NotebookText, Undo2, Calendar, Stethoscope, MapPin, Syringe, Share } from 'lucide-react';
-
-const ConsultationSearchResultItem = ({ consultation, highlightKeyword }) => {
-  const {
-    personalNote,
-    complaints,
-    findings,
-    investigations,
-    diagnosis,
-    medications,
-    advice,
-    followup,
-    procedure,
-    referred_to,
-  } = consultation.consultation_data || {};
-
-  const renderField = (Icon, label, value) => {
-    if (!value || (Array.isArray(value) && value.length === 0)) return null;
-
-    const displayValue = Array.isArray(value)
-      ? value.map(med => `${med.name}${med.duration ? ` - ${med.duration}` : ''}`).join(', ')
-      : value;
-
-    return (
-      <div className="flex items-start gap-3">
-        <Icon className="w-5 h-5 mt-1 text-primary flex-shrink-0" />
-        <div>
-          <h4 className="font-semibold">{label}</h4>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: highlightKeyword(displayValue) }} />
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-3">
-      {renderField(NotebookText, "Doctor's Personal Note", personalNote)}
-      {renderField(Stethoscope, 'Complaints', complaints)}
-      {renderField(FileText, 'Clinical Findings', findings)}
-      {renderField(FileText, 'Investigations', investigations)}
-      {renderField(Stethoscope, 'Diagnosis', diagnosis)}
-      {renderField(Pill, 'Medications', medications)}
-      {renderField(Syringe, 'Procedure Done', procedure)}
-      {renderField(Share, 'Referred To', referred_to)}
-      {renderField(FileText, 'Advice', advice)}
-      {renderField(Undo2, 'Follow-up', followup)}
-    </div>
-  );
-};
-
+import { Calendar, MapPin } from 'lucide-react';
+import ConsultationCard from './ConsultationCard';
 
 export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation }) => {
   const [name, setName] = useState('');
@@ -161,7 +113,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                             </div>
                           )}
                         </div>
-                        <ConsultationSearchResultItem consultation={consultation} highlightKeyword={highlightKeyword} />
+                        <ConsultationCard data={consultation.consultation_data} highlightKeyword={highlightKeyword} />
                       </div>
                     ))}
                   </AccordionContent>

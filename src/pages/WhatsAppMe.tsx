@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, Folder, History, Search, Stethoscope, Pill, FileText, NotebookText, Undo2, MapPin, Syringe, Share } from 'lucide-react';
+import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, History, Search, MapPin } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import ConsultationCard from '@/components/ConsultationCard';
 
 interface PatientFolder {
   id: string;
@@ -347,50 +348,26 @@ const WhatsAppMe = () => {
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clipboard className="w-4 h-4" /> Prescription Details
                 </CardTitle>
-                {prescription.created_at && (
-                  <CardDescription>
-                    {formatDistanceToNow(new Date(prescription.created_at), { addSuffix: true })} ({format(new Date(prescription.created_at), 'dd.MM.yyyy')})
+                {(prescription.created_at || prescription.location) && (
+                  <CardDescription className="flex items-center gap-1 flex-wrap">
+                    {prescription.created_at && (
+                      <span>
+                        {formatDistanceToNow(new Date(prescription.created_at), { addSuffix: true })} ({format(new Date(prescription.created_at), 'dd.MM.yyyy')})
+                      </span>
+                    )}
+                    {prescription.created_at && prescription.location && <span> at </span>}
+                    {prescription.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {prescription.location}
+                      </span>
+                    )}
                   </CardDescription>
-                )}
-                {prescription.location && (
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin className="w-3 h-3" />
-                    <span>{prescription.location}</span>
-                  </div>
                 )}
               </CardHeader>
               <CardContent className="space-y-3">
                 <p><strong>Name:</strong> {prescription.name}</p>
-                {[
-                  { Icon: NotebookText, label: "Doctor's Personal Note", value: prescription.personalNote },
-                  { Icon: Stethoscope, label: 'Complaints', value: prescription.complaints },
-                  { Icon: FileText, label: 'Clinical Findings', value: prescription.findings },
-                  { Icon: FileText, label: 'Investigations', value: prescription.investigations },
-                  { Icon: Stethoscope, label: 'Diagnosis', value: prescription.diagnosis },
-                  { Icon: Pill, label: 'Medications', value: prescription.medications },
-                  { Icon: Syringe, label: 'Procedure Done', value: prescription.procedure },
-                  { Icon: FileText, label: 'Advice', value: prescription.advice },
-                  { Icon: Undo2, label: 'Follow-up', value: prescription.followup },
-                  { Icon: Share, label: 'Referred To', value: prescription.referred_to },
-                ].map(({ Icon, label, value }, index) => {
-                  if (!value || (typeof value === 'string' && !value.trim()) || (Array.isArray(value) && value.length === 0)) return null;
-
-                  const displayValue = Array.isArray(value)
-                    ? value.map((med: any) => `${med.name}${med.duration ? ` - ${med.duration}` : ''}`).join(', ')
-                    : value;
-
-                  return (
-                    <div key={index} className="flex items-start gap-3">
-                      <Icon className="w-5 h-5 mt-1 text-primary flex-shrink-0" />
-                      <div>
-                        <h4 className="font-semibold">{label}</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {displayValue}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                <ConsultationCard data={prescription} />
               </CardContent>
             </Card>
           )}
