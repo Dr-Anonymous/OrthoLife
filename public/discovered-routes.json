@@ -35,6 +35,7 @@
     "/guides/8",
     "/guides/14",
     "/guides/6",
+    "/guides/15",
     "/te/guides/9",
     "/te/guides/5",
     "/te/guides/1",
@@ -47,7 +48,8 @@
     "/te/guides/14",
     "/te/guides/8",
     "/te/guides/3",
-    "/te/guides/10"
+    "/te/guides/10",
+    "/te/guides/15"
   ],
   "metadata": [
     {
@@ -226,6 +228,11 @@
       "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
     },
     {
+      "route": "/guides/15",
+      "title": "Post-Surgery Recovery: What to Expect",
+      "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing."
+    },
+    {
       "route": "/te/guides/9",
       "title": "హైపోథైరాయిడిజం ఆహారం: సరైన థైరాయిడ్ ఆరోగ్యం కోసం మీ శరీరానికి ఇంధనం",
       "description": "థైరాయిడ్ పనితీరుకు మద్దతు ఇవ్వడానికి మరియు లక్షణాలను నిర్వహించడానికి హైపోథైరాయిడిజం రోగులకు ఉత్తమ ఆహారం గురించి తెలుసుకోండి. సహాయపడే ఆహారాలను మరియు జాగ్రత్తగా తీసుకోవలసిన వాటిని కనుగొనండి."
@@ -289,6 +296,11 @@
       "route": "/te/guides/10",
       "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
       "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది."
+    },
+    {
+      "route": "/te/guides/15",
+      "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
+      "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం."
     }
   ]
 }
