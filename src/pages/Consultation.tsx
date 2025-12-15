@@ -1879,7 +1879,7 @@ const Consultation = () => {
             </CardHeader>
             <CardContent className="p-4 md:p-6 space-y-6 sm:space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1 space-y-4 sticky top-4 self-start h-[calc(100vh-2rem)] overflow-y-auto pr-2">
+                <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)] lg:overflow-y-auto pr-2">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="location-select" className="flex-shrink-0">Location</Label>
                     <Select value={selectedHospital.name} onValueChange={(value) => {
