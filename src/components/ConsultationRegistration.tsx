@@ -62,8 +62,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [matchingPatients, setMatchingPatients] = useState<Patient[]>([]);
+
+
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -258,10 +258,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           throw new Error(error.message);
         }
 
-        if (data.status === 'partial_match') {
-          setMatchingPatients(data.matches);
-          setShowConfirmation(true);
-        } else if (data.status === 'exact_match') {
+        if (data.status === 'exact_match') {
           toast({
             variant: 'destructive',
             title: 'Patient Exists',
@@ -321,7 +318,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
           setSearchResults([]);
           setSelectedPatientId('');
-          setShowConfirmation(false);
           if (onSuccess) onSuccess(data.consultation, formData.consultation_data);
         } else {
           throw new Error(data.error || 'An unexpected error occurred.');
@@ -345,41 +341,10 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
     'August', 'September', 'October', 'November', 'December'];
 
-  const handleSelectFromModal = (patientId: string) => {
-    handleSelectPatient(patientId, matchingPatients);
-    setShowConfirmation(false);
-  };
+
 
   return (
     <>
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Patient Identity</DialogTitle>
-            <DialogDescription>
-              A patient with a similar name is already registered. Please select the correct patient, or register as a new patient.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-2 max-h-60 overflow-y-auto">
-            {matchingPatients.map(p => (
-              <Button
-                variant="outline"
-                className="w-full justify-start h-auto"
-                key={p.id}
-                onClick={() => handleSelectFromModal(p.id.toString())}
-              >
-                <div className="text-left">
-                  <p className="font-semibold">{p.name}</p>
-                  <p className="text-sm text-muted-foreground">{p.phone} - DOB: {format(new Date(p.dob), 'PPP')}</p>
-                </div>
-              </Button>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button className="w-full" onClick={(e) => submitForm(e, true)}>Register as New Patient</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <form onSubmit={submitForm} className="space-y-6">
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">

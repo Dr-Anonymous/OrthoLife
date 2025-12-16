@@ -46,41 +46,61 @@ serve(async (req) => {
 
     if (patientError) throw patientError;
 
-    const newNameLower = name.toLowerCase();
-    const newNameParts = newNameLower.split(/\s+/).filter(p => p.length > 0);
+    // Helper function to calculate Levenshtein distance
+    const levenshteinDistance = (a: string, b: string): number => {
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) == a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+            );
+          }
+        }
+      }
+      return matrix[b.length][a.length];
+    };
 
-    let exactMatch = null;
-    const partialMatches: any[] = [];
+    const normalizeString = (str: string): string => {
+      return str.toLowerCase().replace(/[^a-z]/g, '');
+    };
+
+    const newNameNormalized = normalizeString(name);
+    let bestMatch = null;
+    let highestSimilarity = 0;
 
     if (existingPatients && existingPatients.length > 0) {
       for (const patient of existingPatients) {
-        const existingNameLower = patient.name.toLowerCase();
+        const existingNameNormalized = normalizeString(patient.name);
 
-        if (newNameLower === existingNameLower) {
-          exactMatch = patient;
-          break;
-        }
+        // Calculate similarity
+        const distance = levenshteinDistance(newNameNormalized, existingNameNormalized);
+        const maxLength = Math.max(newNameNormalized.length, existingNameNormalized.length);
+        const similarity = maxLength === 0 ? 1 : 1 - (distance / maxLength);
 
-        const existingNameParts = existingNameLower.split(/\s+/).filter(p => p.length > 0);
-
-        const isPartialMatch = newNameParts.some(newPart =>
-          existingNameParts.some(existingPart =>
-            (newPart.length >= 4 && existingPart.startsWith(newPart)) ||
-            (existingPart.length >= 4 && newPart.startsWith(existingPart))
-          )
-        );
-
-        if (isPartialMatch) {
-          partialMatches.push(patient);
+        if (similarity >= 0.4) {
+          if (similarity > highestSimilarity) {
+            highestSimilarity = similarity;
+            bestMatch = patient;
+          }
         }
       }
     }
 
-    if (exactMatch) {
-      // If an exact match is found, create a new consultation for that patient
+    if (bestMatch) {
+      // If a match is found (similarity >= 40%), create a new consultation for that patient
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
-        .insert({ patient_id: exactMatch.id, status: 'pending' })
+        .insert({ patient_id: bestMatch.id, status: 'pending' })
         .select()
         .single();
 
@@ -89,25 +109,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         status: 'success',
         consultation,
-        driveId: exactMatch.drive_id
+        driveId: bestMatch.drive_id,
+        matchType: highestSimilarity === 1 ? 'exact' : 'fuzzy',
+        similarity: highestSimilarity
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     }
 
-    if (partialMatches.length > 0 && !force) {
-      return new Response(JSON.stringify({
-        status: 'partial_match',
-        message: 'Found patients with similar names. Please confirm if this is a new patient.',
-        matches: partialMatches
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
-
-    // No matches or user confirmed new patient, proceed with registration
+    // No matches, proceed with registration
     const driveId = existingDriveId; // Keep existing driveId if patient is being migrated
 
     const newPatientId = id || await generateIncrementalId(supabase);
