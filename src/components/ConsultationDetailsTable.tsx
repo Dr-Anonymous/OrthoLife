@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ArrowUpDown, ArrowUp, ArrowDown, Filter, Check, X } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Filter, Check, X, Calendar, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -16,9 +16,16 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import ConsultationCard from '@/components/ConsultationCard';
 
 interface Patient {
   id: string;
@@ -68,6 +75,7 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
     status: [],
     hasProcedure: false,
   });
+  const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
 
   // Extract unique values for filters
   const filterOptions = useMemo(() => {
@@ -385,15 +393,12 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
                 <tr key={consultation.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(consultation.created_at), 'PPP')}</td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    <div>
-                      {consultation.patient.drive_id ? (
-                        <a href={`https://drive.google.com/drive/folders/${consultation.patient.drive_id}`} target="_blank" className="text-blue-600 hover:underline">
-                          {consultation.patient.name}
-                        </a>
-                      ) : (
-                        consultation.patient.name
-                      )}
-                    </div>
+                    <button 
+                      onClick={() => setSelectedConsultation(consultation)}
+                      className="text-left hover:underline text-primary focus:outline-none"
+                    >
+                      {consultation.patient.name}
+                    </button>
                     {consultation.consultation_data?.procedure && (
                       <div className="text-xs text-gray-500 font-normal mt-0.5">
                         {consultation.consultation_data.procedure}
@@ -423,6 +428,45 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
       <div className="text-sm text-muted-foreground">
         Showing {filteredAndSortedData.length} of {data.length} records
       </div>
+
+      <Dialog open={!!selectedConsultation} onOpenChange={(open) => !open && setSelectedConsultation(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Consultation Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedConsultation && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-4 border-b">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <p className="font-semibold">{format(new Date(selectedConsultation.created_at), 'PPP')}</p>
+                </div>
+                {selectedConsultation.location && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">{selectedConsultation.location}</p>
+                  </div>
+                )}
+                <span className={`px-2 py-0.5 text-xs rounded-full ${selectedConsultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {selectedConsultation.status}
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-lg">{selectedConsultation.patient.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedConsultation.patient.phone}
+                </p>
+              </div>
+
+              {selectedConsultation.consultation_data && (
+                <ConsultationCard data={selectedConsultation.consultation_data} />
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
