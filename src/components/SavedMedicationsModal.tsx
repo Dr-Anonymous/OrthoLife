@@ -24,6 +24,7 @@ interface Medication {
   freqNight: boolean;
   frequency: string;
   duration: string;
+  duration_te?: string;
   instructions: string;
   notes: string;
   instructions_te?: string;
@@ -50,6 +51,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     freqNight: false,
     frequency: '',
     duration: '',
+    duration_te: '',
     instructions: '',
     notes: '',
     instructions_te: '',
@@ -59,6 +61,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const [isTranslating, setIsTranslating] = useState(false);
   const debouncedInstructions = useDebounce(newMed.instructions, 500);
   const debouncedFrequency = useDebounce(newMed.frequency, 500);
+  const debouncedDuration = useDebounce(newMed.duration, 500);
   const debouncedNotes = useDebounce(newMed.notes, 500);
 
 
@@ -85,9 +88,10 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     if (!isEditing) {
       if (debouncedInstructions !== newMed.instructions_te) translateField(debouncedInstructions, 'instructions_te');
       if (debouncedFrequency !== newMed.frequency_te) translateField(debouncedFrequency, 'frequency_te');
+      if (debouncedDuration !== newMed.duration_te) translateField(debouncedDuration, 'duration_te');
       if (debouncedNotes !== newMed.notes_te) translateField(debouncedNotes, 'notes_te');
     }
-  }, [debouncedInstructions, debouncedFrequency, debouncedNotes, isEditing]);
+  }, [debouncedInstructions, debouncedFrequency, debouncedDuration, debouncedNotes, isEditing]);
 
 
   useEffect(() => {
@@ -104,13 +108,14 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
             return data?.translatedText || '';
           };
 
-          const [instructions_te, frequency_te, notes_te] = await Promise.all([
+          const [instructions_te, frequency_te, duration_te, notes_te] = await Promise.all([
             newMed.instructions ? translate(newMed.instructions) : Promise.resolve(''),
             newMed.frequency ? translate(newMed.frequency) : Promise.resolve(''),
+            newMed.duration ? translate(newMed.duration) : Promise.resolve(''),
             newMed.notes ? translate(newMed.notes) : Promise.resolve(''),
           ]);
 
-          setNewMed(prev => ({ ...prev, instructions_te, frequency_te, notes_te }));
+          setNewMed(prev => ({ ...prev, instructions_te, frequency_te, duration_te, notes_te }));
 
         } catch (err) {
           console.error('Translation error:', err);
@@ -120,7 +125,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
         }
       };
 
-      if (!newMed.instructions_te && !newMed.frequency_te && !newMed.notes_te) {
+      if (!newMed.instructions_te && !newMed.frequency_te && !newMed.duration_te && !newMed.notes_te) {
         translateFields();
       }
     }
@@ -132,7 +137,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch saved medications.' });
     } else {
-      setMedications(data.map(d => ({...d, freqMorning: d.freq_morning, freqNoon: d.freq_noon, freqNight: d.freq_night})));
+      setMedications(data.map(d => ({ ...d, freqMorning: d.freq_morning, freqNoon: d.freq_noon, freqNight: d.freq_night })));
     }
     setIsLoading(false);
   };
@@ -156,33 +161,35 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     setIsLoading(true);
     const { error } = isEditing
       ? await supabase.from('saved_medications').update({
-          name: newMed.name,
-          dose: newMed.dose,
-          freq_morning: newMed.freqMorning,
-          freq_noon: newMed.freqNoon,
-          freq_night: newMed.freqNight,
-          frequency: newMed.frequency,
-          duration: newMed.duration,
-          instructions: newMed.instructions,
-          notes: newMed.notes,
-          instructions_te: newMed.instructions_te,
-          frequency_te: newMed.frequency_te,
-          notes_te: newMed.notes_te,
-        }).eq('id', isEditing)
+        name: newMed.name,
+        dose: newMed.dose,
+        freq_morning: newMed.freqMorning,
+        freq_noon: newMed.freqNoon,
+        freq_night: newMed.freqNight,
+        frequency: newMed.frequency,
+        duration: newMed.duration,
+        duration_te: newMed.duration_te,
+        instructions: newMed.instructions,
+        notes: newMed.notes,
+        instructions_te: newMed.instructions_te,
+        frequency_te: newMed.frequency_te,
+        notes_te: newMed.notes_te,
+      }).eq('id', isEditing)
       : await supabase.from('saved_medications').insert([{
-          name: newMed.name,
-          dose: newMed.dose,
-          freq_morning: newMed.freqMorning,
-          freq_noon: newMed.freqNoon,
-          freq_night: newMed.freqNight,
-          frequency: newMed.frequency,
-          duration: newMed.duration,
-          instructions: newMed.instructions,
-          notes: newMed.notes,
-          instructions_te: newMed.instructions_te,
-          frequency_te: newMed.frequency_te,
-          notes_te: newMed.notes_te,
-        }]);
+        name: newMed.name,
+        dose: newMed.dose,
+        freq_morning: newMed.freqMorning,
+        freq_noon: newMed.freqNoon,
+        freq_night: newMed.freqNight,
+        frequency: newMed.frequency,
+        duration: newMed.duration,
+        duration_te: newMed.duration_te,
+        instructions: newMed.instructions,
+        notes: newMed.notes,
+        instructions_te: newMed.instructions_te,
+        frequency_te: newMed.frequency_te,
+        notes_te: newMed.notes_te,
+      }]);
 
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: `Could not ${isEditing ? 'update' : 'add'} medication.` });
@@ -216,7 +223,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const resetForm = () => {
     setIsEditing(null);
-    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
+    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', duration_te: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
     setIsCustom(false);
   };
 
@@ -291,9 +298,15 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                 </div>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="med-duration">Duration</Label>
-              <Input id="med-duration" value={newMed.duration} onChange={e => handleInputChange('duration', e.target.value)} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="med-duration">Duration</Label>
+                <Input id="med-duration" value={newMed.duration} onChange={e => handleInputChange('duration', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="med-duration-te">Duration (Telugu)</Label>
+                <Input id="med-duration-te" value={newMed.duration_te || ''} onChange={e => handleInputChange('duration_te', e.target.value)} disabled={isTranslating} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

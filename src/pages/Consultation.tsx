@@ -116,6 +116,7 @@ interface Medication {
   notes: string;
   instructions_te?: string;
   frequency_te?: string;
+  duration_te?: string;
   notes_te?: string;
 }
 
@@ -185,6 +186,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
           freq_night: med.freqNight,
           frequency: med.frequency,
           duration: med.duration,
+          duration_te: med.duration_te,
           instructions: med.instructions,
           notes: med.notes,
         }]);
@@ -256,6 +258,7 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
                       name: savedMed.name,
                       instructions: savedMed.instructions_te || savedMed.instructions,
                       frequency: savedMed.frequency_te || savedMed.frequency,
+                      duration: savedMed.duration_te || savedMed.duration,
                       notes: savedMed.notes_te || savedMed.notes,
                     } : { ...savedMed, id: crypto.randomUUID(), name: savedMed.name };
 
@@ -431,6 +434,10 @@ const Consultation = () => {
   const [consultationToDelete, setConsultationToDelete] = useState<Consultation | null>(null);
   const [isOnlyConsultation, setIsOnlyConsultation] = useState(false);
   const [deletePatientAlso, setDeletePatientAlso] = useState(false);
+
+  // New state for field visibility
+  const [isProcedureExpanded, setIsProcedureExpanded] = useState(false);
+  const [isReferredToExpanded, setIsReferredToExpanded] = useState(false);
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -715,6 +722,7 @@ const Consultation = () => {
         id: m.id,
         instructions: m.instructions,
         frequency: m.frequency,
+        duration: m.duration,
         notes: m.notes,
       })),
     };
@@ -753,6 +761,7 @@ const Consultation = () => {
             ...med,
             instructions: await translate(med.instructions),
             frequency: await translate(med.frequency),
+            duration: await translate(med.duration),
             notes: await translate(med.notes),
           }))
         );
@@ -1099,6 +1108,8 @@ const Consultation = () => {
 
 
   useEffect(() => {
+    setIsProcedureExpanded(false);
+    setIsReferredToExpanded(false);
     const fetchLastVisitDate = async (patientId: string) => {
       const { data, error } = await supabase
         .from('consultations')
@@ -2251,8 +2262,16 @@ const Consultation = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="procedure" className="text-sm font-medium">Procedure Done</Label>
-                          <Textarea ref={procedureRef} id="procedure" value={extraData.procedure} onChange={e => handleExtraChange('procedure', e.target.value, e.target.selectionStart)} placeholder="Procedure done..." className="min-h-[80px]" />
+                          <Label
+                            htmlFor="procedure"
+                            className="text-sm font-medium cursor-pointer hover:underline"
+                            onClick={() => setIsProcedureExpanded(!isProcedureExpanded)}
+                          >
+                            Procedure Done {(!extraData.procedure && !isProcedureExpanded) && <span className="text-muted-foreground text-xs">(click to add)</span>}
+                          </Label>
+                          {(extraData.procedure || isProcedureExpanded) && (
+                            <Textarea ref={procedureRef} id="procedure" value={extraData.procedure} onChange={e => handleExtraChange('procedure', e.target.value, e.target.selectionStart)} placeholder="Procedure done..." className="min-h-[80px]" />
+                          )}
                         </div>
 
                         <div className="space-y-2">
@@ -2318,18 +2337,26 @@ const Consultation = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="referred_to" className="text-sm font-medium">Referred To</Label>
-                          <AutosuggestInput
-                            ref={referredToRef as any}
-                            value={extraData.referred_to}
-                            onChange={value => handleExtraChange('referred_to', value, (referredToRef.current as any)?.selectionStart || value.length)}
-                            suggestions={referralDoctors.map(d => ({
-                              id: d.id,
-                              name: `${d.name}${d.specialization ? `, ${d.specialization}` : ''}${d.address ? `, ${d.address}` : ''}${d.phone ? `, ${d.phone}` : ''}`
-                            }))}
-                            onSuggestionSelected={suggestion => handleExtraChange('referred_to', suggestion.name)}
-                            placeholder="Referred to..."
-                          />
+                          <Label
+                            htmlFor="referred_to"
+                            className="text-sm font-medium cursor-pointer hover:underline"
+                            onClick={() => setIsReferredToExpanded(!isReferredToExpanded)}
+                          >
+                            Referred To {(!extraData.referred_to && !isReferredToExpanded) && <span className="text-muted-foreground text-xs">(click to add)</span>}
+                          </Label>
+                          {(extraData.referred_to || isReferredToExpanded) && (
+                            <AutosuggestInput
+                              ref={referredToRef as any}
+                              value={extraData.referred_to}
+                              onChange={value => handleExtraChange('referred_to', value, (referredToRef.current as any)?.selectionStart || value.length)}
+                              suggestions={referralDoctors.map(d => ({
+                                id: d.id,
+                                name: `${d.name}${d.specialization ? `, ${d.specialization}` : ''}${d.address ? `, ${d.address}` : ''}${d.phone ? `, ${d.phone}` : ''}`
+                              }))}
+                              onSuggestionSelected={suggestion => handleExtraChange('referred_to', suggestion.name)}
+                              placeholder="Referred to..."
+                            />
+                          )}
                         </div>
 
                         <div className="space-y-2">
