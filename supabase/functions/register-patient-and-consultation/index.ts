@@ -87,7 +87,7 @@ serve(async (req) => {
         const maxLength = Math.max(newNameNormalized.length, existingNameNormalized.length);
         const similarity = maxLength === 0 ? 1 : 1 - (distance / maxLength);
 
-        if (similarity >= 0.4) {
+        if (similarity >= 0.6) {
           if (similarity > highestSimilarity) {
             highestSimilarity = similarity;
             bestMatch = patient;
@@ -97,7 +97,7 @@ serve(async (req) => {
     }
 
     if (bestMatch) {
-      // If a match is found (similarity >= 40%), create a new consultation for that patient
+      // If a match is found (similarity >= 60%), create a new consultation for that patient
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
         .insert({ patient_id: bestMatch.id, status: 'pending' })
