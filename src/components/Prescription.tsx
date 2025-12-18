@@ -34,6 +34,10 @@ interface ConsultationData {
   medications: Medication[];
   procedure?: string;
   referred_to?: string;
+  bp?: string;
+  temperature?: string;
+  weight?: string;
+  allergy?: string;
 }
 
 interface PrescriptionProps {
@@ -98,6 +102,36 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
         <div className="text-right py-2 text-muted-foreground">
           {format(consultationDate, 'dd/MM/yyyy')}
         </div>
+
+        {/* Vitals */}
+        {(consultation.bp || consultation.temperature || consultation.weight || consultation.allergy) && (
+          <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 bg-muted/30 px-4 rounded-md">
+            {consultation.bp && (
+              <div className="flex items-center">
+                <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">BP:</span>
+                <span className="font-medium">{consultation.bp}</span>
+              </div>
+            )}
+            {consultation.temperature && (
+              <div className="flex items-center">
+                <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">Temp:</span>
+                <span className="font-medium">{consultation.temperature}</span>
+              </div>
+            )}
+            {consultation.weight && (
+              <div className="flex items-center">
+                <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">Weight:</span>
+                <span className="font-medium">{consultation.weight}</span>
+              </div>
+            )}
+            {consultation.allergy && (
+              <div className="flex items-center">
+                <span className="font-semibold text-destructive text-xs uppercase tracking-wider mr-2">Allergies:</span>
+                <span className="font-medium text-destructive">{consultation.allergy}</span>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Medical Info */}
         <section className="space-y-4">

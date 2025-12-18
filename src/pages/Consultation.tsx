@@ -1160,7 +1160,11 @@ const Consultation = () => {
         ...selectedConsultation.consultation_data,
         personalNote: selectedConsultation.consultation_data.personalNote || '',
         visit_type: selectedConsultation.visit_type || 'free',
-      } : defaultExtraData;
+        location: selectedConsultation.location || HOSPITALS[0].name,
+      } : {
+        ...defaultExtraData,
+        location: selectedConsultation.location || HOSPITALS[0].name,
+      };
       setExtraData(newExtraData);
       setInitialExtraData(newExtraData);
       setEditablePatientDetails({ ...selectedConsultation.patient });
