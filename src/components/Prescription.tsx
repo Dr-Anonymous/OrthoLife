@@ -105,7 +105,7 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
 
         {/* Vitals */}
         {(consultation.bp || consultation.temperature || consultation.weight || consultation.allergy) && (
-          <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 bg-muted/30 px-4 rounded-md">
+          <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4">
             {consultation.bp && (
               <div className="flex items-center">
                 <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">BP:</span>

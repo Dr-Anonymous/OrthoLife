@@ -176,20 +176,35 @@ const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication,
     }
     setIsSavingFavorite(true);
     try {
+      const isTelugu = i18n.language === 'te';
+      const payload: any = {
+        name: med.name,
+        dose: med.dose,
+        freq_morning: med.freqMorning,
+        freq_noon: med.freqNoon,
+        freq_night: med.freqNight,
+      };
+
+      if (isTelugu) {
+        payload.frequency_te = med.frequency;
+        payload.duration_te = med.duration;
+        payload.instructions_te = med.instructions;
+        payload.notes_te = med.notes;
+      } else {
+        payload.frequency = med.frequency;
+        payload.duration = med.duration;
+        payload.instructions = med.instructions;
+        payload.notes = med.notes;
+        // Maintain the possibly existing te values if they exist in the object and we are in EN
+        if (med.duration_te) payload.duration_te = med.duration_te;
+        if (med.frequency_te) payload.frequency_te = med.frequency_te;
+        if (med.instructions_te) payload.instructions_te = med.instructions_te;
+        if (med.notes_te) payload.notes_te = med.notes_te;
+      }
+
       const { data, error } = await supabase
         .from('saved_medications')
-        .insert([{
-          name: med.name,
-          dose: med.dose,
-          freq_morning: med.freqMorning,
-          freq_noon: med.freqNoon,
-          freq_night: med.freqNight,
-          frequency: med.frequency,
-          duration: med.duration,
-          duration_te: med.duration_te,
-          instructions: med.instructions,
-          notes: med.notes,
-        }]);
+        .insert([payload]);
 
       if (error) throw error;
       toast({
@@ -399,6 +414,7 @@ const Consultation = () => {
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
   const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
   const [initialExtraData, setInitialExtraData] = useState<any>(null);
+  const [initialLanguage, setInitialLanguage] = useState<string>('en');
   const [isFormDirty, setIsFormDirty] = useState(false);
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [nextConsultation, setNextConsultation] = useState<Consultation | null>(null);
@@ -1184,6 +1200,7 @@ const Consultation = () => {
         if (hospital) setSelectedHospital(hospital);
       }
       setInitialPatientDetails(selectedConsultation.patient);
+      setInitialLanguage(initialLanguage);
       setIsFormDirty(false);
       setSuggestedMedications([]);
       setSuggestedAdvice([]);
@@ -1555,6 +1572,7 @@ const Consultation = () => {
     const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
     const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
     const locationChanged = selectedHospital.name !== (initialExtraData?.location || HOSPITALS[0].name);
+    const languageChanged = i18n.language !== initialLanguage;
 
     const isPrinting = options.markAsCompleted;
     const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
@@ -1565,7 +1583,7 @@ const Consultation = () => {
     }
     const statusChanged = newStatus !== selectedConsultation.status;
 
-    if (!patientDetailsChanged && !extraDataChanged && !statusChanged && !locationChanged) {
+    if (!patientDetailsChanged && !extraDataChanged && !statusChanged && !locationChanged && !languageChanged) {
       toast({ title: 'No Changes', description: 'No new changes to save.' });
       return true; // No changes, but operation is "successful"
     }
@@ -1585,6 +1603,7 @@ const Consultation = () => {
           extraData: dataToSave,
           status: newStatus,
           timestamp: new Date().toISOString(),
+          // Include language in offline data if needed, but consultation_data handles it in online mode?
         };
         await offlineStore.setItem(selectedConsultation.id, offlineData);
         setPendingSyncIds(prev => [...new Set([...prev, selectedConsultation.id])]);
@@ -1605,7 +1624,7 @@ const Consultation = () => {
 
         const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string } = {};
 
-        if (extraDataChanged || locationChanged) {
+        if (extraDataChanged || locationChanged || languageChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
           consultationUpdatePayload.visit_type = extraData.visit_type;
           consultationUpdatePayload.location = selectedHospital.name;
