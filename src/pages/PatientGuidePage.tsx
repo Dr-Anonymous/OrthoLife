@@ -18,10 +18,10 @@ import { Guide } from './PatientGuidesPage'; // Re-using the interface
 import NextSteps from '@/components/NextSteps';
 
 interface TranslatedGuide {
-    title: string;
-    description: string;
-    content: string;
-    next_steps?: string;
+  title: string;
+  description: string;
+  content: string;
+  next_steps?: string;
 }
 
 const PatientGuidePage = () => {
@@ -73,19 +73,19 @@ const PatientGuidePage = () => {
         setGuide(guideData);
 
         if (i18n.language !== 'en') {
-            const { data: translationData, error: translationError } = await supabase
-              .from('guide_translations')
-              .select('*')
-              .eq('guide_id', guideId)
-              .eq('language', i18n.language)
-              .single();
-    
-            if (translationError && translationError.code !== 'PGRST116') {
-              throw translationError;
-            }
-            if (translationData) {
-              setTranslatedGuide(translationData);
-            }
+          const { data: translationData, error: translationError } = await supabase
+            .from('guide_translations')
+            .select('*')
+            .eq('guide_id', guideId)
+            .eq('language', i18n.language)
+            .single();
+
+          if (translationError && translationError.code !== 'PGRST116') {
+            throw translationError;
+          }
+          if (translationData) {
+            setTranslatedGuide(translationData);
+          }
         }
       } catch (error) {
         console.error('Error fetching guide:', error);
@@ -98,7 +98,7 @@ const PatientGuidePage = () => {
     fetchGuide();
   }, [guideId, i18n.language]);
 
-    const handleShare = async () => {
+  const handleShare = async () => {
     let path = window.location.pathname;
     if (i18n.language === 'te' && !path.startsWith('/te')) {
       path = `/te${path}`;
@@ -181,24 +181,32 @@ const PatientGuidePage = () => {
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || (guide as any).content }} />
 
                 <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps} />
-                
-                <div className="sticky bottom-4 md:bottom-0 p-4 border-t z-10 bg-background/20 backdrop-blur-sm -mx-4">
-                  <div className="container mx-auto flex flex-wrap justify-between items-center gap-2">
-                    <Button asChild variant="outline">
-                      <Link to="/guides" className="flex items-center">
-                        <ArrowLeft className="h-4 w-4 md:mr-2" />
+
+                <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
+                  <div className="container mx-auto flex items-center gap-4">
+                    <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
+                      <Link to="/guides" className="flex items-center justify-center">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
                         <span className="hidden md:inline">Back to Guides</span>
+                        <span className="md:hidden">Back</span>
                       </Link>
                     </Button>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button onClick={handleShare}>
-                          <Share2 className="h-4 w-4 md:mr-2" />
-                          <span className="hidden md:inline">Share Guide</span>
-                        </Button>
-                        <Button variant="outline" className="flex items-center" onClick={handleDownloadPdf} disabled={isDownloading}>
-                            {isDownloading ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf', 'Download PDF')}</span></>}
-                        </Button>
-                    </div>
+                    <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
+                      <Share2 className="h-4 w-4 mr-2" />
+                      <span className="hidden md:inline">Share Guide</span>
+                      <span className="md:hidden">Share</span>
+                    </Button>
+                    <Button variant="outline" className="flex-1 flex items-center shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20" onClick={handleDownloadPdf} disabled={isDownloading}>
+                      {isDownloading ? (
+                        'Downloading...'
+                      ) : (
+                        <>
+                          <Download size={16} className="mr-2" />
+                          <span className="hidden md:inline">{t('guides.downloadPdf', 'Download PDF')}</span>
+                          <span className="md:hidden">PDF</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </article>

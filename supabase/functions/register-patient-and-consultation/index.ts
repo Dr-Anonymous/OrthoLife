@@ -33,7 +33,7 @@ serve(async (req) => {
   }
 
   try {
-    const { id, name, dob, sex, phone, driveId: existingDriveId, force = false } = await req.json();
+    const { id, name, dob, sex, phone, driveId: existingDriveId, location } = await req.json();
 
     // Sanitize phone to last 10 digits
     const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
@@ -100,7 +100,7 @@ serve(async (req) => {
       // If a match is found (similarity >= 60%), create a new consultation for that patient
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
-        .insert({ patient_id: bestMatch.id, status: 'pending' })
+        .insert({ patient_id: bestMatch.id, status: 'pending', location: location })
         .select()
         .single();
 
@@ -141,7 +141,8 @@ serve(async (req) => {
         patient_id: newPatient.id,
         status: 'pending',
         visit_type: 'paid',
-        consultation_data: {} // Empty initial consultation data, now that location/language are in columns
+        consultation_data: {}, // Empty initial consultation data, now that location/language are in columns,
+        location: location
       })
       .select()
       .single();

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -199,7 +198,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setCalendarDate(newDate);
   };
 
-  const submitForm = async (e: React.FormEvent, force = false) => {
+  const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
     setIsSubmitting(true);
@@ -221,7 +220,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           id: `offline-consultation-${Date.now()}`,
           patient_id: tempId,
           status: 'pending',
-          consultation_data: { location },
+          consultation_data: {},
+          location: location,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           patient: newPatient
@@ -249,8 +249,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             sex: formData.sex,
             phone: formData.phone,
             driveId: formData.driveId,
-            force,
             age: String(age),
+            location: location,
           },
         });
 
@@ -288,29 +288,21 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             }
           }
 
-          // Update location and visit_type
-          const updatePayload: any = {
-            visit_type: visitType
-          };
+          // Update visit_type if needed (backend defaults to 'paid')
+          if (visitType === 'free') {
+            const { error: updateError } = await supabase
+              .from('consultations')
+              .update({ visit_type: visitType })
+              .eq('id', data.consultation.id);
 
-          if (location) {
-            updatePayload.location = location;
+            if (updateError) {
+              console.error("Error updating consultation data:", updateError);
+            } else {
+              // We don't need to update data.consultation.consultation_data here since we didn't add the fields to it.
+              // But if we want to reflect the change locally, we can update the dedicated properties.
+              data.consultation.visit_type = visitType;
+            }
           }
-
-          const { error: updateError } = await supabase
-            .from('consultations')
-            .update(updatePayload)
-            .eq('id', data.consultation.id);
-
-          if (updateError) {
-            console.error("Error updating consultation data:", updateError);
-          } else {
-            // We don't need to update data.consultation.consultation_data here since we didn't add the fields to it.
-            // But if we want to reflect the change locally, we can update the dedicated properties.
-            data.consultation.visit_type = visitType;
-            if (location) data.consultation.location = location;
-          }
-
           toast({
             title: 'Patient Registered for Consultation',
             description: `${formData.name} has been successfully registered.`,

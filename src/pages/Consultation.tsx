@@ -958,7 +958,6 @@ const Consultation = () => {
                     dob: offlineData.patient.dob,
                     sex: offlineData.patient.sex,
                     phone: offlineData.patient.phone,
-                    force: false,
                   },
                 });
 
@@ -1708,7 +1707,7 @@ const Consultation = () => {
 
     if (resolution === 'new') {
       const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
-        body: { ...offlinePatient, force: true },
+        body: { ...offlinePatient },
       });
       if (error) throw new Error(error.message);
       patientIdToUse = data.consultation.patient_id;

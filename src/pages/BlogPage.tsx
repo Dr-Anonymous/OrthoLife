@@ -77,7 +77,7 @@ const BlogPage = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
-      
+
       setLoading(true);
 
       let query = supabase
@@ -169,7 +169,7 @@ const BlogPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
@@ -277,42 +277,42 @@ const BlogPage = () => {
                 </p>
               </div>
             )}
-            
+
             {displayedPosts.length > 0 && (
               <>
                 {/* Featured Post */}
                 {featuredPost && (
-                <Card className="mb-8 overflow-hidden">
-                  <div className="md:flex">
-                    <div className="md:w-1/2">
-                      <img
-                        src={featuredPost.image_url}
-                        alt={featuredPost.title}
-                        className="w-full h-64 md:h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="md:w-1/2 p-6 flex flex-col justify-center">
-                      <Badge className="mb-3 w-fit">{featuredPost.categories.name}</Badge>
-                      <h2 className="text-2xl font-heading font-bold mb-3">
-                        {getTranslatedPost(featuredPost, i18n.language).title}
-                      </h2>
-                      <p className="text-muted-foreground mb-4">
-                        {getTranslatedPost(featuredPost, i18n.language).excerpt}
-                      </p>
-                      <div className="flex items-center text-sm text-muted-foreground mb-4 flex-wrap">
-                        <Clock size={16} className="mr-1" />
-                        <span>{featuredPost.read_time_minutes} min read</span>
+                  <Link to={`/blog/${featuredPost.id}`} className="group block">
+                    <Card className="mb-8 overflow-hidden hover:shadow-lg transition-shadow">
+                      <div className="md:flex">
+                        <div className="md:w-1/2">
+                          <img
+                            src={featuredPost.image_url}
+                            alt={featuredPost.title}
+                            className="w-full h-64 md:h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="md:w-1/2 p-6 flex flex-col justify-center">
+                          <Badge className="mb-3 w-fit">{featuredPost.categories.name}</Badge>
+                          <h2 className="text-2xl font-heading font-bold mb-3 group-hover:text-primary transition-colors">
+                            {getTranslatedPost(featuredPost, i18n.language).title}
+                          </h2>
+                          <p className="text-muted-foreground mb-4">
+                            {getTranslatedPost(featuredPost, i18n.language).excerpt}
+                          </p>
+                          <div className="flex items-center text-sm text-muted-foreground mb-4 flex-wrap">
+                            <Clock size={16} className="mr-1" />
+                            <span>{featuredPost.read_time_minutes} min read</span>
+                          </div>
+                          <Button className="w-fit pointer-events-none">
+                            Read More
+                            <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                          </Button>
+                        </div>
                       </div>
-                      <Link to={`/blog/${featuredPost.id}`}>
-                        <Button className="group w-fit">
-                          Read More
-                          <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </Card>
+                    </Card>
+                  </Link>
                 )}
 
                 {/* Blog Posts Grid */}
@@ -350,7 +350,7 @@ const BlogPage = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

@@ -100,7 +100,7 @@ const PatientGuidesPage = () => {
 
     const shareData = {
       title: translatedGuide.title,
-      text: translatedGuide.description,
+      text: translatedGuide.title,
       url: shareUrl,
     };
     try {
@@ -427,16 +427,16 @@ const PatientGuidesPage = () => {
                           </div>
                         </div>
                         <div className="flex gap-2 mt-auto">
-                          <Button asChild className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button asChild className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                             <Link to={`/guides/${guidesToDisplay[0].id}`}>
                               <Eye size={16} className="md:mr-2" />
                               <span className="hidden md:inline">{t('guides.readOnline')}</span>
                             </Link>
                           </Button>
-                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guidesToDisplay[0].id); }} disabled={downloadingId === guidesToDisplay[0].id}>
+                          <Button variant="outline" className="flex-1 flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDownloadPdf(guidesToDisplay[0].id); }} disabled={downloadingId === guidesToDisplay[0].id}>
                             {downloadingId === guidesToDisplay[0].id ? 'Downloading...' : <><Download size={16} className="md:mr-2" /><span className="hidden md:inline">{t('guides.downloadPdf')}</span></>}
                           </Button>
-                          <Button variant="outline" className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(guidesToDisplay[0]); }}>
+                          <Button variant="outline" className="flex-1 flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleShare(guidesToDisplay[0]); }}>
                             <Share2 size={16} className="md:mr-2" />
                             <span className="hidden md:inline">{t('guides.share', 'Share')}</span>
                           </Button>

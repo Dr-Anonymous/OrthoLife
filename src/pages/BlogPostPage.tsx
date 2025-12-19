@@ -27,10 +27,10 @@ interface Post {
 }
 
 interface TranslatedPost {
-    title: string;
-    content: string;
-    excerpt: string;
-    next_steps?: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  next_steps?: string;
 }
 
 const BlogPostPage = () => {
@@ -136,7 +136,7 @@ const BlogPostPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
@@ -154,7 +154,7 @@ const BlogPostPage = () => {
                 <Skeleton className="h-4 w-5/6" />
               </div>
             )}
-            
+
             {!loading && post && (
               <article className="pb-24">
                 <header className="mb-8">
@@ -172,24 +172,26 @@ const BlogPostPage = () => {
                     </div>
                   </div>
                 </header>
-                
+
                 <img src={post.image_url} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedPost?.content || post.content }} />
-        
+
                 <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps} />
 
-                <div className="sticky bottom-0 p-4 border-t z-10 bg-background/20 backdrop-blur-sm">
-                  <div className="flex justify-between items-center">
-                    <Button asChild variant="outline">
-                      <Link to="/blog">
+                <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
+                  <div className="container mx-auto flex items-center gap-4">
+                    <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
+                      <Link to="/blog" className="flex items-center justify-center">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Blog
+                        <span className="hidden md:inline">Back to Blog</span>
+                        <span className="md:hidden">Back</span>
                       </Link>
                     </Button>
-                    <Button onClick={handleShare}>
+                    <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
                       <Share2 className="mr-2 h-4 w-4" />
-                      Share Article
+                      <span className="hidden md:inline">Share Article</span>
+                      <span className="md:hidden">Share</span>
                     </Button>
                   </div>
                 </div>
@@ -207,7 +209,7 @@ const BlogPostPage = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
