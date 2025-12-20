@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, X, Plus, Edit, Save } from 'lucide-react';
+import { Loader2, X, Plus, Edit, Save, Search } from 'lucide-react';
 
 interface Keyword {
   id: number;
@@ -45,6 +45,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [isTranslating, setIsTranslating] = useState(false);
   const debouncedAdvice = useDebounce(advice, 500);
   const debouncedFollowup = useDebounce(followup, 500);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const translateAdvice = async () => {
@@ -227,25 +228,38 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                 <Input id="new-keywords" value={newKeywords} onChange={(e) => setNewKeywords(e.target.value)} placeholder="e.g., fever, headache" />
               </div>
               <div className="space-y-2">
-                <Label>Medications</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Medications</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Search meds..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-8 w-40 pl-8"
+                    />
+                  </div>
+                </div>
                 <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
-                  {medications.map(med => (
-                    <div key={med.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`med-${med.id}`}
-                        checked={selectedMeds.includes(med.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedMeds(prev => [...prev, med.id]);
-                          } else {
-                            setSelectedMeds(prev => prev.filter(id => id !== med.id));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`med-${med.id}`}>{med.name}</Label>
-                    </div>
-                  ))}
+                  {medications
+                    .filter(med => med.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(med => (
+                      <div key={med.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`med-${med.id}`}
+                          checked={selectedMeds.includes(med.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedMeds(prev => [...prev, med.id]);
+                            } else {
+                              setSelectedMeds(prev => prev.filter(id => id !== med.id));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`med-${med.id}`}>{med.name}</Label>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>

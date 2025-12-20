@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, X, Plus, Save, Trash2, Edit } from 'lucide-react';
+import { Loader2, X, Plus, Save, Trash2, Edit, Search } from 'lucide-react';
 
 interface Medication {
   id?: string;
@@ -63,6 +63,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const debouncedFrequency = useDebounce(newMed.frequency, 500);
   const debouncedDuration = useDebounce(newMed.duration, 500);
   const debouncedNotes = useDebounce(newMed.notes, 500);
+  const [searchQuery, setSearchQuery] = useState('');
 
 
   useEffect(() => {
@@ -338,22 +339,35 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Saved List</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Saved List</h3>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                <Input
+                  placeholder="Search saved meds..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-8 w-40 pl-8"
+                />
+              </div>
+            </div>
             <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
               {isLoading && medications.length === 0 ? (
                 <div className="flex justify-center items-center h-full">
                   <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                medications.map(med => (
-                  <div key={med.id} className="flex items-center justify-between p-2 border rounded-md">
-                    <span className="font-medium">({med.id}) {med.name}</span>
-                    <div className="space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => startEditing(med)}><Edit className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteMedication(med.id!)}><Trash2 className="w-4 h-4" /></Button>
+                medications
+                  .filter(med => med.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(med => (
+                    <div key={med.id} className="flex items-center justify-between p-2 border rounded-md">
+                      <span className="font-medium">({med.id}) {med.name}</span>
+                      <div className="space-x-2">
+                        <Button variant="ghost" size="icon" onClick={() => startEditing(med)}><Edit className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteMedication(med.id!)}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))
               )}
             </div>
           </div>

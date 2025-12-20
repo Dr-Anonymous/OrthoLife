@@ -1470,6 +1470,7 @@ const Consultation = () => {
       ...med,
       instructions: med.instructions_te || med.instructions,
       frequency: med.frequency_te || med.frequency,
+      duration: med.duration_te || med.duration,
       notes: med.notes_te || med.notes,
     } : med;
 
