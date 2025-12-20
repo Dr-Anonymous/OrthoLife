@@ -87,7 +87,7 @@ serve(async (req) => {
         prescriptionRequired: item.prescription_required,
         originalPrice: Number(inventory.original_price) || 0,
         discount: Number(inventory.discount_percentage) || 0,
-        individual: inventory.is_individual ? 'TRUE' : 'FALSE' // Maintain string format for frontend compatibility if needed, or check frontend
+        individual: inventory.is_individual || false
       };
 
       const { baseName, size } = extractBaseNameAndSize(medicine.name);
@@ -167,7 +167,7 @@ serve(async (req) => {
         originalPrice: group.originalPrice,
         stockCount: sizeInfo.stockCount,
         discount: group.discount,
-        individual: 'TRUE' // Default to true for single items
+        individual: true // Default to true for single items
       };
     });
 
