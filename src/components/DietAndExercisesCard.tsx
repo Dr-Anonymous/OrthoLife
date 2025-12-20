@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { isTelugu } from '../lib/languageUtils';
+import { cleanAdviceLine } from '../lib/utils';
 
 interface DietAndExercisesCardProps {
   advice?: string;
@@ -15,35 +15,16 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) =
   const adviceLines = advice ? advice.split('\n').filter(line => line.trim() !== '') : [];
 
   const getButtonInfo = (line: string) => {
-    if (isTelugu(line)) {
-      const hasDiet = line.includes('ఆహారం');
-      const hasExercises = line.includes('వ్యాయామం') || line.includes('వ్యాయామాలు');
-
-      if (hasDiet && hasExercises) {
-        return { text: t('dietAndExercisesCard.viewGuide'), query: line };
-      }
-      if (hasDiet) {
-        return { text: t('dietAndExercisesCard.viewDiet'), query: line };
-      }
-      if (hasExercises) {
-        return { text: t('dietAndExercisesCard.viewExercise'), query: line };
-      }
-    } else {
-      const lowerLine = line.toLowerCase();
-      const hasDiet = lowerLine.includes('diet');
-      const hasExercises = lowerLine.includes('exercise');
-      const hasGuide = lowerLine.includes('guide');
-
-      if ((hasDiet && hasExercises) || hasGuide) {
-        return { text: t('dietAndExercisesCard.viewGuide'), query: line };
-      }
-      if (hasDiet) {
-        return { text: t('dietAndExercisesCard.viewDiet'), query: line };
-      }
-      if (hasExercises) {
-        return { text: t('dietAndExercisesCard.viewExercise'), query: line };
+    // 1. Check for "guide" keyword first (explicit override)
+    if (line.toLowerCase().includes('guide')) {
+      const cleanedQuery = cleanAdviceLine(line);
+      // If the line was just "Guide" or similar and cleaned to empty, fallback to original or handle gracefully?
+      // Assuming there's content like "Back pain guide", result is "Back pain".
+      if (cleanedQuery) {
+        return { text: t('dietAndExercisesCard.viewGuide'), query: cleanedQuery };
       }
     }
+
     return null;
   };
 
@@ -59,10 +40,15 @@ const DietAndExercisesCard: React.FC<DietAndExercisesCardProps> = ({ advice }) =
             <ul className="space-y-2 text-gray-600">
               {adviceLines.map((line, index) => {
                 const buttonInfo = getButtonInfo(line);
+                // If it has 'guide', we display the cleaned line.
+                // Otherwise we display the original line.
+                const lowerLine = line.toLowerCase();
+                const displayLine = lowerLine.includes('guide') ? cleanAdviceLine(line) : line;
+
                 return (
                   <li key={index} className="flex items-start justify-between">
                     <span className="mr-2 mt-1">•</span>
-                    <span className="flex-grow">{line}</span>
+                    <span className="flex-grow">{displayLine}</span>
                     {buttonInfo && (
                       <Button
                         variant="link"

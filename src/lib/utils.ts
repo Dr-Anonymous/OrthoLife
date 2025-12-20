@@ -10,6 +10,24 @@ export function removeBracketedText(text: string): string {
   return text.replace(/\s*\(.*?\)\s*/g, ' ').trim();
 }
 
+/**
+ * Removes the word "guide" (case-insensitive) from a line of text,
+ * along with any unrelated punctuation that might be left over.(I commented this out- not using it.)
+ * Examples: 
+ * "Guide: Low back pain" -> "Low back pain"
+ * "Low back exercises guide" -> "Low back exercises"
+ */
+export function cleanAdviceLine(line: string): string {
+  if (!line) return '';
+  // Remove 'guide' case-insensitive
+  let cleaned = line.replace(/guide/gi, '');
+  // Remove leading/trailing punctuation (colon, hyphen, spaces) often used like "Guide: ..."
+  // cleaned = cleaned.replace(/^[:\-\s]+|[:\-\s]+$/g, '').trim();
+  // Also clean up any double spaces created
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  return cleaned;
+}
+
 export function cleanConsultationData(data: any): any {
   if (!data) return data;
 

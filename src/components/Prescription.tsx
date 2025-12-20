@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { cleanAdviceLine } from '@/lib/utils';
 import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share } from 'lucide-react';
 
 interface Medication {
@@ -174,7 +175,17 @@ export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDi
                 <MessageSquare className="h-4 w-4" />
                 <span>{t('prescription.advice')}:</span>
               </h3>
-              <p className="whitespace-pre-wrap">{consultation.advice}</p>
+              <div className="whitespace-pre-wrap">
+                {consultation.advice.split('\n').map((line, i) => {
+                  if (!line.trim()) return <br key={i} />;
+                  const isGuide = line.toLowerCase().includes('guide');
+                  const displayLine = isGuide ? cleanAdviceLine(line) : line;
+                  // Join with newline by rendering div or just verify <br> behavior?
+                  // whitespace-pre-wrap handles \n but map returns array.
+                  // Better to just return span with newline or div.
+                  return <div key={i}>{displayLine}</div>
+                })}
+              </div>
             </div>
           )}
         </section>

@@ -40,56 +40,49 @@ serve(async (req) => {
 
         // 1. Extract query from advice
         // Logic adapted from DietAndExercisesCard.tsx
-        let query = '';
+        // 1. Extract queries from advice
+        // Logic adapted to support multiple guides and prioritize 'guide' keyword
+        const queries: { query: string, isTelugu: boolean }[] = [];
 
         if (advice) {
             const lines = advice.split('\n').filter((line: string) => line.trim() !== '');
 
             for (const line of lines) {
-                let isMatch = false;
-                if (isTeluguText(line) || isTelugu) {
-                    // Telugu checks
-                    const hasDiet = line.includes('ఆహారం');
-                    const hasExercises = line.includes('వ్యాయామం') || line.includes('వ్యాయామాలు');
-                    if (hasDiet || hasExercises) isMatch = true;
-                } else {
-                    // English checks
-                    const lowerLine = line.toLowerCase();
-                    const hasDiet = lowerLine.includes('diet');
-                    const hasExercises = lowerLine.includes('exercise');
-                    const hasGuide = lowerLine.includes('guide');
-                    if (hasDiet || hasExercises || hasGuide) isMatch = true;
+                // Check for 'guide' keyword first as per new requirement
+                const lowerLine = line.toLowerCase();
+                if (lowerLine.includes('guide')) {
+                    // Clean the line similar to frontend cleanAdviceLine
+                    let cleaned = line.replace(/guide/gi, '');
+                    cleaned = cleaned.replace(/^[:\-\s]+|[:\-\s]+$/g, '').trim();
+                    cleaned = cleaned.replace(/\s+/g, ' ');
+                    if (cleaned) queries.push({ query: cleaned, isTelugu: isTeluguText(line) || isTelugu });
+                    continue; // Move to next line even if guide found- to get all instances of guide. 
                 }
 
-                if (isMatch) {
-                    // Clean up the query similar to frontend
-                    query = line.replace(/[\(\[].*?[\)\]]/g, "").replace(/[.\s]+$/, "").trim();
-                    break; // Use the first matching line
-                }
+                // Legacy checks removed. Only 'guide' keyword is used.
             }
         }
 
-        // 2. Find matching guide link
-        // Default is null - if no guide found, we stop message at prescription logic
-        let guideLink = null;
+        // 2. Find matching guide links
+        const guideLinks: string[] = [];
 
-        if (query) {
-            // Fetch all guides to perform scoring (exact logic from PatientGuidesPage.tsx)
-            const { data: guides, error } = await supabase
+        // Fetch all guides once (optimization)
+        let guides: any[] = [];
+        if (queries.length > 0) {
+            const { data, error } = await supabase
                 .from('guides')
                 .select('id, title, description, categories(name), guide_translations(language, title, description)');
+            if (!error && data) guides = data;
+        }
 
-            if (!error && guides && guides.length > 0) {
+        for (const q of queries) {
+            const { query, isTelugu: searchInTelugu } = q;
+
+            if (guides.length > 0) {
                 const term = query.trim();
-                const searchInTelugu = isTeluguText(term);
                 const termLower = searchInTelugu ? term : term.toLowerCase();
 
-                // Remove stopwords 'exercises', 'diet', 'guide' and their Telugu equivalents from scoring for better relevance
-                const stopwords = ['exercise', 'exercises', 'diet', 'guide', 'ఆహారం', 'వ్యాయామం', 'వ్యాయామాలు', 'మార్గదర్శి'];
-                const searchWords = term.split(/\s+/).filter(w => {
-                    const lowerW = w.toLowerCase();
-                    return w.length > 0 && !stopwords.includes(lowerW);
-                });
+                const searchWords = term.split(/\s+/).filter(w => w.length > 0);
 
                 if (searchWords.length > 0) {
                     const scoredGuides = guides.map((guide: any) => {
@@ -124,16 +117,17 @@ serve(async (req) => {
                         return { guide, score };
                     });
 
-                    // Sort by score
                     scoredGuides.sort((a: any, b: any) => b.score - a.score);
-
                     const bestMatch = scoredGuides[0];
                     const langPrefix = isTelugu ? '/te' : '';
 
                     if (bestMatch && bestMatch.score > 0) {
-                        guideLink = `https://ortho.life${langPrefix}/guides/${bestMatch.guide.id}`;
+                        // Avoid duplicates if multiple lines match same guide?
+                        const link = `https://ortho.life${langPrefix}/guides/${bestMatch.guide.id}`;
+                        if (!guideLinks.includes(link)) {
+                            guideLinks.push(link);
+                        }
                     }
-                    // Else stays null
                 }
             }
         }
@@ -144,14 +138,17 @@ serve(async (req) => {
         if (isTelugu) {
             message = `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`;
 
-            if (guideLink) {
-                message += `\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు-\n\n${guideLink}`;
+            if (guideLinks.length > 0) {
+                // Join multiple links with newlines
+                const linksText = guideLinks.join('\n\n');
+                message += `\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు-\n\n${linksText}`;
             }
         } else {
             message = `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- Download your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}`;
 
-            if (guideLink) {
-                message += `\n\n- Read diet 🍚 & exercise 🧘 advice-\n\n${guideLink}`;
+            if (guideLinks.length > 0) {
+                const linksText = guideLinks.join('\n\n');
+                message += `\n\n- Read diet 🍚 & exercise 🧘 advice-\n\n${linksText}`;
             }
         }
 
@@ -163,7 +160,7 @@ serve(async (req) => {
         }
 
         return new Response(
-            JSON.stringify({ success: true, data: result, linkUsed: guideLink }),
+            JSON.stringify({ success: true, data: result, linksUsed: guideLinks }),
             {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
