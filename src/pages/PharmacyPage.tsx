@@ -42,7 +42,7 @@ interface Medicine {
   discount?: number;
   isGrouped?: boolean;
   sizes?: SizeVariant[];
-  individual?: string;
+  individual?: boolean;
 }
 
 const PharmacyPage = () => {
@@ -145,7 +145,7 @@ const PharmacyPage = () => {
     const packSize = medicine.packSize ? parseInt(medicine.packSize, 10) : 0;
     let itemsAdded = false;
 
-    if (packSize > 0 && medicine.individual === 'TRUE') {
+    if (packSize > 0 && medicine.individual) {
       const packs = Math.floor(quantity / packSize);
       const units = quantity % packSize;
 
@@ -290,7 +290,7 @@ const PharmacyPage = () => {
       baseKey = `${medicine.id}_${size}`;
     }
 
-    if (medicine.individual === 'TRUE') {
+    if (medicine.individual) {
       return `${baseKey}_${type}`;
     }
 
@@ -306,7 +306,7 @@ const PharmacyPage = () => {
       stock = medicine.stockCount || 0;
     }
 
-    if (medicine.individual === 'TRUE' && type === 'unit' && medicine.packSize) {
+    if (medicine.individual && type === 'unit' && medicine.packSize) {
       const packSize = parseInt(medicine.packSize, 10);
       if (!isNaN(packSize)) {
         return stock * packSize;
@@ -727,7 +727,7 @@ const PharmacyPage = () => {
                         )}
                       </CardHeader>
                       <CardContent>
-                        {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
+                        {medicine.individual && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
                           <div className="mb-4">
                             <Label>Order by:</Label>
                             <RadioGroup
@@ -788,7 +788,7 @@ const PharmacyPage = () => {
                             ) : (
                               <span className="text-lg font-semibold">₹{Math.round(medicine.price)}</span>
                             )}
-                            {medicine.individual === 'TRUE' && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
+                            {medicine.individual && medicine.packSize && parseInt(medicine.packSize, 10) > 1 && (
                               <div className="text-xs text-muted-foreground mt-1">
                                 (₹{(medicine.price / parseInt(medicine.packSize, 10)).toFixed(2)} / unit)
                               </div>
