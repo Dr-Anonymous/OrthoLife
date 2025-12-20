@@ -9,6 +9,9 @@ type AnalyticsEvent = {
 };
 
 export const trackEvent = async ({ eventType, path, user_phone, user_name, details }: AnalyticsEvent) => {
+  if (user_phone === "+919866812555") {
+    return;
+  }
   try {
     const { error } = await supabase
       .from("analytics")
