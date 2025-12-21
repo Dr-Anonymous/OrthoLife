@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, formatDistanceToNow } from 'date-fns';
-import { cn, cleanConsultationData } from '@/lib/utils';
+import { cn, cleanConsultationData, cleanAdviceLine } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/SavedMedicationsModal';
@@ -120,7 +120,7 @@ interface Medication {
   notes_te?: string;
 }
 
-import { User, Phone, Calendar as CalendarIcon } from 'lucide-react';
+import { User, Phone, Calendar as CalendarIcon, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface Patient {
   id: string;
@@ -140,6 +140,24 @@ interface Consultation {
   language?: string;
   patient: Patient;
   consultation_data?: any;
+}
+
+interface Guide {
+  id: number;
+  title: string;
+  description: string;
+  categories: { name: string };
+  guide_translations: {
+    language: string;
+    title: string;
+    description: string;
+  }[];
+}
+
+interface MatchedGuide {
+  query: string;
+  guide?: Guide;
+  guideLink?: string;
 }
 
 const SortableMedicationItem = ({ med, index, handleMedChange, removeMedication, savedMedications, setExtraData, medicationNameInputRef, fetchSavedMedications, i18n, medFrequencyRefs, medDurationRefs, medInstructionsRefs, medNotesRefs }: { med: Medication, index: number, handleMedChange: (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => void, removeMedication: (index: number) => void, savedMedications: Medication[], setExtraData: React.Dispatch<React.SetStateAction<any>>, medicationNameInputRef: React.RefObject<HTMLInputElement | null>, fetchSavedMedications: () => void, i18n: any, medFrequencyRefs: React.RefObject<{ [key: string]: HTMLTextAreaElement | null }>, medDurationRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }>, medInstructionsRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }>, medNotesRefs: React.RefObject<{ [key: string]: HTMLInputElement | null }> }) => {
@@ -480,6 +498,100 @@ const Consultation = () => {
   const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string, phone?: string }[]>([]);
   const [autofillKeywords, setAutofillKeywords] = useState<any[]>([]);
   const [processedAutofillKeywords, setProcessedAutofillKeywords] = useState<any[]>([]);
+
+  // Guide Matching State
+  const [guides, setGuides] = useState<Guide[]>([]);
+  const [matchedGuides, setMatchedGuides] = useState<MatchedGuide[]>([]);
+  const debouncedAdvice = useDebounce(extraData.advice, 500);
+
+  useEffect(() => {
+    const fetchGuides = async () => {
+      const { data, error } = await supabase
+        .from('guides')
+        .select('id, title, description, categories(name), guide_translations(language, title, description)');
+
+      if (!error && data) {
+        setGuides(data);
+      }
+    };
+    fetchGuides();
+  }, []);
+
+  useEffect(() => {
+    if (!debouncedAdvice || !guides.length) {
+      setMatchedGuides([]);
+      return;
+    }
+
+    const lines = debouncedAdvice.split('\n').filter(line => line.trim() !== '');
+    const newMatchedGuides: MatchedGuide[] = [];
+
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes('guide')) {
+        const cleaned = cleanAdviceLine(line);
+        if (cleaned) {
+          // Matching Logic (Client-side mirror of backend)
+          const term = cleaned;
+          // Determine language of the search term
+          const isTeluguTerm = /[\u0C00-\u0C7F]/.test(term);
+          const termLower = isTeluguTerm ? term : term.toLowerCase();
+
+          const searchWords = term.split(/\s+/).filter(w => w.length > 0);
+
+          if (searchWords.length > 0) {
+            const scoredGuides = guides.map((guide) => {
+              let score = 0;
+              let title = '';
+              let description = '';
+              const category = guide.categories?.name?.toLowerCase() || '';
+
+              if (isTeluguTerm) {
+                const translation = guide.guide_translations.find((t) => t.language === 'te');
+                if (translation) {
+                  title = translation.title;
+                  description = translation.description;
+                } else {
+                  return { guide, score: 0 };
+                }
+              } else {
+                title = guide.title.toLowerCase();
+                description = guide.description?.toLowerCase() || '';
+              }
+
+              if (title.includes(termLower)) score += 100;
+              if (description.includes(termLower)) score += 50;
+
+              searchWords.forEach(word => {
+                const wordCompare = isTeluguTerm ? word : word.toLowerCase();
+                if (title.includes(wordCompare)) score += 10;
+                if (description.includes(wordCompare)) score += 5;
+                if (category.includes(word.toLowerCase())) score += 2;
+              });
+
+              return { guide, score };
+            });
+
+            scoredGuides.sort((a, b) => b.score - a.score);
+            const bestMatch = scoredGuides[0];
+
+            if (bestMatch && bestMatch.score > 0) {
+              const langPrefix = i18n.language === 'te' ? '/te' : '';
+              const link = `https://ortho.life${langPrefix}/guides/${bestMatch.guide.id}`;
+              newMatchedGuides.push({ query: cleaned, guide: bestMatch.guide, guideLink: link });
+            } else {
+              newMatchedGuides.push({ query: cleaned });
+            }
+          } else {
+            newMatchedGuides.push({ query: cleaned });
+          }
+        }
+      }
+    });
+
+    setMatchedGuides(newMatchedGuides);
+
+  }, [debouncedAdvice, guides, i18n.language]);
 
   const cleanedConsultationData = React.useMemo(() => cleanConsultationData(extraData), [extraData]);
 
@@ -1555,8 +1667,13 @@ const Consultation = () => {
       const isTelugu = i18n.language === 'te';
       const advice = extraData.advice;
 
+      // Extract valid guide links from matchedGuides
+      const guideLinks = matchedGuides
+        .filter(mg => mg.guideLink)
+        .map(mg => mg.guideLink);
+
       const { error } = await supabase.functions.invoke('send-consultation-completion', {
-        body: { patientName, patientPhone, advice, isTelugu },
+        body: { patientName, patientPhone, advice, isTelugu, guideLinks },
       });
       if (error) throw error;
     } catch (err) {
@@ -2308,6 +2425,28 @@ const Consultation = () => {
                             ))}
                           </div>
                           <Textarea ref={adviceRef} id="advice" value={extraData.advice} onChange={e => handleExtraChange('advice', e.target.value, e.target.selectionStart)} placeholder="Medical advice..." className="min-h-[80px]" />
+
+                          {matchedGuides.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {matchedGuides.map((match, idx) => (
+                                <div key={idx} className={cn("flex items-center gap-2 text-sm p-2 rounded-md", match.guide ? "bg-green-50 text-green-700 border border-green-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200")}>
+                                  {match.guide ? (
+                                    <>
+                                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                      <span className="font-medium">Matched Guide:</span>
+                                      <span>{match.guide.title}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                                      <span className="font-medium">No guide found for:</span>
+                                      <span className="font-mono bg-white/50 px-1 rounded">"{match.query}"</span>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
 
