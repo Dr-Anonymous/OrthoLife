@@ -517,13 +517,10 @@ const Consultation = () => {
     fetchGuides();
   }, []);
 
-  useEffect(() => {
-    if (!debouncedAdvice || !guides.length) {
-      setMatchedGuides([]);
-      return;
-    }
+  const getMatchingGuides = (text: string, guides: Guide[], language: string): MatchedGuide[] => {
+    if (!text || !guides.length) return [];
 
-    const lines = debouncedAdvice.split('\n').filter(line => line.trim() !== '');
+    const lines = text.split('\n').filter(line => line.trim() !== '');
     const newMatchedGuides: MatchedGuide[] = [];
 
     lines.forEach(line => {
@@ -576,7 +573,7 @@ const Consultation = () => {
             const bestMatch = scoredGuides[0];
 
             if (bestMatch && bestMatch.score > 0) {
-              const langPrefix = i18n.language === 'te' ? '/te' : '';
+              const langPrefix = language === 'te' ? '/te' : '';
               const link = `https://ortho.life${langPrefix}/guides/${bestMatch.guide.id}`;
               newMatchedGuides.push({ query: cleaned, guide: bestMatch.guide, guideLink: link });
             } else {
@@ -588,9 +585,11 @@ const Consultation = () => {
         }
       }
     });
+    return newMatchedGuides;
+  };
 
-    setMatchedGuides(newMatchedGuides);
-
+  useEffect(() => {
+    setMatchedGuides(getMatchingGuides(debouncedAdvice, guides, i18n.language));
   }, [debouncedAdvice, guides, i18n.language]);
 
   const cleanedConsultationData = React.useMemo(() => cleanConsultationData(extraData), [extraData]);
@@ -1667,8 +1666,9 @@ const Consultation = () => {
       const isTelugu = i18n.language === 'te';
       const advice = extraData.advice;
 
-      // Extract valid guide links from matchedGuides
-      const guideLinks = matchedGuides
+      // Extract valid guide links using current advice text to avoid race conditions
+      const currentMatchedGuides = getMatchingGuides(advice, guides, i18n.language);
+      const guideLinks = currentMatchedGuides
         .filter(mg => mg.guideLink)
         .map(mg => mg.guideLink);
 
