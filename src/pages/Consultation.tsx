@@ -57,6 +57,8 @@ const ConsultationPage = () => {
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
   const [initialExtraData, setInitialExtraData] = useState<any>(null);
+  const [initialLocation, setInitialLocation] = useState<string>(HOSPITALS[0].name);
+  const [initialLanguage, setInitialLanguage] = useState<string>('en');
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -398,9 +400,7 @@ const ConsultationPage = () => {
 
   useEffect(() => {
     localStorage.setItem('isGpsEnabled', JSON.stringify(isGpsEnabled));
-    if (!isGpsEnabled) {
-      localStorage.setItem('selectedHospital', selectedHospital.name);
-    }
+    localStorage.setItem('selectedHospital', selectedHospital.name);
   }, [selectedHospital, isGpsEnabled]);
 
   const handleSelectConsultation = async (consultation: Consultation) => {
@@ -443,6 +443,8 @@ const ConsultationPage = () => {
     };
     setExtraData(newExtraData as any);
     setInitialExtraData(newExtraData);
+    setInitialLocation(consultation.location || HOSPITALS[0].name);
+    setInitialLanguage(consultation.language || 'en');
 
     setHasUnsavedChanges(false);
 
@@ -574,7 +576,7 @@ const ConsultationPage = () => {
       return;
     }
 
-    if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personal_note')) {
+    if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personal_note' || field === 'procedure')) {
       let processedValue = value;
       let newCursor = cursorPosition || value.length;
 
@@ -624,6 +626,7 @@ const ConsultationPage = () => {
             diagnosis: diagnosisRef.current,
             advice: adviceRef.current,
             followup: followupRef.current,
+            procedure: procedureRef.current,
           };
           if (refMap[field]) {
             refMap[field].setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
@@ -835,8 +838,8 @@ const ConsultationPage = () => {
 
     const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
     const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
-    const locationChanged = selectedHospital.name !== (initialExtraData?.location || HOSPITALS[0].name);
-    const languageChanged = i18n.language !== (initialExtraData?.language || 'en'); // approx
+    const locationChanged = selectedHospital.name !== initialLocation;
+    const languageChanged = i18n.language !== initialLanguage;
 
     const isPrinting = options.markAsCompleted;
     const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
@@ -846,8 +849,9 @@ const ConsultationPage = () => {
       newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
     }
     const statusChanged = newStatus !== selectedConsultation.status;
+    const shouldSave = hasUnsavedChanges || statusChanged || locationChanged || languageChanged || options.markAsCompleted;
 
-    if (!patientDetailsChanged && !extraDataChanged && !statusChanged && !locationChanged && !languageChanged && !options.markAsCompleted) {
+    if (!shouldSave) {
       if (!options.skipToast) toast({ title: 'No Changes', description: 'No new changes to save.' });
       return true;
     }
@@ -885,7 +889,7 @@ const ConsultationPage = () => {
 
         const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string } = {};
 
-        if (extraDataChanged || locationChanged || languageChanged) {
+        if (hasUnsavedChanges || locationChanged || languageChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
           consultationUpdatePayload.visit_type = extraData.visit_type;
           consultationUpdatePayload.location = selectedHospital.name;
@@ -929,6 +933,8 @@ const ConsultationPage = () => {
       setSelectedConsultation(updatedConsultation);
       setInitialPatientDetails(editablePatientDetails);
       setInitialExtraData(extraData);
+      setInitialLocation(selectedHospital.name);
+      setInitialLanguage(i18n.language);
 
       const updatedAllConsultations = allConsultations.map(c =>
         c.id === updatedConsultation.id ? updatedConsultation : c
@@ -1138,12 +1144,18 @@ const ConsultationPage = () => {
             selectedHospitalName={selectedHospital.name}
             onHospitalSelect={(name) => {
               const h = HOSPITALS.find(x => x.name === name);
-              if (h) setSelectedHospital(h);
+              if (h) {
+                setSelectedHospital(h);
+                setIsGpsEnabled(false);
+              }
             }}
             isGpsEnabled={isGpsEnabled}
             onToggleGps={() => setIsGpsEnabled(!isGpsEnabled)}
             selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
+            onDateChange={(date) => {
+              setSelectedDate(date);
+              setIsConsultationDatePickerOpen(false);
+            }}
             isConsultationDatePickerOpen={isConsultationDatePickerOpen}
             setIsConsultationDatePickerOpen={setIsConsultationDatePickerOpen}
             onSearchClick={() => setIsSearchModalOpen(true)}
