@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, History, Search, MapPin } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import ConsultationCard from '@/components/ConsultationCard';
+import ConsultationCard from '@/components/consultation/ConsultationCard';
 
 interface PatientFolder {
   id: string;

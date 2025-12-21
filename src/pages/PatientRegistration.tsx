@@ -8,11 +8,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { cleanConsultationData } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import ConsultationRegistration from '@/components/ConsultationRegistration';
+import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { useLocation } from 'react-router-dom';
 import { HOSPITALS } from '@/config/constants';
 import { useReactToPrint } from 'react-to-print';
-import { Prescription } from '@/components/Prescription';
+import { Prescription } from '@/components/consultation/Prescription';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
@@ -115,7 +115,7 @@ const PatientRegistration = () => {
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'warning' : 'default'}>
+                      <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
                         {c.status}
                       </Badge>
                       {c.status === 'completed' && (

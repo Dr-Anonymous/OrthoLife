@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Prescription } from '@/components/Prescription';
+import { Prescription } from '@/components/consultation/Prescription';
 import { HOSPITALS } from '@/config/constants';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Search } from 'lucide-react';

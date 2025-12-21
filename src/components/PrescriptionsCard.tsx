@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useReactToPrint } from 'react-to-print';
-import { Prescription } from '@/components/Prescription';
+import { Prescription } from '@/components/consultation/Prescription';
 import { format } from 'date-fns';
 import { HOSPITALS } from '@/config/constants';
 import { useToast } from '@/components/ui/use-toast';
@@ -273,7 +273,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
               className="flex-grow"
             />
             <Button
-              onClick={handleFileUpload}
+              onClick={() => handleFileUpload()}
               disabled={!selectedFile || uploading}
             >
               <Upload className="mr-2 h-4 w-4" />
@@ -288,7 +288,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                 patient={printingConsultation.patient}
                 consultation={cleanConsultationData(printingConsultation.consultation_data)}
                 consultationDate={new Date(printingConsultation.created_at)}
-                age={printingConsultation.patient.dob ? Math.floor((new Date() - new Date(printingConsultation.patient.dob)) / 31557600000) : ''}
+                age={printingConsultation.patient.dob ? Math.floor((new Date().getTime() - new Date(printingConsultation.patient.dob).getTime()) / 31557600000) : ''}
                 language={i18n.language}
                 logoUrl={HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl}
               />

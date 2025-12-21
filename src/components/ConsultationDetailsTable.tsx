@@ -25,7 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import ConsultationCard from '@/components/ConsultationCard';
+import ConsultationCard from '@/components/consultation/ConsultationCard';
 
 interface Patient {
   id: string;
@@ -393,7 +393,7 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
                 <tr key={consultation.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(consultation.created_at), 'PPP')}</td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    <button 
+                    <button
                       onClick={() => setSelectedConsultation(consultation)}
                       className="text-left hover:underline text-primary focus:outline-none"
                     >
@@ -434,7 +434,7 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
           <DialogHeader>
             <DialogTitle>Consultation Details</DialogTitle>
           </DialogHeader>
-          
+
           {selectedConsultation && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-4 border-b">

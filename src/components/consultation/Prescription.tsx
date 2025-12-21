@@ -53,7 +53,7 @@ interface PrescriptionProps {
   className?: string;
 }
 
-export const Prescription: React.FC<PrescriptionProps> = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className }, ref) => {
   const { t, i18n } = useTranslation();
 
   React.useEffect(() => {
