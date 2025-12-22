@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -101,6 +101,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
         return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
     };
 
+    const [isPersonalNoteExpanded, setIsPersonalNoteExpanded] = useState(false);
+
     return (
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)] lg:overflow-y-auto pr-2">
             <div className="flex items-center gap-2">
@@ -167,18 +169,41 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 </Popover>
             </div>
             {selectedConsultationId && (
-                <div className="space-y-2 p-3 bg-secondary/10 rounded-md border border-secondary/20">
-                    <Label htmlFor="personalNoteSidebar" className="text-sm font-medium flex items-center gap-2">
-                        <Stethoscope className="w-4 h-4 text-primary" />
+                <div className={cn(
+                    "space-y-2 p-3 rounded-md border transition-all duration-300",
+                    personalNote
+                        ? "bg-amber-50/80 border-amber-200 shadow-sm"
+                        : "bg-secondary/10 border-secondary/20"
+                )}>
+                    <Label
+                        htmlFor="personalNoteSidebar"
+                        className={cn(
+                            "text-sm font-medium flex items-center gap-2 cursor-pointer select-none",
+                            personalNote ? "text-amber-900" : "text-foreground"
+                        )}
+                        onClick={() => setIsPersonalNoteExpanded(!isPersonalNoteExpanded)}
+                    >
+                        <Stethoscope className={cn("w-4 h-4", personalNote ? "text-amber-600" : "text-primary")} />
                         Doctor's Personal Note
+                        {(!personalNote && !isPersonalNoteExpanded) && <span className="text-muted-foreground text-xs font-normal ml-auto">(click to add)</span>}
+                        {(!personalNote && isPersonalNoteExpanded) && <ChevronDown className="w-3 h-3 ml-auto text-muted-foreground" />}
                     </Label>
-                    <Textarea
-                        id="personalNoteSidebar"
-                        value={personalNote}
-                        onChange={e => onPersonalNoteChange(e.target.value)}
-                        placeholder="Private notes..."
-                        className="min-h-[100px] text-sm bg-background/50 resize-y"
-                    />
+
+                    {(personalNote || isPersonalNoteExpanded) && (
+                        <Textarea
+                            id="personalNoteSidebar"
+                            value={personalNote}
+                            onChange={e => onPersonalNoteChange(e.target.value)}
+                            placeholder="Private notes..."
+                            className={cn(
+                                "min-h-[100px] text-sm resize-y transition-all",
+                                personalNote
+                                    ? "bg-white/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40"
+                                    : "bg-background/50"
+                            )}
+                            autoFocus={isPersonalNoteExpanded && !personalNote}
+                        />
+                    )}
                 </div>
             )}
             <div className="space-y-4">
