@@ -16,6 +16,15 @@ interface UnsavedChangesModalProps {
   onDiscard: () => void;
 }
 
+/**
+ * UnsavedChangesModal Component
+ * 
+ * Intercepts navigation or selection changes when form is dirty.
+ * Features:
+ * - Alert Dialog (Yes/No).
+ * - "Yes" triggers save then proceed.
+ * - "No" discards changes and proceeds.
+ */
 const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ isOpen, onConfirm, onDiscard }) => {
   return (
     <AlertDialog open={isOpen}>

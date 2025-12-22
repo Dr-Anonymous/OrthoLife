@@ -50,6 +50,18 @@ interface ClinicalNotesFormProps {
     referralDoctors: { id: string, name: string, specialization?: string, address?: string, phone?: string }[];
 }
 
+/**
+ * ClinicalNotesForm Component
+ * 
+ * The core data entry form for the consultation.
+ * Features:
+ * - Textareas for Complaints, Findings, Diagnosis, Procedure, Advice.
+ * - Integration with `AutosuggestInput` for "Referred To".
+ * - Suggestion buttons (badges) for quick insertion of common text.
+ * - Language switching support for Advice.
+ * - Real-time guide matching display (Yellow/Green alerts).
+ * - Collapsible sections for Procedure and Referred To.
+ */
 export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     extraData,
     onExtraChange,

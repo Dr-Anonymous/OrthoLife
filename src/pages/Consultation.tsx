@@ -4,7 +4,7 @@ import { offlineStore } from '@/lib/local-storage';
 import { toast } from '@/hooks/use-toast';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { cn, cleanConsultationData } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -17,10 +17,8 @@ import TextShortcutManagementModal from '@/components/consultation/TextShortcutM
 
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
-import { MedicalCertificate } from '@/components/consultation/MedicalCertificate';
-import MedicalCertificateModal, { CertificateData } from '@/components/consultation/MedicalCertificateModal';
-import { Receipt } from '@/components/consultation/Receipt';
-import ReceiptModal, { ReceiptData } from '@/components/consultation/ReceiptModal';
+import { MedicalCertificate, MedicalCertificateModal, CertificateData } from '@/components/consultation/MedicalCertificate';
+import { Receipt, ReceiptModal, ReceiptData } from '@/components/consultation/Receipt';
 import { HOSPITALS } from '@/config/constants';
 import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
@@ -46,6 +44,17 @@ import { useGuideMatching } from '@/hooks/useGuideMatching';
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
 
+/**
+ * ConsultationPage Component
+ * 
+ * This is the main page for managing patient consultations. It handles:
+ * - Patient registration and selection
+ * - Consultation data entry (Complaints, Findings, Diagnosis, etc.)
+ * - Medication management with autocomplete and shortcuts
+ * - Printing functionality (Prescription, Medical Certificate, Receipt)
+ * - Offline synchronization with Supabase
+ * - GPS-based hospital selection
+ */
 const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
   const { i18n, t } = useTranslation();
@@ -194,6 +203,74 @@ const ConsultationPage = () => {
     }
   }, []);
 
+  const confirmSelection = useCallback(async (consultation: Consultation) => {
+    patientSelectionCounter.current += 1;
+    setSelectedConsultation(consultation);
+    setEditablePatientDetails(consultation.patient);
+    setInitialPatientDetails(consultation.patient);
+    if (consultation.patient.dob) {
+      setAge(calculateAge(new Date(consultation.patient.dob)));
+      setCalendarDate(new Date(consultation.patient.dob));
+    }
+
+    const savedData = consultation.consultation_data || {};
+    const newExtraData = {
+      complaints: savedData.complaints || '',
+      findings: savedData.findings || '',
+      investigations: savedData.investigations || '',
+      diagnosis: savedData.diagnosis || '',
+      advice: savedData.advice || '',
+      followup: savedData.followup || '',
+      medications: typeof savedData.medications === 'string' ? JSON.parse(savedData.medications) : (savedData.medications || []),
+      weight: savedData.weight || '',
+      bp: savedData.bp || '',
+      temperature: savedData.temperature || '',
+      allergy: savedData.allergy || '',
+      personal_note: savedData.personal_note || '',
+      procedure: savedData.procedure || '',
+      referred_to: savedData.referred_to || '',
+      visit_type: savedData.visit_type || consultation.visit_type || 'paid',
+    };
+    setExtraData(newExtraData as any);
+    setInitialExtraData(newExtraData);
+    setInitialLocation(consultation.location || HOSPITALS[0].name);
+    setInitialLanguage(consultation.language || 'en');
+
+    setIsProcedureExpanded(!!newExtraData.procedure);
+    setIsReferredToExpanded(!!newExtraData.referred_to);
+
+    setHasUnsavedChanges(false);
+
+    // Timer Reset handled by useEffect
+
+    // Fetch details last visit
+    if (consultation.patient.id && !String(consultation.patient.id).startsWith('offline-')) {
+      const { data: lastVisit } = await supabase
+        .from('consultations')
+        .select('created_at')
+        .eq('patient_id', consultation.patient.id)
+        .lt('created_at', consultation.created_at)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastVisit) {
+        const d = new Date(lastVisit.created_at);
+        setLastVisitDate(`${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`);
+      } else {
+        setLastVisitDate('First Consultation');
+      }
+    }
+  }, []);
+
+
+
+  /**
+   * Timer Logic
+   * Tracks the duration of the consultation.
+   * Starts automatically when a non-completed consultation is selected.
+   * Pauses when switching away or manually paused.
+   */
   useEffect(() => {
     if (selectedConsultation && isTimerVisible) {
       if (activeTimerIdRef.current !== selectedConsultation.id) {
@@ -248,7 +325,7 @@ const ConsultationPage = () => {
             if (consultationData) {
               consultationToSelect.consultation_data = consultationData;
             }
-            handleSelectConsultation(consultationToSelect);
+            confirmSelection(consultationToSelect);
           }
         }
       } else {
@@ -264,41 +341,57 @@ const ConsultationPage = () => {
 
   useEffect(() => {
     fetchConsultations();
-  }, [fetchConsultations]);
 
-  useEffect(() => {
-    // GPS Logic
-    if (isGpsEnabled && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          let closest = HOSPITALS[0];
-          let minDistance = Infinity;
 
-          HOSPITALS.forEach(hospital => {
-            const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closest = hospital;
-            }
-          });
 
-          if (closest.name !== selectedHospital.name) {
-            setSelectedHospital(closest);
-            toast({
-              title: "Location Updated",
-              description: `Switched to ${closest.name} based on your location.`,
+
+    /**
+     * GPS Logic
+     * Automatically selects the nearest hospital based on the user's current location.
+     * Only runs if GPS is enabled in settings.
+     */
+    useEffect(() => {
+      // GPS Logic
+      if (isGpsEnabled && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            let closest = HOSPITALS[0];
+            let minDistance = Infinity;
+
+            HOSPITALS.forEach(hospital => {
+              const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
+              if (distance < minDistance) {
+                minDistance = distance;
+                closest = hospital;
+              }
             });
+
+            if (closest.name !== selectedHospital.name) {
+              setSelectedHospital(closest);
+              toast({
+                title: "Location Updated",
+                description: `Switched to ${closest.name} based on your location.`,
+              });
+            }
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
           }
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-        }
-      );
-    }
+        );
+      }
+    }, [isGpsEnabled]);
+
   }, [isGpsEnabled]);
 
-  // Offline Sync
+  /**
+   * Offline Sync Logic
+   * Synchronizes offline storage (IndexedDB) with Supabase when online.
+   * Handles:
+   * - New patient registration (offline- created patients)
+   * - New/Updated consultation data
+   * - Conflict resolution (Server vs Local timestamp)
+   */
   useEffect(() => {
     const syncOfflineData = async () => {
       if (!isOnline) {
@@ -399,6 +492,24 @@ const ConsultationPage = () => {
   }, [isOnline, conflictData, patientConflictData]);
 
   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = ''; // Trigger browser's native confirmation dialog
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+
+
+  /**
+   * Persist User Preferences
+   * Saves GPS setting and selected hospital to localStorage.
+   */
+  useEffect(() => {
     localStorage.setItem('isGpsEnabled', JSON.stringify(isGpsEnabled));
     localStorage.setItem('selectedHospital', selectedHospital.name);
   }, [selectedHospital, isGpsEnabled]);
@@ -413,61 +524,7 @@ const ConsultationPage = () => {
     }
   };
 
-  const confirmSelection = async (consultation: Consultation) => {
-    patientSelectionCounter.current += 1;
-    setSelectedConsultation(consultation);
-    setEditablePatientDetails(consultation.patient);
-    setInitialPatientDetails(consultation.patient);
-    if (consultation.patient.dob) {
-      setAge(calculateAge(new Date(consultation.patient.dob)));
-      setCalendarDate(new Date(consultation.patient.dob));
-    }
 
-    const savedData = consultation.consultation_data || {};
-    const newExtraData = {
-      complaints: savedData.complaints || '',
-      findings: savedData.findings || '',
-      investigations: savedData.investigations || '',
-      diagnosis: savedData.diagnosis || '',
-      advice: savedData.advice || '',
-      followup: savedData.followup || '',
-      medications: typeof savedData.medications === 'string' ? JSON.parse(savedData.medications) : (savedData.medications || []),
-      weight: savedData.weight || '',
-      bp: savedData.bp || '',
-      temperature: savedData.temperature || '',
-      allergy: savedData.allergy || '',
-      personal_note: savedData.personal_note || '',
-      procedure: savedData.procedure || '',
-      referred_to: savedData.referred_to || '',
-      visit_type: savedData.visit_type || consultation.visit_type || 'paid',
-    };
-    setExtraData(newExtraData as any);
-    setInitialExtraData(newExtraData);
-    setInitialLocation(consultation.location || HOSPITALS[0].name);
-    setInitialLanguage(consultation.language || 'en');
-
-    setHasUnsavedChanges(false);
-
-    // Timer Reset handled by useEffect
-
-    // Fetch details last visit
-    if (consultation.patient.id && !String(consultation.patient.id).startsWith('offline-')) {
-      const { data: lastVisit } = await supabase
-        .from('consultations')
-        .select('created_at')
-        .eq('patient_id', consultation.patient.id)
-        .lt('created_at', consultation.created_at)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (lastVisit) {
-        setLastVisitDate(format(new Date(lastVisit.created_at), 'dd MMM yyyy'));
-      } else {
-        setLastVisitDate('First Consultation');
-      }
-    }
-  };
 
   const handleConfirmSave = async () => {
     setIsUnsavedModalOpen(false);
@@ -522,6 +579,11 @@ const ConsultationPage = () => {
 
 
   // Handlers
+
+  /**
+   * Updates patient demographic details.
+   * Triggers autosave flag.
+   */
   const handlePatientDetailsChange = (field: string, value: string) => {
     if (!editablePatientDetails) return;
     setEditablePatientDetails(prev => prev ? ({ ...prev, [field]: value }) : null);
@@ -569,6 +631,15 @@ const ConsultationPage = () => {
     setHasUnsavedChanges(true);
   };
 
+
+
+  /**
+   * Handles changes to "Extra Data" fields (Complaints, Findings, etc.).
+   * Includes logic for:
+   * - Text Shortcut Expansion (triggers replacement)
+   * - Special "followup" shortcuts (e.g., "3d.", "2w.")
+   * - Cursor position management after expansion
+   */
   const handleExtraChange = (field: string, value: any, cursorPosition?: number | null) => {
     if (field === 'complaints' && typeof value === 'string' && value.includes('//')) {
       setIsShortcutModalOpen(true);
@@ -576,7 +647,7 @@ const ConsultationPage = () => {
       return;
     }
 
-    if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personal_note' || field === 'procedure')) {
+    if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personal_note' || field === 'procedure' || field === 'investigations' || field === 'referred_to')) {
       let processedValue = value;
       let newCursor = cursorPosition || value.length;
 
@@ -627,6 +698,8 @@ const ConsultationPage = () => {
             advice: adviceRef.current,
             followup: followupRef.current,
             procedure: procedureRef.current,
+            investigations: investigationsRef.current,
+            referred_to: referredToRef.current,
           };
           if (refMap[field]) {
             refMap[field].setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
@@ -641,6 +714,10 @@ const ConsultationPage = () => {
     setHasUnsavedChanges(true);
   };
 
+  /**
+   * Adds a medication to the list from a suggestion.
+   * Handles language-specific fields (Telugu support) if applicable.
+   */
   const handleMedicationSuggestionClick = (med: Medication) => {
     const isTelugu = i18n.language === 'te';
     const newMed: Medication = {
@@ -660,7 +737,12 @@ const ConsultationPage = () => {
     setHasUnsavedChanges(true);
   };
 
-  // Meds handlers
+  /**
+   * Handles changes to individual medication fields.
+   * Includes logic for:
+   * - 'name' field shortcuts: '//' for Modal, '@' for Bundle
+   * - Text shortcuts expansion for all text fields
+   */
   const handleMedChange = (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => {
     setExtraData(prev => {
       const newMeds = [...prev.medications];

@@ -9,6 +9,16 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { Calendar, MapPin } from 'lucide-react';
 import ConsultationCard from './ConsultationCard';
 
+/**
+ * ConsultationSearchModal Component
+ * 
+ * Advanced search interface for all consultations.
+ * Features:
+ * - Multi-field search (Name, Phone, Keyword in notes).
+ * - Accordion view of results grouped by Patient.
+ * - Keyword highlighting in results.
+ * - Selection triggers consultation load in main page.
+ */
 export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');

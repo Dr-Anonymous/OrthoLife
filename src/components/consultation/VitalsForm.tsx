@@ -11,6 +11,12 @@ interface VitalsFormProps {
     onExtraChange: (field: string, value: string) => void;
 }
 
+/**
+ * VitalsForm Component
+ * 
+ * Captures patient vital signs including Weight, BP, Temperature, and Allergies.
+ * Handles BP input splitting (systolic/diastolic) for better UX.
+ */
 export const VitalsForm: React.FC<VitalsFormProps> = ({
     weight,
     bp,

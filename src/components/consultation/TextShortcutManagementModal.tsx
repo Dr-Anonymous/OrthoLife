@@ -19,6 +19,14 @@ interface TextShortcutManagementModalProps {
   onUpdate: () => void; // Callback to refresh shortcuts in the parent component
 }
 
+/**
+ * TextShortcutManagementModal Component
+ * 
+ * CRUD interface for text expansion shortcuts (e.g., "ra" -> "Rheumatoid Arthritis").
+ * Features:
+ * - Add/Edit/Delete shortcuts.
+ * - Used globally across text areas in the application.
+ */
 const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = ({ isOpen, onClose, onUpdate }) => {
   const [shortcuts, setShortcuts] = useState<TextShortcut[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,7 +98,7 @@ const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = 
     } catch (error: any) {
       toast.error(`Error ${editingShortcut ? 'updating' : 'adding'} shortcut`, { description: error.message });
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
@@ -141,15 +149,15 @@ const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = 
               </div>
             </div>
             <div className="flex items-center gap-2">
-                <Button onClick={handleSaveShortcut} size="sm" disabled={isSaving}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : editingShortcut ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
-                  {editingShortcut ? 'Save Changes' : 'Add Shortcut'}
+              <Button onClick={handleSaveShortcut} size="sm" disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : editingShortcut ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+                {editingShortcut ? 'Save Changes' : 'Add Shortcut'}
+              </Button>
+              {editingShortcut && (
+                <Button variant="ghost" size="sm" onClick={resetForm}>
+                  Cancel Edit
                 </Button>
-                {editingShortcut && (
-                  <Button variant="ghost" size="sm" onClick={resetForm}>
-                    Cancel Edit
-                  </Button>
-                )}
+              )}
             </div>
           </div>
 

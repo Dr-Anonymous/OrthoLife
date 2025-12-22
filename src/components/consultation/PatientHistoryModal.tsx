@@ -12,6 +12,16 @@ interface PatientHistoryModalProps {
   patientId: string | null;
 }
 
+/**
+ * PatientHistoryModal Component
+ * 
+ * Displays the complete consultation history for a specific patient.
+ * Features:
+ * - Fetches data via `get-consultations` Edge Function.
+ * - Shows Timeline view of consultations.
+ * - Integration with `ConsultationCard` for detailed view.
+ * - Handles loading and error states.
+ */
 const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClose, patientId }) => {
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);

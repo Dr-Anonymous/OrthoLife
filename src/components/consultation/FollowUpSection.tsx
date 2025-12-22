@@ -11,6 +11,15 @@ interface FollowUpSectionProps {
     onFollowupSuggestionClick: (val: string) => void;
 }
 
+/**
+ * FollowUpSection Component
+ * 
+ * Captures follow-up instructions.
+ * Features:
+ * - Textarea for free text.
+ * - Quick suggestion buttons (e.g., "1 week", "3 days").
+ * - Supports shortcut expansion via parent handler.
+ */
 export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
     followup,
     onExtraChange,

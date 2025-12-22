@@ -53,6 +53,17 @@ interface PrescriptionProps {
   className?: string;
 }
 
+/**
+ * Prescription Component
+ * 
+ * Renders the printable prescription layout.
+ * Features:
+ * - Dynamic header/footer with clinic branding.
+ * - Sections for Vitals, Complaints, Findings, Diagnosis, Procedure, Advice, Medications.
+ * - Advice section supports "guide" keyword filtering via `cleanAdviceLine`.
+ * - Multi-language support (English/Telugu) for static labels.
+ * - Medication table with checkmarks for Morning/Noon/Night.
+ */
 export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className }, ref) => {
   const { t, i18n } = useTranslation();
 

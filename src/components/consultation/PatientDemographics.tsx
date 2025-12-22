@@ -34,6 +34,20 @@ interface PatientDemographicsProps {
     handleMonthChange: (month: string) => void;
 }
 
+
+
+/**
+ * PatientDemographics Component
+ * 
+ * Renders the patient's personal information at the top of the consultation form.
+ * Features:
+ * - Editable Name and Phone
+ * - Date of Birth with Age calculation sync
+ * - Sex selection
+ * - Visit Type toggle (Paid/Free)
+ * - Link to Google Drive folder (if available)
+ * - Access to consolidated Patient History
+ */
 export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
     patient,
     visitType,

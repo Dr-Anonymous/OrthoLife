@@ -35,3 +35,4 @@ jules-scratch
 # temp files
 *.temp
 .temp/
+public/sitemap.xml

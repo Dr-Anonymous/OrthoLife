@@ -38,6 +38,16 @@ interface SavedMedicationsModalProps {
   onMedicationsUpdate: () => void;
 }
 
+/**
+ * SavedMedicationsModal Component
+ * 
+ * CRUD interface for managing the "Saved Medications" master list.
+ * Features:
+ * - Add/Edit/Delete medications.
+ * - Auto-translation of instructions/notes to Telugu via `translate-content` function.
+ * - Searchable list of saved medications.
+ * - Custom frequency support.
+ */
 const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, onClose, onMedicationsUpdate }) => {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isLoading, setIsLoading] = useState(false);

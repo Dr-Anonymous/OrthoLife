@@ -33,6 +33,16 @@ interface MedicationManagerProps {
     // I will extraction ONLY medications here as per name.
 }
 
+/**
+ * MedicationManager Component
+ * 
+ * Manages the list of prescribed medications.
+ * Features:
+ * - Drag and Drop reordering using `@dnd-kit`.
+ * - Detailed medication entry (Name, Dose, Frequency, Duration, Instructions).
+ * - Suggestion buttons for quick addition.
+ * - Integration with `SortableMedicationItem` for individual row logic.
+ */
 export const MedicationManager: React.FC<MedicationManagerProps> = ({
     medications,
     sensors,

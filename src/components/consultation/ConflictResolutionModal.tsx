@@ -25,6 +25,14 @@ const DataField = ({ label, value }: { label: string; value: any }) => (
   </div>
 );
 
+/**
+ * ConflictResolutionModal Component
+ * 
+ * Handles data synchronization conflicts (Offline vs Online edits).
+ * Features:
+ * - Side-by-side comparison of Local vs Server data.
+ * - Choice to "Keep Local" (Overwrite server) or "Discard Local" (Fetch server).
+ */
 export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = ({
   isOpen,
   onClose,

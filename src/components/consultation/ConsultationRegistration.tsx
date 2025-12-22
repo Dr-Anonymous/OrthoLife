@@ -46,6 +46,17 @@ interface ConsultationRegistrationProps {
   location?: string;
 }
 
+/**
+ * ConsultationRegistration Component
+ * 
+ * Handles the registration of new patients or selection of existing ones for a consultation.
+ * Features:
+ * - Patient Search (Name/Phone) via Supabase Edge Function `search-patients`.
+ * - New Patient Registration form (Name, Sex, DOB/Age, Phone).
+ * - Offline Support: Registers patient locally to IndexedDB if offline.
+ * - Auto-calc of visit type (Paid/Free) based on history (14-day rule).
+ * - Duplicate check via backend logic.
+ */
 const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location }) => {
   const isOnline = useOnlineStatus();
   const [formData, setFormData] = useState<FormData>({

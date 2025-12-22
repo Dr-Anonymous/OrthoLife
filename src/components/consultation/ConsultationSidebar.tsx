@@ -50,9 +50,20 @@ interface ConsultationSidebarProps {
 
     isTimerVisible: boolean;
     setIsTimerVisible: (visible: boolean) => void;
+
     timerSeconds: number;
 }
 
+/**
+ * ConsultationSidebar Component
+ * 
+ * Displays the list of consultations (Pending, Evaluation, Completed) and sidebar controls.
+ * Features:
+ * - Hospital/Location selection with GPS toggle
+ * - Date selection via Calendar
+ * - Consultation status filtering (Pending/Evaluation/Completed)
+ * - Navigation buttons (Search, Register, Refresh)
+ */
 export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     selectedHospitalName,
     onHospitalSelect,

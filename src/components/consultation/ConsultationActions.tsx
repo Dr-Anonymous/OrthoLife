@@ -17,6 +17,17 @@ interface ConsultationActionsProps {
     onManageShortcutsClick: () => void;
 }
 
+/**
+ * ConsultationActions Component
+ * 
+ * The bottom action bar for the consultation page.
+ * Features:
+ * - Primary Save and Print buttons.
+ * - "More" dropdown menu for secondary actions:
+ *   - Medical Certificate, Receipt
+ *   - Management options (Keywords, Shortcuts, Saved Meds)
+ * - Offline status indicator.
+ */
 export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     isOnline,
     isSaving,

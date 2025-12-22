@@ -27,6 +27,16 @@ interface PatientConflictModalProps {
   conflictingPatients: Patient[];
 }
 
+/**
+ * PatientConflictModal Component
+ * 
+ * Handles conflicts when syncing offline-created patients.
+ * Occurs when backend detects a potential duplicate (Name/Phone match).
+ * Features:
+ * - Display offline patient details.
+ * - Display list of potential server duplicates.
+ * - Option to "Create New" (Ignore duplicates) or "Merge" (Link to existing).
+ */
 export const PatientConflictModal: React.FC<PatientConflictModalProps> = ({
   isOpen,
   onClose,

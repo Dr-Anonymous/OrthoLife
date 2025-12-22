@@ -40,6 +40,16 @@ interface KeywordManagementModalProps {
   prefilledData?: KeywordPrefillData | null;
 }
 
+/**
+ * KeywordManagementModal Component
+ * 
+ * Manages "Autofill Keywords" (bundles/protocols).
+ * Features:
+ * - Create/Edit protocols that trigger on specific keywords.
+ * - Associate medications, advice, investigations, and follow-up with keywords.
+ * - "Save as Bundle" functionality pre-filled from current consultation data.
+ * - Supports Telugu translation for advice/follow-up.
+ */
 const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen, onClose, prefilledData }) => {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
