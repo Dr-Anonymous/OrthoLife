@@ -341,48 +341,44 @@ const ConsultationPage = () => {
 
   useEffect(() => {
     fetchConsultations();
+  }, [fetchConsultations]);
 
+  /**
+   * GPS Logic
+   * Automatically selects the nearest hospital based on the user's current location.
+   * Only runs if GPS is enabled in settings.
+   */
+  useEffect(() => {
+    // GPS Logic
+    if (isGpsEnabled && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          let closest = HOSPITALS[0];
+          let minDistance = Infinity;
 
-
-
-    /**
-     * GPS Logic
-     * Automatically selects the nearest hospital based on the user's current location.
-     * Only runs if GPS is enabled in settings.
-     */
-    useEffect(() => {
-      // GPS Logic
-      if (isGpsEnabled && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            let closest = HOSPITALS[0];
-            let minDistance = Infinity;
-
-            HOSPITALS.forEach(hospital => {
-              const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
-              if (distance < minDistance) {
-                minDistance = distance;
-                closest = hospital;
-              }
-            });
-
-            if (closest.name !== selectedHospital.name) {
-              setSelectedHospital(closest);
-              toast({
-                title: "Location Updated",
-                description: `Switched to ${closest.name} based on your location.`,
-              });
+          HOSPITALS.forEach(hospital => {
+            const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closest = hospital;
             }
-          },
-          (error) => {
-            console.error("Geolocation error:", error);
-          }
-        );
-      }
-    }, [isGpsEnabled]);
+          });
 
-  }, [isGpsEnabled]);
+          if (closest.name !== selectedHospital.name) {
+            setSelectedHospital(closest);
+            toast({
+              title: "Location Updated",
+              description: `Switched to ${closest.name} based on your location.`,
+            });
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+        }
+      );
+    }
+  }, [isGpsEnabled, selectedHospital.name]);
 
   /**
    * Offline Sync Logic
