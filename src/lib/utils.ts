@@ -58,3 +58,28 @@ export function cleanConsultationData(data: any): any {
     allergy: removeBracketedText(data.allergy),
   };
 }
+
+export function pruneEmptyFields(data: any): any {
+  if (Array.isArray(data)) {
+    return data.map(pruneEmptyFields);
+  } else if (typeof data === 'object' && data !== null) {
+    return Object.entries(data).reduce((acc, [key, value]) => {
+      // Keep boolean false (checked checkboxes)
+      if (value === '' || value === null || value === undefined) {
+        return acc;
+      }
+      // Recursively prune objects
+      if (typeof value === 'object') {
+        const pruned = pruneEmptyFields(value);
+        // If object becomes empty (and wasn't originally an empty array/object we wanted to keep), maybe remove? 
+        // For now, let's keep empty objects/arrays if they are significant, 
+        // but for consultation data like empty medications array, it's fine.
+        acc[key] = pruned;
+      } else {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+  }
+  return data;
+}

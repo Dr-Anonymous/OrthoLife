@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format, formatDistanceToNow } from 'date-fns';
-import { cn, cleanConsultationData } from '@/lib/utils';
+import { cn, cleanConsultationData, pruneEmptyFields } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/consultation/SavedMedicationsModal';
@@ -936,10 +936,12 @@ const ConsultationPage = () => {
 
     setIsSaving(true);
     try {
+      // Exclude migrated fields from consultation_data to avoid duplication
+      // We must explicitly destructure them out in case they exist in extraData from legacy JSON
       const { visit_type, location, language, ...restExtraData } = extraData as any;
-      const dataToSave = {
+      const dataToSave = pruneEmptyFields({
         ...restExtraData
-      };
+      });
 
       if (!isOnline) {
         const offlineData = {
@@ -1133,7 +1135,9 @@ const ConsultationPage = () => {
   // Filter Consultations
   const filteredConsultations = useMemo(() => {
     return allConsultations.filter(c => {
-      if (selectedHospital?.name && c.location !== selectedHospital.name) {
+      // If a hospital is selected, filter by it.
+      // BUT, if the consultation has NO location (e.g. legacy or offline-synced), show it anywhere.
+      if (selectedHospital?.name && c.location && c.location !== selectedHospital.name) {
         return false;
       }
       return true;

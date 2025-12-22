@@ -26,10 +26,13 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
 }) => {
     const handleBpPartChange = (part: 'systolic' | 'diastolic', value: string) => {
         const parts = bp ? bp.split('/') : ['', ''];
-        if (part === 'systolic') {
-            onExtraChange('bp', `${value}/${parts[1] || ''}`);
+        const newSystolic = part === 'systolic' ? value : (parts[0] || '');
+        const newDiastolic = part === 'diastolic' ? value : (parts[1] || '');
+
+        if (!newSystolic && !newDiastolic) {
+            onExtraChange('bp', '');
         } else {
-            onExtraChange('bp', `${parts[0] || ''}/${value}`);
+            onExtraChange('bp', `${newSystolic}/${newDiastolic}`);
         }
     };
 
