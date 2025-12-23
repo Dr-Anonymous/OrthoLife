@@ -1196,10 +1196,7 @@ const ConsultationPage = () => {
         setIsSearchModalOpen(true);
       }
       // Add Medication: Ctrl/Cmd + M
-      if ((e.metaKey || e.ctrlKey) && e.key === 'm') {
-        e.preventDefault();
-        addMedication();
-      }
+
     };
 
     window.addEventListener('keydown', handleKeyDown);

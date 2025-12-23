@@ -62,6 +62,19 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     suggestedMedications,
     handleMedicationSuggestionClick
 }) => {
+    // Keyboard shortcut for adding medication
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                addMedication();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [addMedication]);
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">

@@ -42,6 +42,7 @@ const PharmacyAdminPage = lazy(() => import("./pages/PharmacyAdminPage"));
 const PharmacySupplierPage = lazy(() => import("./pages/PharmacySupplierPage"));
 const PharmacyAuthGuard = lazy(() => import("./components/PharmacyAuthGuard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const InPatientManagement = lazy(() => import("./pages/InPatientManagement"));
 
 const queryClient = new QueryClient();
 
@@ -94,8 +95,9 @@ const App = () => {
                 <Route path="/badam" element={<PatientRegistration />} />
                 <Route path="/laxmi" element={<PatientRegistration />} />
                 <Route path="/ortholife" element={<PatientRegistration />} />
-                <Route path="/consultation" element={<Consultation />} />
+                <Route path="/op" element={<Consultation />} />
                 <Route path="/consultation-stats" element={<ConsultationStats />} />
+                <Route path="/ip" element={<InPatientManagement />} />
 
                 {/* Pharmacy Routes */}
                 <Route path="/pharmacy" element={<PharmacyPage />} />

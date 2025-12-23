@@ -56,15 +56,26 @@ serve(async (req) => {
     }
 
     // First, attempt to find the patient in our primary database.
-    let query = supabase.from('patients').select('*');
+    let dbData;
+    let dbError;
+
     if (searchType === 'name') {
-      query = query.ilike('name', `%${searchTerm}%`);
-    } else if (searchType === 'phone') {
+      const { data, error } = await supabase.rpc('search_patients_normalized', {
+        search_term: searchTerm
+      });
+      dbData = data;
+      dbError = error;
+    } else {
+      let query = supabase.from('patients').select('*');
+      // searchType === 'phone'
       // Sanitize phone number to the last 10 digits for consistent searching.
       const sanitizedPhone = searchTerm.slice(-10);
       query = query.like('phone', `%${sanitizedPhone}%`);
+
+      const { data, error } = await query;
+      dbData = data;
+      dbError = error;
     }
-    const { data: dbData, error: dbError } = await query;
 
     if (dbError) throw dbError;
 
