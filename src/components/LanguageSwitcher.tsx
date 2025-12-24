@@ -12,7 +12,7 @@ export const LanguageSwitcher = () => {
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     const currentPath = location.pathname;
-    if (currentPath.includes('/consultation') || currentPath.includes('/my')) {
+    if (currentPath.includes('/op') || currentPath.includes('/ip') || currentPath.includes('/my')) {
       return;
     }
     let newPath;

@@ -75,7 +75,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                     </div>
                     <div>
                         <p><span className="font-semibold text-muted-foreground mr-2">Admission Date:</span> {courseDetails.admission_date ? format(new Date(courseDetails.admission_date), 'dd MMM yyyy') : 'N/A'}</p>
-                        <p><span className="font-semibold text-muted-foreground mr-2">Discharge Date:</span> {format(new Date(), 'dd MMM yyyy')}</p>
+                        <p><span className="font-semibold text-muted-foreground mr-2">Discharge Date:</span> <span className="text-sm">{format(new Date(), 'dd MMM yyyy')}</span></p>
                     </div>
                 </section>
 
@@ -84,13 +84,13 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                     {courseDetails.diagnosis && (
                         <div>
                             <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis</h3>
-                            <p className="whitespace-pre-wrap">{courseDetails.diagnosis}</p>
+                            <p className="whitespace-pre-wrap text-sm">{courseDetails.diagnosis}</p>
                         </div>
                     )}
                     {courseDetails.procedure && (
                         <div>
                             <h3 className="font-heading font-semibold text-primary mb-1">Procedure Performed</h3>
-                            <p className="whitespace-pre-wrap">
+                            <p className="whitespace-pre-wrap text-sm">
                                 {courseDetails.procedure}
                                 {courseDetails.procedure_date && (
                                     <span className=""> on {format(new Date(courseDetails.procedure_date), 'dd MMM yyyy')}</span>
@@ -112,7 +112,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                 {/* Clinical Notes / Post Op Care */}
                 {/* Clinical Notes / Post Op Care */}
                 {(dischargeData.clinical_notes || dischargeData.post_op_care) && (
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6 break-inside-avoid">
+                    <section className="grid grid-cols-1 gap-6 break-inside-avoid">
                         {dischargeData.clinical_notes && (
                             <div>
                                 <h3 className="font-heading font-semibold text-primary mb-1">Clinical Course / Notes</h3>
@@ -216,7 +216,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                             <Calendar className="h-5 w-5" />
                             Review Date
                         </h3>
-                        <p className="text-lg font-medium ml-7">{format(new Date(dischargeData.review_date), 'dd MMM yyyy')}</p>
+                        <p className="text-sm font-medium ml-7">{format(new Date(dischargeData.review_date), 'dd MMM yyyy')}</p>
                     </section>
                 )}
             </main>

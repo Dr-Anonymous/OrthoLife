@@ -17,7 +17,8 @@ import {
     Pencil,
     FileText,
     CalendarDays,
-    User
+    User,
+    BookOpen
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,8 +27,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useReactToPrint } from 'react-to-print';
 import { DischargeSummaryPrint } from '@/components/inpatient/DischargeSummaryPrint';
-import { Globe, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getMatchingGuides } from '@/lib/guideMatching';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -44,7 +46,7 @@ import { cn } from "@/lib/utils";
 import { calculateAge } from "@/lib/age";
 import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { Medication } from '@/types/consultation';
-import { DndContext, closestCenter, DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
+import { DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { useTranslation } from 'react-i18next';
@@ -108,8 +110,12 @@ const InPatientManagement = () => {
     const [selectedPatientForEdit, setSelectedPatientForEdit] = useState<InPatient | null>(null);
     const [selectedPatientForWhatsApp, setSelectedPatientForWhatsApp] = useState<InPatient | null>(null);
     const [selectedPatientForDischarge, setSelectedPatientForDischarge] = useState<InPatient | null>(null);
-    const [, setWhatsAppType] = useState<'pre-op' | 'post-op' | 'rehab' | null>(null);
+    const [whatsAppType, setWhatsAppType] = useState<'pre-op' | 'post-op' | 'rehab' | 'general'>('general');
     const [whatsAppMessage, setWhatsAppMessage] = useState('');
+    const [matchedGuideTitle, setMatchedGuideTitle] = useState<string | null>(null);
+    const [availableGuides, setAvailableGuides] = useState<any[]>([]);
+    const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
+    const [currentGuideLink, setCurrentGuideLink] = useState<string | null>(null);
 
     // Admission Form State
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -120,6 +126,7 @@ const InPatientManagement = () => {
         admission_date: format(new Date(), 'yyyy-MM-dd'),
         procedure_date: '',
         room_number: '',
+        language: 'te',
     });
 
     const { toast } = useToast();
@@ -167,7 +174,8 @@ const InPatientManagement = () => {
                 admission_date: new Date(vars.admission_date).toISOString(),
                 procedure_date: vars.procedure_date ? new Date(vars.procedure_date).toISOString() : null,
                 room_number: vars.room_number || null,
-                status: 'admitted'
+                status: 'admitted',
+                language: vars.language || 'en'
             }]);
             if (error) throw error;
         },
@@ -217,10 +225,15 @@ const InPatientManagement = () => {
                 .eq('id', id);
             if (error) throw error;
         },
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['in-patients'] });
             setIsDischargeModalOpen(false);
             toast({ title: "Discharged", description: "Patient discharged successfully." });
+
+            // Send notification
+            if (selectedPatientForDischarge) {
+                sendDischargeNotification(selectedPatientForDischarge, variables.language);
+            }
         },
         onError: (err: any) => {
             toast({ variant: "destructive", title: "Error", description: err.message });
@@ -254,25 +267,167 @@ const InPatientManagement = () => {
             admission_date: format(new Date(), 'yyyy-MM-dd'),
             procedure_date: '',
             room_number: '',
+            language: 'te'
         });
     };
 
-    const initWhatsApp = (patient: InPatient, type: 'pre-op' | 'post-op' | 'rehab') => {
+    const sendDischargeNotification = async (patient: InPatient, language: string) => {
+        const isTelugu = language === 'te';
+        const link = `https://ortho.life/d/${patient.patient.phone}`;
+
+        const message = isTelugu
+            ? `ప్రియమైన ${patient.patient.name},\nమీ డిశ్చార్జ్ ప్రక్రియ ప్రారంభమైంది. మీ డిశ్చార్జ్ సారాంశాన్ని ఇక్కడ డౌన్‌లోడ్ చేసుకోవచ్చు:\n\n${link}`
+            : `Dear ${patient.patient.name},\nYour discharge process has started. You can view/download your discharge summary here:\n\n${link}`;
+
+        try {
+            await supabase.functions.invoke('send-whatsapp', {
+                body: { number: patient.patient.phone, message },
+            });
+            console.log("Discharge Notification Sent");
+        } catch (error) {
+            console.error("Failed to send discharge notification", error);
+            toast({ variant: "destructive", title: "Notification Failed", description: "Could not send WhatsApp message." });
+        }
+    };
+
+    const handleGuideChange = (guideId: string) => {
+        if (!selectedPatientForWhatsApp) return;
+        const guide = availableGuides.find(g => String(g.id) === guideId);
+        if (!guide) return;
+
+        setSelectedGuideId(guideId);
+
+        const isTelugu = selectedPatientForWhatsApp.language === 'te';
+        const langPrefix = isTelugu ? '/te' : '';
+        const newLink = `https://ortho.life${langPrefix}/guides/${guide.id}`;
+
+        let guideTitle = guide.title;
+        if (isTelugu && guide.guide_translations) {
+            const translation = guide.guide_translations.find((t: any) => t.language === 'te');
+            if (translation) guideTitle = translation.title;
+        }
+        setMatchedGuideTitle(guideTitle);
+
+        let newMessage = whatsAppMessage;
+
+        if (currentGuideLink && newMessage.includes(currentGuideLink)) {
+            // Replace existing link
+            newMessage = newMessage.replace(currentGuideLink, newLink);
+        } else {
+            // Append if no link was present
+            if (isTelugu) {
+                const insertText = ` మీ కోసం ప్రత్యేకంగా రూపొందించిన వ్యాయామాల గైడ్ ఇక్కడ ఉంది 🧘‍♂️:\n${newLink}\n\n`;
+                // Try to insert before signature
+                if (newMessage.includes('శుభాకాంక్షలు')) {
+                    newMessage = newMessage.replace('శుభాకాంక్షలు', `${insertText}శుభాకాంక్షలు`);
+                } else {
+                    newMessage += insertText;
+                }
+            } else {
+                const insertText = ` Here is a customised guide for your rehabilitation journey 🧘‍♂️:\n${newLink}\n\n`;
+                if (newMessage.includes('Best regards')) {
+                    newMessage = newMessage.replace('Best regards', `${insertText}Best regards`);
+                } else {
+                    newMessage += insertText;
+                }
+            }
+        }
+
+        setCurrentGuideLink(newLink);
+        setWhatsAppMessage(newMessage);
+    };
+
+    const initWhatsApp = async (patient: InPatient, type: 'pre-op' | 'post-op' | 'rehab' | 'general') => {
         setSelectedPatientForWhatsApp(patient);
         setWhatsAppType(type);
+        setMatchedGuideTitle(null); // Reset
+        setAvailableGuides([]);
+        setSelectedGuideId(null);
+        setCurrentGuideLink(null);
 
         const patientName = patient.patient.name;
+        // Identify language: prioritize explicit language preference, default to logic if missing
+        // For admitted patients, we should have saved 'language'. If not, default to English.
+        const isTelugu = (patient.language === 'te');
+
         let message = '';
 
         if (type === 'pre-op') {
-            message = `Hello ${patientName}, this is an update regarding your scheduled procedure: ${patient.procedure}. Please ensure you are fasting from midnight. \nHere is an article outlining common before-surgery concerns: https://www.ortho.life/guides/15  \nBest regards, Dr Samuel Manoj Ch.`;
+            if (isTelugu) {
+                message = `🙏 నమస్కారం ${patientName},\nరేపు మీ ${patient.procedure} శస్త్రచికిత్స జరగనుంది. \nదయచేసి ఈ రోజు అర్ధరాత్రి నుండి ఉపవాసం ఉండండి - ఎటువంటి ఆహారం లేదా నీరు తీసుకోవద్దు 🚫🍽️.\n\nశస్త్రచికిత్సకు ముందు తీసుకోవలసిన విషయాలు ఇక్కడ చూడండి:\nhttps://ortho.life/te/guides/15\n\nశుభాకాంక్షలు,\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి.`;
+            } else {
+                message = `🙏 Hello ${patientName},\nThis is an update regarding your scheduled procedure: ${patient.procedure}.\nPlease ensure you are fasting from midnight - No food or water 🚫🍽️.\n\nHere is an article outlining common before-surgery concerns:\nhttps://ortho.life/guides/15\n\nBest regards,\nDr Samuel Manoj Cherukuri.`;
+            }
         } else if (type === 'post-op') {
-            message = `Hello ${patientName}, hope you are recovering well after your procedure. If you have any concers, you can contact this number directly. \nHere is an article outlining common after-surgery concerns: https://www.ortho.life/guides/10 \nBest regards, Dr Samuel Manoj Ch.`;
+            if (isTelugu) {
+                message = `🙏 నమస్కారం ${patientName},\nశస్త్రచికిత్స తర్వాత మీరు త్వరగా కోలుకుంటున్నారని ఆశిస్తున్నాము. మీకు ఏవైనా సందేహాలు ఉంటే, ఈ నంబర్‌ను సంప్రదించండి 📞.\n\nశస్త్రచికిత్స తర్వాత తీసుకోవలసిన ఆహరం కోసం:\nhttps://ortho.life/te/guides/10\n\nశుభాకాంక్షలు,\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి.`;
+            } else {
+                message = `🙏 Hello ${patientName},\nHope you are recovering well after your procedure. If you have any concerns, you can contact this number directly 📞.\n\nHere is our after-surgery diet recommendation:\nhttps://ortho.life/guides/10\n\nBest regards,\nDr Samuel Manoj Cherukuri.`;
+            }
         } else if (type === 'rehab') {
-            message = `Hello ${patientName}, hope you are recovering well after your procedure. Here is a customised guide for your rehabilitation journey: https://www.ortho.life/guides/11 \nBest regards, Dr Samuel Manoj Ch.`;
+            // Lazy load guides and match
+            let guideLink = '';
+            let guideTitle = '';
+
+            try {
+                const { data: guidesData } = await supabase
+                    .from('guides')
+                    .select('id, title, description, categories(name), guide_translations(language, title, description)');
+
+                if (guidesData) {
+                    setAvailableGuides(guidesData); // Save for dropdown
+
+                    const searchText = `${patient.diagnosis} guide ${patient.procedure} guide`;
+                    const matches = getMatchingGuides(searchText, guidesData as any[], patient.language || 'en');
+
+                    // Filter for matches that actually have a guide
+                    const bestMatch = matches.find(m => m.guide && m.guideLink);
+
+                    if (bestMatch) {
+                        guideLink = bestMatch.guideLink || '';
+                        guideTitle = bestMatch.guide?.title || '';
+
+                        // Try to get translated title if available
+                        if (isTelugu && bestMatch.guide?.guide_translations) {
+                            const translation = bestMatch.guide.guide_translations.find((t: any) => t.language === 'te');
+                            if (translation) guideTitle = translation.title;
+                        }
+
+                        setMatchedGuideTitle(guideTitle);
+                        setSelectedGuideId(String(bestMatch.guide.id));
+                        setCurrentGuideLink(guideLink);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching guides", error);
+            }
+
+            if (isTelugu) {
+                message = `🙏 నమస్కారం ${patientName},\nమీరు త్వరగా కోలుకుంటున్నారని ఆశిస్తున్నాము.`;
+                if (guideLink) {
+                    message += ` మీ కోసం ప్రత్యేకంగా రూపొందించిన వ్యాయామాల గైడ్ ఇక్కడ ఉంది 🧘‍♂️:\n${guideLink}\n\n`;
+                } else {
+                    message += `\n\n`;
+                }
+                message += `శుభాకాంక్షలు,\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి.`;
+            } else {
+                message = `🙏 Hello ${patientName},\nHope you are recovering well.`;
+                if (guideLink) {
+                    message += ` Here is a customised guide for your rehabilitation journey 🧘‍♂️:\n${guideLink}\n\n`;
+                } else {
+                    message += `\n\n`;
+                }
+                message += `Best regards,\nDr Samuel Manoj Cherukuri.`;
+            }
         } else {
-            message = `Update for ${patientName}: Your current clinical status is stable. \nDiagnosis: ${patient.diagnosis}. \nWe will keep you updated on the further plan. \nBest regards, Dr Samuel Manoj Ch.`;
+            // General Update
+            if (isTelugu) {
+                message = `అప్‌డేట్ ${patientName}:\nమీ ఆరోగ్య పరిస్థితి స్థిరంగా ఉంది 👍.\nవ్యాధి నిర్ధారణ: ${patient.diagnosis}.\nతదుపరి ప్రణాళికను మీకు తెలియజేస్తాము.\n\nశుభాకాంక్షలు,\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి.`;
+            } else {
+                message = `Update for ${patientName}:\nYour current clinical status is stable 👍.\nDiagnosis: ${patient.diagnosis}.\nWe will keep you updated on the further plan.\n\nBest regards,\nDr Samuel Manoj Cherukuri.`;
+            }
         }
+
         setWhatsAppMessage(message);
         setIsWhatsAppModalOpen(true);
     };
@@ -454,6 +609,21 @@ const InPatientManagement = () => {
                                 onChange={(e) => setAdmissionData({ ...admissionData, room_number: e.target.value })}
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label>Preferred Language</Label>
+                            <Select
+                                value={admissionData.language || 'en'}
+                                onValueChange={(val) => setAdmissionData({ ...admissionData, language: val })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Language" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="en">English</SelectItem>
+                                    <SelectItem value="te">Telugu</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
                         <div className="space-y-2 col-span-2">
                             <Label>Diagnosis</Label>
@@ -572,6 +742,29 @@ const InPatientManagement = () => {
                         <DialogDescription>Review and edit the message before sending.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
+                        {whatsAppType === 'rehab' && availableGuides.length > 0 && (
+                            <div className="mb-4 space-y-2">
+                                <Label>Attached Rehabilitation Guide</Label>
+                                <Select
+                                    value={selectedGuideId || ''}
+                                    onValueChange={handleGuideChange}
+                                >
+                                    <SelectTrigger className="w-full bg-green-50 border-green-200 text-green-800">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <BookOpen className="w-4 h-4 shrink-0 text-green-600" />
+                                            <SelectValue placeholder="Select a guide to attach..." />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[300px]">
+                                        {availableGuides.map((guide) => (
+                                            <SelectItem key={guide.id} value={String(guide.id)}>
+                                                {guide.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                         <Label className="mb-2 block">Message Preview</Label>
                         <Textarea
                             value={whatsAppMessage}
@@ -1143,7 +1336,7 @@ DischargeForm.displayName = "DischargeForm";
 
 const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint }: {
     patient: InPatient;
-    onSendWhatsApp: (p: InPatient, type: 'pre-op' | 'post-op' | 'rehab') => void;
+    onSendWhatsApp: (p: InPatient, type: 'pre-op' | 'post-op' | 'rehab' | 'general') => void;
     onEdit?: () => void;
     onDischarge?: () => void;
     onPrint?: () => void;
@@ -1279,7 +1472,7 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint }
                 {/* Actions */}
                 {!isDischarged && (
                     <div className="pt-3 flex flex-col gap-2 mt-auto">
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-4 gap-2">
                             <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'pre-op')}>
                                 Pre-Op
                             </Button>
@@ -1288,6 +1481,9 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint }
                             </Button>
                             <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'rehab')}>
                                 Rehab
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'general')}>
+                                General
                             </Button>
                         </div>
 

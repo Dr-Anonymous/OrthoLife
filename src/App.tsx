@@ -37,6 +37,7 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const MySpace = lazy(() => import("./pages/MySpace"));
 const SendWhatsApp = lazy(() => import("./pages/SendWhatsApp"));
 const PrescriptionDownload = lazy(() => import("./pages/PrescriptionDownload"));
+const DischargeSummaryDownload = lazy(() => import("./pages/DischargeSummaryDownload"));
 
 const PharmacyAdminPage = lazy(() => import("./pages/PharmacyAdminPage"));
 const PharmacySupplierPage = lazy(() => import("./pages/PharmacySupplierPage"));
@@ -149,6 +150,8 @@ const App = () => {
                 <Route path="/whatsapp" element={<SendWhatsApp />} />
                 <Route path="/p/:patientPhone" element={<PrescriptionDownload />} />
                 <Route path="/prescription" element={<PrescriptionDownload />} />
+                <Route path="/d/:patientPhone" element={<DischargeSummaryDownload />} />
+                <Route path="/d" element={<DischargeSummaryDownload />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
