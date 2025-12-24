@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ConflictResolutionModal } from '@/components/consultation/ConflictResolutionModal';
 import { PatientConflictModal } from '@/components/consultation/PatientConflictModal';
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
+import { CompletionMessageModal } from '@/components/consultation/CompletionMessageModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -40,9 +41,11 @@ import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { FollowUpSection } from '@/components/consultation/FollowUpSection';
 import { ConsultationActions } from '@/components/consultation/ConsultationActions';
 import { Patient, Consultation, Medication, TextShortcut } from '@/types/consultation';
-import { useGuideMatching } from '@/hooks/useGuideMatching';
+
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
+import { Guide } from '@/types/consultation';
+
 
 /**
  * ConsultationPage Component
@@ -106,6 +109,17 @@ const ConsultationPage = () => {
   const [conflictData, setConflictData] = useState<{ local: any, server: any, consultationId: string } | null>(null);
   const [patientConflictData, setPatientConflictData] = useState<{ consultationId: string, offlinePatient: any, conflictingPatients: any[] } | null>(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+  const [completionMessage, setCompletionMessage] = useState('');
+
+  // --- Completion Message Logic ---
+  const handleOpenCompletionModal = () => {
+    if (!editablePatientDetails || !selectedConsultation) return;
+
+    const message = generateCompletionMessage(editablePatientDetails, matchedGuides);
+    setCompletionMessage(message);
+    setIsCompletionModalOpen(true);
+  };
 
   // UI State
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
@@ -192,8 +206,24 @@ const ConsultationPage = () => {
   const [isPatientDatePickerOpen, setIsPatientDatePickerOpen] = useState(false);
   const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
 
-  // Guide Matching Hook
-  const { matchedGuides, guides } = useGuideMatching(debouncedAdvice, i18n.language);
+  // Guide Matching
+  const [guides, setGuides] = useState<Guide[]>([]);
+  useEffect(() => {
+    const fetchGuides = async () => {
+      const { data, error } = await supabase
+        .from('guides')
+        .select('id, title, description, categories(name), guide_translations(language, title, description)');
+
+      if (!error && data) {
+        setGuides(data as unknown as Guide[]);
+      }
+    };
+    fetchGuides();
+  }, []);
+
+  const matchedGuides = useMemo(() => {
+    return getMatchingGuides(debouncedAdvice, guides, i18n.language);
+  }, [debouncedAdvice, guides, i18n.language]);
 
   // Stop Timer Logic
   const stopTimer = useCallback(() => {
@@ -468,7 +498,7 @@ const ConsultationPage = () => {
               }).eq('id', key);
 
               if (status === 'completed' && serverConsultation.status !== 'completed') {
-                sendConsultationCompletionNotification(patientDetails.name, patientDetails.phone);
+                sendConsultationCompletionNotification(patientDetails, matchedGuides);
               }
 
               await offlineStore.removeItem(key);
@@ -892,24 +922,49 @@ const ConsultationPage = () => {
 
   const suggestedFindings = useMemo(() => [], []);
 
-  const sendConsultationCompletionNotification = async (patientName: string, patientPhone: string) => {
-    try {
-      const isTelugu = i18n.language === 'te';
-      const advice = extraData.advice;
+  // Use useCallback to access latest state if needed, or pass args
+  const generateCompletionMessage = (patient: any, guidesMatched: any[]) => {
+    const isTelugu = (patient as any).language === 'te' || initialLanguage === 'te';
+    const patientName = patient.name;
+    const patientPhone = patient.phone;
 
-      const currentMatchedGuides = getMatchingGuides(advice, guides, i18n.language);
-      const guideLinks = currentMatchedGuides
-        .filter(mg => mg.guideLink)
-        .map(mg => mg.guideLink);
+    const guideLinks = guidesMatched
+      .filter(mg => mg.guideLink)
+      .map(mg => mg.guideLink);
 
-      const { error } = await supabase.functions.invoke('send-consultation-completion', {
-        body: { patientName, patientPhone, advice, isTelugu, guideLinks },
-      });
-      if (error) throw error;
-    } catch (err) {
-      console.error('Failed to send WhatsApp notification:', err);
+    const linksText = guideLinks.join('\n\n');
+
+    if (isTelugu) {
+      if (guideLinks.length > 0) {
+        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు-\n\n${linksText}`;
+      } else {
+        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`;
+      }
+    } else {
+      if (guideLinks.length > 0) {
+        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- Download your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}\n\n- Read diet 🍚 & exercise 🧘 advice-\n\n${linksText}`;
+      } else {
+        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nDownload your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}`;
+      }
     }
   };
+
+  const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[]) => {
+    try {
+      const message = generateCompletionMessage(patient, guidesMatched);
+      // Use send-whatsapp function directly
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: { number: patient.phone, message: message },
+      });
+      if (error) throw error;
+      console.log('Auto-notification sent');
+    } catch (err) {
+      console.error('Failed to send WhatsApp notification:', err);
+      // Optional: Toast error
+    }
+  };
+
+
 
   const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
@@ -992,7 +1047,7 @@ const ConsultationPage = () => {
         }
 
         if (statusChanged && newStatus === 'completed' && selectedConsultation.status !== 'completed') {
-          sendConsultationCompletionNotification(editablePatientDetails.name, editablePatientDetails.phone);
+          sendConsultationCompletionNotification(editablePatientDetails, matchedGuides);
         }
 
         await offlineStore.removeItem(selectedConsultation.id);
@@ -1353,6 +1408,7 @@ const ConsultationPage = () => {
                   onManageMedicationsClick={() => setIsMedicationsModalOpen(true)}
                   onManageKeywordsClick={() => setIsKeywordModalOpen(true)}
                   onManageShortcutsClick={() => setIsShortcutModalOpen(true)}
+                  onSendCompletionClick={handleOpenCompletionModal}
                 />
               </div>
             ) : (
@@ -1466,6 +1522,18 @@ const ConsultationPage = () => {
           conflictingPatients={patientConflictData.conflictingPatients}
         />
       )}
+      <CompletionMessageModal
+        isOpen={isCompletionModalOpen}
+        onClose={() => setIsCompletionModalOpen(false)}
+        patientPhone={editablePatientDetails?.phone || ''}
+        initialMessage={completionMessage}
+      />
+      <CompletionMessageModal
+        isOpen={isCompletionModalOpen}
+        onClose={() => setIsCompletionModalOpen(false)}
+        patientPhone={editablePatientDetails?.phone || ''}
+        initialMessage={completionMessage}
+      />
       <ConsultationSearchModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}

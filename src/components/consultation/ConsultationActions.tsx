@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff } from 'lucide-react';
+import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send } from 'lucide-react';
 
 interface ConsultationActionsProps {
     isOnline: boolean;
@@ -15,6 +15,7 @@ interface ConsultationActionsProps {
     onManageMedicationsClick: () => void;
     onManageKeywordsClick: () => void;
     onManageShortcutsClick: () => void;
+    onSendCompletionClick: () => void;
 }
 
 /**
@@ -38,7 +39,8 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onReceiptClick,
     onManageMedicationsClick,
     onManageKeywordsClick,
-    onManageShortcutsClick
+    onManageShortcutsClick,
+    onSendCompletionClick
 }) => {
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
@@ -68,6 +70,10 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                         <DropdownMenuItem onSelect={onReceiptClick}>
                             <FileText className="w-4 h-4 mr-2" />
                             Receipt
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={onSendCompletionClick}>
+                            <Send className="w-4 h-4 mr-2" />
+                            Send Completion Message
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={onSaveBundleClick}>

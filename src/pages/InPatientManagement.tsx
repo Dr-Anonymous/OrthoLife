@@ -517,7 +517,7 @@ const InPatientManagement = () => {
                             <DialogTitle>Discharge Process</DialogTitle>
                             <DialogDescription>Review and complete discharge summary.</DialogDescription>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mr-10">
                             <LanguageSwitcher />
                             <Button
                                 variant="outline"
@@ -675,7 +675,27 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         dob: '',
         sex: '',
         phone: '',
+        age: '' as number | '',
     });
+
+    const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newAge = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+        setSnapshot(prev => ({ ...prev, age: newAge }));
+
+        if (newAge !== '' && !isNaN(newAge)) {
+            const today = new Date();
+            const birthYear = today.getFullYear() - newAge;
+            // Default to Jan 1st if no existing DOB, else keep month/day
+            const currentDob = snapshot.dob ? new Date(snapshot.dob) : new Date(birthYear, 0, 1);
+            const newDob = new Date(birthYear, currentDob.getMonth(), currentDob.getDate());
+            setSnapshot(prev => ({ ...prev, dob: format(newDob, 'yyyy-MM-dd') }));
+        }
+    };
+
+    const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newDob = e.target.value;
+        setSnapshot(prev => ({ ...prev, dob: newDob, age: calculateAge(new Date(newDob)) }));
+    };
 
     const [course, setCourse] = useState({
         admission_date: '',
@@ -750,7 +770,11 @@ const DischargeForm = forwardRef<{ print: () => void }, {
             // Check if there is an existing discharge summary to load
             if (patient.discharge_summary) {
                 const s = patient.discharge_summary;
-                setSnapshot(s.patient_snapshot);
+                const calculatedAge = s.patient_snapshot.dob ? calculateAge(new Date(s.patient_snapshot.dob)) : '';
+                setSnapshot({
+                    ...s.patient_snapshot,
+                    age: (s.patient_snapshot as any).age || calculatedAge || ''
+                });
                 setCourse({
                     admission_date: s.course_details.admission_date,
                     procedure: s.course_details.procedure,
@@ -777,12 +801,14 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                 });
             } else {
                 // Initialize from Admission Record
+                const calculatedAge = patient.patient.dob ? calculateAge(new Date(patient.patient.dob)) : '';
                 setSnapshot({
                     id: patient.id,
                     name: patient.patient.name,
                     dob: patient.patient.dob || '',
                     sex: patient.patient.sex || '',
-                    phone: patient.patient.phone
+                    phone: patient.patient.phone,
+                    age: calculatedAge,
                 });
                 setCourse({
                     admission_date: patient.admission_date ? patient.admission_date.split('T')[0] : '',
@@ -985,8 +1011,17 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     <Input value={snapshot.phone} onChange={e => setSnapshot({ ...snapshot, phone: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>DOB</Label>
-                                    <Input type="date" value={snapshot.dob} onChange={e => setSnapshot({ ...snapshot, dob: e.target.value })} />
+                                    <Label>DOB / Age</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Age"
+                                            type="number"
+                                            className="w-24"
+                                            value={snapshot.age}
+                                            onChange={handleAgeChange}
+                                        />
+                                        <Input type="date" value={snapshot.dob} onChange={handleDobChange} />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Sex</Label>
