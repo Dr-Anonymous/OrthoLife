@@ -19,18 +19,32 @@ interface CompletionMessageModalProps {
     onClose: () => void;
     patientPhone: string;
     initialMessage: string;
+    onMessageChange?: (message: string) => void;
 }
 
-export const CompletionMessageModal = ({ isOpen, onClose, patientPhone, initialMessage }: CompletionMessageModalProps) => {
+export const CompletionMessageModal = ({ isOpen, onClose, patientPhone, initialMessage, onMessageChange }: CompletionMessageModalProps) => {
     const [message, setMessage] = useState(initialMessage);
     const [isSending, setIsSending] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
         if (isOpen) {
+            // Only update local message if it differs from initial (and maybe we want to keep edits if re-opening?)
+            // Actually, the parent will control persistence. So if parent passes 'initialMessage' which IS the persisted message,
+            // we should sync to it. 
+            // BUT, if user is typing, we don't want to reset.
+            // Simplified: Sync on open.
             setMessage(initialMessage);
         }
     }, [initialMessage, isOpen]);
+
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        setMessage(newValue);
+        if (onMessageChange) {
+            onMessageChange(newValue);
+        }
+    };
 
     const handleSend = async () => {
         if (!patientPhone) {
@@ -68,7 +82,7 @@ export const CompletionMessageModal = ({ isOpen, onClose, patientPhone, initialM
                 <div className="py-4">
                     <Textarea
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
+                        onChange={handleTextChange}
                         className="min-h-[250px] font-mono text-sm"
                         placeholder="Type message here..."
                     />

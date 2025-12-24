@@ -108,7 +108,7 @@ const InPatientManagement = () => {
     const [selectedPatientForEdit, setSelectedPatientForEdit] = useState<InPatient | null>(null);
     const [selectedPatientForWhatsApp, setSelectedPatientForWhatsApp] = useState<InPatient | null>(null);
     const [selectedPatientForDischarge, setSelectedPatientForDischarge] = useState<InPatient | null>(null);
-    const [, setWhatsAppType] = useState<'pre-op' | 'post-op' | 'update' | null>(null);
+    const [, setWhatsAppType] = useState<'pre-op' | 'post-op' | 'rehab' | null>(null);
     const [whatsAppMessage, setWhatsAppMessage] = useState('');
 
     // Admission Form State
@@ -257,7 +257,7 @@ const InPatientManagement = () => {
         });
     };
 
-    const initWhatsApp = (patient: InPatient, type: 'pre-op' | 'post-op' | 'update') => {
+    const initWhatsApp = (patient: InPatient, type: 'pre-op' | 'post-op' | 'rehab') => {
         setSelectedPatientForWhatsApp(patient);
         setWhatsAppType(type);
 
@@ -265,11 +265,13 @@ const InPatientManagement = () => {
         let message = '';
 
         if (type === 'pre-op') {
-            message = `Hello ${patientName}, this is an update regarding your scheduled procedure: ${patient.procedure}. Please ensure you are fasting from midnight and reach the hospital by 7 AM. Best regards, OrthoLife.`;
+            message = `Hello ${patientName}, this is an update regarding your scheduled procedure: ${patient.procedure}. Please ensure you are fasting from midnight. \nHere is an article outlining common before-surgery concerns: https://www.ortho.life/guides/15  \nBest regards, Dr Samuel Manoj Ch.`;
         } else if (type === 'post-op') {
-            message = `Hello ${patientName}, glad to see you are recovering well after your procedure. Please follow the instructions provided by the nursing staff. Wishing you a speedy recovery!`;
+            message = `Hello ${patientName}, hope you are recovering well after your procedure. If you have any concers, you can contact this number directly. \nHere is an article outlining common after-surgery concerns: https://www.ortho.life/guides/10 \nBest regards, Dr Samuel Manoj Ch.`;
+        } else if (type === 'rehab') {
+            message = `Hello ${patientName}, hope you are recovering well after your procedure. Here is a customised guide for your rehabilitation journey: https://www.ortho.life/guides/11 \nBest regards, Dr Samuel Manoj Ch.`;
         } else {
-            message = `Update for ${patientName}: Your current clinical status is stable. \nDiagnosis: ${patient.diagnosis}. \nWe will keep you updated on the further plan.`;
+            message = `Update for ${patientName}: Your current clinical status is stable. \nDiagnosis: ${patient.diagnosis}. \nWe will keep you updated on the further plan. \nBest regards, Dr Samuel Manoj Ch.`;
         }
         setWhatsAppMessage(message);
         setIsWhatsAppModalOpen(true);
@@ -1141,7 +1143,7 @@ DischargeForm.displayName = "DischargeForm";
 
 const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint }: {
     patient: InPatient;
-    onSendWhatsApp: (p: InPatient, type: 'pre-op' | 'post-op' | 'update') => void;
+    onSendWhatsApp: (p: InPatient, type: 'pre-op' | 'post-op' | 'rehab') => void;
     onEdit?: () => void;
     onDischarge?: () => void;
     onPrint?: () => void;
@@ -1278,14 +1280,14 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint }
                 {!isDischarged && (
                     <div className="pt-3 flex flex-col gap-2 mt-auto">
                         <div className="grid grid-cols-3 gap-2">
-                            <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'update')}>
-                                Status
-                            </Button>
                             <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'pre-op')}>
                                 Pre-Op
                             </Button>
                             <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'post-op')}>
                                 Post-Op
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'rehab')}>
+                                Rehab
                             </Button>
                         </div>
 

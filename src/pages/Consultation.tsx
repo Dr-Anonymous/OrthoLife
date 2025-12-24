@@ -111,13 +111,18 @@ const ConsultationPage = () => {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [completionMessage, setCompletionMessage] = useState('');
+  const [isMessageManuallyEdited, setIsMessageManuallyEdited] = useState(false);
 
   // --- Completion Message Logic ---
   const handleOpenCompletionModal = () => {
     if (!editablePatientDetails || !selectedConsultation) return;
 
-    const message = generateCompletionMessage(editablePatientDetails, matchedGuides);
-    setCompletionMessage(message);
+    if (!isMessageManuallyEdited) {
+      const message = generateCompletionMessage(editablePatientDetails, matchedGuides);
+      setCompletionMessage(message);
+    }
+    // If manually edited, keep the existing 'completionMessage' state
+
     setIsCompletionModalOpen(true);
   };
 
@@ -409,6 +414,172 @@ const ConsultationPage = () => {
       );
     }
   }, [isGpsEnabled, selectedHospital.name]);
+
+  // Use useCallback to access latest state if needed, or pass args
+  const generateCompletionMessage = (patient: any, guidesMatched: any[]) => {
+    // Use current UI language instead of patient default, as per user request
+    const isTelugu = i18n.language === 'te';
+    const patientName = patient.name;
+    const patientPhone = patient.phone;
+
+    const guideLinks = guidesMatched
+      .filter(mg => mg.guideLink)
+      .map(mg => mg.guideLink);
+
+    const linksText = guideLinks.join('\n\n');
+
+    if (isTelugu) {
+      if (guideLinks.length > 0) {
+        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు-\n\n${linksText}`;
+      } else {
+        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`;
+      }
+    } else {
+      if (guideLinks.length > 0) {
+        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- Download your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}\n\n- Read diet 🍚 & exercise 🧘 advice-\n\n${linksText}`;
+      } else {
+        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nDownload your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}`;
+      }
+    }
+  };
+
+  const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[]) => {
+    try {
+      // Logic: If manually edited, use that message. Else, generate fresh one (which respects current language).
+      const message = isMessageManuallyEdited ? completionMessage : generateCompletionMessage(patient, guidesMatched);
+
+      // Use send-whatsapp function directly
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: { number: patient.phone, message: message },
+      });
+      if (error) throw error;
+      console.log('Auto-notification sent');
+    } catch (err) {
+      console.error('Failed to send WhatsApp notification:', err);
+      // Optional: Toast error
+    }
+  };
+
+  const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
+    if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
+
+    const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
+    const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
+    const locationChanged = selectedHospital.name !== initialLocation;
+    const languageChanged = i18n.language !== initialLanguage;
+
+    const isPrinting = options.markAsCompleted;
+    const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
+
+    let newStatus = selectedConsultation.status;
+    if (isPrinting) {
+      newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
+    }
+    const statusChanged = newStatus !== selectedConsultation.status;
+    const shouldSave = hasUnsavedChanges || statusChanged || locationChanged || languageChanged || options.markAsCompleted;
+
+    if (!shouldSave) {
+      if (!options.skipToast) toast({ title: 'No Changes', description: 'No new changes to save.' });
+      return true;
+    }
+
+    setIsSaving(true);
+    try {
+      // Exclude migrated fields from consultation_data to avoid duplication
+      // We must explicitly destructure them out in case they exist in extraData from legacy JSON
+      const { visit_type, location, language, ...restExtraData } = extraData as any;
+      const dataToSave = pruneEmptyFields({
+        ...restExtraData
+      });
+
+      if (!isOnline) {
+        const offlineData = {
+          patientDetails: editablePatientDetails,
+          extraData: dataToSave,
+          status: newStatus,
+          timestamp: new Date().toISOString(),
+        };
+        await offlineStore.setItem(selectedConsultation.id, offlineData);
+        setPendingSyncIds(prev => [...new Set([...prev, selectedConsultation.id])]);
+        toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
+      } else {
+        if (patientDetailsChanged) {
+          const { error: patientUpdateError } = await supabase
+            .from('patients')
+            .update({
+              name: editablePatientDetails.name,
+              dob: editablePatientDetails.dob,
+              sex: editablePatientDetails.sex,
+              phone: editablePatientDetails.phone,
+            })
+            .eq('id', editablePatientDetails.id);
+          if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+        }
+
+        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string } = {};
+
+        if (hasUnsavedChanges || locationChanged || languageChanged) {
+          consultationUpdatePayload.consultation_data = dataToSave;
+          consultationUpdatePayload.visit_type = extraData.visit_type;
+          consultationUpdatePayload.location = selectedHospital.name;
+          consultationUpdatePayload.language = i18n.language;
+        }
+        if (statusChanged) {
+          consultationUpdatePayload.status = newStatus;
+          if (newStatus === 'completed') {
+            stopTimer();
+            isTimerPausedRef.current = true;
+          }
+        }
+
+        if (Object.keys(consultationUpdatePayload).length > 0) {
+          const { error: updateError } = await supabase
+            .from('consultations')
+            .update(consultationUpdatePayload)
+            .eq('id', selectedConsultation.id);
+          if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
+        }
+
+        if (statusChanged && newStatus === 'completed' && selectedConsultation.status !== 'completed') {
+          sendConsultationCompletionNotification(editablePatientDetails, matchedGuides);
+        }
+
+        await offlineStore.removeItem(selectedConsultation.id);
+        setPendingSyncIds(prev => prev.filter(id => id !== selectedConsultation.id));
+        if (!options.skipToast) toast({ title: 'Success', description: 'Your changes have been saved.' });
+      }
+
+      const updatedConsultation = {
+        ...selectedConsultation,
+        patient: { ...editablePatientDetails },
+        consultation_data: { ...extraData, language: i18n.language },
+        visit_type: extraData.visit_type,
+        location: selectedHospital.name,
+        language: i18n.language,
+        status: newStatus as 'pending' | 'completed' | 'under_evaluation',
+      };
+
+      setSelectedConsultation(updatedConsultation);
+      setInitialPatientDetails(editablePatientDetails);
+      setInitialExtraData(extraData);
+      setInitialLocation(selectedHospital.name);
+      setInitialLanguage(i18n.language);
+
+      const updatedAllConsultations = allConsultations.map(c =>
+        c.id === updatedConsultation.id ? updatedConsultation : c
+      );
+      setAllConsultations(updatedAllConsultations);
+      setHasUnsavedChanges(false);
+
+      return true;
+    } catch (err) {
+      console.error(err);
+      toast({ variant: "destructive", title: "Error", description: "Failed to save." });
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   /**
    * Offline Sync Logic
@@ -922,170 +1093,6 @@ const ConsultationPage = () => {
 
   const suggestedFindings = useMemo(() => [], []);
 
-  // Use useCallback to access latest state if needed, or pass args
-  const generateCompletionMessage = (patient: any, guidesMatched: any[]) => {
-    const isTelugu = (patient as any).language === 'te' || initialLanguage === 'te';
-    const patientName = patient.name;
-    const patientPhone = patient.phone;
-
-    const guideLinks = guidesMatched
-      .filter(mg => mg.guideLink)
-      .map(mg => mg.guideLink);
-
-    const linksText = guideLinks.join('\n\n');
-
-    if (isTelugu) {
-      if (guideLinks.length > 0) {
-        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు-\n\n${linksText}`;
-      } else {
-        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`;
-      }
-    } else {
-      if (guideLinks.length > 0) {
-        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- Download your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}\n\n- Read diet 🍚 & exercise 🧘 advice-\n\n${linksText}`;
-      } else {
-        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nDownload your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}`;
-      }
-    }
-  };
-
-  const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[]) => {
-    try {
-      const message = generateCompletionMessage(patient, guidesMatched);
-      // Use send-whatsapp function directly
-      const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: { number: patient.phone, message: message },
-      });
-      if (error) throw error;
-      console.log('Auto-notification sent');
-    } catch (err) {
-      console.error('Failed to send WhatsApp notification:', err);
-      // Optional: Toast error
-    }
-  };
-
-
-
-  const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
-    if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
-
-    const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
-    const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
-    const locationChanged = selectedHospital.name !== initialLocation;
-    const languageChanged = i18n.language !== initialLanguage;
-
-    const isPrinting = options.markAsCompleted;
-    const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
-
-    let newStatus = selectedConsultation.status;
-    if (isPrinting) {
-      newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
-    }
-    const statusChanged = newStatus !== selectedConsultation.status;
-    const shouldSave = hasUnsavedChanges || statusChanged || locationChanged || languageChanged || options.markAsCompleted;
-
-    if (!shouldSave) {
-      if (!options.skipToast) toast({ title: 'No Changes', description: 'No new changes to save.' });
-      return true;
-    }
-
-    setIsSaving(true);
-    try {
-      // Exclude migrated fields from consultation_data to avoid duplication
-      // We must explicitly destructure them out in case they exist in extraData from legacy JSON
-      const { visit_type, location, language, ...restExtraData } = extraData as any;
-      const dataToSave = pruneEmptyFields({
-        ...restExtraData
-      });
-
-      if (!isOnline) {
-        const offlineData = {
-          patientDetails: editablePatientDetails,
-          extraData: dataToSave,
-          status: newStatus,
-          timestamp: new Date().toISOString(),
-        };
-        await offlineStore.setItem(selectedConsultation.id, offlineData);
-        setPendingSyncIds(prev => [...new Set([...prev, selectedConsultation.id])]);
-        toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
-      } else {
-        if (patientDetailsChanged) {
-          const { error: patientUpdateError } = await supabase
-            .from('patients')
-            .update({
-              name: editablePatientDetails.name,
-              dob: editablePatientDetails.dob,
-              sex: editablePatientDetails.sex,
-              phone: editablePatientDetails.phone,
-            })
-            .eq('id', editablePatientDetails.id);
-          if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-        }
-
-        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string } = {};
-
-        if (hasUnsavedChanges || locationChanged || languageChanged) {
-          consultationUpdatePayload.consultation_data = dataToSave;
-          consultationUpdatePayload.visit_type = extraData.visit_type;
-          consultationUpdatePayload.location = selectedHospital.name;
-          consultationUpdatePayload.language = i18n.language;
-        }
-        if (statusChanged) {
-          consultationUpdatePayload.status = newStatus;
-          if (newStatus === 'completed') {
-            stopTimer();
-            isTimerPausedRef.current = true;
-          }
-        }
-
-        if (Object.keys(consultationUpdatePayload).length > 0) {
-          const { error: updateError } = await supabase
-            .from('consultations')
-            .update(consultationUpdatePayload)
-            .eq('id', selectedConsultation.id);
-          if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
-        }
-
-        if (statusChanged && newStatus === 'completed' && selectedConsultation.status !== 'completed') {
-          sendConsultationCompletionNotification(editablePatientDetails, matchedGuides);
-        }
-
-        await offlineStore.removeItem(selectedConsultation.id);
-        setPendingSyncIds(prev => prev.filter(id => id !== selectedConsultation.id));
-        if (!options.skipToast) toast({ title: 'Success', description: 'Your changes have been saved.' });
-      }
-
-      const updatedConsultation = {
-        ...selectedConsultation,
-        patient: { ...editablePatientDetails },
-        consultation_data: { ...extraData, language: i18n.language },
-        visit_type: extraData.visit_type,
-        location: selectedHospital.name,
-        language: i18n.language,
-        status: newStatus as 'pending' | 'completed' | 'under_evaluation',
-      };
-
-      setSelectedConsultation(updatedConsultation);
-      setInitialPatientDetails(editablePatientDetails);
-      setInitialExtraData(extraData);
-      setInitialLocation(selectedHospital.name);
-      setInitialLanguage(i18n.language);
-
-      const updatedAllConsultations = allConsultations.map(c =>
-        c.id === updatedConsultation.id ? updatedConsultation : c
-      );
-      setAllConsultations(updatedAllConsultations);
-      setHasUnsavedChanges(false);
-
-      return true;
-    } catch (err) {
-      console.error(err);
-      toast({ variant: "destructive", title: "Error", description: "Failed to save." });
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
@@ -1527,12 +1534,10 @@ const ConsultationPage = () => {
         onClose={() => setIsCompletionModalOpen(false)}
         patientPhone={editablePatientDetails?.phone || ''}
         initialMessage={completionMessage}
-      />
-      <CompletionMessageModal
-        isOpen={isCompletionModalOpen}
-        onClose={() => setIsCompletionModalOpen(false)}
-        patientPhone={editablePatientDetails?.phone || ''}
-        initialMessage={completionMessage}
+        onMessageChange={(newMessage) => {
+          setCompletionMessage(newMessage);
+          setIsMessageManuallyEdited(true);
+        }}
       />
       <ConsultationSearchModal
         isOpen={isSearchModalOpen}
