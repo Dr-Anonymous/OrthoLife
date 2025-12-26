@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { HOSPITALS } from '@/config/constants';
+import { Input } from '@/components/ui/input';
 
 interface ConsultationSidebarProps {
     selectedHospitalName: string;
@@ -102,6 +103,24 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     };
 
     const [isPersonalNoteExpanded, setIsPersonalNoteExpanded] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const filteredPending = pendingConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredEvaluation = evaluationConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredCompleted = completedConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)] lg:overflow-y-auto pr-2">
@@ -207,20 +226,32 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 </div>
             )}
             <div className="space-y-4">
-                <div className="font-semibold">
-                    Total Consultations: {totalConsultationsCount}
+                <div className="flex flex-col gap-2">
+                    <div className="font-semibold">
+                        Total Consultations: {totalConsultationsCount}
+                    </div>
+                    <Input
+                        ref={searchInputRef}
+                        placeholder="Search patients... (Cmd+D)"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-8"
+                    />
                 </div>
                 <div>
-                    <Label>Pending Consultations: {pendingConsultations.length}</Label>
+                    <Label>Pending Consultations: {filteredPending.length}</Label>
                     {isFetchingConsultations ? (
                         <div className="flex justify-center items-center h-32">
                             <Loader2 className="w-6 h-6 animate-spin text-primary" />
                         </div>
                     ) : (
                         <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
-                            {pendingConsultations.map(c => (
+                            {filteredPending.map(c => (
                                 <div key={c.id} className="flex items-center gap-2">
-                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => onSelectConsultation(c)}>
+                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                        onSelectConsultation(c);
+                                        setSearchQuery('');
+                                    }}>
                                         <span>{c.patient.name}</span>
                                         {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                     </Button>
@@ -229,13 +260,13 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                     </Button>
                                 </div>
                             ))}
-                            {pendingConsultations.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
+                            {filteredPending.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
                         </div>
                     )}
                 </div>
                 <div>
                     <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent" onClick={() => setIsEvaluationCollapsed(!isEvaluationCollapsed)}>
-                        <Label className="cursor-pointer">Under Evaluation: {evaluationConsultations.length}</Label>
+                        <Label className="cursor-pointer">Under Evaluation: {filteredEvaluation.length}</Label>
                         <ChevronDown className={cn("w-4 h-4 transition-transform", !isEvaluationCollapsed && "rotate-180")} />
                     </Button>
                     {isFetchingConsultations ? (
@@ -244,9 +275,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isEvaluationCollapsed ? "max-h-0" : "max-h-60")}>
-                            {evaluationConsultations.map(c => (
+                            {filteredEvaluation.map(c => (
                                 <div key={c.id} className="flex items-center gap-2">
-                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => onSelectConsultation(c)}>
+                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                        onSelectConsultation(c);
+                                        setSearchQuery('');
+                                    }}>
                                         <span>{c.patient.name}</span>
                                         {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                     </Button>
@@ -255,13 +289,13 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                     </Button>
                                 </div>
                             ))}
-                            {evaluationConsultations.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
+                            {filteredEvaluation.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
                         </div>
                     )}
                 </div>
                 <div>
                     <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent" onClick={() => setIsCompletedCollapsed(!isCompletedCollapsed)}>
-                        <Label className="cursor-pointer">Completed Consultations: {completedConsultations.length}</Label>
+                        <Label className="cursor-pointer">Completed Consultations: {filteredCompleted.length}</Label>
                         <ChevronDown className={cn("w-4 h-4 transition-transform", !isCompletedCollapsed && "rotate-180")} />
                     </Button>
                     {isFetchingConsultations ? (
@@ -270,9 +304,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
-                            {completedConsultations.map(c => (
+                            {filteredCompleted.map(c => (
                                 <div key={c.id} className="flex items-center gap-2">
-                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => onSelectConsultation(c)}>
+                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                        onSelectConsultation(c);
+                                        setSearchQuery('');
+                                    }}>
                                         <span>{c.patient.name}</span>
                                         {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                     </Button>
@@ -281,7 +318,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                     </Button>
                                 </div>
                             ))}
-                            {completedConsultations.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
+                            {filteredCompleted.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
                         </div>
                     )}
                 </div>
