@@ -299,8 +299,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             }
           }
 
-          // Update visit_type if needed (backend defaults to 'paid')
-          if (visitType === 'free') {
+          // Update visit_type if the calculated one differs from the backend return (e.g. calculated 'free' vs default 'paid')
+          if (visitType !== data.consultation.visit_type) {
             const { error: updateError } = await supabase
               .from('consultations')
               .update({ visit_type: visitType })
@@ -309,8 +309,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             if (updateError) {
               console.error("Error updating consultation data:", updateError);
             } else {
-              // We don't need to update data.consultation.consultation_data here since we didn't add the fields to it.
-              // But if we want to reflect the change locally, we can update the dedicated properties.
+              // Reflect the change locally so onSuccess gets the correct value if needed
               data.consultation.visit_type = visitType;
             }
           }

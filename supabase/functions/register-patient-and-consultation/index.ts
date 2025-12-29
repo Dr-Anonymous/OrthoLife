@@ -100,7 +100,7 @@ serve(async (req) => {
       // If a match is found (similarity >= 60%), create a new consultation for that patient
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
-        .insert({ patient_id: bestMatch.id, status: 'pending', location: location })
+        .insert({ patient_id: bestMatch.id, status: 'pending', location: location, visit_type: 'paid' })
         .select()
         .single();
 

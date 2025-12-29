@@ -162,7 +162,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                             </div>
                             <AutosuggestInput
                                 ref={medicationNameInputRef}
-                                value={med.name}
+                                value={med.name || ''}
                                 onChange={value => handleMedChange(index, 'name', value)}
                                 suggestions={savedMedications.map(m => ({ id: m.id, name: m.name }))}
                                 onSuggestionSelected={suggestion => {
@@ -191,7 +191,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                         <div className="space-y-2">
                             <Label className="text-sm font-medium">Dosage</Label>
                             <Input
-                                value={med.dose}
+                                value={med.dose || ''}
                                 onChange={e => handleMedChange(index, 'dose', e.target.value, e.target.selectionStart)}
                                 placeholder="e.g., 500mg"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
@@ -206,7 +206,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            checked={med.freqMorning}
+                                            checked={med.freqMorning || false}
                                             onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
                                             className="rounded border-border"
@@ -216,7 +216,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            checked={med.freqNoon}
+                                            checked={med.freqNoon || false}
                                             onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
                                             className="rounded border-border"
@@ -226,7 +226,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            checked={med.freqNight}
+                                            checked={med.freqNight || false}
                                             onChange={e => handleMedChange(index, 'freqNight', e.target.checked)}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
                                             className="rounded border-border"
@@ -258,7 +258,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                         {isCustom &&
                             <Textarea
                                 ref={el => medFrequencyRefs.current[`${index}.frequency`] = el}
-                                value={med.frequency}
+                                value={med.frequency || ''}
                                 onChange={e => handleMedChange(index, 'frequency', e.target.value, e.target.selectionStart)}
                                 placeholder="e.g., once a week"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
@@ -270,7 +270,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                             <Label className="text-sm font-medium">Duration</Label>
                             <Input
                                 ref={el => medDurationRefs.current[`${index}.duration`] = el}
-                                value={med.duration}
+                                value={med.duration || ''}
                                 onChange={e => handleMedChange(index, 'duration', e.target.value, e.target.selectionStart)}
                                 placeholder="e.g., 7 days"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
@@ -280,7 +280,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                             <Label className="text-sm font-medium">Instructions</Label>
                             <Input
                                 ref={el => medInstructionsRefs.current[`${index}.instructions`] = el}
-                                value={med.instructions}
+                                value={med.instructions || ''}
                                 onChange={e => handleMedChange(index, 'instructions', e.target.value, e.target.selectionStart)}
                                 placeholder="Special instructions"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
@@ -291,7 +291,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                         <Label className="text-sm font-medium">Notes</Label>
                         <Input
                             ref={el => medNotesRefs.current[`${index}.notes`] = el}
-                            value={med.notes}
+                            value={med.notes || ''}
                             onChange={e => handleMedChange(index, 'notes', e.target.value, e.target.selectionStart)}
                             placeholder="e.g., side effects"
                             onKeyDown={e => e.key === 'Enter' && e.preventDefault()}

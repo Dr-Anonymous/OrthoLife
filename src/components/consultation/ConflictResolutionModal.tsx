@@ -71,7 +71,7 @@ export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = (
               <DataField label="Last Saved" value={new Date(serverData.updated_at).toLocaleString()} />
               <DataField label="Complaints" value={serverData.consultation_data.complaints} />
               <DataField label="Diagnosis" value={serverData.consultation_data.diagnosis} />
-              <DataField label="Medications" value={`${serverData.consultation_data.medications.length} items`} />
+              <DataField label="Medications" value={`${(serverData.consultation_data?.medications || []).length} items`} />
             </CardContent>
           </Card>
         </div>
