@@ -321,7 +321,11 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
           setSearchResults([]);
           setSelectedPatientId('');
-          if (onSuccess) onSuccess(data.consultation, formData.consultation_data);
+          if (onSuccess) {
+            // Exclude visit_type from the passed data so it doesn't override the new calculation
+            const { visit_type, ...restData } = formData.consultation_data || {};
+            onSuccess(data.consultation, restData);
+          }
         } else {
           throw new Error(data.error || 'An unexpected error occurred.');
         }

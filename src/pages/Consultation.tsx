@@ -1099,11 +1099,24 @@ const ConsultationPage = () => {
     if (saved) setIsReadyToPrint(true);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, c: Consultation) => {
+  const handleDeleteClick = async (e: React.MouseEvent, c: Consultation) => {
     e.stopPropagation();
-    setIsDeleteModalOpen(true);
     setPendingSelection(c);
-    setIsOnlyConsultation(allConsultations.filter(con => con.patient.id === c.patient.id).length === 1);
+    setIsDeleteModalOpen(true);
+    setIsOnlyConsultation(false); // Reset first
+
+    try {
+      const { count, error } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .eq('patient_id', c.patient.id);
+
+      if (!error && count !== null) {
+        setIsOnlyConsultation(count === 1);
+      }
+    } catch (err) {
+      console.error("Error checking consultation count:", err);
+    }
   };
 
   const handleConfirmDelete = async () => {
