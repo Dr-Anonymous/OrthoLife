@@ -34,8 +34,8 @@
     "/guides/10",
     "/guides/8",
     "/guides/14",
-    "/guides/6",
     "/guides/15",
+    "/guides/6",
     "/te/guides/9",
     "/te/guides/5",
     "/te/guides/1",
@@ -43,8 +43,8 @@
     "/te/guides/4",
     "/te/guides/7",
     "/te/guides/11",
-    "/te/guides/2",
     "/te/guides/6",
+    "/te/guides/2",
     "/te/guides/14",
     "/te/guides/8",
     "/te/guides/3",
@@ -223,14 +223,14 @@
       "description": "A comprehensive guide to meniscus repair rehabilitation, including a week-by-week timeline and step-by-step instructions for post-op exercises to help you recover and get back on your feet."
     },
     {
-      "route": "/guides/6",
-      "title": "Diabetic Diet Chart for Andhra Pradesh Patients",
-      "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
-    },
-    {
       "route": "/guides/15",
       "title": "Post-Surgery Recovery: What to Expect",
       "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing."
+    },
+    {
+      "route": "/guides/6",
+      "title": "Diabetic Diet Chart for Andhra Pradesh Patients",
+      "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
     },
     {
       "route": "/te/guides/9",
@@ -268,14 +268,14 @@
       "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి పూర్తి సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది."
     },
     {
+      "route": "/te/guides/6",
+      "title": "ఆంధ్రప్రదేశ్ మధుమేహ రోగుల కోసం ఆహార పట్టిక",
+      "description": "ఆంధ్రప్రదేశ్లోని డయాబెటిస్ (షుగర్) రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి."
+    },
+    {
       "route": "/te/guides/2",
       "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
       "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది."
-    },
-    {
-      "route": "/te/guides/6",
-      "title": "ఆంధ్రప్రదేశ్ డయాబెటిస్ రోగుల కోసం ఆహార పట్టిక",
-      "description": "ఆంధ్రప్రదేశ్లోని మధుమేహం రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి."
     },
     {
       "route": "/te/guides/14",
