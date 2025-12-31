@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cleanConsultationData } from '@/lib/utils';
+import PatientSelectionModal from '@/components/PatientSelectionModal';
 
 
 const PrescriptionDownload = () => {
@@ -24,9 +25,11 @@ const PrescriptionDownload = () => {
     const printRef = useRef<HTMLDivElement>(null);
     const [downloadStarted, setDownloadStarted] = useState(false);
     const [inputPhone, setInputPhone] = useState('');
+    const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
+    const [patientList, setPatientList] = useState<any[]>([]);
 
     useEffect(() => {
-        const fetchConsultation = async () => {
+        const fetchPatients = async () => {
             if (!patientPhone) {
                 setLoading(false);
                 return;
@@ -40,42 +43,66 @@ const PrescriptionDownload = () => {
                 const { data: patientData, error: patientError } = await supabase
                     .from('patients')
                     .select('id, name, dob, sex, phone')
-                    .eq('phone', patientPhone)
-                    .maybeSingle();
+                    .eq('phone', patientPhone);
 
                 if (patientError) throw patientError;
-                if (!patientData) {
+
+                if (!patientData || patientData.length === 0) {
                     throw new Error("Patient not found");
                 }
 
-                // 2. Fetch consultations
-                const { data: dbData, error: dbError } = await supabase.functions.invoke('get-consultations', {
-                    body: { patientId: patientData.id },
-                });
-
-                if (dbError) throw new Error(`Error fetching consultations: ${dbError.message}`);
-
-                if (dbData.consultations && dbData.consultations.length > 0) {
-                    // Sort by created_at desc to get the latest
-                    const sorted = dbData.consultations.sort((a: any, b: any) =>
-                        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                    );
-
-                    setConsultation(sorted[0]);
-                } else {
-                    setError("No consultations found for this patient");
+                if (patientData.length > 1) {
+                    setPatientList(patientData);
+                    setIsPatientSelectionModalOpen(true);
+                    setLoading(false);
+                    return;
                 }
+
+                // If single patient, fetch consultations directly
+                fetchConsultationsForPatient(patientData[0]);
 
             } catch (err: any) {
                 console.error(err);
                 setError(err.message);
-            } finally {
                 setLoading(false);
             }
         };
 
-        fetchConsultation();
+        fetchPatients();
     }, [patientPhone]);
+
+    const fetchConsultationsForPatient = async (patientData: any) => {
+        setLoading(true);
+        try {
+            // 2. Fetch consultations
+            const { data: dbData, error: dbError } = await supabase.functions.invoke('get-consultations', {
+                body: { patientId: patientData.id },
+            });
+
+            if (dbError) throw new Error(`Error fetching consultations: ${dbError.message}`);
+
+            if (dbData.consultations && dbData.consultations.length > 0) {
+                // Sort by created_at desc to get the latest
+                const sorted = dbData.consultations.sort((a: any, b: any) =>
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                );
+
+                setConsultation(sorted[0]);
+            } else {
+                setError("No consultations found for this patient");
+            }
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const handlePatientSelect = (selectedPatient: any) => {
+        setIsPatientSelectionModalOpen(false);
+        fetchConsultationsForPatient(selectedPatient);
+    };
 
     useEffect(() => {
         if (consultation && printRef.current && !downloadStarted) {
@@ -172,6 +199,12 @@ const PrescriptionDownload = () => {
                 <h1 className="text-xl font-bold">Prescription Download</h1>
                 <p className="text-gray-600">Your download should start automatically...</p>
             </div>
+
+            <PatientSelectionModal
+                isOpen={isPatientSelectionModalOpen}
+                patients={patientList}
+                onSelect={handlePatientSelect}
+            />
 
             <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-3xl w-full">
                 {/* Preview */}
