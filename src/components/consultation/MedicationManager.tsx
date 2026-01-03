@@ -62,6 +62,22 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     suggestedMedications,
     handleMedicationSuggestionClick
 }) => {
+    // Track previous length to detect additions
+    const prevMedicationsLength = React.useRef(medications.length);
+
+    React.useEffect(() => {
+        if (medications.length > prevMedicationsLength.current) {
+            // New medication added, focus the last one
+            // We need a slight timeout to allow the DOM to update and the ref to be attached
+            setTimeout(() => {
+                if (medicationNameInputRef.current) {
+                    medicationNameInputRef.current.focus();
+                }
+            }, 0);
+        }
+        prevMedicationsLength.current = medications.length;
+    }, [medications.length, medicationNameInputRef]);
+
     // Keyboard shortcut for adding medication
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

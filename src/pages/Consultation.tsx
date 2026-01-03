@@ -52,7 +52,7 @@ import { useOfflineSync } from '@/hooks/useOfflineSync';
 /**
  * ConsultationPage Component
  * 
- * This is the main page for managing patient consultations. It handles:
+ * This is the main page for managing outpatient consultations. It handles:
  * - Patient registration and selection
  * - Consultation data entry (Complaints, Findings, Diagnosis, etc.)
  * - Medication management with autocomplete and shortcuts
@@ -140,7 +140,6 @@ const ConsultationPage = () => {
 
   const [isReadyToPrint, setIsReadyToPrint] = useState(false);
   const [age, setAge] = useState<number | ''>('');
-  const [focusLastMedication, setFocusLastMedication] = useState(false);
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
   const patientSelectionCounter = useRef(0);
 
@@ -450,7 +449,7 @@ const ConsultationPage = () => {
       newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
     }
     const statusChanged = newStatus !== selectedConsultation.status;
-    const shouldSave = hasUnsavedChanges || statusChanged || locationChanged || languageChanged || options.markAsCompleted;
+    const shouldSave = hasUnsavedChanges || statusChanged || locationChanged || languageChanged;
 
     if (!shouldSave) {
       if (!options.skipToast) toast({ title: 'No Changes', description: 'No new changes to save.' });
@@ -909,7 +908,6 @@ const ConsultationPage = () => {
       freqMorning: false, freqNoon: false, freqNight: false
     };
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-    setFocusLastMedication(true);
     setHasUnsavedChanges(true);
   }, []);
 
@@ -1136,17 +1134,6 @@ const ConsultationPage = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveChanges, handleSaveAndPrint, addMedication]);
-
-  // Focus Effect
-  useEffect(() => {
-    if (focusLastMedication) {
-      if (medicationNameInputRef.current) {
-        medicationNameInputRef.current.focus();
-      }
-      setFocusLastMedication(false);
-    }
-  }, [focusLastMedication]);
-
 
 
   return (

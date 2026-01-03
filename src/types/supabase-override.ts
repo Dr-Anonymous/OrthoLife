@@ -13,7 +13,8 @@ declare module '@supabase/supabase-js' {
     from(relation: 'google_reviews_cache'): any;
     from(relation: 'translation_cache'): any;
     from(relation: string): any;
+    rpc(fn: string, args?: any, options?: any): any;
   }
 }
 
-export {};
+export { };

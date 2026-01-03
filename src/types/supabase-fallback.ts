@@ -1,5 +1,5 @@
 // Temporary fallback types for Supabase when types are not available
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       posts: {
@@ -28,5 +28,12 @@ export interface Database {
         Update: { title?: string; content?: string; description?: string; next_steps?: string };
       };
     };
+    Functions: {
+      search_patients_normalized: {
+        Args: { search_term: string };
+        Returns: { id: string; name: string; phone: string }[];
+      };
+    };
   };
-}
+};
+

@@ -1054,14 +1054,14 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         });
     };
 
-    const addMedication = () => {
+    const addMedication = React.useCallback(() => {
         const newMed: Medication = {
             id: crypto.randomUUID(),
             name: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
             freqMorning: false, freqNoon: false, freqNight: false
         };
         setDischarge(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-    };
+    }, []);
 
     const removeMedication = (index: number) => {
         setDischarge(prev => ({ ...prev, medications: prev.medications.filter((_, i) => i !== index) }));
@@ -1120,6 +1120,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
             }
         }
     };
+
 
     // -- Autofill Logic --
     const { suggestedMedications } = useMemo(() => {

@@ -68,6 +68,11 @@ export function pruneEmptyFields(data: any): any {
       if (value === '' || value === null || value === undefined) {
         return acc;
       }
+
+      // Prune BP field if it essentially empty (just a separator)
+      if (key === 'bp' && typeof value === 'string' && value.trim() === '/') {
+        return acc;
+      }
       // Recursively prune objects
       if (typeof value === 'object') {
         const pruned = pruneEmptyFields(value);
