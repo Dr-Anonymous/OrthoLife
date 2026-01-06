@@ -80,6 +80,11 @@ serve(async (req) => {
 
     if (existingPatients && existingPatients.length > 0) {
       for (const patient of existingPatients) {
+        // Strict sex check: if sex is provided and different, it's a different patient
+        if (sex && patient.sex && sex.toLowerCase() !== patient.sex.toLowerCase()) {
+          continue;
+        }
+
         const existingNameNormalized = normalizeString(patient.name);
 
         // Calculate similarity

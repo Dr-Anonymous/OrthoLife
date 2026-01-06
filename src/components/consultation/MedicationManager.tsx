@@ -64,10 +64,21 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
 }) => {
     // Track previous length to detect additions
     const prevMedicationsLength = React.useRef(medications.length);
+    const shouldFocusNewMedication = React.useRef(false);
+
+    const handleManualAdd = () => {
+        shouldFocusNewMedication.current = true;
+        addMedication();
+    };
+
+    const handleSuggestionAdd = (med: Medication) => {
+        shouldFocusNewMedication.current = false;
+        handleMedicationSuggestionClick(med);
+    };
 
     React.useEffect(() => {
-        if (medications.length > prevMedicationsLength.current) {
-            // New medication added, focus the last one
+        if (medications.length > prevMedicationsLength.current && shouldFocusNewMedication.current) {
+            // New medication added manually, focus the last one
             // We need a slight timeout to allow the DOM to update and the ref to be attached
             setTimeout(() => {
                 if (medicationNameInputRef.current) {
@@ -75,6 +86,8 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                 }
             }, 0);
         }
+        // Reset flag after processing
+        // shouldFocusNewMedication.current = false; // Optional based on desired stickiness, but false is safer default
         prevMedicationsLength.current = medications.length;
     }, [medications.length, medicationNameInputRef]);
 
@@ -83,13 +96,13 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'm') {
                 e.preventDefault();
-                addMedication();
+                handleManualAdd();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [addMedication]);
+    }, [addMedication]); // handleManualAdd is stable if addMedication is stable or wrapped, but here it depends on addMedication which is fine.
 
     return (
         <div className="space-y-4">
@@ -101,7 +114,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         {suggestedMedications.map((med) => (
-                            <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleMedicationSuggestionClick(med)}>
+                            <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)}>
                                 {med.name}
                             </Button>
                         ))}
@@ -134,7 +147,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                 </DndContext>
             </div>
             <div className="flex justify-end items-center gap-2">
-                <Button type="button" onClick={addMedication} variant="outline" size="icon" className="rounded-full">
+                <Button type="button" onClick={handleManualAdd} variant="outline" size="icon" className="rounded-full">
                     <Plus className="h-4 w-4" />
                     <span className="sr-only">Add Medication</span>
                 </Button>
