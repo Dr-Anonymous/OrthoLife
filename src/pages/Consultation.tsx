@@ -287,6 +287,11 @@ const ConsultationPage = () => {
         setLastVisitDate('First Consultation');
       }
     }
+
+    // Auto-focus Complaints
+    setTimeout(() => {
+      complaintsRef.current?.focus();
+    }, 100);
   }, []);
 
 

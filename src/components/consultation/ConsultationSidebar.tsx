@@ -105,6 +105,17 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     const [isPersonalNoteExpanded, setIsPersonalNoteExpanded] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const searchInputRef = React.useRef<HTMLInputElement>(null);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+    const filteredPending = pendingConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredEvaluation = evaluationConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredCompleted = completedConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const visibleConsultations = [...filteredPending, ...filteredEvaluation, ...filteredCompleted];
+
+    React.useEffect(() => {
+        setHighlightedIndex(-1);
+    }, [searchQuery]);
 
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -118,9 +129,25 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    const filteredPending = pendingConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    const filteredEvaluation = evaluationConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    const filteredCompleted = completedConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (visibleConsultations.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setHighlightedIndex(prev => (prev + 1) % visibleConsultations.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlightedIndex(prev => (prev - 1 + visibleConsultations.length) % visibleConsultations.length);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && highlightedIndex < visibleConsultations.length) {
+                const selected = visibleConsultations[highlightedIndex];
+                onSelectConsultation(selected);
+                setSearchQuery('');
+                setHighlightedIndex(-1);
+            }
+        }
+    };
 
     return (
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)] lg:overflow-y-auto pr-2">
@@ -235,6 +262,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         placeholder="Search patients... (Cmd+D)"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         className="h-8"
                     />
                 </div>
@@ -246,20 +274,24 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
-                            {filteredPending.map(c => (
-                                <div key={c.id} className="flex items-center gap-2">
-                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
-                                        onSelectConsultation(c);
-                                        setSearchQuery('');
-                                    }}>
-                                        <span>{c.patient.name}</span>
-                                        {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
+                            {filteredPending.map((c, idx) => {
+                                const globalIndex = idx;
+                                const isHighlighted = globalIndex === highlightedIndex;
+                                return (
+                                    <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                            onSelectConsultation(c);
+                                            setSearchQuery('');
+                                        }}>
+                                            <span>{c.patient.name}</span>
+                                            {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )
+                            })}
                             {filteredPending.length === 0 && <p className="text-sm text-muted-foreground">No pending consultations.</p>}
                         </div>
                     )}
@@ -275,20 +307,24 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isEvaluationCollapsed ? "max-h-0" : "max-h-60")}>
-                            {filteredEvaluation.map(c => (
-                                <div key={c.id} className="flex items-center gap-2">
-                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
-                                        onSelectConsultation(c);
-                                        setSearchQuery('');
-                                    }}>
-                                        <span>{c.patient.name}</span>
-                                        {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
+                            {filteredEvaluation.map((c, idx) => {
+                                const globalIndex = filteredPending.length + idx;
+                                const isHighlighted = globalIndex === highlightedIndex;
+                                return (
+                                    <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                            onSelectConsultation(c);
+                                            setSearchQuery('');
+                                        }}>
+                                            <span>{c.patient.name}</span>
+                                            {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )
+                            })}
                             {filteredEvaluation.length === 0 && <p className="text-sm text-muted-foreground">No consultations under evaluation.</p>}
                         </div>
                     )}
@@ -304,20 +340,24 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
-                            {filteredCompleted.map(c => (
-                                <div key={c.id} className="flex items-center gap-2">
-                                    <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
-                                        onSelectConsultation(c);
-                                        setSearchQuery('');
-                                    }}>
-                                        <span>{c.patient.name}</span>
-                                        {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
+                            {filteredCompleted.map((c, idx) => {
+                                const globalIndex = filteredPending.length + filteredEvaluation.length + idx;
+                                const isHighlighted = globalIndex === highlightedIndex;
+                                return (
+                                    <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                            onSelectConsultation(c);
+                                            setSearchQuery('');
+                                        }}>
+                                            <span>{c.patient.name}</span>
+                                            {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )
+                            })}
                             {filteredCompleted.length === 0 && <p className="text-sm text-muted-foreground">No completed consultations.</p>}
                         </div>
                     )}
