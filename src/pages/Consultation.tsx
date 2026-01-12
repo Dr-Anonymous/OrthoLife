@@ -394,6 +394,11 @@ const ConsultationPage = () => {
   }, [isGpsEnabled, selectedHospital.name]);
 
   // Use useCallback to access latest state if needed, or pass args
+  const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(() => {
+    const stored = localStorage.getItem('isAutoSendEnabled');
+    return stored !== null ? JSON.parse(stored) : true;
+  });
+
   const generateCompletionMessage = (patient: any, guidesMatched: any[]) => {
     // Use current UI language instead of patient default, as per user request
     const isTelugu = i18n.language === 'te';
@@ -421,7 +426,12 @@ const ConsultationPage = () => {
     }
   };
 
-  const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[]) => {
+  const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[], isAuto: boolean = true) => {
+    if (isAuto && !isAutoSendEnabled) {
+      console.log('Auto-notification disabled, skipping.');
+      return;
+    }
+
     try {
       // Logic: If manually edited, use that message. Else, generate fresh one (which respects current language).
       const message = isMessageManuallyEdited ? completionMessage : generateCompletionMessage(patient, guidesMatched);
@@ -431,7 +441,7 @@ const ConsultationPage = () => {
         body: { number: patient.phone, message: message },
       });
       if (error) throw error;
-      console.log('Auto-notification sent');
+      console.log('Notification sent');
     } catch (err) {
       console.error('Failed to send WhatsApp notification:', err);
       // Optional: Toast error
@@ -627,7 +637,8 @@ const ConsultationPage = () => {
   useEffect(() => {
     localStorage.setItem('isGpsEnabled', JSON.stringify(isGpsEnabled));
     localStorage.setItem('selectedHospital', selectedHospital.name);
-  }, [selectedHospital, isGpsEnabled]);
+    localStorage.setItem('isAutoSendEnabled', JSON.stringify(isAutoSendEnabled));
+  }, [selectedHospital, isGpsEnabled, isAutoSendEnabled]);
 
   const handleSelectConsultation = async (consultation: Consultation) => {
     // If passing from fetch logic, we might need to skip unsaved check or handle it
@@ -1280,6 +1291,8 @@ const ConsultationPage = () => {
                   onManageKeywordsClick={() => setIsKeywordModalOpen(true)}
                   onManageShortcutsClick={() => setIsShortcutModalOpen(true)}
                   onSendCompletionClick={handleOpenCompletionModal}
+                  isAutoSendEnabled={isAutoSendEnabled}
+                  onToggleAutoSend={() => setIsAutoSendEnabled(!isAutoSendEnabled)}
                 />
               </div>
             ) : (
