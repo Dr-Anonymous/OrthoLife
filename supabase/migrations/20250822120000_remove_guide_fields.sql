@@ -1,3 +1,0 @@
-ALTER TABLE guides
-DROP COLUMN IF EXISTS difficulty,
-DROP COLUMN IF EXISTS download_count;

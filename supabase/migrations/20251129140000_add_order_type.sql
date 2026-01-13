@@ -1,1 +1,0 @@
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'pharmacy';
