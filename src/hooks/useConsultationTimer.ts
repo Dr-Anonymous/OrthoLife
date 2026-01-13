@@ -20,7 +20,8 @@ export const useConsultationTimer = (selectedConsultation: any) => {
             if (activeTimerIdRef.current !== selectedConsultation.id) {
                 stopTimer();
                 isTimerPausedRef.current = false;
-                setTimerSeconds(0);
+                // Initialize from DB duration or 0
+                setTimerSeconds(selectedConsultation.duration || 0);
                 activeTimerIdRef.current = selectedConsultation.id;
 
                 if (selectedConsultation.status !== 'completed' && !isTimerPausedRef.current) {

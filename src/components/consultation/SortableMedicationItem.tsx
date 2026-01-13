@@ -64,7 +64,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
         setIsCustom(!!med.frequency);
     }, [med.frequency]);
 
-    const isFavorite = savedMedications.some(savedMed => savedMed.name.toLowerCase() === med.name.toLowerCase());
+    const isFavorite = savedMedications.some(savedMed => (savedMed.name || '').toLowerCase() === (med.name || '').toLowerCase());
 
     const handleFavoriteClick = async () => {
         if (!med.name) {

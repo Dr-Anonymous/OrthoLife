@@ -39,6 +39,7 @@ export interface Consultation {
     language?: string;
     patient: Patient;
     consultation_data?: any;
+    duration?: number;
 }
 
 export interface Guide {

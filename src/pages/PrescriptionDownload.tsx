@@ -104,38 +104,28 @@ const PrescriptionDownload = () => {
         fetchConsultationsForPatient(selectedPatient);
     };
 
-    useEffect(() => {
-        if (consultation && printRef.current && !downloadStarted) {
-            const generatePdf = async () => {
-                setDownloadStarted(true);
+    const handleDownload = async () => {
+        if (consultation && printRef.current) {
+            setDownloadStarted(true);
+            try {
+                const element = printRef.current;
+                const opt = {
+                    margin: [0, 0, 0, 0],
+                    filename: `Prescription-${consultation.patient.name}-${format(new Date(consultation.created_at), 'yyyy-MM-dd')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: false, logging: false, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
 
-                try {
-                    // Small delay to ensure rendering is complete
-                    setTimeout(() => {
-                        const element = printRef.current;
-                        const opt = {
-                            margin: [0, 0, 0, 0], // Top, Left, Bottom, Right margins in mm
-                            filename: `Prescription-${consultation.patient.name}-${format(new Date(consultation.created_at), 'yyyy-MM-dd')}.pdf`,
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: false, logging: false, scrollY: 0 },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                        };
-
-                        (html2pdf as any)().from(element).set(opt).save().then(() => {
-                            // Optional: Show completion message or redirect
-                        }).catch((err: any) => {
-                            console.error("PDF generation failed", err);
-                            setError("Failed to generate PDF");
-                        });
-                    }, 1000);
-                } catch (err) {
-                    setError("Failed to prepare PDF generation");
-                }
-            };
-
-            generatePdf();
+                await (html2pdf as any)().from(element).set(opt).save();
+                setDownloadStarted(false);
+            } catch (err) {
+                console.error("PDF generation failed", err);
+                setError("Failed to generate PDF");
+                setDownloadStarted(false);
+            }
         }
-    }, [consultation, downloadStarted]);
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -194,19 +184,14 @@ const PrescriptionDownload = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 p-4 flex flex-col items-center">
-            <div className="mb-4 text-center">
-                <h1 className="text-xl font-bold">Prescription Download</h1>
-                <p className="text-gray-600">Your download should start automatically...</p>
-            </div>
-
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center relative">
             <PatientSelectionModal
                 isOpen={isPatientSelectionModalOpen}
                 patients={patientList}
                 onSelect={handlePatientSelect}
             />
 
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-3xl w-full">
+            <div className="bg-white w-full max-w-3xl min-h-screen shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-hidden">
                 {/* Preview */}
                 {consultation && (
                     <Prescription
@@ -220,6 +205,37 @@ const PrescriptionDownload = () => {
                     />
                 )}
             </div>
+
+            {/* Floating Download Button */}
+            {consultation && (
+                <Button
+                    onClick={handleDownload}
+                    className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl z-50 p-0 hover:scale-105 transition-transform"
+                    disabled={downloadStarted}
+                    size="icon"
+                >
+                    {downloadStarted ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-6 w-6"
+                        >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
+                    )}
+                </Button>
+            )}
 
             {/* Hidden Print Version - Fixed A4 Width */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>

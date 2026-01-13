@@ -73,6 +73,16 @@ export function pruneEmptyFields(data: any): any {
       if (key === 'bp' && typeof value === 'string' && value.trim() === '/') {
         return acc;
       }
+
+      // Special handling for medications to remove empty rows
+      if (key === 'medications' && Array.isArray(value)) {
+        const validMeds = value.filter((m: any) => m && m.name && m.name.trim() !== '');
+        if (validMeds.length > 0) {
+          acc[key] = validMeds.map(pruneEmptyFields);
+        }
+        return acc;
+      }
+
       // Recursively prune objects
       if (typeof value === 'object') {
         const pruned = pruneEmptyFields(value);

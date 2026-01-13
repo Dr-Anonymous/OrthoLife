@@ -171,7 +171,7 @@ const ConsultationPage = () => {
   const handleSaveBundleClick = () => {
     const isTelugu = i18n.language === 'te';
     setKeywordModalPrefill({
-      medications: extraData.medications.map(m => ({ name: m.name })),
+      medications: extraData.medications.map(m => ({ name: m.name || '' })),
       advice: isTelugu ? '' : extraData.advice, // Default to empty if not English
       advice_te: isTelugu ? extraData.advice : '', // Populate Telugu if current language is Telugu
       investigations: extraData.investigations, // Usually English?
@@ -525,7 +525,7 @@ const ConsultationPage = () => {
           if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
         }
 
-        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string } = {};
+        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string, duration?: number } = {};
 
         if (hasUnsavedChanges || locationChanged || languageChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
@@ -540,6 +540,9 @@ const ConsultationPage = () => {
             isTimerPausedRef.current = true;
           }
         }
+
+        // Always save duration
+        consultationUpdatePayload.duration = timerSeconds;
 
         if (Object.keys(consultationUpdatePayload).length > 0) {
           const { error: updateError } = await supabase
@@ -566,6 +569,7 @@ const ConsultationPage = () => {
         location: selectedHospital.name,
         language: i18n.language,
         status: newStatus as 'pending' | 'completed' | 'under_evaluation',
+        duration: timerSeconds,
       };
 
       setSelectedConsultation(updatedConsultation);
@@ -1011,13 +1015,13 @@ const ConsultationPage = () => {
     // Logic: Only show protocol-matched medications.
     const finalMedications = medications;
 
-    const currentlyAddedMedNames = new Set(extraData.medications.map(m => m.name.toLowerCase()));
+    const currentlyAddedMedNames = new Set(extraData.medications.map(m => (m.name || '').toLowerCase()));
 
     return {
       suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s)),
       suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.includes(s)),
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s)),
-      suggestedMedications: finalMedications.filter(m => !currentlyAddedMedNames.has(m.name.toLowerCase()))
+      suggestedMedications: finalMedications.filter(m => !currentlyAddedMedNames.has((m.name || '').toLowerCase()))
     };
   }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, i18n.language, savedMedications]);
 
