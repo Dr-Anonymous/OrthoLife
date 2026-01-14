@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import PatientSelectionModal from '@/components/PatientSelectionModal';
 
 const DischargeSummaryDownload = () => {
     const { patientPhone } = useParams<{ patientPhone: string }>();
@@ -21,9 +22,11 @@ const DischargeSummaryDownload = () => {
     const printRef = useRef<HTMLDivElement>(null);
     const [downloadStarted, setDownloadStarted] = useState(false);
     const [inputPhone, setInputPhone] = useState('');
+    const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
+    const [patientList, setPatientList] = useState<any[]>([]);
 
     useEffect(() => {
-        const fetchSummary = async () => {
+        const fetchPatients = async () => {
             if (!patientPhone) {
                 setLoading(false);
                 return;
@@ -36,79 +39,93 @@ const DischargeSummaryDownload = () => {
                 // 1. Find patient by phone
                 const { data: patientData, error: patientError } = await supabase
                     .from('patients')
-                    .select('id')
-                    .eq('phone', patientPhone)
-                    .maybeSingle();
+                    .select('id, name, dob, sex, phone')
+                    .eq('phone', patientPhone);
 
                 if (patientError) throw patientError;
-                if (!patientData) {
+
+                if (!patientData || patientData.length === 0) {
                     throw new Error("Patient not found");
                 }
 
-                // 2. Fetch latest discharged in_patient record
-                const { data: inPatientData, error: dbError } = await supabase
-                    .from('in_patients')
-                    .select('*')
-                    .eq('patient_id', patientData.id)
-                    .eq('status', 'discharged')
-                    .order('discharge_date', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-
-                if (dbError) throw new Error(`Error fetching summary: ${dbError.message}`);
-
-                if (inPatientData && inPatientData.discharge_summary) {
-                    setSummaryData({
-                        ...inPatientData.discharge_summary,
-                        language: inPatientData.language // Use saved language preference
-                    });
-                } else {
-                    setError("No discharge summary found for this patient");
+                if (patientData.length > 1) {
+                    setPatientList(patientData);
+                    setIsPatientSelectionModalOpen(true);
+                    setLoading(false);
+                    return;
                 }
+
+                // If single patient, fetch summary directly
+                fetchSummaryForPatient(patientData[0]);
 
             } catch (err: any) {
                 console.error(err);
                 setError(err.message);
-            } finally {
                 setLoading(false);
             }
         };
 
-        fetchSummary();
+        fetchPatients();
     }, [patientPhone]);
 
-    useEffect(() => {
-        if (summaryData && printRef.current && !downloadStarted) {
-            const generatePdf = async () => {
-                setDownloadStarted(true);
+    const fetchSummaryForPatient = async (patientData: any) => {
+        setLoading(true);
+        try {
+            // 2. Fetch latest discharged in_patient record
+            const { data: inPatientData, error: dbError } = await supabase
+                .from('in_patients')
+                .select('*')
+                .eq('patient_id', patientData.id)
+                .eq('status', 'discharged')
+                .order('discharge_date', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
-                try {
-                    // Small delay to ensure rendering is complete
-                    setTimeout(() => {
-                        const element = printRef.current;
-                        const opt = {
-                            margin: [0, 0, 0, 0],
-                            filename: `Discharge-Summary-${summaryData.patient_snapshot.name}-${format(new Date(), 'yyyy-MM-dd')}.pdf`,
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: false, logging: false, scrollY: 0 },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                        };
+            if (dbError) throw new Error(`Error fetching summary: ${dbError.message}`);
 
-                        (html2pdf as any)().from(element).set(opt).save().then(() => {
-                            // Optional: Show completion message
-                        }).catch((err: any) => {
-                            console.error("PDF generation failed", err);
-                            setError("Failed to generate PDF");
-                        });
-                    }, 1000);
-                } catch (err) {
-                    setError("Failed to prepare PDF generation");
-                }
-            };
-
-            generatePdf();
+            if (inPatientData && inPatientData.discharge_summary) {
+                setSummaryData({
+                    ...inPatientData.discharge_summary,
+                    language: inPatientData.language // Use saved language preference
+                });
+            } else {
+                setError("No discharge summary found for this patient");
+            }
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
-    }, [summaryData, downloadStarted]);
+    };
+
+    const handlePatientSelect = (selectedPatient: any) => {
+        setIsPatientSelectionModalOpen(false);
+        fetchSummaryForPatient(selectedPatient);
+    };
+
+    const handleDownload = async () => {
+        if (summaryData && printRef.current) {
+            setDownloadStarted(true);
+            try {
+                const element = printRef.current;
+                const opt = {
+                    margin: [0, 0, 0, 0],
+                    filename: `Discharge-Summary-${summaryData.patient_snapshot.name}-${format(new Date(), 'yyyy-MM-dd')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: false, logging: false, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                await (html2pdf as any)().from(element).set(opt).save();
+                setDownloadStarted(false);
+            } catch (err) {
+                console.error("PDF generation failed", err);
+                setError("Failed to generate PDF");
+                setDownloadStarted(false);
+            }
+        }
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -167,13 +184,14 @@ const DischargeSummaryDownload = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 p-4 flex flex-col items-center">
-            <div className="mb-4 text-center">
-                <h1 className="text-xl font-bold">Discharge Summary Download</h1>
-                <p className="text-gray-600">Your download should start automatically...</p>
-            </div>
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center relative">
+            <PatientSelectionModal
+                isOpen={isPatientSelectionModalOpen}
+                patients={patientList}
+                onSelect={handlePatientSelect}
+            />
 
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-3xl w-full">
+            <div className="bg-white w-full max-w-3xl min-h-screen shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-hidden">
                 {/* Preview */}
                 {summaryData && (
                     <DischargeSummaryPrint
@@ -186,6 +204,37 @@ const DischargeSummaryDownload = () => {
                     />
                 )}
             </div>
+
+            {/* Floating Download Button */}
+            {summaryData && (
+                <Button
+                    onClick={handleDownload}
+                    className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl z-50 p-0 hover:scale-105 transition-transform"
+                    disabled={downloadStarted}
+                    size="icon"
+                >
+                    {downloadStarted ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-6 w-6"
+                        >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
+                    )}
+                </Button>
+            )}
 
             {/* Hidden Print Version - Fixed A4 Width */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>

@@ -22,6 +22,20 @@ interface RichTextEditorProps {
   onChange: (content: string) => void;
 }
 
+/**
+ * RichTextEditor Component
+ * 
+ * A Tiptap-based WYSIWYG editor for composing rich text content (e.g., blog posts, guides).
+ * 
+ * Features:
+ * - Text formatting (Bold, Italic, Underline, Strike, etc.)
+ * - Headings (H2, H3)
+ * - Image uploads (Direct file upload or URL) to 'post_images' bucket.
+ * - Tables (Insert, Delete, Rows/Cols)
+ * - Links and Blockquotes
+ * - Floating Bubble Menu for image manipulation.
+ * - Sticky Toolbar for easy access to formatting tools.
+ */
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editor = useEditor({
@@ -54,9 +68,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
       onChange(editor.getHTML());
     },
     editorProps: {
-        attributes: {
-            class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl p-4 focus:outline-none min-h-[200px]',
-        },
+      attributes: {
+        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl p-4 focus:outline-none min-h-[200px]',
+      },
     }
   });
 
@@ -229,7 +243,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
           onClick={() => editor.chain().focus().addColumnAfter().run()}
           variant={'ghost'}
           size="sm"
-  type="button"
+          type="button"
           title="Add Column After"
         >
           <Columns className="h-4 w-4" />

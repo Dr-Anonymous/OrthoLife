@@ -7,7 +7,23 @@ interface UseOfflineSyncProps {
     sendConsultationCompletionNotification: (patient: any, guidesMatched: any[]) => Promise<void>;
     matchedGuides: any[];
 }
-
+/**
+ * useOfflineSync Hook
+ * 
+ * Manages the synchronization of data between local IndexedDB (offline storage) and Supabase (server).
+ * 
+ * Key Responsibilities:
+ * 1. Monitors online status.
+ * 2. Scans `offlineStore` for pending items (new patients, consultations).
+ * 3. Registers new patients first, then links consultations to them.
+ * 4. Handles ID re-keying: Swaps temporary offline IDs (e.g., "offline-123") with real server UUIDs.
+ * 5. Syncs updates to existing consultations.
+ * 6. Detects and manages conflicts (Server timestamp > Local timestamp).
+ * 
+ * @param isOnline Boolean indicating network status.
+ * @param sendConsultationCompletionNotification Callback to send notifications on sync completion.
+ * @param matchedGuides Guides data needed for notifications.
+ */
 export const useOfflineSync = ({ isOnline, sendConsultationCompletionNotification, matchedGuides }: UseOfflineSyncProps) => {
     const [pendingSyncIds, setPendingSyncIds] = useState<string[]>([]);
     const [conflictData, setConflictData] = useState<{ local: any, server: any, consultationId: string } | null>(null);
