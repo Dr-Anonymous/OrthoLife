@@ -115,6 +115,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                                 <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !patient.dob && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {patient.dob ? format(new Date(patient.dob), "PPP") : <span>Select date</span>}
+                                    {patient.is_dob_estimated && <span className="ml-2 text-xs opacity-70">(Est.)</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
@@ -160,7 +161,6 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                             onChange={onAgeChange}
                             className="w-full sm:w-24"
                         />
-                        {patient.is_dob_estimated && <span className="text-xs text-muted-foreground self-center">(Est.)</span>}
                     </div>
                 </div>
                 <div className="space-y-2">

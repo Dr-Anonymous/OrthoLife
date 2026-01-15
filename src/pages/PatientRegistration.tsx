@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Printer } from 'lucide-react';
+import { Loader2, Printer, Pencil, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -15,6 +15,11 @@ import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { PatientEditModal } from '@/components/consultation/PatientEditModal';
+import { Patient } from '@/types/consultation';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const PatientRegistration = () => {
   const [todaysConsultations, setTodaysConsultations] = useState<any[]>([]);
@@ -23,6 +28,10 @@ const PatientRegistration = () => {
   const { i18n } = useTranslation();
   const [printingConsultation, setPrintingConsultation] = useState<any | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const getLocationName = () => {
     if (location.pathname.includes('/badam')) return 'Badam';
@@ -52,7 +61,7 @@ const PatientRegistration = () => {
     setIsFetchingConsultations(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-consultations', {
-        body: { date: format(new Date(), 'yyyy-MM-dd') },
+        body: { date: format(selectedDate, 'yyyy-MM-dd') },
       });
 
       if (error) throw error;
@@ -73,7 +82,7 @@ const PatientRegistration = () => {
 
   useEffect(() => {
     fetchTodaysConsultations();
-  }, []);
+  }, [selectedDate]);
 
   const filteredConsultations = todaysConsultations.filter(
     c => c.location === locationName
@@ -84,9 +93,9 @@ const PatientRegistration = () => {
       <div className="container mx-auto max-w-4xl">
         <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <CardHeader className="text-center pb-8">
-            <CardTitle className="flex items-center justify-center gap-3 text-3xl font-bold text-primary">
-              {hospital && <img src={hospital.logoUrl} alt={`${locationName} Logo`} className="h-32" />}
-              Patient Registration
+            <CardTitle className="flex flex-col sm:flex-row items-center justify-center gap-4 text-2xl sm:text-3xl font-bold text-primary">
+              {hospital && <img src={hospital.logoUrl} alt={`${locationName} Logo`} className="h-24 sm:h-32 object-contain" />}
+              <span>Patient Registration</span>
             </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
               Register new patients and create consultations for {locationName}
@@ -98,7 +107,27 @@ const PatientRegistration = () => {
         </Card>
 
         <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-4 text-center">Today's Consultations at {locationName} ({filteredConsultations.length})</h3>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+            <h3 className="text-xl font-semibold text-center">
+              Consultations at {locationName} ({filteredConsultations.length})
+            </h3>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[240px] pl-3 text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                  {selectedDate ? (format(selectedDate, "PPP")) : (<span>Pick a date</span>)}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
           {isFetchingConsultations ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -110,30 +139,45 @@ const PatientRegistration = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-semibold text-lg">{c.patient.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} / {c.patient.phone}
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        {calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} / <a href={`tel:${c.patient.phone}`} className="hover:underline">{c.patient.phone}</a>
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
-                        {c.status}
-                      </Badge>
-                      {c.status === 'completed' && (
+                      <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => setPrintingConsultation(c)}
-                          disabled={!!printingConsultation}
+                          onClick={() => {
+                            setEditingPatient(c.patient);
+                            setIsEditModalOpen(true);
+                          }}
                         >
-                          {printingConsultation?.id === c.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Printer className="h-4 w-4" />
-                          )}
-                          <span className="sr-only">Print Prescription</span>
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit Patient</span>
                         </Button>
-                      )}
+
+                        {c.status === 'completed' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setPrintingConsultation(c)}
+                            disabled={!!printingConsultation}
+                          >
+                            {printingConsultation?.id === c.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Printer className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">Print Prescription</span>
+                          </Button>
+                        )}
+                      </div>
+                      <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
+                        {c.status}
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -156,23 +200,17 @@ const PatientRegistration = () => {
               logoUrl={hospital?.logoUrl}
             />
           ) : (
-            // Render a dummy component or null when not printing, but keep the ref attached to a div
-            // Actually, react-to-print needs the ref to be attached to the element that WILL be printed.
-            // If we render nothing, ref.current might be null or empty.
-            // Let's render an empty div if no consultation is selected, but keep the ref on the parent.
-            // Wait, the ref is on the parent div `div ref={printRef}`.
-            // So `printRef.current` will be that div.
-            // If `printingConsultation` is null, that div is empty.
-            // `react-to-print` might complain if the content is empty?
-            // The error "contentWindow ... did not load" usually means the iframe didn't load.
-            // This can happen if we try to print too fast.
-            // But I'm using a timeout.
-            // Let's try to keep the structure simple.
             <div />
           )}
         </div>
       </div>
-    </div>
+      <PatientEditModal
+        patient={editingPatient}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={fetchTodaysConsultations}
+      />
+    </div >
   );
 };
 

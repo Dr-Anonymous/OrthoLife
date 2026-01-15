@@ -29,6 +29,7 @@ interface Patient {
   advice?: string;
   followup?: string;
   medications?: any[];
+  is_dob_estimated?: boolean;
 }
 
 interface FormData {
@@ -99,6 +100,17 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       setCalendarDate(newDob);
     }
   };
+
+  // Auto-focus Phone Number
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const phoneInput = document.getElementById('phone');
+      if (phoneInput) {
+        phoneInput.focus();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
@@ -183,6 +195,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         phone,
         driveId: drive_id,
         consultation_data,
+        isDobEstimated: selected.is_dob_estimated || false
       });
       toast({
         title: 'Patient Data Loaded',
