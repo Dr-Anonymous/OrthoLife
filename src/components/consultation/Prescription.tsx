@@ -76,7 +76,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
   return (
-    <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col min-h-screen", className)} style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
+    <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col", className)} style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
       {/* Header */}
       <header
         className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
@@ -97,27 +97,31 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
         </div>
       </header>
 
-      <main className="flex-grow">
+      <main className="flex-grow space-y-2 pt-1">
+        {/* Title */}
+        <div className="text-center">
+          <h1 className="text-lg font-bold uppercase tracking-wide text-primary">Out-Patient Summary</h1>
+        </div>
         {/* Patient Info */}
-        <section className="flex justify-between py-4 border-b border-border">
-          <div>
-            <p><span className="font-semibold">Name:</span> {patient.name}</p>
-            <p><span className="font-semibold">Age/Sex:</span> {age}/{patient.sex}</p>
+        <section className="border border-border rounded-lg p-4 grid grid-cols-2 gap-4 bg-muted/10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+            <span className="font-semibold text-muted-foreground">Name:</span>
+            <span className="font-semibold">{patient.name}</span>
+            <span className="font-semibold text-muted-foreground">Age/Sex:</span>
+            <span>{age}/{patient.sex}</span>
           </div>
-          <div className="text-right">
-            <p><span className="font-semibold">Phone:</span> {patient.phone}</p>
-            <p><span className="font-semibold">ID:</span> {patient.id}</p>
+          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+            <span className="font-semibold text-muted-foreground">Phone:</span>
+            <span>{patient.phone}</span>
+            <span className="font-semibold text-muted-foreground">Date:</span>
+            <span>{format(consultationDate, 'dd MMM yyyy')}</span>
           </div>
         </section>
 
-        {/* Date */}
-        <div className="text-right py-2 text-muted-foreground">
-          {format(consultationDate, 'dd/MM/yyyy')}
-        </div>
 
         {/* Vitals */}
         {(consultation.bp || consultation.temperature || consultation.weight || consultation.allergy) && (
-          <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4">
+          <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
             {consultation.bp && (
               <div className="flex items-center">
                 <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">BP:</span>
@@ -148,32 +152,32 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
         {/* Medical Info */}
         <section className="space-y-4">
           {consultation.complaints && (
-            <div>
-              <h3 className="font-heading font-semibold">Complaints:</h3>
+            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              <h3 className="font-heading font-semibold text-primary mb-1">Complaints:</h3>
               <p className="whitespace-pre-wrap">{consultation.complaints}</p>
             </div>
           )}
           {consultation.findings && (
-            <div>
-              <h3 className="font-heading font-semibold">Findings:</h3>
+            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              <h3 className="font-heading font-semibold text-primary mb-1">Findings:</h3>
               <p className="whitespace-pre-wrap">{consultation.findings}</p>
             </div>
           )}
           {consultation.investigations && (
-            <div>
-              <h3 className="font-heading font-semibold">Investigations:</h3>
+            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              <h3 className="font-heading font-semibold text-primary mb-1">Investigations:</h3>
               <p className="whitespace-pre-wrap">{consultation.investigations}</p>
             </div>
           )}
           {consultation.diagnosis && (
-            <div>
-              <h3 className="font-heading font-semibold">Diagnosis:</h3>
+            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis:</h3>
               <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
             </div>
           )}
           {consultation.procedure && (
-            <div>
-              <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
                 <Syringe className="h-4 w-4" />
                 <span>Procedure Done:</span>
               </h3>
@@ -181,8 +185,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
             </div>
           )}
           {consultation.advice && (
-            <div>
-              <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
                 <MessageSquare className="h-4 w-4" />
                 <span>{t('prescription.advice')}:</span>
               </h3>
@@ -203,8 +207,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
         {/* Medications */}
         {hasMedications && (
-          <section className="mt-6">
-            <h3 className="font-heading font-semibold mb-2 flex items-center gap-2 leading-none">
+          <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+            <h3 className="font-heading font-semibold text-primary mb-2 flex items-center gap-2 leading-none">
               <Pill className="h-4 w-4" />
               <span>{t('prescription.medication')}:</span>
             </h3>
@@ -288,8 +292,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
         {/* Referred To */}
         {consultation.referred_to && (
-          <section className="mt-6">
-            <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+          <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+            <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
               <Share className="h-4 w-4" />
               <span>Referred To:</span>
             </h3>
@@ -299,8 +303,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
         {/* Followup */}
         {consultation.followup && (
-          <section className="mt-6">
-            <h3 className="font-heading font-semibold flex items-center gap-2 leading-none">
+          <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+            <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
               <Calendar className="h-4 w-4" />
               <span>{t('prescription.followup')}:</span>
             </h3>
@@ -311,8 +315,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
       {/* Footer */}
       <footer
-        className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
-        style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
+        className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center break-inside-avoid"
+        style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
       >
         <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
         <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />

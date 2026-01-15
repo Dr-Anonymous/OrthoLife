@@ -160,6 +160,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                             onChange={onAgeChange}
                             className="w-full sm:w-24"
                         />
+                        {patient.is_dob_estimated && <span className="text-xs text-muted-foreground self-center">(Est.)</span>}
                     </div>
                 </div>
                 <div className="space-y-2">

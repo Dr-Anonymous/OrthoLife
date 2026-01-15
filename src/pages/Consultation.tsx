@@ -4,7 +4,7 @@ import { offlineStore } from '@/lib/local-storage';
 import { toast } from '@/hooks/use-toast';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 import { cn, cleanConsultationData, pruneEmptyFields } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -280,9 +280,71 @@ const ConsultationPage = () => {
         .limit(1)
         .maybeSingle();
 
-      if (lastVisit) {
-        const d = new Date(lastVisit.created_at);
-        setLastVisitDate(`${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`);
+      const { data: lastDischarge } = await supabase
+        .from('in_patients')
+        .select('discharge_date, discharge_summary, procedure_date') // Fetch procedure_date
+        .eq('patient_id', consultation.patient.id)
+        .eq('status', 'discharged')
+        .not('discharge_summary', 'is', null) // Ensure summary exists
+        .order('discharge_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let lastOpDate = lastVisit ? new Date(lastVisit.created_at) : null;
+      let lastDischargeDate = lastDischarge ? new Date(lastDischarge.discharge_date) : null;
+
+      // Logic: If Discharge Date > Last OP Date, prefill from Discharge Summary
+      if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+        const d = new Date(lastDischarge.discharge_date);
+        setLastVisitDate(`Discharge: ${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`);
+
+        if (lastDischarge?.discharge_summary) {
+          try {
+            // Need to cast to any or correct type if available. Assuming structure based on schema.
+            const summary: any = lastDischarge.discharge_summary;
+            const course = summary.course_details;
+            const discharge = summary.discharge_data;
+
+            // Calculate post-op days for complaints
+            let complaintsText = '';
+            if (lastDischarge.procedure_date) {
+              const diffDays = differenceInDays(new Date(), new Date(lastDischarge.procedure_date));
+              complaintsText = `${diffDays} days post-operative case.`;
+            }
+
+            const dischargePrefill = {
+              complaints: complaintsText,
+              diagnosis: course.diagnosis || '',
+              procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? format(new Date(lastDischarge.procedure_date), 'dd MMM yyyy') : ''}` : '',
+              medications: discharge.medications || [],
+              advice: discharge.post_op_care || '',
+              findings: discharge.clinical_notes || '',
+              followup: discharge.review_date ? format(new Date(discharge.review_date), 'dd MMM yyyy') : '',
+              investigations: '', // Usually empty for new follow-up
+              visit_type: consultation.visit_type || 'paid', // Keep existing or default
+              // Keep other fields empty or default
+              weight: '', bp: '', temperature: '', allergy: '', personal_note: '', referred_to: ''
+            };
+
+            setExtraData(prev => ({ ...prev, ...dischargePrefill }));
+            // Also update initial extra data to prevent "unsaved changes" warning if user just saves
+            setInitialExtraData(prev => ({ ...prev, ...dischargePrefill }));
+
+            // Update expanded states
+            setIsProcedureExpanded(!!dischargePrefill.procedure);
+
+            toast({
+              title: "Data Loaded",
+              description: "Form pre-filled from latest Discharge Summary.",
+            });
+
+          } catch (e) {
+            console.error("Error parsing discharge summary for prefill", e);
+          }
+        }
+
+      } else if (lastOpDate) {
+        setLastVisitDate(`${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`);
       } else {
         setLastVisitDate('First Consultation');
       }
@@ -520,6 +582,7 @@ const ConsultationPage = () => {
               dob: editablePatientDetails.dob,
               sex: editablePatientDetails.sex,
               phone: editablePatientDetails.phone,
+              is_dob_estimated: editablePatientDetails.is_dob_estimated
             })
             .eq('id', editablePatientDetails.id);
           if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
@@ -729,15 +792,24 @@ const ConsultationPage = () => {
       const estimatedYear = new Date().getFullYear() - Number(val);
       const currentDob = new Date(editablePatientDetails.dob || new Date());
       currentDob.setFullYear(estimatedYear);
-      handlePatientDetailsChange('dob', format(currentDob, 'yyyy-MM-dd'));
+      setEditablePatientDetails(prev => {
+        if (!prev) return null;
+        return { ...prev, dob: format(currentDob, 'yyyy-MM-dd'), is_dob_estimated: true };
+      });
+      setHasUnsavedChanges(true);
       setCalendarDate(currentDob);
     }
   };
 
   const handleDateChange = (date: Date | undefined) => {
     setIsPatientDatePickerOpen(false);
-    if (date && editablePatientDetails) {
-      handlePatientDetailsChange('dob', format(date, 'yyyy-MM-dd'));
+    if (!editablePatientDetails) return;
+    setEditablePatientDetails(prev => {
+      if (!prev) return null;
+      return { ...prev, dob: format(date || new Date(), 'yyyy-MM-dd'), is_dob_estimated: false };
+    });
+    setHasUnsavedChanges(true);
+    if (date) {
       setAge(calculateAge(date));
     }
   };
@@ -1309,7 +1381,7 @@ const ConsultationPage = () => {
       </div>
 
       {/* Hidden Print Components */}
-      <div style={{ position: 'absolute', left: '-9999px' }}><div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={i18n.language} logoUrl={selectedHospital.logoUrl} />}</div></div>
+      <div style={{ position: 'absolute', left: '-9999px' }}><div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={i18n.language} logoUrl={selectedHospital.logoUrl} className="min-h-[297mm]" />}</div></div>
       <div style={{ position: 'absolute', left: '-9999px' }}><div ref={certificatePrintRef}>{selectedConsultation && editablePatientDetails && certificateData && <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} />}</div></div>
       <div style={{ position: 'absolute', left: '-9999px' }}><div ref={receiptPrintRef}>{selectedConsultation && editablePatientDetails && receiptData && <Receipt patient={editablePatientDetails} receiptData={receiptData} />}</div></div>
 

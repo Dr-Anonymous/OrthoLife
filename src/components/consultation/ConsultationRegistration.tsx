@@ -39,6 +39,7 @@ interface FormData {
   phone: string;
   driveId: string | null;
   consultation_data: any | null;
+  isDobEstimated: boolean;
 }
 
 interface ConsultationRegistrationProps {
@@ -67,6 +68,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     phone: '',
     driveId: null,
     consultation_data: null,
+    isDobEstimated: false,
   });
 
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
@@ -93,7 +95,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       const today = new Date();
       const birthYear = today.getFullYear() - newAge;
       const newDob = new Date(birthYear, formData.dob?.getMonth() ?? today.getMonth(), formData.dob?.getDate() ?? today.getDate());
-      setFormData(prev => ({ ...prev, dob: newDob }));
+      setFormData(prev => ({ ...prev, dob: newDob, isDobEstimated: true }));
       setCalendarDate(newDob);
     }
   };
@@ -108,7 +110,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId' | 'id' | 'consultation_data'>, value: string) => {
+  const handleInputChange = (field: keyof Omit<FormData, 'dob' | 'sex' | 'driveId' | 'id' | 'consultation_data' | 'isDobEstimated'>, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value, driveId: null, id: null, consultation_data: null }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
 
@@ -192,7 +194,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const handleSexChange = (value: string) => setFormData(prev => ({ ...prev, sex: value }));
 
   const handleDateChange = (date: Date | undefined) => {
-    setFormData(prev => ({ ...prev, dob: date }));
+    setFormData(prev => ({ ...prev, dob: date, isDobEstimated: false }));
     if (errors.dob) setErrors(prev => ({ ...prev, dob: undefined }));
     if (date) setIsDatePickerOpen(false);
   };
@@ -247,7 +249,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
         if (onSuccess) onSuccess(newConsultation, {});
 
-        setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
+        setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null, isDobEstimated: false });
         setSearchResults([]);
         setSelectedPatientId('');
 
@@ -262,6 +264,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             driveId: formData.driveId,
             age: String(age),
             location: location,
+            is_dob_estimated: formData.isDobEstimated // Pass the flag
           },
         });
 
@@ -317,7 +320,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             title: 'Patient Registered for Consultation',
             description: `${formData.name} has been successfully registered.`,
           });
-          setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null });
+          setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null, isDobEstimated: false });
           setSearchResults([]);
           setSelectedPatientId('');
           if (onSuccess) {

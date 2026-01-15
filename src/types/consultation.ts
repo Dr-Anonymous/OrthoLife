@@ -25,9 +25,10 @@ export interface Patient {
     id: string;
     name: string;
     dob: string;
-    sex: string;
+    sex: string | null;
     phone: string;
     drive_id: string | null;
+    is_dob_estimated?: boolean;
 }
 
 export interface Consultation {

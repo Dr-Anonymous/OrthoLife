@@ -191,7 +191,7 @@ const PrescriptionDownload = () => {
                 onSelect={handlePatientSelect}
             />
 
-            <div className="bg-white w-full max-w-3xl min-h-screen shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-hidden">
+            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-hidden">
                 {/* Preview */}
                 {consultation && (
                     <Prescription
@@ -202,6 +202,7 @@ const PrescriptionDownload = () => {
                         age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                         language={consultation.language || i18n.language}
                         logoUrl={HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                        className="min-h-[297mm]"
                     />
                 )}
             </div>

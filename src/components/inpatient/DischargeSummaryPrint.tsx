@@ -39,7 +39,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
     return (
-        <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col min-h-screen", className)} style={{ fontFamily: 'var(--font-sans)' }}>
+        <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col", className)} style={{ fontFamily: 'var(--font-sans)' }}>
             {/* Header */}
             <header
                 className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
@@ -60,27 +60,30 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                 </div>
             </header>
 
-            <main className="flex-grow space-y-6 pt-4">
+            <main className="flex-grow space-y-2 pt-1">
                 {/* Title */}
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold uppercase tracking-wide text-primary">Discharge Summary</h1>
+                    <h1 className="text-lg font-bold uppercase tracking-wide text-primary">Discharge Summary</h1>
                 </div>
 
                 {/* Patient Details */}
-                <section className="border border-border rounded-lg p-4 grid grid-cols-2 gap-4 bg-muted/10 break-inside-avoid">
-                    <div>
-                        <p><span className="font-semibold text-muted-foreground mr-2">Patient Name:</span> <span className="font-semibold">{patientSnapshot.name}</span></p>
-                        <p><span className="font-semibold text-muted-foreground mr-2">Age/Sex:</span> {patientSnapshot.dob ? `${new Date().getFullYear() - new Date(patientSnapshot.dob).getFullYear()}` : 'N/A'}/{patientSnapshot.sex}</p>
-
+                <section className="border border-border rounded-lg p-4 grid grid-cols-2 gap-4 bg-muted/10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                        <span className="font-semibold text-muted-foreground">Name:</span>
+                        <span className="font-semibold">{patientSnapshot.name}</span>
+                        <span className="font-semibold text-muted-foreground">Age/Sex:</span>
+                        <span>{patientSnapshot.dob ? `${new Date().getFullYear() - new Date(patientSnapshot.dob).getFullYear()}` : 'N/A'}/{patientSnapshot.sex}</span>
                     </div>
-                    <div>
-                        <p><span className="font-semibold text-muted-foreground mr-2">Admission Date:</span> {courseDetails.admission_date ? format(new Date(courseDetails.admission_date), 'dd MMM yyyy') : 'N/A'}</p>
-                        <p><span className="font-semibold text-muted-foreground mr-2">Discharge Date:</span> <span className="text-sm">{format(new Date(), 'dd MMM yyyy')}</span></p>
+                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                        <span className="font-semibold text-muted-foreground">Admission Date:</span>
+                        <span>{courseDetails.admission_date ? format(new Date(courseDetails.admission_date), 'dd MMM yyyy') : 'N/A'}</span>
+                        <span className="font-semibold text-muted-foreground">Discharge Date:</span>
+                        <span className="text-sm">{format(new Date(), 'dd MMM yyyy')}</span>
                     </div>
                 </section>
 
                 {/* Diagnosis & Procedure */}
-                <section className="grid grid-cols-1 gap-4 break-inside-avoid">
+                <section className="grid grid-cols-1 gap-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                     {courseDetails.diagnosis && (
                         <div>
                             <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis</h3>
@@ -101,18 +104,16 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                 </section>
 
                 {/* Operation Notes */}
-                {/* Operation Notes */}
                 {courseDetails.operation_notes && (
-                    <section className="break-inside-avoid">
+                    <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                         <h3 className="font-heading font-semibold text-primary mb-1">Operation Notes</h3>
                         <p className="whitespace-pre-wrap text-sm">{courseDetails.operation_notes}</p>
                     </section>
                 )}
 
                 {/* Clinical Notes / Post Op Care */}
-                {/* Clinical Notes / Post Op Care */}
                 {(dischargeData.clinical_notes || dischargeData.post_op_care) && (
-                    <section className="grid grid-cols-1 gap-6 break-inside-avoid">
+                    <section className="grid grid-cols-1 gap-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                         {dischargeData.clinical_notes && (
                             <div>
                                 <h3 className="font-heading font-semibold text-primary mb-1">Clinical Course / Notes</h3>
@@ -130,7 +131,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                 {/* Medications */}
                 {dischargeData.medications && dischargeData.medications.length > 0 && (
-                    <section className="break-inside-avoid">
+                    <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                         <h3 className="font-heading font-semibold text-primary mb-2 flex items-center gap-2">
                             <Pill className="h-4 w-4" />
                             {t('prescription.medication', 'Medications at Discharge')}
@@ -211,7 +212,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                 {/* Review Date */}
                 {dischargeData.review_date && (
-                    <section className="mt-8 pt-4 border-t border-border break-inside-avoid">
+                    <section className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                         <h3 className="font-heading font-semibold text-primary flex items-center gap-2">
                             <Calendar className="h-5 w-5" />
                             Review Date
@@ -223,8 +224,8 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
             {/* Footer */}
             <footer
-                className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center"
-                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
+                className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center break-inside-avoid"
+                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
             >
                 <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
                 <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
