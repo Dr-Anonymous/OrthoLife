@@ -19,6 +19,7 @@ interface DischargeSummaryPrintProps {
     logoUrl: string;
     className?: string;
     noBackground?: boolean;
+    forceDesktop?: boolean;
 }
 
 export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeSummaryPrintProps>(({
@@ -28,7 +29,8 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     language,
     logoUrl,
     className,
-    noBackground
+    noBackground,
+    forceDesktop
 }, ref) => {
     const { t, i18n } = useTranslation();
 
@@ -41,20 +43,24 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     return (
         <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col", className)} style={{ fontFamily: 'var(--font-sans)' }}>
             {/* Header */}
+            {/* Header */}
             <header
-                className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
+                className={cn(
+                    "flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg gap-4",
+                    forceDesktop ? "flex-row" : "flex-col sm:flex-row"
+                )}
                 style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
             >
                 <div className="flex items-center">
-                    <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", logoUrl === '/images/logos/logo.png' ? 'h-20' : 'h-24')} />
+                    <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", forceDesktop ? "h-20" : "h-16 sm:h-20", logoUrl !== '/images/logos/logo.png' && (forceDesktop ? "h-24" : "sm:h-24"))} />
                 </div>
-                <div className="text-right">
-                    <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
-                    <p className="text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
-                    <p className="text-muted-foreground">Orthopaedic Surgeon</p>
-                    <p className="mt-2 text-gray-700">
+                <div className={cn(forceDesktop ? "text-right" : "text-center sm:text-right")}>
+                    <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
+                    <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>MBBS, MS Ortho (Manipal)</p>
+                    <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>Orthopaedic Surgeon</p>
+                    <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
                         <a href="tel:+919983849838" className="font-semibold hover:underline">📞 99 838 49 838</a>
-                        <span className="mx-2">|</span>
+                        <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
                         <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
                     </p>
                 </div>
@@ -67,14 +73,14 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                 </div>
 
                 {/* Patient Details */}
-                <section className="border border-border rounded-lg p-4 grid grid-cols-2 gap-4 bg-muted/10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                <section className={cn("border border-border rounded-lg bg-muted/10 break-inside-avoid", forceDesktop ? "p-4 grid grid-cols-2 gap-4" : "p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4")} style={{ pageBreakInside: 'avoid' }}>
+                    <div className={cn("grid grid-cols-[auto_1fr] gap-y-1", forceDesktop ? "gap-x-4" : "gap-x-2 sm:gap-x-4", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
                         <span className="font-semibold text-muted-foreground">Name:</span>
                         <span className="font-semibold">{patientSnapshot.name}</span>
                         <span className="font-semibold text-muted-foreground">Age/Sex:</span>
                         <span>{patientSnapshot.dob ? `${new Date().getFullYear() - new Date(patientSnapshot.dob).getFullYear()}` : 'N/A'}/{patientSnapshot.sex}</span>
                     </div>
-                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                    <div className={cn("grid grid-cols-[auto_1fr] gap-y-1", forceDesktop ? "gap-x-4" : "gap-x-2 sm:gap-x-4", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
                         <span className="font-semibold text-muted-foreground">Admission Date:</span>
                         <span>{courseDetails.admission_date ? format(new Date(courseDetails.admission_date), 'dd MMM yyyy') : 'N/A'}</span>
                         <span className="font-semibold text-muted-foreground">Discharge Date:</span>

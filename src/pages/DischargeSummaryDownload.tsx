@@ -191,7 +191,7 @@ const DischargeSummaryDownload = () => {
                 onSelect={handlePatientSelect}
             />
 
-            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-hidden">
+            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-x-auto">
                 {/* Preview */}
                 {summaryData && (
                     <DischargeSummaryPrint
@@ -247,6 +247,7 @@ const DischargeSummaryDownload = () => {
                             dischargeData={summaryData.discharge_data}
                             language={summaryData.language || i18n.language}
                             logoUrl="/images/logos/logo.png"
+                            forceDesktop={true}
                         />
                     )}
                 </div>
