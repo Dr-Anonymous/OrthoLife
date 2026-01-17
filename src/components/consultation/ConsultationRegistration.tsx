@@ -376,24 +376,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
-              <div className="relative">
-                <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={e => handleInputChange('name', e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); } }}
-                  className={cn("pl-10 pr-10", errors.name && "border-destructive")}
-                  placeholder="Enter full name"
-                />
-                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching || !isOnline}>
-                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
-                </button>
-              </div>
-              {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
               <div className="relative">
                 <Phone className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
@@ -410,6 +392,24 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                 </button>
               </div>
               {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={e => handleInputChange('name', e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); } }}
+                  className={cn("pl-10 pr-10", errors.name && "border-destructive")}
+                  placeholder="Enter full name"
+                />
+                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching || !isOnline}>
+                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
+                </button>
+              </div>
+              {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
             </div>
           </div>
 
