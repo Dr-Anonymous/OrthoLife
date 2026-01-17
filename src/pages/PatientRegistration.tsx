@@ -32,6 +32,7 @@ const PatientRegistration = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const getLocationName = () => {
     if (location.pathname.includes('/badam')) return 'Badam';
@@ -111,7 +112,7 @@ const PatientRegistration = () => {
             <h3 className="text-xl font-semibold text-center">
               Consultations at {locationName} ({filteredConsultations.length})
             </h3>
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className={cn("w-[240px] pl-3 text-left font-normal", !selectedDate && "text-muted-foreground")}>
                   {selectedDate ? (format(selectedDate, "PPP")) : (<span>Pick a date</span>)}
@@ -122,7 +123,12 @@ const PatientRegistration = () => {
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
+                  onSelect={(date) => {
+                    if (date) {
+                      setSelectedDate(date);
+                      setIsCalendarOpen(false);
+                    }
+                  }}
                   initialFocus
                 />
               </PopoverContent>

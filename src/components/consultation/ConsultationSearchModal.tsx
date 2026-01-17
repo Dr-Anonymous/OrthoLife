@@ -77,8 +77,8 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
           <DialogTitle>Search Consultations</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
-          <Input placeholder="Search by name..." value={name} onChange={(e) => setName(e.target.value)} onKeyDown={handleKeyDown} />
           <Input placeholder="Search by phone..." value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={handleKeyDown} />
+          <Input placeholder="Search by name..." value={name} onChange={(e) => setName(e.target.value)} onKeyDown={handleKeyDown} />
           <Input placeholder="Search by keyword..." value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} />
         </div>
         <div className="px-4 pb-4">
