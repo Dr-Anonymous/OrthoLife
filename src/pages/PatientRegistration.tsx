@@ -204,6 +204,7 @@ const PatientRegistration = () => {
               age={calculateAge(new Date(printingConsultation.patient.dob))}
               language={printingConsultation.language || i18n.language}
               logoUrl={hospital?.logoUrl}
+              visitType={printingConsultation.visit_type}
             />
           ) : (
             <div />

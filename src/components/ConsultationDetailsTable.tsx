@@ -53,6 +53,7 @@ export interface Consultation {
 interface ConsultationDetailsTableProps {
   title: string;
   data: Consultation[];
+  onFilteredDataChange?: (data: Consultation[]) => void;
 }
 
 type SortDirection = 'asc' | 'desc';
@@ -67,7 +68,7 @@ interface FilterState {
   status: string[];
 }
 
-export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTableProps) => {
+export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: ConsultationDetailsTableProps) => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
   const [filters, setFilters] = useState<FilterState & { hasProcedure: boolean }>({
     location: [],
@@ -196,6 +197,13 @@ export const ConsultationDetailsTable = ({ title, data }: ConsultationDetailsTab
 
     return result;
   }, [data, filters, sortConfig]);
+
+  // Notify parent of filtered data changes
+  useMemo(() => {
+    if (onFilteredDataChange) {
+      onFilteredDataChange(filteredAndSortedData);
+    }
+  }, [filteredAndSortedData, onFilteredDataChange]);
 
   const activeFilterCount = Object.values(filters).reduce((acc, curr) => {
     if (typeof curr === 'boolean') return acc + (curr ? 1 : 0);

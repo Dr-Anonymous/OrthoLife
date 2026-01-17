@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, User, ChevronsRight } from 'lucide-react';
-import { format, getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear, parseISO, isValid } from 'date-fns';
 import { ConsultationDetailsTable, Consultation } from '@/components/ConsultationDetailsTable';
 
 const ConsultationStats = () => {
@@ -16,6 +16,7 @@ const ConsultationStats = () => {
   const [dailyData, setDailyData] = useState<Consultation[]>([]);
   const [monthlyStats, setMonthlyStats] = useState<Consultation[]>([]);
   const [monthlyData, setMonthlyData] = useState<Consultation[]>([]);
+  const [filteredMonthlyData, setFilteredMonthlyData] = useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMonthlyStatsLoading, setIsMonthlyStatsLoading] = useState(false);
   const [isDailyStatsLoading, setIsDailyStatsLoading] = useState(false);
@@ -33,6 +34,10 @@ const ConsultationStats = () => {
     // setIsLoading(true); // Removed global loading
     setShowDailyDetails(false);
     setShowMonthlyDetails(false);
+
+    // Calculate dates for client-side fetch
+    const startOfMonth = new Date(getYear(date), getMonth(date), 1).toISOString();
+    const endOfMonth = new Date(getYear(date), getMonth(date) + 1, 0, 23, 59, 59, 999).toISOString(); // End of month, end of day
 
     const monthKey = format(date, 'yyyy-MM');
     const includeMonthly = monthKey !== currentViewMonth;
@@ -56,6 +61,7 @@ const ConsultationStats = () => {
       if (error) throw error;
 
       if (includeMonthly) {
+        console.log('Fetched monthlyStats:', data.monthlyStats?.length, 'Sample:', data.monthlyStats?.[0]);
         setMonthlyCount(data.monthlyCount);
         setMonthlyStats(data.monthlyStats || []);
         setCurrentViewMonth(monthKey);
@@ -69,6 +75,13 @@ const ConsultationStats = () => {
       setIsDailyStatsLoading(false);
       setIsMonthlyStatsLoading(false);
     }
+  };
+
+  const handleMonthChange = (month: Date) => {
+    fetchStats(month);
+    setMonthlyData([]);
+    setFilteredMonthlyData([]);
+    setShowMonthlyDetails(false);
   };
 
   const fetchMonthlyDetails = async () => {
@@ -109,7 +122,44 @@ const ConsultationStats = () => {
           <CardContent className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="flex justify-center">
-                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="rounded-md border" />
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  onMonthChange={handleMonthChange}
+                  className="rounded-md border"
+                  components={{
+                    DayContent: (props) => {
+                      const { date } = props;
+                      const dayStr = format(date, 'yyyy-MM-dd');
+                      // Use filteredMonthlyData if available (when table is shown and filtered), otherwise monthlyData (when table shown but no filter change yet, or logic below)
+                      // Actually, if we set filteredMonthlyData to monthlyData initially, we can just use filteredMonthlyData.
+                      // Let's rely on filteredMonthlyData which should correspond to what's in the table.
+                      const stats = filteredMonthlyData.length > 0 || showMonthlyDetails ? filteredMonthlyData : [];
+
+                      const count = stats.filter(s => {
+                        if (!s.created_at) return false;
+                        const d = typeof s.created_at === 'string' ? parseISO(s.created_at) : new Date(s.created_at);
+                        return isValid(d) && format(d, 'yyyy-MM-dd') === dayStr;
+                      }).length;
+
+                      return (
+                        <div className="flex flex-col items-center justify-center relative w-full h-full p-1 h-9 w-9">
+                          <span className="text-sm font-normal">{date.getDate()}</span>
+                          {count > 0 && (
+                            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                                {count}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    },
+                    IconLeft: ({ ...props }) => <ChevronsRight className="h-4 w-4 rotate-180" />,
+                    IconRight: ({ ...props }) => <ChevronsRight className="h-4 w-4" />,
+                  }}
+                />
               </div>
               <div className="space-y-4">
                 <>
@@ -238,6 +288,7 @@ const ConsultationStats = () => {
               <ConsultationDetailsTable
                 title={`Details for ${selectedDate ? format(selectedDate, 'MMMM yyyy') : ''}`}
                 data={monthlyData}
+                onFilteredDataChange={setFilteredMonthlyData} // Pass the setter
               />
             )}
             {showDailyDetails && (

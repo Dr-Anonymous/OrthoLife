@@ -52,6 +52,7 @@ interface PrescriptionProps {
   noBackground?: boolean;
   className?: string;
   forceDesktop?: boolean;
+  visitType?: string;
 }
 
 /**
@@ -65,7 +66,7 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType }, ref) => {
   const { t, i18n } = useTranslation();
 
   React.useEffect(() => {
@@ -104,7 +105,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
       <main className="flex-grow space-y-2 pt-1">
         {/* Title */}
         <div className="text-center">
-          <h1 className="text-lg font-bold uppercase tracking-wide text-primary">Out-Patient Summary</h1>
+          <h1 className={cn("text-lg font-bold uppercase tracking-wide text-primary", visitType === 'paid' && "underline decoration-2 underline-offset-4")}>Out-Patient Summary</h1>
         </div>
         {/* Patient Info */}
         <section className={cn("border border-border rounded-lg bg-muted/10 break-inside-avoid", forceDesktop ? "p-4 grid grid-cols-2 gap-4" : "p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4")} style={{ pageBreakInside: 'avoid' }}>

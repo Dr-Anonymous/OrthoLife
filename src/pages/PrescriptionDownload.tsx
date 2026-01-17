@@ -253,6 +253,7 @@ const PrescriptionDownload = () => {
                             qrCodeUrl="/images/assets/qr-code.png"
                             noBackground={true}
                             forceDesktop={true}
+                            visitType={consultation.visit_type}
                         />
                     )}
                 </div>
