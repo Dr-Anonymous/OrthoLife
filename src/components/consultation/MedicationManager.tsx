@@ -85,9 +85,11 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                     medicationNameInputRef.current.focus();
                 }
             }, 0);
+
+            // Reset flag immediately after triggering focus
+            shouldFocusNewMedication.current = false;
         }
-        // Reset flag after processing
-        // shouldFocusNewMedication.current = false; // Optional based on desired stickiness, but false is safer default
+
         prevMedicationsLength.current = medications.length;
     }, [medications.length, medicationNameInputRef]);
 

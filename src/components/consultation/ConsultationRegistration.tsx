@@ -230,6 +230,35 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     if (!validateForm()) return;
     setIsSubmitting(true);
 
+    // Check for duplicate consultation
+    if (formData.id) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const { data: existingConsultations, error: duplicateCheckError } = await supabase
+        .from('consultations')
+        .select('*')
+        .eq('patient_id', formData.id)
+        .eq('location', location)
+        .gte('created_at', todayStart.toISOString())
+        .lte('created_at', todayEnd.toISOString());
+
+      if (duplicateCheckError) {
+        console.error('Error checking for duplicate consultations:', duplicateCheckError);
+        // We generally proceed if check fails to avoid blocking user, or you could show error
+      } else if (existingConsultations && existingConsultations.length > 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Duplicate Consultation',
+          description: `Consultation for ${formData.name} already booked today at ${location}.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     try {
       if (!isOnline) {
         const tempId = `offline-${Date.now()}`;
