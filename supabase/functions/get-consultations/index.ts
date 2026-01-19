@@ -54,7 +54,8 @@ serve(async (req) => {
           dob,
           sex,
           phone,
-          drive_id
+          drive_id,
+          is_dob_estimated
         )
       `)
       .order('created_at', { ascending: false });

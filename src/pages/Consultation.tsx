@@ -225,9 +225,7 @@ const ConsultationPage = () => {
     return getMatchingGuides(debouncedAdvice, guides, i18n.language);
   }, [debouncedAdvice, guides, i18n.language]);
 
-  // Stop Timer Logic
   // Timer Stop Logic handled by hook
-
 
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     patientSelectionCounter.current += 1;
