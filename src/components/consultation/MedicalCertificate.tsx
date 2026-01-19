@@ -400,7 +400,7 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = (
               value={rejoinActivity}
               onChange={(e) => setRejoinActivity(e.target.value)}
               className="col-span-3"
-              placeholder="e.g., normal duties"
+              placeholder="normal/light"
             />
           </div>
         </div>

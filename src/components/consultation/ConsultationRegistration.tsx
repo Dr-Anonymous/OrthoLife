@@ -29,6 +29,7 @@ interface Patient {
   advice?: string;
   followup?: string;
   medications?: any[];
+  personalNote?: string;
   is_dob_estimated?: boolean;
 }
 

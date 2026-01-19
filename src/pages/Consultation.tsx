@@ -86,7 +86,7 @@ const ConsultationPage = () => {
     bp: '',
     temperature: '',
     allergy: '',
-    personal_note: '',
+    personalNote: '',
     procedure: '',
     referred_to: '',
     visit_type: 'paid', // default
@@ -252,7 +252,7 @@ const ConsultationPage = () => {
       bp: savedData.bp || '',
       temperature: savedData.temperature || '',
       allergy: savedData.allergy || '',
-      personal_note: savedData.personal_note || '',
+      personalNote: savedData.personalNote || '',
       procedure: savedData.procedure || '',
       referred_to: savedData.referred_to || '',
       visit_type: savedData.visit_type || consultation.visit_type || 'paid',
@@ -323,7 +323,7 @@ const ConsultationPage = () => {
               investigations: '', // Usually empty for new follow-up
               visit_type: consultation.visit_type || 'paid', // Keep existing or default
               // Keep other fields empty or default
-              weight: '', bp: '', temperature: '', allergy: '', personal_note: '', referred_to: ''
+              weight: '', bp: '', temperature: '', allergy: '', personalNote: '', referred_to: ''
             };
 
             setExtraData(prev => ({ ...prev, ...dischargePrefill }));
@@ -851,7 +851,7 @@ const ConsultationPage = () => {
       return;
     }
 
-    if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personal_note' || field === 'procedure' || field === 'investigations' || field === 'referred_to')) {
+    if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to')) {
       let processedValue = value;
       let newCursor = cursorPosition || value.length;
 
@@ -1262,8 +1262,8 @@ const ConsultationPage = () => {
             onSelectConsultation={handleSelectConsultation}
             onDeleteClick={handleDeleteClick}
             pendingSyncIds={pendingSyncIds}
-            personalNote={extraData.personal_note}
-            onPersonalNoteChange={(val) => handleExtraChange('personal_note', val)}
+            personalNote={extraData.personalNote}
+            onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
             isEvaluationCollapsed={isEvaluationCollapsed}
             setIsEvaluationCollapsed={setIsEvaluationCollapsed}
             isCompletedCollapsed={isCompletedCollapsed}

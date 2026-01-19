@@ -30,7 +30,7 @@ export interface ConsultationData {
     advice?: string;
     followup?: string;
     referred_to?: string;
-    personal_note?: string;
+    personalNote?: string;
     [key: string]: any;
 }
 
@@ -91,12 +91,12 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             )}
 
             {/* Doctor's Note */}
-            {(data.personal_note) && (
+            {data.personalNote && (
                 <div className="flex items-start gap-3">
                     <NotebookText className="w-5 h-5 mt-1 text-primary" />
                     <div>
                         <h4 className="font-semibold">Doctor's Personal Note</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.personal_note)}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.personalNote)}</p>
                     </div>
                 </div>
             )}
