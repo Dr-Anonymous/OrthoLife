@@ -252,7 +252,7 @@ const ConsultationPage = () => {
       bp: savedData.bp || '',
       temperature: savedData.temperature || '',
       allergy: savedData.allergy || '',
-      personalNote: savedData.personalNote || '',
+      personalNote: savedData.personalNote || savedData.personal_note || '',
       procedure: savedData.procedure || '',
       referred_to: savedData.referred_to || '',
       visit_type: savedData.visit_type || consultation.visit_type || 'paid',

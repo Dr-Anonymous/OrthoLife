@@ -91,12 +91,12 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             )}
 
             {/* Doctor's Note */}
-            {data.personalNote && (
+            {(data.personalNote || data.personal_note) && (
                 <div className="flex items-start gap-3">
                     <NotebookText className="w-5 h-5 mt-1 text-primary" />
                     <div>
                         <h4 className="font-semibold">Doctor's Personal Note</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.personalNote)}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.personalNote || data.personal_note || '')}</p>
                     </div>
                 </div>
             )}
