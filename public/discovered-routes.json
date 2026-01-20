@@ -26,10 +26,10 @@
     "/guides/4",
     "/guides/2",
     "/guides/5",
+    "/guides/11",
     "/guides/7",
     "/guides/12",
     "/guides/9",
-    "/guides/11",
     "/guides/3",
     "/guides/10",
     "/guides/8",
@@ -42,9 +42,9 @@
     "/te/guides/12",
     "/te/guides/4",
     "/te/guides/7",
-    "/te/guides/11",
     "/te/guides/6",
     "/te/guides/2",
+    "/te/guides/11",
     "/te/guides/14",
     "/te/guides/8",
     "/te/guides/3",
@@ -183,6 +183,11 @@
       "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
     },
     {
+      "route": "/guides/11",
+      "title": "The ACL Rehab Journey: A Complete Post-Operative Protocol",
+      "description": "This guide outlines a typical timeline and the goals, exercises, and milestones for each phase, from the day after surgery to a full year later."
+    },
+    {
       "route": "/guides/7",
       "title": "Navigating Life with a Plaster Cast: Essential Care and Tips",
       "description": "A broken bone is a temporary setback, but proper cast care is crucial for a smooth recovery. Learn essential tips for living with a plaster cast, including how to keep it dry, manage itching, and spot red flags that need a doctor's attention."
@@ -196,11 +201,6 @@
       "route": "/guides/9",
       "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
       "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
-    },
-    {
-      "route": "/guides/11",
-      "title": "The ACL Rehab Journey: A Complete Post-Operative Protocol",
-      "description": "This guide outlines a typical timeline and the goals, exercises, and milestones for each phase, from the day after surgery to a full year later."
     },
     {
       "route": "/guides/3",
@@ -263,11 +263,6 @@
       "description": "ఎముక విరగడం తాత్కాలిక సమస్యే, కానీ సరైన కాస్ట్ సంరక్షణ త్వరగా కోలుకోవడానికి చాలా అవసరం. ప్లాస్టర్ కాస్ట్‌తో జీవించడానికి ముఖ్యమైన చిట్కాలు, దానిని పొడిగా ఉంచుకోవడం, దురదను తగ్గించడం మరియు వైద్యుని సహాయం అవసరమైన ప్రమాద సంకేతాలను గుర్తించడం వంటి వాటి గురించి తెలుసుకోండి."
     },
     {
-      "route": "/te/guides/11",
-      "title": "ACL పునరావాస ప్రయాణం: పూర్తి శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
-      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి పూర్తి సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది."
-    },
-    {
       "route": "/te/guides/6",
       "title": "ఆంధ్రప్రదేశ్ మధుమేహ రోగుల కోసం ఆహార పట్టిక",
       "description": "ఆంధ్రప్రదేశ్లోని డయాబెటిస్ (షుగర్) రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి."
@@ -276,6 +271,11 @@
       "route": "/te/guides/2",
       "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
       "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది."
+    },
+    {
+      "route": "/te/guides/11",
+      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
+      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది."
     },
     {
       "route": "/te/guides/14",
