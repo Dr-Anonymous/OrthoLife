@@ -4,7 +4,7 @@ import { offlineStore } from '@/lib/local-storage';
 import { toast } from '@/hooks/use-toast';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { cn, cleanConsultationData, pruneEmptyFields } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -265,87 +265,50 @@ const ConsultationPage = () => {
 
     setHasUnsavedChanges(false);
 
-    // Timer Reset handled by useEffect
-
-    // Fetch details last visit
+    // Fetch details last visit (Display Only)
+    // We check selectedConsultation?.last_visit_date first (optimization for existing),
+    // otherwise we fetch it manually (for new consultations).
     if (consultation.patient.id && !String(consultation.patient.id).startsWith('offline-')) {
-      const { data: lastVisit } = await supabase
-        .from('consultations')
-        .select('created_at')
-        .eq('patient_id', consultation.patient.id)
-        .lt('created_at', consultation.created_at)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const { data: lastDischarge } = await supabase
-        .from('in_patients')
-        .select('discharge_date, discharge_summary, procedure_date') // Fetch procedure_date
-        .eq('patient_id', consultation.patient.id)
-        .eq('status', 'discharged')
-        .not('discharge_summary', 'is', null) // Ensure summary exists
-        .order('discharge_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      let lastOpDate = lastVisit ? new Date(lastVisit.created_at) : null;
-      let lastDischargeDate = lastDischarge ? new Date(lastDischarge.discharge_date) : null;
-
-      // Logic: If Discharge Date > Last OP Date, prefill from Discharge Summary
-      if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
-        const d = new Date(lastDischarge.discharge_date);
-        setLastVisitDate(`Discharge: ${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`);
-
-        if (lastDischarge?.discharge_summary) {
-          try {
-            // Need to cast to any or correct type if available. Assuming structure based on schema.
-            const summary: any = lastDischarge.discharge_summary;
-            const course = summary.course_details;
-            const discharge = summary.discharge_data;
-
-            // Calculate post-op days for complaints
-            let complaintsText = '';
-            if (lastDischarge.procedure_date) {
-              const diffDays = differenceInDays(new Date(), new Date(lastDischarge.procedure_date));
-              complaintsText = `${diffDays} days post-operative case.`;
-            }
-
-            const dischargePrefill = {
-              complaints: complaintsText,
-              diagnosis: course.diagnosis || '',
-              procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? format(new Date(lastDischarge.procedure_date), 'dd MMM yyyy') : ''}` : '',
-              medications: discharge.medications || [],
-              advice: discharge.post_op_care || '',
-              findings: discharge.clinical_notes || '',
-              followup: discharge.review_date ? format(new Date(discharge.review_date), 'dd MMM yyyy') : '',
-              investigations: '', // Usually empty for new follow-up
-              visit_type: consultation.visit_type || 'paid', // Keep existing or default
-              // Keep other fields empty or default
-              weight: '', bp: '', temperature: '', allergy: '', personalNote: '', referred_to: ''
-            };
-
-            setExtraData(prev => ({ ...prev, ...dischargePrefill }));
-            // Also update initial extra data to prevent "unsaved changes" warning if user just saves
-            setInitialExtraData(prev => ({ ...prev, ...dischargePrefill }));
-
-            // Update expanded states
-            setIsProcedureExpanded(!!dischargePrefill.procedure);
-
-            toast({
-              title: "Data Loaded",
-              description: "Form pre-filled from latest Discharge Summary.",
-            });
-
-          } catch (e) {
-            console.error("Error parsing discharge summary for prefill", e);
-          }
-        }
-
-      } else if (lastOpDate) {
-        setLastVisitDate(`${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`);
+      if (selectedConsultation?.last_visit_date) {
+        setLastVisitDate(selectedConsultation.last_visit_date);
       } else {
-        setLastVisitDate('First Consultation');
+        // Fallback fetch for new consultations
+        const fetchLastVisit = async () => {
+          const { data: lastVisit } = await supabase
+            .from('consultations')
+            .select('created_at')
+            .eq('patient_id', consultation.patient.id)
+            .lt('created_at', consultation.created_at)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const { data: lastDischarge } = await supabase
+            .from('in_patients')
+            .select('discharge_date, procedure_date')
+            .eq('patient_id', consultation.patient.id)
+            .eq('status', 'discharged')
+            .not('discharge_summary', 'is', null)
+            .order('discharge_date', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          let lastOpDate = lastVisit ? new Date(lastVisit.created_at) : null;
+          let lastDischargeDate = lastDischarge ? new Date(lastDischarge.discharge_date) : null;
+
+          if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+            const d = new Date(lastDischarge.discharge_date);
+            setLastVisitDate(`${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`);
+          } else if (lastOpDate) {
+            setLastVisitDate(`${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`);
+          } else {
+            setLastVisitDate('First Consultation');
+          }
+        };
+        fetchLastVisit();
       }
+    } else {
+      setLastVisitDate(null);
     }
 
     // Auto-focus Complaints

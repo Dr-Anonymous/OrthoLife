@@ -21,13 +21,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
 import { corsHeaders } from '../_shared/cors.ts'
+import { format, formatDistanceToNow } from "npm:date-fns@2.30.0"
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_ANON_KEY')!
 );
 
-serve(async (req) => {
+serve(async (req: any) => {
   // Standard CORS preflight request handling.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -86,31 +87,83 @@ serve(async (req) => {
     if (error) throw error;
 
     // Post-process the results to apply the fallback logic.
-    const consultations = await Promise.all(data.map(async (c) => {
+    const consultations = await Promise.all(data.map(async (c: any) => {
       let consultation_data = c.consultation_data;
-      // If a consultation has no data (e.g., it's new), try to find the last completed one.
-      if (!consultation_data && c.patient) {
-        const { data: lastConsultation, error: lastConsultationError } = await supabase
-          .from('consultations')
-          .select('consultation_data')
-          .eq('patient_id', c.patient.id)
-          .eq('status', 'completed')
-          .not('consultation_data', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
 
-        if (lastConsultationError) {
-          // This is not a fatal error; just log it and continue.
-          console.error(`Error fetching last consultation for patient ${c.patient.id}:`, lastConsultationError);
+      // We need to fetch last visit info to generate the string, regardless of whether we autofill or not.
+      // 1. Fetch Last Completed Consultation (relative to this consultation's created_at)
+      const { data: lastConsultation } = await supabase
+        .from('consultations')
+        .select('consultation_data, created_at')
+        .eq('patient_id', c.patient.id)
+        .eq('status', 'completed')
+        .lt('created_at', c.created_at) // Strictly before this one
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // 2. Fetch Last Discharge Summary
+      const { data: lastDischarge } = await supabase
+        .from('in_patients')
+        .select('discharge_date, discharge_summary, procedure_date')
+        .eq('patient_id', c.patient.id)
+        .eq('status', 'discharged')
+        .not('discharge_summary', 'is', null)
+        // Simple approach: Latest discharge.
+        .order('discharge_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const lastOpDate = lastConsultation ? new Date(lastConsultation.created_at) : null;
+      const lastDischargeDate = lastDischarge ? new Date(lastDischarge.discharge_date) : null;
+
+      let lastVisitDateString = 'First Consultation';
+
+      // Logic to calculate String
+      if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+        const d = new Date(lastDischarge.discharge_date);
+        lastVisitDateString = `Discharge: ${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`;
+      } else if (lastOpDate) {
+        lastVisitDateString = `${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
+      }
+
+      // Logic to Autofill (Only if no data)
+      if (!consultation_data && c.patient) {
+        if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+          // ... autofill logic ...
+          try {
+            const summary: any = lastDischarge.discharge_summary;
+            const course = summary.course_details || {};
+            const discharge = summary.discharge_data || {};
+            // Post op days calculation
+            let complaintsText = '';
+            if (lastDischarge.procedure_date) {
+              const diffTime = Math.abs(new Date().getTime() - new Date(lastDischarge.procedure_date).getTime());
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              complaintsText = `${diffDays} days post-operative case.`;
+            }
+            // Map fields
+            consultation_data = {
+              complaints: complaintsText,
+              diagnosis: course.diagnosis || '',
+              procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? new Date(lastDischarge.procedure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}` : '',
+              medications: discharge.medications || [],
+              advice: discharge.post_op_care || '',
+              findings: discharge.clinical_notes || '',
+              followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+              investigations: '',
+              visit_type: c.visit_type || 'paid',
+              weight: '', bp: '', temperature: '', allergy: '', personalNote: '', referred_to: ''
+            };
+          } catch (e) { console.error("Error parsing discharge summary:", e); }
         } else if (lastConsultation) {
-          // If a previous completed consultation is found, use its data.
           consultation_data = lastConsultation.consultation_data;
         }
       }
       return {
         ...c,
         consultation_data: consultation_data,
+        last_visit_date: lastVisitDateString
       };
     }));
 
@@ -118,7 +171,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
-  } catch (error) {
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

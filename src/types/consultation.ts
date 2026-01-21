@@ -40,6 +40,7 @@ export interface Consultation {
     language?: string;
     patient: Patient;
     consultation_data?: any;
+    last_visit_date?: string;
     duration?: number;
 }
 
