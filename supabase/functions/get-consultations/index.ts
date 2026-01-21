@@ -1,21 +1,15 @@
 /**
- * @fileoverview This Supabase Edge Function fetches consultation records from the database.
- *
- * @summary This function has dual functionality, operating in one of two modes:
- * 1.  Fetch by `date`: Retrieves all consultations that occurred on a specific calendar date.
- *     This is used to populate daily lists, like on the Patient Registration page.
- * 2.  Fetch by `patientId`: Retrieves the entire consultation history for a single, specific patient.
- *
- * @feature It includes a special fallback logic: if a consultation record is found but its
- *          `consultation_data` is null (e.g., for a newly created but unsaved consultation),
- *          it will attempt to fetch the `consultation_data` from the patient's most recent
- *          *completed* consultation. This ensures that some historical context is always available.
- *
- * @param {string} [date] - The specific date to fetch consultations for, in 'YYYY-MM-DD' format.
- * @param {string} [patientId] - The unique identifier of the patient whose history to fetch.
- *
- * @returns A JSON response containing an array of consultation objects, each including the full
- *          patient record it is associated with.
+ * @fileoverview Supabase Edge Function: get-consultations
+ * 
+ * @description
+ * This function retrieves consultation records. It supports three modes of operation:
+ * 1. Fetch by Date: Returns all consultations for a specific calendar date (for daily lists).
+ * 2. Fetch by Patient ID: Returns the full consultation history for a specific patient.
+ * 3. Fetch Last Visit Date (Action): Returns a formatted string describing the last visit (OP or Discharge) relative to "now".
+ * 
+ * @features
+ * - Autofill: For new/empty consultations, it pre-fills data from the *most recent* history (Discharge Summary or Previous Consultation).
+ * - Last Visit Display: Calculates a user-friendly string (e.g., "Last visit: 2 days ago") for UI display.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -29,148 +23,29 @@ const supabase = createClient(
 );
 
 serve(async (req: any) => {
-  // Standard CORS preflight request handling.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { date, patientId } = await req.json();
+    const { date, patientId, action } = await req.json();
 
-    // The base query selects all necessary fields and joins the patient's data.
-    let query = supabase
-      .from('consultations')
-      .select(`
-        id,
-        status,
-        status,
-        consultation_data,
-        visit_type,
-        location,
-        language,
-        created_at,
-        patient:patients (
-          id,
-          name,
-          dob,
-          sex,
-          phone,
-          drive_id,
-          is_dob_estimated
-        )
-      `)
-      .order('created_at', { ascending: false });
-
-    // Mode 1: Fetch by patientId for a complete history.
-    if (patientId) {
-      query = query.eq('patient_id', patientId);
-    }
-    // Mode 2: Fetch by a specific date.
-    else if (date) {
-      const targetDate = new Date(date);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(targetDate.getDate() + 1);
-      // Fetches records where created_at is on or after the start of the targetDate
-      // and before the start of the next day.
-      query = query.gte('created_at', targetDate.toISOString()).lt('created_at', nextDay.toISOString());
-    }
-    // If neither parameter is provided, it's a bad request.
-    else {
-      return new Response(JSON.stringify({ error: 'Either date or patientId must be provided' }), {
+    // MODE 1: Last Visit Action (Optimized for New Consultations)
+    if (action === 'last_visit' && patientId) {
+      const result = await handleLastVisitAction(patientId);
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 200,
       });
     }
 
-    const { data, error } = await query;
-
-    if (error) throw error;
-
-    // Post-process the results to apply the fallback logic.
-    const consultations = await Promise.all(data.map(async (c: any) => {
-      let consultation_data = c.consultation_data;
-
-      // We need to fetch last visit info to generate the string, regardless of whether we autofill or not.
-      // 1. Fetch Last Completed Consultation (relative to this consultation's created_at)
-      const { data: lastConsultation } = await supabase
-        .from('consultations')
-        .select('consultation_data, created_at')
-        .eq('patient_id', c.patient.id)
-        .eq('status', 'completed')
-        .lt('created_at', c.created_at) // Strictly before this one
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      // 2. Fetch Last Discharge Summary
-      const { data: lastDischarge } = await supabase
-        .from('in_patients')
-        .select('discharge_date, discharge_summary, procedure_date')
-        .eq('patient_id', c.patient.id)
-        .eq('status', 'discharged')
-        .not('discharge_summary', 'is', null)
-        .lt('discharge_date', c.created_at) // Strictly before this consultation
-        .order('discharge_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const lastOpDate = lastConsultation ? new Date(lastConsultation.created_at) : null;
-      const lastDischargeDate = lastDischarge ? new Date(lastDischarge.discharge_date) : null;
-
-      let lastVisitDateString = 'First Consultation';
-
-      // Logic to calculate String
-      if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
-        const d = new Date(lastDischarge.discharge_date);
-        lastVisitDateString = `Discharge: ${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`;
-      } else if (lastOpDate) {
-        lastVisitDateString = `${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
-      }
-
-      // Logic to Autofill (Only if no data)
-      if (!consultation_data && c.patient) {
-        if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
-          // ... autofill logic ...
-          try {
-            const summary: any = lastDischarge.discharge_summary;
-            const course = summary.course_details || {};
-            const discharge = summary.discharge_data || {};
-            // Post op days calculation
-            let complaintsText = '';
-            if (lastDischarge.procedure_date) {
-              const diffTime = Math.abs(new Date().getTime() - new Date(lastDischarge.procedure_date).getTime());
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              complaintsText = `${diffDays} days post-operative case.`;
-            }
-            // Map fields
-            consultation_data = {
-              complaints: complaintsText,
-              diagnosis: course.diagnosis || '',
-              procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? new Date(lastDischarge.procedure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}` : '',
-              medications: discharge.medications || [],
-              advice: discharge.post_op_care || '',
-              findings: discharge.clinical_notes || '',
-              followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-              investigations: '',
-              visit_type: c.visit_type || 'paid',
-              weight: '', bp: '', temperature: '', allergy: '', personalNote: '', referred_to: ''
-            };
-          } catch (e) { console.error("Error parsing discharge summary:", e); }
-        } else if (lastConsultation) {
-          consultation_data = lastConsultation.consultation_data;
-        }
-      }
-      return {
-        ...c,
-        consultation_data: consultation_data,
-        last_visit_date: lastVisitDateString
-      };
-    }));
-
-    return new Response(JSON.stringify({ consultations }), {
+    // MODE 2 & 3: Fetch Consultations (List History or Daily List)
+    const result = await fetchConsultations(date, patientId);
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
-    })
+    });
+
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -178,3 +53,159 @@ serve(async (req: any) => {
     })
   }
 })
+
+/**
+ * Handles the 'last_visit' action request.
+ * Fetches the most recent interaction (Consultation or Discharge) specifically relative to NOW.
+ */
+async function handleLastVisitAction(patientId: string) {
+  const now = new Date().toISOString();
+  const { lastOpDate, lastDischargeDate } = await fetchRecentHistory(patientId, now);
+
+  const lastVisitDateString = calculateLastVisitString(lastOpDate, lastDischargeDate);
+  return { last_visit_date: lastVisitDateString };
+}
+
+/**
+ * Fetches consultations based on date or patientId, and enriches them with:
+ * - last_visit_date string
+ * - autofilled consultation_data (if empty)
+ */
+async function fetchConsultations(date?: string, patientId?: string) {
+  let query = supabase
+    .from('consultations')
+    .select(`
+      id, status, consultation_data, visit_type, location, language, created_at, duration,
+      patient:patients (
+        id, name, dob, sex, phone, drive_id, is_dob_estimated
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (patientId) {
+    query = query.eq('patient_id', patientId);
+  } else if (date) {
+    const targetDate = new Date(date);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(targetDate.getDate() + 1);
+    query = query.gte('created_at', targetDate.toISOString()).lt('created_at', nextDay.toISOString());
+  } else {
+    throw new Error('Either date or patientId must be provided');
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  // Post-process: Add last_visit_date string and Autofill data if needed
+  const consultations = await Promise.all(data.map(async (c: any) => {
+    // 1. Fetch History relative to THIS consultation
+    const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(c.patient.id, c.created_at);
+
+    // 2. Calculate Display String
+    const lastVisitDateString = calculateLastVisitString(lastOpDate, lastDischargeDate);
+
+    // 3. Autofill Logic (if data is missing/empty)
+    let consultation_data = c.consultation_data;
+    if (!consultation_data && c.patient) {
+      consultation_data = generateAutofillData(c, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
+    }
+
+    return {
+      ...c,
+      consultation_data,
+      last_visit_date: lastVisitDateString
+    };
+  }));
+
+  return { consultations };
+}
+
+/**
+ * Helper: Fetches the most recent completed consultation and discharge summary *strictly before* the reference date.
+ */
+async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
+  // 1. Fetch Last Consultation (Any status, meant to capture "Last Visit")
+  const { data: lastConsultation } = await supabase
+    .from('consultations')
+    .select('consultation_data, created_at')
+    .eq('patient_id', patientId)
+    .lt('created_at', referenceDateIso)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // 2. Fetch Last Discharge Summary
+  const { data: lastDischarge } = await supabase
+    .from('in_patients')
+    .select('discharge_date, discharge_summary, procedure_date')
+    .eq('patient_id', patientId)
+    .eq('status', 'discharged')
+    .not('discharge_summary', 'is', null)
+    .lt('discharge_date', referenceDateIso)
+    .order('discharge_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const lastOpDate = lastConsultation ? new Date(lastConsultation.created_at) : null;
+  const lastDischargeDate = lastDischarge && lastDischarge.discharge_date ? new Date(lastDischarge.discharge_date) : null;
+
+  return { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate };
+}
+
+/**
+ * Helper: Generates the "Last visit: ..." string.
+ */
+function calculateLastVisitString(lastOpDate: Date | null, lastDischargeDate: Date | null): string {
+  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+    return `Discharge: ${formatDistanceToNow(lastDischargeDate, { addSuffix: true })} (${format(lastDischargeDate, 'dd MMM yyyy')})`;
+  } else if (lastOpDate) {
+    return `${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
+  }
+  return 'First Consultation';
+}
+
+/**
+ * Helper: Generates autofill data from history.
+ */
+function generateAutofillData(
+  currentConsultation: any,
+  lastConsultation: any,
+  lastDischarge: any,
+  lastOpDate: Date | null,
+  lastDischargeDate: Date | null
+) {
+  // Priority: Discharge Summary (if more recent) > Last Consultation
+  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+    try {
+      const summary: any = lastDischarge.discharge_summary;
+      const course = summary.course_details || {};
+      const discharge = summary.discharge_data || {};
+
+      // Calculate post-op days
+      let complaintsText = '';
+      if (lastDischarge.procedure_date) {
+        const diffTime = Math.abs(new Date().getTime() - new Date(lastDischarge.procedure_date).getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        complaintsText = `${diffDays} days post-operative case.`;
+      }
+
+      return {
+        complaints: complaintsText,
+        diagnosis: course.diagnosis || '',
+        procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? new Date(lastDischarge.procedure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}` : '',
+        medications: discharge.medications || [],
+        advice: discharge.post_op_care || '',
+        findings: discharge.clinical_notes || '',
+        followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        investigations: '',
+        visit_type: currentConsultation.visit_type || 'paid',
+        weight: '', bp: '', temperature: '', allergy: '', personalNote: '', referred_to: ''
+      };
+    } catch (e) {
+      console.error("Error parsing discharge summary:", e);
+    }
+  } else if (lastConsultation && lastConsultation.consultation_data) {
+    return lastConsultation.consultation_data;
+  }
+  return null;
+}

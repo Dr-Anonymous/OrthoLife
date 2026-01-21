@@ -230,8 +230,8 @@ const InPatientManagement = () => {
             setIsDischargeModalOpen(false);
             toast({ title: "Discharged", description: "Patient discharged successfully." });
 
-            // Send notification
-            if (selectedPatientForDischarge) {
+            // Send notification ONLY if this is the first time (status changing from admitted -> discharged)
+            if (selectedPatientForDischarge && selectedPatientForDischarge.status !== 'discharged') {
                 sendDischargeNotification(selectedPatientForDischarge, variables.language);
             }
         },

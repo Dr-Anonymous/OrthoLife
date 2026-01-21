@@ -63,6 +63,8 @@ import { useOfflineSync } from '@/hooks/useOfflineSync';
 const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
   const { i18n, t } = useTranslation();
+
+  // --- Data State ---
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(true);
@@ -97,6 +99,7 @@ const ConsultationPage = () => {
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
 
   // Modals
+  // --- Modals State ---
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<Consultation | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -265,45 +268,27 @@ const ConsultationPage = () => {
 
     setHasUnsavedChanges(false);
 
-    // Fetch details last visit (Display Only)
-    // We check selectedConsultation?.last_visit_date first (optimization for existing),
-    // otherwise we fetch it manually (for new consultations).
+    // --- Last Visit Date Logic ---
+    // We display the last visit date in the Patient Demographics header.
+    // 1. Optimized Path: Check if the backend already provided `last_visit_date` (Existing Consultations).
+    // 2. Fallback Path: If not (New Consultations), explicitly fetch it from the backend using the 'last_visit' action.
     if (consultation.patient.id && !String(consultation.patient.id).startsWith('offline-')) {
       if (selectedConsultation?.last_visit_date) {
         setLastVisitDate(selectedConsultation.last_visit_date);
       } else {
-        // Fallback fetch for new consultations
         const fetchLastVisit = async () => {
-          const { data: lastVisit } = await supabase
-            .from('consultations')
-            .select('created_at')
-            .eq('patient_id', consultation.patient.id)
-            .lt('created_at', consultation.created_at)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          const { data: lastDischarge } = await supabase
-            .from('in_patients')
-            .select('discharge_date, procedure_date')
-            .eq('patient_id', consultation.patient.id)
-            .eq('status', 'discharged')
-            .not('discharge_summary', 'is', null)
-            .lt('discharge_date', consultation.created_at)
-            .order('discharge_date', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          let lastOpDate = lastVisit ? new Date(lastVisit.created_at) : null;
-          let lastDischargeDate = lastDischarge ? new Date(lastDischarge.discharge_date) : null;
-
-          if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
-            const d = new Date(lastDischarge.discharge_date);
-            setLastVisitDate(`${formatDistanceToNow(d, { addSuffix: true })} (${format(d, 'dd MMM yyyy')})`);
-          } else if (lastOpDate) {
-            setLastVisitDate(`${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`);
-          } else {
-            setLastVisitDate('First Consultation');
+          try {
+            const { data, error } = await supabase.functions.invoke('get-consultations', {
+              body: { action: 'last_visit', patientId: consultation.patient.id }
+            });
+            if (!error && data?.last_visit_date) {
+              setLastVisitDate(data.last_visit_date);
+            } else {
+              setLastVisitDate('First Consultation');
+            }
+          } catch (e) {
+            console.error("Error fetching last visit:", e);
+            setLastVisitDate(null);
           }
         };
         fetchLastVisit();
