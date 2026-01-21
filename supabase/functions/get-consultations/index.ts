@@ -109,7 +109,7 @@ serve(async (req: any) => {
         .eq('patient_id', c.patient.id)
         .eq('status', 'discharged')
         .not('discharge_summary', 'is', null)
-        // Simple approach: Latest discharge.
+        .lt('discharge_date', c.created_at) // Strictly before this consultation
         .order('discharge_date', { ascending: false })
         .limit(1)
         .maybeSingle();

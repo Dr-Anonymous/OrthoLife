@@ -289,6 +289,7 @@ const ConsultationPage = () => {
             .eq('patient_id', consultation.patient.id)
             .eq('status', 'discharged')
             .not('discharge_summary', 'is', null)
+            .lt('discharge_date', consultation.created_at)
             .order('discharge_date', { ascending: false })
             .limit(1)
             .maybeSingle();
