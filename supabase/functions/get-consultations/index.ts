@@ -32,7 +32,7 @@ serve(async (req: any) => {
 
     // MODE 1: Last Visit Action (Optimized for New Consultations)
     if (action === 'last_visit' && patientId) {
-      const result = await handleLastVisitAction(patientId);
+      const result = await handleLastVisitAction(patientId, date);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -56,11 +56,11 @@ serve(async (req: any) => {
 
 /**
  * Handles the 'last_visit' action request.
- * Fetches the most recent interaction (Consultation or Discharge) specifically relative to NOW.
+ * Fetches the most recent interaction (Consultation or Discharge) specifically relative to the provided date (or NOW).
  */
-async function handleLastVisitAction(patientId: string) {
-  const now = new Date().toISOString();
-  const { lastOpDate, lastDischargeDate } = await fetchRecentHistory(patientId, now);
+async function handleLastVisitAction(patientId: string, date?: string) {
+  const referenceDate = date || new Date().toISOString();
+  const { lastOpDate, lastDischargeDate } = await fetchRecentHistory(patientId, referenceDate);
 
   const lastVisitDateString = calculateLastVisitString(lastOpDate, lastDischargeDate);
   return { last_visit_date: lastVisitDateString };
@@ -134,6 +134,16 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
     .limit(1)
     .maybeSingle();
 
+  // DEBUG: Inspect ALL InPatients records for this user (to see why filter failed)
+  if (patientId) {
+    const { data: allInPatients } = await supabase
+      .from('in_patients')
+      .select('id, status, discharge_date, discharge_summary')
+      .eq('patient_id', patientId);
+
+    console.log(`[RecentHistory] Raw InPatients for ${patientId}:`, JSON.stringify(allInPatients));
+  }
+
   // 2. Fetch Last Discharge Summary
   const { data: lastDischarge } = await supabase
     .from('in_patients')
@@ -157,9 +167,9 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
  */
 function calculateLastVisitString(lastOpDate: Date | null, lastDischargeDate: Date | null): string {
   if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
-    return `Discharge: ${formatDistanceToNow(lastDischargeDate, { addSuffix: true })} (${format(lastDischargeDate, 'dd MMM yyyy')})`;
+    return `Discharged ${formatDistanceToNow(lastDischargeDate, { addSuffix: true })} (${format(lastDischargeDate, 'dd MMM yyyy')})`;
   } else if (lastOpDate) {
-    return `${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
+    return `Visited ${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
   }
   return 'First Consultation';
 }

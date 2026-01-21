@@ -18,9 +18,11 @@ import {
     FileText,
     CalendarDays,
     User,
+    CalendarCheck,
     BookOpen
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { pruneEmptyFields } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -213,12 +215,12 @@ const InPatientManagement = () => {
     });
 
     const dischargeMutation = useMutation({
-        mutationFn: async ({ id, summary, language }: { id: string, summary: DischargeSummary, language: string }) => {
+        mutationFn: async ({ id, summary, language, dischargeDate }: { id: string, summary: DischargeSummary, language: string, dischargeDate?: string }) => {
             const { error } = await supabase
                 .from('in_patients')
                 .update({
                     status: 'discharged',
-                    discharge_date: new Date().toISOString(),
+                    discharge_date: dischargeDate || new Date().toISOString(),
                     discharge_summary: summary,
                     language: language
                 })
@@ -705,11 +707,21 @@ const InPatientManagement = () => {
                         <DischargeForm
                             ref={dischargeFormRef}
                             patient={selectedPatientForDischarge}
-                            onSubmit={(summary) => dischargeMutation.mutate({
-                                id: selectedPatientForDischarge.id,
-                                summary,
-                                language: i18n.language // Pass current language
-                            })}
+                            onSubmit={(summary, date) => {
+                                // Use the date selected in the form
+                                let isoDate = date;
+                                if (date && !date.includes('T')) {
+                                    // Append time if it's just YYYY-MM-DD
+                                    isoDate = new Date(date).toISOString();
+                                }
+
+                                dischargeMutation.mutate({
+                                    id: selectedPatientForDischarge.id,
+                                    summary: pruneEmptyFields(summary),
+                                    language: i18n.language,
+                                    dischargeDate: isoDate
+                                });
+                            }}
                             isSaving={dischargeMutation.isPending}
                             onPrint={(summary: DischargeSummary) => {
                                 setPrintData(summary);
@@ -856,12 +868,13 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
 // --- Discharge Form with Medication Manager ---
 const DischargeForm = forwardRef<{ print: () => void }, {
     patient: InPatient | null,
-    onSubmit: (d: DischargeSummary) => void,
+    onSubmit: (d: DischargeSummary, date: string) => void,
     isSaving: boolean,
     onPrint?: (d: DischargeSummary) => void
 }>(({ patient, onSubmit, isSaving, onPrint }, ref) => {
     const [activeTab, setActiveTab] = useState("demographics");
     const { i18n } = useTranslation();
+    const [dischargeDate, setDischargeDate] = useState<string>('');
 
     // -- Data State --
     const [snapshot, setSnapshot] = useState({
@@ -970,6 +983,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     ...s.patient_snapshot,
                     age: (s.patient_snapshot as any).age || calculatedAge || ''
                 });
+                // Initialize discharge date from patient record if exists, otherwise existing summary logic? 
+                // Wait, patient record holds the official date.
+                setDischargeDate(patient.discharge_date ? patient.discharge_date.split('T')[0] : new Date().toISOString().split('T')[0]);
+
                 setCourse({
                     admission_date: s.course_details.admission_date,
                     procedure: s.course_details.procedure,
@@ -997,6 +1014,9 @@ const DischargeForm = forwardRef<{ print: () => void }, {
             } else {
                 // Initialize from Admission Record
                 const calculatedAge = patient.patient.dob ? calculateAge(new Date(patient.patient.dob)) : '';
+                // Default to Today for new discharge
+                setDischargeDate(new Date().toISOString().split('T')[0]);
+
                 setSnapshot({
                     id: patient.id,
                     name: patient.patient.name,
@@ -1176,7 +1196,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     }));
 
     const handleSubmit = () => {
-        onSubmit(buildSummary());
+        onSubmit(buildSummary(), dischargeDate);
     };
 
     if (!patient) return null;
@@ -1273,6 +1293,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     <TabsContent value="discharge" className="space-y-4 h-full flex flex-col">
                         <div className="space-y-4 flex-grow overflow-y-auto pr-2">
                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Discharge Date</Label>
+                                    <Input type="date" value={dischargeDate} onChange={e => setDischargeDate(e.target.value)} />
+                                </div>
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Review Date</Label>
                                     <Input type="date" value={discharge.review_date} onChange={e => setDischarge({ ...discharge, review_date: e.target.value })} />

@@ -279,7 +279,11 @@ const ConsultationPage = () => {
         const fetchLastVisit = async () => {
           try {
             const { data, error } = await supabase.functions.invoke('get-consultations', {
-              body: { action: 'last_visit', patientId: consultation.patient.id }
+              body: {
+                action: 'last_visit',
+                patientId: consultation.patient.id,
+                date: consultation.created_at // Use current consultation time as reference to exclude it
+              }
             });
             if (!error && data?.last_visit_date) {
               setLastVisitDate(data.last_visit_date);

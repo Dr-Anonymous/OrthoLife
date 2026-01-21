@@ -82,7 +82,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                     </h3>
                     {lastVisitDate && (
                         <span className="text-sm text-muted-foreground">
-                            {lastVisitDate === 'First Consultation' ? 'First Consultation' : `Last visit: ${lastVisitDate}`}
+                            {lastVisitDate}
                         </span>
                     )}
                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onHistoryClick}>
