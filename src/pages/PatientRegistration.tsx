@@ -10,7 +10,7 @@ import { cleanConsultationData } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { useLocation } from 'react-router-dom';
-import { HOSPITALS } from '@/config/constants';
+import { useHospitals } from '@/context/HospitalsContext';
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
 const PatientRegistration = () => {
+  const { hospitals } = useHospitals();
   const [todaysConsultations, setTodaysConsultations] = useState<any[]>([]);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
   const location = useLocation();
@@ -42,7 +43,7 @@ const PatientRegistration = () => {
   };
 
   const locationName = getLocationName();
-  const hospital = HOSPITALS.find(h => h.name === locationName);
+  const hospital = hospitals.find(h => h.name === locationName);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -181,9 +182,22 @@ const PatientRegistration = () => {
                           </Button>
                         )}
                       </div>
-                      <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
-                        {c.status}
-                      </Badge>
+                      <div className="flex gap-2 mt-1">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "capitalize border-transparent",
+                            c.visit_type === 'free'
+                              ? "bg-white text-black border border-gray-200 hover:bg-gray-50"
+                              : "bg-green-600 text-white hover:bg-green-700"
+                          )}
+                        >
+                          {c.visit_type}
+                        </Badge>
+                        <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
+                          {c.status}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>

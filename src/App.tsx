@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { HospitalsProvider } from "./context/HospitalsContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -80,86 +81,88 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ErrorBoundary>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ActivityLogger />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/appointment" element={<AppointmentPage />} />
-                <Route path="/appointment/:serviceType" element={<AppointmentPage />} />
-                <Route path="/legal" element={<LegalPoliciesPage />} />
-                <Route path="/wa" element={<WhatsAppMe />} />
-                <Route path="/badam" element={<PatientRegistration />} />
-                <Route path="/laxmi" element={<PatientRegistration />} />
-                <Route path="/ortholife" element={<PatientRegistration />} />
-                <Route path="/op" element={<Consultation />} />
-                <Route path="/consultation-stats" element={<ConsultationStats />} />
-                <Route path="/ip" element={<InPatientManagement />} />
+      <HospitalsProvider>
+        <TooltipProvider>
+          <ErrorBoundary>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ActivityLogger />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/appointment" element={<AppointmentPage />} />
+                  <Route path="/appointment/:serviceType" element={<AppointmentPage />} />
+                  <Route path="/legal" element={<LegalPoliciesPage />} />
+                  <Route path="/wa" element={<WhatsAppMe />} />
+                  <Route path="/badam" element={<PatientRegistration />} />
+                  <Route path="/laxmi" element={<PatientRegistration />} />
+                  <Route path="/ortholife" element={<PatientRegistration />} />
+                  <Route path="/op" element={<Consultation />} />
+                  <Route path="/consultation-stats" element={<ConsultationStats />} />
+                  <Route path="/ip" element={<InPatientManagement />} />
 
-                {/* Pharmacy Routes */}
-                <Route path="/pharmacy" element={<PharmacyPage />} />
-                <Route
-                  path="/pharmacy/admin"
-                  element={
-                    <PharmacyAuthGuard allowedRoles={['owner']}>
-                      <PharmacyAdminPage />
-                    </PharmacyAuthGuard>
-                  }
-                />
-                <Route
-                  path="/pharmacy/supplier"
-                  element={
-                    <PharmacyAuthGuard allowedRoles={['owner', 'supplier']}>
-                      <PharmacySupplierPage />
-                    </PharmacyAuthGuard>
-                  }
-                />
-                <Route path="/upload-prescription" element={<UploadPrescriptionPage />} />
+                  {/* Pharmacy Routes */}
+                  <Route path="/pharmacy" element={<PharmacyPage />} />
+                  <Route
+                    path="/pharmacy/admin"
+                    element={
+                      <PharmacyAuthGuard allowedRoles={['owner']}>
+                        <PharmacyAdminPage />
+                      </PharmacyAuthGuard>
+                    }
+                  />
+                  <Route
+                    path="/pharmacy/supplier"
+                    element={
+                      <PharmacyAuthGuard allowedRoles={['owner', 'supplier']}>
+                        <PharmacySupplierPage />
+                      </PharmacyAuthGuard>
+                    }
+                  />
+                  <Route path="/upload-prescription" element={<UploadPrescriptionPage />} />
 
-                {/* Diagnostics Routes */}
-                <Route path="/diagnostics" element={<DiagnosticsPage />} />
-                <Route path="/track-test-results" element={<TrackTestResultsPage />} />
+                  {/* Diagnostics Routes */}
+                  <Route path="/diagnostics" element={<DiagnosticsPage />} />
+                  <Route path="/track-test-results" element={<TrackTestResultsPage />} />
 
-                {/* Learn Routes */}
-                <Route path="/blog" element={<BlogPage />} />
-                <Route path="/te/blog" element={<BlogPage />} />
-                <Route path="/blog/new" element={<CreatePostPage />} />
-                <Route path="/blog/:postId" element={<BlogPostPage />} />
-                <Route path="/te/blog/:postId" element={<BlogPostPage />} />
-                <Route path="/blog/:postId/edit" element={<EditPostPage />} />
-                <Route path="/guides" element={<PatientGuidesPage />} />
-                <Route path="/te/guides" element={<PatientGuidesPage />} />
-                <Route path="/guides/new" element={<CreateGuidePage />} />
-                <Route path="/guides/:guideId" element={<PatientGuidePage />} />
-                <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
-                <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
-                <Route path="/faqs" element={<FAQPage />} />
-                <Route path="/resources" element={<ResourcesPage installPrompt={installPrompt} handleInstallClick={handleInstallClick} />} />
-                <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
+                  {/* Learn Routes */}
+                  <Route path="/blog" element={<BlogPage />} />
+                  <Route path="/te/blog" element={<BlogPage />} />
+                  <Route path="/blog/new" element={<CreatePostPage />} />
+                  <Route path="/blog/:postId" element={<BlogPostPage />} />
+                  <Route path="/te/blog/:postId" element={<BlogPostPage />} />
+                  <Route path="/blog/:postId/edit" element={<EditPostPage />} />
+                  <Route path="/guides" element={<PatientGuidesPage />} />
+                  <Route path="/te/guides" element={<PatientGuidesPage />} />
+                  <Route path="/guides/new" element={<CreateGuidePage />} />
+                  <Route path="/guides/:guideId" element={<PatientGuidePage />} />
+                  <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
+                  <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
+                  <Route path="/faqs" element={<FAQPage />} />
+                  <Route path="/resources" element={<ResourcesPage installPrompt={installPrompt} handleInstallClick={handleInstallClick} />} />
+                  <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
 
-                {/* login routes */}
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/u/:phone" element={<AuthPage />} />
-                <Route path="/my" element={<MySpace />} />
-                <Route path="/my-space" element={<Navigate to="/my" replace />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/whatsapp" element={<SendWhatsApp />} />
-                <Route path="/p/:patientPhone" element={<PrescriptionDownload />} />
-                <Route path="/prescription" element={<PrescriptionDownload />} />
-                <Route path="/d/:patientPhone" element={<DischargeSummaryDownload />} />
-                <Route path="/d" element={<DischargeSummaryDownload />} />
+                  {/* login routes */}
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/u/:phone" element={<AuthPage />} />
+                  <Route path="/my" element={<MySpace />} />
+                  <Route path="/my-space" element={<Navigate to="/my" replace />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/whatsapp" element={<SendWhatsApp />} />
+                  <Route path="/p/:patientPhone" element={<PrescriptionDownload />} />
+                  <Route path="/prescription" element={<PrescriptionDownload />} />
+                  <Route path="/d/:patientPhone" element={<DischargeSummaryDownload />} />
+                  <Route path="/d" element={<DischargeSummaryDownload />} />
 
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </ErrorBoundary>
-      </TooltipProvider>
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </ErrorBoundary>
+        </TooltipProvider>
+      </HospitalsProvider>
     </QueryClientProvider>
   );
 };

@@ -2,10 +2,9 @@
  * @fileoverview Supabase Edge Function: get-consultations
  * 
  * @description
- * This function retrieves consultation records. It supports three modes of operation:
+ * This function retrieves consultation records. It supports two modes of operation:
  * 1. Fetch by Date: Returns all consultations for a specific calendar date (for daily lists).
  * 2. Fetch by Patient ID: Returns the full consultation history for a specific patient.
- * 3. Fetch Last Visit Date (Action): Returns a formatted string describing the last visit (OP or Discharge) relative to "now".
  * 
  * @features
  * - Autofill: For new/empty consultations, it pre-fills data from the *most recent* history (Discharge Summary or Previous Consultation).
@@ -30,16 +29,7 @@ serve(async (req: any) => {
   try {
     const { date, patientId, action } = await req.json();
 
-    // MODE 1: Last Visit Action (Optimized for New Consultations)
-    if (action === 'last_visit' && patientId) {
-      const result = await handleLastVisitAction(patientId, date);
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
-
-    // MODE 2 & 3: Fetch Consultations (List History or Daily List)
+    // MODE 1 & 2: Fetch Consultations (List History or Daily List)
     const result = await fetchConsultations(date, patientId);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -54,17 +44,7 @@ serve(async (req: any) => {
   }
 })
 
-/**
- * Handles the 'last_visit' action request.
- * Fetches the most recent interaction (Consultation or Discharge) specifically relative to the provided date (or NOW).
- */
-async function handleLastVisitAction(patientId: string, date?: string) {
-  const referenceDate = date || new Date().toISOString();
-  const { lastOpDate, lastDischargeDate } = await fetchRecentHistory(patientId, referenceDate);
 
-  const lastVisitDateString = calculateLastVisitString(lastOpDate, lastDischargeDate);
-  return { last_visit_date: lastVisitDateString };
-}
 
 /**
  * Fetches consultations based on date or patientId, and enriches them with:

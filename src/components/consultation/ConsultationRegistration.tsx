@@ -14,6 +14,7 @@ import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
+import { useHospitals } from '@/context/HospitalsContext';
 
 interface Patient {
   id: number;
@@ -62,6 +63,7 @@ interface ConsultationRegistrationProps {
  */
 const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location }) => {
   const isOnline = useOnlineStatus();
+  const { getHospitalByName } = useHospitals();
   const [formData, setFormData] = useState<FormData>({
     id: null,
     name: '',
@@ -315,14 +317,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           throw new Error(error.message);
         }
 
-        if (data.status === 'exact_match') {
-          toast({
-            variant: 'destructive',
-            title: 'Patient Exists',
-            description: data.message,
-          });
-          handleSelectPatient(data.patient.id.toString(), [data.patient]);
-        } else if (data.status === 'success') {
+        if (data.status === 'success') {
           // Calculate visit_type
           let visitType = 'paid';
           const patientId = data.consultation.patient_id;
@@ -339,8 +334,11 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             .maybeSingle();
 
           if (!fetchError && lastPaidConsultation) {
+            const hospital = location ? getHospitalByName(location) : undefined;
+            const freeDuration = hospital?.settings.free_visit_duration_days || 14;
+
             const daysSinceLastPaid = differenceInDays(new Date(), new Date(lastPaidConsultation.created_at));
-            if (daysSinceLastPaid <= 14) {
+            if (daysSinceLastPaid <= freeDuration) {
               visitType = 'free';
             }
           }

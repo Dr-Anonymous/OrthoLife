@@ -146,7 +146,7 @@ serve(async (req) => {
         patient_id: newPatient.id,
         status: 'pending',
         visit_type: 'paid',
-        consultation_data: {}, // Empty initial consultation data, now that location/language are in columns,
+        consultation_data: {},
         location: location
       })
       .select()

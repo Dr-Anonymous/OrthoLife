@@ -10,7 +10,7 @@ import { MapPin, Search, UserPlus, RefreshCw, Loader2, BarChart, Calendar as Cal
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
-import { HOSPITALS } from '@/config/constants';
+import { useHospitals } from '@/context/HospitalsContext';
 import { Input } from '@/components/ui/input';
 
 interface ConsultationSidebarProps {
@@ -96,6 +96,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     setIsTimerVisible,
     timerSeconds
 }) => {
+    const { hospitals } = useHospitals();
+
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
@@ -158,7 +160,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
-                        {HOSPITALS.map(hospital => (
+                        {hospitals.map(hospital => (
                             <SelectItem key={hospital.name} value={hospital.name}>
                                 {hospital.name}
                             </SelectItem>

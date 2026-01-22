@@ -3,9 +3,10 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { toast } from '@/hooks/use-toast';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { Loader2 } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { format, formatDistanceToNow } from 'date-fns';
-import { cn, cleanConsultationData, pruneEmptyFields } from '@/lib/utils';
+import { format } from 'date-fns';
+import { cleanConsultationData, pruneEmptyFields } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/consultation/SavedMedicationsModal';
@@ -19,7 +20,7 @@ import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
 import { MedicalCertificate, MedicalCertificateModal, CertificateData } from '@/components/consultation/MedicalCertificate';
 import { Receipt, ReceiptModal, ReceiptData } from '@/components/consultation/Receipt';
-import { HOSPITALS } from '@/config/constants';
+import { useHospitals } from '@/context/HospitalsContext';
 import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -62,6 +63,7 @@ import { useOfflineSync } from '@/hooks/useOfflineSync';
  */
 const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
+  const { hospitals, isLoading: isHospitalsLoading } = useHospitals();
   const { i18n, t } = useTranslation();
 
   // --- Data State ---
@@ -73,7 +75,7 @@ const ConsultationPage = () => {
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
   const [initialExtraData, setInitialExtraData] = useState<any>(null);
-  const [initialLocation, setInitialLocation] = useState<string>(HOSPITALS[0].name);
+  const [initialLocation, setInitialLocation] = useState<string>('Badam'); // Default fallback
   const [initialLanguage, setInitialLanguage] = useState<string>('en');
 
   const [extraData, setExtraData] = useState({
@@ -132,10 +134,13 @@ const ConsultationPage = () => {
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedHospital, setSelectedHospital] = useState(() => {
-    const storedHospital = localStorage.getItem('selectedHospital');
-    return HOSPITALS.find(h => h.name === storedHospital) || HOSPITALS[0];
-  });
+
+  // --- Derived State for Location ---
+  const selectedHospital = useMemo(() => {
+    if (hospitals.length === 0) return { name: 'Badam', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14 } };
+    return hospitals.find(h => h.name === initialLocation) || hospitals[0];
+  }, [hospitals, initialLocation]);
+
   const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
     const stored = localStorage.getItem('isGpsEnabled');
     return stored !== null ? JSON.parse(stored) : true;
@@ -230,6 +235,14 @@ const ConsultationPage = () => {
 
   // Timer Stop Logic handled by hook
 
+  useEffect(() => {
+    if (!isHospitalsLoading && hospitals.length > 0 && initialLocation === '') {
+      const storedHospitalName = localStorage.getItem('selectedHospital');
+      const defaultHospital = hospitals.find(h => h.name === storedHospitalName) || hospitals[0];
+      setInitialLocation(defaultHospital.name);
+    }
+  }, [isHospitalsLoading, hospitals, initialLocation]);
+
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     patientSelectionCounter.current += 1;
     setSelectedConsultation(consultation);
@@ -260,7 +273,7 @@ const ConsultationPage = () => {
     };
     setExtraData(newExtraData as any);
     setInitialExtraData(newExtraData);
-    setInitialLocation(consultation.location || HOSPITALS[0].name);
+    setInitialLocation(consultation.location || (hospitals.length > 0 ? hospitals[0].name : '')); // Use hospitals[0] or empty string
     setInitialLanguage(consultation.language || 'en');
 
     setIsProcedureExpanded(!!newExtraData.procedure);
@@ -273,30 +286,7 @@ const ConsultationPage = () => {
     // 1. Optimized Path: Check if the backend already provided `last_visit_date` (Existing Consultations).
     // 2. Fallback Path: If not (New Consultations), explicitly fetch it from the backend using the 'last_visit' action.
     if (consultation.patient.id && !String(consultation.patient.id).startsWith('offline-')) {
-      if (selectedConsultation?.last_visit_date) {
-        setLastVisitDate(selectedConsultation.last_visit_date);
-      } else {
-        const fetchLastVisit = async () => {
-          try {
-            const { data, error } = await supabase.functions.invoke('get-consultations', {
-              body: {
-                action: 'last_visit',
-                patientId: consultation.patient.id,
-                date: consultation.created_at // Use current consultation time as reference to exclude it
-              }
-            });
-            if (!error && data?.last_visit_date) {
-              setLastVisitDate(data.last_visit_date);
-            } else {
-              setLastVisitDate('First Consultation');
-            }
-          } catch (e) {
-            console.error("Error fetching last visit:", e);
-            setLastVisitDate(null);
-          }
-        };
-        fetchLastVisit();
-      }
+      setLastVisitDate(consultation.last_visit_date || 'First Consultation');
     } else {
       setLastVisitDate(null);
     }
@@ -305,7 +295,7 @@ const ConsultationPage = () => {
     setTimeout(() => {
       complaintsRef.current?.focus();
     }, 100);
-  }, []);
+  }, [hospitals]);
 
 
 
@@ -363,11 +353,13 @@ const ConsultationPage = () => {
     } finally {
       setIsFetchingConsultations(false);
     }
-  }, [selectedDate, selectedHospital]);
+  }, [selectedDate, selectedHospital, confirmSelection]);
 
   useEffect(() => {
-    fetchConsultations();
-  }, [fetchConsultations]);
+    if (selectedHospital.name) { // Only fetch if a hospital is selected
+      fetchConsultations();
+    }
+  }, [fetchConsultations, selectedHospital.name]);
 
   /**
    * GPS Logic
@@ -376,14 +368,14 @@ const ConsultationPage = () => {
    */
   useEffect(() => {
     // GPS Logic
-    if (isGpsEnabled && navigator.geolocation) {
+    if (isGpsEnabled && navigator.geolocation && hospitals.length > 0) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          let closest = HOSPITALS[0];
+          let closest = hospitals[0];
           let minDistance = Infinity;
 
-          HOSPITALS.forEach(hospital => {
+          hospitals.forEach(hospital => {
             const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
             if (distance < minDistance) {
               minDistance = distance;
@@ -392,7 +384,7 @@ const ConsultationPage = () => {
           });
 
           if (closest.name !== selectedHospital.name) {
-            setSelectedHospital(closest);
+            setInitialLocation(closest.name); // Update initialLocation to trigger selectedHospital re-evaluation
             toast({
               title: "Location Updated",
               description: `Switched to ${closest.name} based on your location.`,
@@ -404,7 +396,7 @@ const ConsultationPage = () => {
         }
       );
     }
-  }, [isGpsEnabled, selectedHospital.name]);
+  }, [isGpsEnabled, selectedHospital.name, hospitals]);
 
   // Use useCallback to access latest state if needed, or pass args
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(() => {
@@ -1056,6 +1048,8 @@ const ConsultationPage = () => {
     if (saved) setIsReadyToPrint(true);
   };
 
+
+
   const handleDeleteClick = async (e: React.MouseEvent, c: Consultation) => {
     e.stopPropagation();
     setPendingSelection(c);
@@ -1122,35 +1116,52 @@ const ConsultationPage = () => {
   const pendingConsultations = filteredConsultations.filter(c => c.status === 'pending');
   const evaluationConsultations = filteredConsultations.filter(c => c.status === 'under_evaluation');
   const completedConsultations = filteredConsultations.filter(c => c.status === 'completed');
+  const handleAfterPrint = useCallback(() => {
+    setIsReadyToPrint(false);
+  }, []);
 
-
-  // Printing
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    onAfterPrint: () => setIsReadyToPrint(false),
+    onAfterPrint: handleAfterPrint,
   });
+
+  const handleAfterPrintCertificate = useCallback(() => {
+    setIsReadyToPrintCertificate(false);
+  }, []);
 
   const handleCertificatePrint = useReactToPrint({
     contentRef: certificatePrintRef,
-    onAfterPrint: () => setIsReadyToPrintCertificate(false),
+    onAfterPrint: handleAfterPrintCertificate,
   });
+
+  const handleAfterPrintReceipt = useCallback(() => {
+    setIsReadyToPrintReceipt(false);
+  }, []);
 
   const handleReceiptPrint = useReactToPrint({
     contentRef: receiptPrintRef,
-    onAfterPrint: () => setIsReadyToPrintReceipt(false),
+    onAfterPrint: handleAfterPrintReceipt,
   });
 
   useEffect(() => {
-    if (isReadyToPrint && printRef.current) handlePrint();
-  }, [isReadyToPrint]);
+    if (isReadyToPrint && printRef.current) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isReadyToPrint, handlePrint]);
+
+
 
   useEffect(() => {
     if (isReadyToPrintCertificate && certificatePrintRef.current) handleCertificatePrint();
-  }, [isReadyToPrintCertificate]);
+  }, [isReadyToPrintCertificate, handleCertificatePrint]);
 
   useEffect(() => {
     if (isReadyToPrintReceipt && receiptPrintRef.current) handleReceiptPrint();
-  }, [isReadyToPrintReceipt]);
+  }, [isReadyToPrintReceipt, handleReceiptPrint]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -1178,6 +1189,37 @@ const ConsultationPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveChanges, handleSaveAndPrint, addMedication]);
 
+  const handleLocationChange = (name: string) => {
+    const h = hospitals.find(x => x.name === name);
+    if (h) {
+      setInitialLocation(h.name); // Update initialLocation
+      setIsGpsEnabled(false);
+    }
+  };
+
+  const deleteConsultation = useCallback(async (e: React.MouseEvent, c: Consultation) => {
+    e.stopPropagation();
+    setPendingSelection(c);
+    setIsDeleteModalOpen(true);
+    setIsOnlyConsultation(false); // Reset first
+
+    try {
+      const { count, error } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .eq('patient_id', c.patient.id);
+
+      if (!error && count !== null) {
+        setIsOnlyConsultation(count === 1);
+      }
+    } catch (err) {
+      console.error("Error checking consultation count:", err);
+    }
+  }, []);
+
+  if (isHospitalsLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  }
 
   return (
     <>
@@ -1186,15 +1228,15 @@ const ConsultationPage = () => {
           <ConsultationSidebar
             selectedHospitalName={selectedHospital.name}
             onHospitalSelect={(name) => {
-              const h = HOSPITALS.find(x => x.name === name);
+              const h = hospitals.find(x => x.name === name);
               if (h) {
-                setSelectedHospital(h);
+                setInitialLocation(h.name);
                 setIsGpsEnabled(false);
               }
             }}
             isGpsEnabled={isGpsEnabled}
             onToggleGps={() => setIsGpsEnabled(!isGpsEnabled)}
-            selectedDate={selectedDate}
+            selectedDate={selectedDate || new Date()}
             onDateChange={(date) => {
               setSelectedDate(date);
               setIsConsultationDatePickerOpen(false);
@@ -1203,15 +1245,15 @@ const ConsultationPage = () => {
             setIsConsultationDatePickerOpen={setIsConsultationDatePickerOpen}
             onSearchClick={() => setIsSearchModalOpen(true)}
             onRegisterClick={() => setIsRegistrationModalOpen(true)}
-            onRefreshClick={() => fetchConsultations()}
+            onRefreshClick={() => fetchConsultations(selectedDate)}
             isFetchingConsultations={isFetchingConsultations}
             totalConsultationsCount={filteredConsultations.length}
             pendingConsultations={pendingConsultations}
             evaluationConsultations={evaluationConsultations}
             completedConsultations={completedConsultations}
             selectedConsultationId={selectedConsultation?.id}
-            onSelectConsultation={handleSelectConsultation}
-            onDeleteClick={handleDeleteClick}
+            onSelectConsultation={confirmSelection}
+            onDeleteClick={deleteConsultation}
             pendingSyncIds={pendingSyncIds}
             personalNote={extraData.personalNote}
             onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
@@ -1321,15 +1363,15 @@ const ConsultationPage = () => {
                   isAutoSendEnabled={isAutoSendEnabled}
                   onToggleAutoSend={() => setIsAutoSendEnabled(!isAutoSendEnabled)}
                 />
-              </div>
+              </div >
             ) : (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
                 <p className="text-lg text-muted-foreground">Select a patient to view details.</p>
               </div>
             )}
-          </div>
-        </div>
-      </div>
+          </div >
+        </div >
+      </div >
 
       {/* Hidden Print Components */}
       <div style={{ position: 'absolute', left: '-9999px' }}><div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={i18n.language} logoUrl={selectedHospital.logoUrl} className="min-h-[297mm]" visitType={extraData.visit_type} forceDesktop={true} />}</div></div>
@@ -1366,30 +1408,34 @@ const ConsultationPage = () => {
         </DialogContent>
       </Dialog>
       <TextShortcutManagementModal isOpen={isShortcutModalOpen} onClose={() => setIsShortcutModalOpen(false)} onUpdate={fetchTextShortcuts} />
-      {selectedConsultation && editablePatientDetails && (
-        <MedicalCertificateModal
-          isOpen={isMedicalCertificateModalOpen}
-          onClose={() => setIsMedicalCertificateModalOpen(false)}
-          onSubmit={(data) => {
-            setCertificateData(data);
-            setIsMedicalCertificateModalOpen(false);
-            setIsReadyToPrintCertificate(true);
-          }}
-          patientName={editablePatientDetails.name}
-        />
-      )}
-      {selectedConsultation && editablePatientDetails && (
-        <ReceiptModal
-          isOpen={isReceiptModalOpen}
-          onClose={() => setIsReceiptModalOpen(false)}
-          onSubmit={(data) => {
-            setReceiptData(data);
-            setIsReceiptModalOpen(false);
-            setIsReadyToPrintReceipt(true);
-          }}
-          patientName={editablePatientDetails.name}
-        />
-      )}
+      {
+        selectedConsultation && editablePatientDetails && (
+          <MedicalCertificateModal
+            isOpen={isMedicalCertificateModalOpen}
+            onClose={() => setIsMedicalCertificateModalOpen(false)}
+            onSubmit={(data) => {
+              setCertificateData(data);
+              setIsMedicalCertificateModalOpen(false);
+              setIsReadyToPrintCertificate(true);
+            }}
+            patientName={editablePatientDetails.name}
+          />
+        )
+      }
+      {
+        selectedConsultation && editablePatientDetails && (
+          <ReceiptModal
+            isOpen={isReceiptModalOpen}
+            onClose={() => setIsReceiptModalOpen(false)}
+            onSubmit={(data) => {
+              setReceiptData(data);
+              setIsReceiptModalOpen(false);
+              setIsReadyToPrintReceipt(true);
+            }}
+            patientName={editablePatientDetails.name}
+          />
+        )
+      }
       <Dialog open={isRegistrationModalOpen} onOpenChange={setIsRegistrationModalOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
@@ -1415,24 +1461,28 @@ const ConsultationPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-      {conflictData && (
-        <ConflictResolutionModal
-          isOpen={!!conflictData}
-          onClose={() => setConflictData(null)}
-          onResolve={resolveConflict}
-          localData={conflictData.local}
-          serverData={conflictData.server}
-        />
-      )}
-      {patientConflictData && (
-        <PatientConflictModal
-          isOpen={!!patientConflictData}
-          onClose={() => setPatientConflictData(null)}
-          onResolve={resolvePatientConflict}
-          offlinePatient={patientConflictData.offlinePatient}
-          conflictingPatients={patientConflictData.conflictingPatients}
-        />
-      )}
+      {
+        conflictData && (
+          <ConflictResolutionModal
+            isOpen={!!conflictData}
+            onClose={() => setConflictData(null)}
+            onResolve={resolveConflict}
+            localData={conflictData.local}
+            serverData={conflictData.server}
+          />
+        )
+      }
+      {
+        patientConflictData && (
+          <PatientConflictModal
+            isOpen={!!patientConflictData}
+            onClose={() => setPatientConflictData(null)}
+            onResolve={resolvePatientConflict}
+            offlinePatient={patientConflictData.offlinePatient}
+            conflictingPatients={patientConflictData.conflictingPatients}
+          />
+        )
+      }
       <CompletionMessageModal
         isOpen={isCompletionModalOpen}
         onClose={() => setIsCompletionModalOpen(false)}

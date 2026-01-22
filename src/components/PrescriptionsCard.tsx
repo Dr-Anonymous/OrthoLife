@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
 import { format } from 'date-fns';
-import { HOSPITALS } from '@/config/constants';
+import { useHospitals } from '@/context/HospitalsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { cleanConsultationData } from '@/lib/utils';
 
@@ -22,6 +22,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { getHospitalByName } = useHospitals();
   const [driveRecords, setDriveRecords] = useState<any>(null);
   const [userUploads, setUserUploads] = useState<any[]>([]);
   const [dbConsultations, setDbConsultations] = useState<any[]>([]);
@@ -290,7 +291,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                 consultationDate={new Date(printingConsultation.created_at)}
                 age={printingConsultation.patient.dob ? Math.floor((new Date().getTime() - new Date(printingConsultation.patient.dob).getTime()) / 31557600000) : ''}
                 language={i18n.language}
-                logoUrl={HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl}
+                logoUrl={getHospitalByName(printingConsultation.location || 'Badam')?.logoUrl}
                 className="min-h-[297mm]"
               />
             )}

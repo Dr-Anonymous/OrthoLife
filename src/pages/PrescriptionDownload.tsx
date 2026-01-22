@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Prescription } from '@/components/consultation/Prescription';
-import { HOSPITALS } from '@/config/constants';
+import { useHospitals } from '@/context/HospitalsContext';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Search } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
@@ -18,6 +18,7 @@ const PrescriptionDownload = () => {
     const { patientPhone } = useParams<{ patientPhone: string }>();
     const navigate = useNavigate();
     const { i18n } = useTranslation();
+    const { getHospitalByName } = useHospitals();
     const [consultation, setConsultation] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -201,7 +202,7 @@ const PrescriptionDownload = () => {
                         consultationDate={new Date(consultation.created_at)}
                         age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                         language={consultation.language || i18n.language}
-                        logoUrl={HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                        logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('Badam')?.logoUrl || '/images/logos/logo.png'}
                         className="min-h-[297mm]"
                     />
                 )}
@@ -249,7 +250,7 @@ const PrescriptionDownload = () => {
                             consultationDate={new Date(consultation.created_at)}
                             age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                             language={consultation.language || i18n.language}
-                            logoUrl={HOSPITALS.find(h => h.name === consultation.location)?.logoUrl || HOSPITALS.find(h => h.name === 'OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                            logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('Badam')?.logoUrl || '/images/logos/logo.png'}
                             qrCodeUrl="/images/assets/qr-code.png"
                             noBackground={true}
                             forceDesktop={true}
