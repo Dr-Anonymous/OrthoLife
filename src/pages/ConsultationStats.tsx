@@ -4,11 +4,23 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, User, ChevronsRight } from 'lucide-react';
+import { Loader2, User, ChevronsRight, IndianRupee, BedDouble } from 'lucide-react';
 import { format, getMonth, getYear, parseISO, isValid } from 'date-fns';
 import { ConsultationDetailsTable, Consultation } from '@/components/ConsultationDetailsTable';
+import { useHospitals } from '@/context/HospitalsContext';
+
+interface Admission {
+  id: string;
+  admission_date: string;
+  status: string;
+  room_number: string | null;
+  patient: {
+    name: string;
+  };
+}
 
 const ConsultationStats = () => {
+  const { hospitals } = useHospitals();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [currentViewMonth, setCurrentViewMonth] = useState<string | null>(null);
 
@@ -16,6 +28,12 @@ const ConsultationStats = () => {
   const [dailyData, setDailyData] = useState<Consultation[]>([]);
   const [monthlyStats, setMonthlyStats] = useState<Consultation[]>([]);
   const [monthlyData, setMonthlyData] = useState<Consultation[]>([]);
+
+  // Admissions State
+  const [monthlyAdmissions, setMonthlyAdmissions] = useState<Admission[]>([]);
+  const [monthlyAdmissionsCount, setMonthlyAdmissionsCount] = useState<number | null>(null);
+  const [dailyAdmissions, setDailyAdmissions] = useState<Admission[]>([]);
+
   const [filteredMonthlyData, setFilteredMonthlyData] = useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMonthlyStatsLoading, setIsMonthlyStatsLoading] = useState(false);
@@ -31,13 +49,11 @@ const ConsultationStats = () => {
   }, [selectedDate]);
 
   const fetchStats = async (date: Date) => {
-    // setIsLoading(true); // Removed global loading
     setShowDailyDetails(false);
     setShowMonthlyDetails(false);
 
-    // Calculate dates for client-side fetch
     const startOfMonth = new Date(getYear(date), getMonth(date), 1).toISOString();
-    const endOfMonth = new Date(getYear(date), getMonth(date) + 1, 0, 23, 59, 59, 999).toISOString(); // End of month, end of day
+    const endOfMonth = new Date(getYear(date), getMonth(date) + 1, 0, 23, 59, 59, 999).toISOString();
 
     const monthKey = format(date, 'yyyy-MM');
     const includeMonthly = monthKey !== currentViewMonth;
@@ -61,12 +77,16 @@ const ConsultationStats = () => {
       if (error) throw error;
 
       if (includeMonthly) {
-        console.log('Fetched monthlyStats:', data.monthlyStats?.length, 'Sample:', data.monthlyStats?.[0]);
         setMonthlyCount(data.monthlyCount);
         setMonthlyStats(data.monthlyStats || []);
+        // Set Monthly Admissions
+        setMonthlyAdmissionsCount(data.monthlyAdmissionsCount);
+        setMonthlyAdmissions(data.monthlyAdmissions || []);
         setCurrentViewMonth(monthKey);
       }
       setDailyData(data.dailyData);
+      // Set Daily Admissions
+      setDailyAdmissions(data.dailyAdmissions || []);
     } catch (error) {
       console.error('Error fetching consultation stats:', error);
       toast.error('Failed to fetch stats. Please try again.');
@@ -78,7 +98,7 @@ const ConsultationStats = () => {
   };
 
   const handleMonthChange = (month: Date) => {
-    fetchStats(month);
+    setSelectedDate(month);
     setMonthlyData([]);
     setFilteredMonthlyData([]);
     setShowMonthlyDetails(false);
@@ -106,6 +126,142 @@ const ConsultationStats = () => {
     }
   };
 
+  // Helper to calculate stats and collections
+  const calculateStats = (data: Consultation[]) => {
+    const counts: { [key: string]: number } = {};
+    const paidCounts: { [key: string]: number } = {};
+    const collections: { [key: string]: number } = {};
+    let totalCollection = 0;
+
+    data.forEach(curr => {
+      const loc = curr.location || 'Unknown';
+      counts[loc] = (counts[loc] || 0) + 1;
+
+      if (curr.visit_type === 'paid') {
+        paidCounts[loc] = (paidCounts[loc] || 0) + 1;
+        const hospital = hospitals.find(h => h.name === loc);
+        // Safely access settings.op_fees
+        const settings = hospital?.settings as any;
+        const fees = settings?.op_fees ? Number(settings.op_fees) : 0;
+
+        collections[loc] = (collections[loc] || 0) + fees;
+        totalCollection += fees;
+      }
+    });
+
+    return { counts, paidCounts, collections, totalCollection };
+  };
+
+  const renderStatsCard = (
+    title: string,
+    data: Consultation[],
+    count: number | null,
+    isLoading: boolean,
+    showDetails: boolean,
+    toggleDetails: () => void,
+    isDetailsLoading: boolean = false,
+    admissions: Admission[] = [],
+    admissionsCount: number | null = null
+  ) => {
+    const { counts, paidCounts, collections, totalCollection } = calculateStats(data);
+    const displayedAdmissionsCount = admissionsCount !== null ? admissionsCount : admissions.length;
+
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>
+            {title === 'Monthly Summary'
+              ? `Total consultations for ${selectedDate ? format(selectedDate, 'MMMM yyyy') : 'selected month'}.`
+              : `Consultations for ${selectedDate ? format(selectedDate, 'PPP') : 'selected day'}.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isLoading ? (
+            <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+          ) : (
+            <>
+              {/* Consultations Section */}
+              <div>
+                <p className="text-4xl font-bold">{count ?? 'N/A'}</p>
+
+                {/* Counts by Location */}
+                {Object.keys(counts).length > 0 && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    {Object.entries(counts).map(([loc, c], i) => (
+                      <span key={loc}>
+                        {i > 0 && ', '}
+                        {loc}: {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Paid Visits & Collection */}
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                    <IndianRupee className="w-4 h-4" />
+                    <span>Total Collection: ₹{totalCollection.toLocaleString()}</span>
+                  </div>
+                  {Object.keys(collections).length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      {Object.entries(collections).map(([loc, amount], i) => (
+                        <span key={loc}>
+                          {i > 0 && ' | '}
+                          {loc}: ₹{amount.toLocaleString()} <span className="text-xs text-muted-foreground/70">({paidCounts[loc] || 0} paid)</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {count !== null && count > 0 && (
+                  <Button variant="link" onClick={toggleDetails} className="px-0 mt-2" disabled={isDetailsLoading}>
+                    {isDetailsLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    {showDetails ? 'Hide Details' : 'View Details'}
+                    <ChevronsRight className={`w-4 h-4 ml-1 transition-transform ${showDetails ? 'transform rotate-90' : ''}`} />
+                  </Button>
+                )}
+              </div>
+
+              {/* Admissions Section */}
+              <div className="pt-4 border-t">
+                <div className="flex items-center gap-2 mb-2">
+                  <BedDouble className="w-5 h-5 text-indigo-500" />
+                  <h3 className="text-lg font-semibold text-foreground">In-Patient Admissions</h3>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{displayedAdmissionsCount ?? '0'}</p>
+
+                {admissions.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    {admissions.slice(0, 5).map((admission) => (
+                      <div key={admission.id} className="text-sm flex justify-between items-center text-muted-foreground">
+                        <span>{admission.patient?.name || 'Unknown'}</span>
+                        <span className="text-xs bg-secondary/50 px-2 py-0.5 rounded">
+                          {admission.room_number ? `Room ${admission.room_number}` : 'No Room'}
+                        </span>
+                      </div>
+                    ))}
+                    {admissions.length > 5 && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        + {admissions.length - 5} more
+                      </p>
+                    )}
+                  </div>
+                )}
+                {admissions.length === 0 && displayedAdmissionsCount > 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {displayedAdmissionsCount} admissions recorded.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="container mx-auto max-w-4xl">
@@ -116,7 +272,7 @@ const ConsultationStats = () => {
               Consultation Statistics
             </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
-              View consultation counts by month and day
+              View consultation counts, collections, and admissions
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
@@ -127,14 +283,11 @@ const ConsultationStats = () => {
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   onMonthChange={handleMonthChange}
-                  className="rounded-md border"
+                  className="rounded-md border h-fit"
                   components={{
                     DayContent: (props) => {
                       const { date } = props;
                       const dayStr = format(date, 'yyyy-MM-dd');
-                      // Use filteredMonthlyData if available (when table is shown and filtered), otherwise monthlyData (when table shown but no filter change yet, or logic below)
-                      // Actually, if we set filteredMonthlyData to monthlyData initially, we can just use filteredMonthlyData.
-                      // Let's rely on filteredMonthlyData which should correspond to what's in the table.
                       const stats = filteredMonthlyData.length > 0 || showMonthlyDetails ? filteredMonthlyData : [];
 
                       const count = stats.filter(s => {
@@ -162,133 +315,37 @@ const ConsultationStats = () => {
                 />
               </div>
               <div className="space-y-4">
-                <>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Monthly Summary</CardTitle>
-                      <CardDescription>Total consultations for {selectedDate ? format(selectedDate, 'MMMM yyyy') : 'the selected month'}.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {isMonthlyStatsLoading ? (
-                        <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-                      ) : (
-                        <>
-                          <p className="text-4xl font-bold">{monthlyCount ?? 'N/A'}</p>
-                          {monthlyStats.length > 0 && (
-                            <div className="mt-2 text-sm text-muted-foreground">
-                              {Object.entries(
-                                monthlyStats.reduce((acc: { [key: string]: number }, curr) => {
-                                  const loc = curr.location || 'Unknown';
-                                  acc[loc] = (acc[loc] || 0) + 1;
-                                  return acc;
-                                }, {})
-                              ).map(([loc, count], i) => (
-                                <span key={loc}>
-                                  {i > 0 && ', '}
-                                  {loc}: {count}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Paid visits: {monthlyStats.filter(c => c.visit_type === 'paid').length > 0 ? (
-                              monthlyStats
-                                .filter(c => c.visit_type === 'paid')
-                                .reduce((acc: { [key: string]: number }, curr) => {
-                                  const loc = curr.location || 'Unknown';
-                                  acc[loc] = (acc[loc] || 0) + 1;
-                                  return acc;
-                                }, {})
-                              && Object.entries(
-                                monthlyStats
-                                  .filter(c => c.visit_type === 'paid')
-                                  .reduce((acc: { [key: string]: number }, curr) => {
-                                    const loc = curr.location || 'Unknown';
-                                    acc[loc] = (acc[loc] || 0) + 1;
-                                    return acc;
-                                  }, {})
-                              ).map(([loc, count], i) => (
-                                <span key={loc}>
-                                  {i > 0 && ', '}
-                                  {loc}: {count}
-                                </span>
-                              ))
-                            ) : '0'}
-                          </div>
-                          {monthlyCount !== null && monthlyCount > 0 && (
-                            <Button variant="link" onClick={() => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails()} className="px-0" disabled={isMonthlyLoading}>
-                              {isMonthlyLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                              {showMonthlyDetails ? 'Hide Details' : 'View Details'}
-                              <ChevronsRight className={`w-4 h-4 ml-1 transition-transform ${showMonthlyDetails ? 'transform rotate-90' : ''}`} />
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Daily Summary</CardTitle>
-                      <CardDescription>Consultations for {selectedDate ? format(selectedDate, 'PPP') : 'the selected day'}.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {isDailyStatsLoading ? (
-                        <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-                      ) : (
-                        <>
-                          <p className="text-4xl font-bold">{dailyData.length}</p>
-                          {dailyData.length > 0 && (
-                            <div className="mt-2 text-sm text-muted-foreground">
-                              {Object.entries(
-                                dailyData.reduce((acc: { [key: string]: number }, curr) => {
-                                  const loc = curr.location || 'Unknown';
-                                  acc[loc] = (acc[loc] || 0) + 1;
-                                  return acc;
-                                }, {})
-                              ).map(([loc, count], i) => (
-                                <span key={loc}>
-                                  {i > 0 && ', '}
-                                  {loc}: {count}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          <div className="mt-2 text-sm font-medium text-muted-foreground">
-                            Paid visits: {dailyData.filter(c => c.visit_type === 'paid').length > 0 ? (
-                              Object.entries(
-                                dailyData
-                                  .filter(c => c.visit_type === 'paid')
-                                  .reduce((acc: { [key: string]: number }, curr) => {
-                                    const loc = curr.location || 'Unknown';
-                                    acc[loc] = (acc[loc] || 0) + 1;
-                                    return acc;
-                                  }, {})
-                              ).map(([loc, count], i) => (
-                                <span key={loc}>
-                                  {i > 0 && ', '}
-                                  {loc}: {count}
-                                </span>
-                              ))
-                            ) : '0'}
-                          </div>
-                          {dailyData.length > 0 && (
-                            <Button variant="link" onClick={() => setShowDailyDetails(!showDailyDetails)} className="px-0">
-                              {showDailyDetails ? 'Hide Details' : 'View Details'}
-                              <ChevronsRight className={`w-4 h-4 ml-1 transition-transform ${showDailyDetails ? 'transform rotate-90' : ''}`} />
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                </>
+                {renderStatsCard(
+                  'Monthly Summary',
+                  monthlyStats,
+                  monthlyCount,
+                  isMonthlyStatsLoading,
+                  showMonthlyDetails,
+                  () => showMonthlyDetails ? setShowMonthlyDetails(false) : fetchMonthlyDetails(),
+                  isMonthlyLoading,
+                  // For monthly card: If we have explicit `monthlyAdmissions` array (which we fetch in backend for monthly now properly), pass it.
+                  // Wait, check fetchStats logic again. I am setting monthlyAdmissions state now.
+                  monthlyAdmissions,
+                  monthlyAdmissionsCount
+                )}
+                {renderStatsCard(
+                  'Daily Summary',
+                  dailyData,
+                  dailyData.length,
+                  isDailyStatsLoading,
+                  showDailyDetails,
+                  () => setShowDailyDetails(!showDailyDetails),
+                  false,
+                  dailyAdmissions,
+                  dailyAdmissions.length
+                )}
               </div>
             </div>
             {showMonthlyDetails && !isMonthlyLoading && (
               <ConsultationDetailsTable
                 title={`Details for ${selectedDate ? format(selectedDate, 'MMMM yyyy') : ''}`}
                 data={monthlyData}
-                onFilteredDataChange={setFilteredMonthlyData} // Pass the setter
+                onFilteredDataChange={setFilteredMonthlyData}
               />
             )}
             {showDailyDetails && (

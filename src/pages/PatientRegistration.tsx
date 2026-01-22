@@ -146,9 +146,10 @@ const PatientRegistration = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-semibold text-lg">{c.patient.name}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        {calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} / <a href={`tel:${c.patient.phone}`} className="hover:underline">{c.patient.phone}</a>
-                      </p>
+                      <div className="text-sm text-muted-foreground">
+                        <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex}</div>
+                        <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
+                      </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <div className="flex gap-1">
@@ -204,7 +205,7 @@ const PatientRegistration = () => {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground">No consultations scheduled for today at {locationName}.</p>
+            <p className="text-center text-muted-foreground">No consultations scheduled.</p>
           )}
         </div>
       </div>

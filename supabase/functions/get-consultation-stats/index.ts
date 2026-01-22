@@ -54,6 +54,10 @@ serve(async (req) => {
     let monthlyCount = null;
     let monthlyData = null;
 
+    // Fetch In-Patient Admissions (Monthly)
+    let monthlyAdmissionsCount = null;
+    let monthlyAdmissions = null;
+
     if (includeMonthly) {
       const { data: mData, error: monthlyError } = await supabase
         .from('consultations')
@@ -64,6 +68,25 @@ serve(async (req) => {
       if (monthlyError) throw monthlyError;
       monthlyData = mData;
       monthlyCount = monthlyData.length;
+
+      // Fetch Monthly Admissions
+      const { data: maData, error: maError } = await supabase
+        .from('in_patients')
+        .select(`
+          id,
+          admission_date,
+          status,
+          room_number,
+          patient:patients (
+            name
+          )
+        `)
+        .gte('admission_date', monthStartDate)
+        .lte('admission_date', monthEndDate);
+
+      if (maError) throw maError;
+      monthlyAdmissions = maData;
+      monthlyAdmissionsCount = monthlyAdmissions.length;
     }
 
     const dayStartDate = new Date(year, month, day).toISOString();
@@ -93,7 +116,31 @@ serve(async (req) => {
 
     if (dailyError) throw dailyError;
 
-    return new Response(JSON.stringify({ monthlyCount, monthlyStats: monthlyData, dailyData }), {
+    // Fetch Daily Admissions
+    const { data: dailyAdmissions, error: daError } = await supabase
+      .from('in_patients')
+      .select(`
+        id,
+        admission_date,
+        status,
+        room_number,
+        patient:patients (
+          name
+        )
+      `)
+      .gte('admission_date', dayStartDate)
+      .lt('admission_date', dayEndDate);
+
+    if (daError) throw daError;
+
+    return new Response(JSON.stringify({
+      monthlyCount,
+      monthlyStats: monthlyData,
+      dailyData,
+      monthlyAdmissionsCount,
+      monthlyAdmissions,
+      dailyAdmissions
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
