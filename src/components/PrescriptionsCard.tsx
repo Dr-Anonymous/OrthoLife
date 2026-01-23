@@ -293,6 +293,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                 language={i18n.language}
                 logoUrl={getHospitalByName(printingConsultation.location || 'Badam')?.logoUrl}
                 className="min-h-[297mm]"
+                forceDesktop={true}
               />
             )}
           </div>

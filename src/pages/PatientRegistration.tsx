@@ -220,6 +220,8 @@ const PatientRegistration = () => {
               language={printingConsultation.language || i18n.language}
               logoUrl={hospital?.logoUrl}
               visitType={printingConsultation.visit_type}
+              className="min-h-[297mm]"
+              forceDesktop={true}
             />
           ) : (
             <div />
