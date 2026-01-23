@@ -29,6 +29,9 @@ serve(async (req) => {
           visit_type,
           location,
           language,
+          procedure_fee,
+          procedure_consultant_cut,
+          referral_amount,
           patient:patients (
             id,
             name,
@@ -61,7 +64,7 @@ serve(async (req) => {
     if (includeMonthly) {
       const { data: mData, error: monthlyError } = await supabase
         .from('consultations')
-        .select('consultation_data, visit_type, location, language')
+        .select('consultation_data, visit_type, location, language, procedure_fee, procedure_consultant_cut, referral_amount')
         .gte('created_at', monthStartDate)
         .lte('created_at', monthEndDate);
 
@@ -79,7 +82,11 @@ serve(async (req) => {
           room_number,
           patient:patients (
             name
-          )
+          ),
+          total_bill,
+          consultant_cut,
+          referred_by,
+          referral_amount
         `)
         .gte('admission_date', monthStartDate)
         .lte('admission_date', monthEndDate);
@@ -102,6 +109,9 @@ serve(async (req) => {
         visit_type,
         location,
         language,
+        procedure_fee,
+        procedure_consultant_cut,
+        referral_amount,
         patient:patients (
           id,
           name,
@@ -126,7 +136,11 @@ serve(async (req) => {
         room_number,
         patient:patients (
           name
-        )
+        ),
+        total_bill,
+        consultant_cut,
+        referred_by,
+        referral_amount
       `)
       .gte('admission_date', dayStartDate)
       .lt('admission_date', dayEndDate);

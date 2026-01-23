@@ -129,6 +129,10 @@ const InPatientManagement = () => {
         procedure_date: '',
         room_number: '',
         language: 'te',
+        total_bill: '',
+        consultant_cut: '',
+        referred_by: '',
+        referral_amount: '',
     });
 
     const { toast } = useToast();
@@ -177,7 +181,11 @@ const InPatientManagement = () => {
                 procedure_date: vars.procedure_date ? new Date(vars.procedure_date).toISOString() : null,
                 room_number: vars.room_number || null,
                 status: 'admitted',
-                language: vars.language || 'en'
+                language: vars.language || 'en',
+                total_bill: vars.total_bill ? Number(vars.total_bill) : 0,
+                consultant_cut: vars.consultant_cut ? Number(vars.consultant_cut) : 0,
+                referred_by: vars.referred_by || null,
+                referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
             }]);
             if (error) throw error;
         },
@@ -200,6 +208,10 @@ const InPatientManagement = () => {
                 admission_date: new Date(vars.admission_date).toISOString(),
                 procedure_date: vars.procedure_date ? new Date(vars.procedure_date).toISOString() : null,
                 room_number: vars.room_number || null,
+                total_bill: vars.total_bill ? Number(vars.total_bill) : 0,
+                consultant_cut: vars.consultant_cut ? Number(vars.consultant_cut) : 0,
+                referred_by: vars.referred_by || null,
+                referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
             }).eq('id', vars.id);
             if (error) throw error;
         },
@@ -269,7 +281,11 @@ const InPatientManagement = () => {
             admission_date: format(new Date(), 'yyyy-MM-dd'),
             procedure_date: '',
             room_number: '',
-            language: 'te'
+            language: 'te',
+            total_bill: '',
+            consultant_cut: '',
+            referred_by: '',
+            referral_amount: '',
         });
     };
 
@@ -435,12 +451,8 @@ const InPatientManagement = () => {
     };
 
     const openEditModal = (patient: InPatient) => {
-        if (patient.status === 'discharged') {
-            openDischargeModal(patient);
-        } else {
-            setSelectedPatientForEdit(patient);
-            setIsEditModalOpen(true);
-        }
+        setSelectedPatientForEdit(patient);
+        setIsEditModalOpen(true);
     };
 
     const openDischargeModal = (patient: InPatient) => {
@@ -543,6 +555,7 @@ const InPatientManagement = () => {
                                 patient={p}
                                 onSendWhatsApp={initWhatsApp}
                                 onEdit={() => openEditModal(p)}
+                                onViewSummary={() => openDischargeModal(p)}
                                 onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary)}
                             />
                         )) : (
@@ -653,6 +666,44 @@ const InPatientManagement = () => {
                                 value={admissionData.procedure_date}
                                 onChange={(e) => setAdmissionData({ ...admissionData, procedure_date: e.target.value })}
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Approx Total Bill (₹)</Label>
+                            <Input
+                                type="number"
+                                placeholder="0"
+                                value={admissionData.total_bill}
+                                onChange={(e) => setAdmissionData({ ...admissionData, total_bill: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Consultant Cut (₹)</Label>
+                            <Input
+                                type="number"
+                                placeholder="0"
+                                value={admissionData.consultant_cut}
+                                onChange={(e) => setAdmissionData({ ...admissionData, consultant_cut: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2 col-span-2 grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Referred By</Label>
+                                <Input
+                                    placeholder="Name"
+                                    value={admissionData.referred_by}
+                                    onChange={(e) => setAdmissionData({ ...admissionData, referred_by: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Referral Amount</Label>
+                                <Input
+                                    type="number"
+                                    placeholder="0"
+                                    value={admissionData.referral_amount}
+                                    onChange={(e) => setAdmissionData({ ...admissionData, referral_amount: e.target.value })}
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
@@ -825,6 +876,10 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
         admission_date: patient?.admission_date ? patient.admission_date.split('T')[0] : '',
         procedure_date: patient?.procedure_date ? patient.procedure_date.split('T')[0] : '',
         room_number: patient?.room_number || '',
+        total_bill: patient?.total_bill || '',
+        consultant_cut: patient?.consultant_cut || '',
+        referred_by: patient?.referred_by || '',
+        referral_amount: patient?.referral_amount || '',
     });
 
     if (!patient) return null;
@@ -852,6 +907,25 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
             <div className="space-y-2">
                 <Label>Procedure Date</Label>
                 <Input type="date" value={data.procedure_date} onChange={e => setData({ ...data, procedure_date: e.target.value })} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div className="space-y-2">
+                    <Label>Total Bill (₹)</Label>
+                    <Input type="number" value={data.total_bill} onChange={e => setData({ ...data, total_bill: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                    <Label>Consultant Cut (₹)</Label>
+                    <Input type="number" value={data.consultant_cut} onChange={e => setData({ ...data, consultant_cut: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                    <Label>Referred By</Label>
+                    <Input value={data.referred_by || ''} onChange={e => setData({ ...data, referred_by: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                    <Label>Referral Amount (₹)</Label>
+                    <Input type="number" value={data.referral_amount} onChange={e => setData({ ...data, referral_amount: e.target.value })} />
+                </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={onCancel}>Cancel</Button>
@@ -1359,12 +1433,13 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 });
 DischargeForm.displayName = "DischargeForm";
 
-const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint }: {
+const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, onViewSummary }: {
     patient: InPatient;
     onSendWhatsApp: (p: InPatient, type: 'pre-op' | 'post-op' | 'rehab' | 'general') => void;
     onEdit?: () => void;
     onDischarge?: () => void;
     onPrint?: () => void;
+    onViewSummary?: () => void;
 }) => {
 
     const calculateDays = (startDate: string | null) => {
@@ -1389,16 +1464,23 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint }
             isDischarged ? "border-t-muted-foreground opacity-90" : "border-t-primary"
         )}>
             <CardHeader className="pb-3 relative">
-                {onEdit && (
+                {(onEdit || onViewSummary) && (
                     <div className="absolute top-2 right-2 flex gap-1">
+                        {onViewSummary && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onViewSummary} title="View Discharge Summary">
+                                <FileText className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                        )}
                         {onPrint && (
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onPrint} title="Print Summary">
                                 <Printer className="w-3 h-3 text-muted-foreground" />
                             </Button>
                         )}
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit} title="Edit Record">
-                            <Pencil className="w-3 h-3 text-muted-foreground" />
-                        </Button>
+                        {onEdit && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit} title="Edit Record">
+                                <Pencil className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                        )}
                     </div>
                 )}
                 <div className="flex justify-between items-start pr-6">

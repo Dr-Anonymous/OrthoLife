@@ -42,6 +42,10 @@ export interface Consultation {
     consultation_data?: any;
     last_visit_date?: string;
     duration?: number;
+    procedure_fee?: number | null;
+    procedure_consultant_cut?: number | null;
+    referred_by?: string | null;
+    referral_amount?: number | null;
 }
 
 export interface Guide {

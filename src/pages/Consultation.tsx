@@ -3,7 +3,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { toast } from '@/hooks/use-toast';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { Loader2 } from 'lucide-react';
+import { Loader2, IndianRupee } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
 import { cleanConsultationData, pruneEmptyFields } from '@/lib/utils';
@@ -24,6 +24,12 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ConflictResolutionModal } from '@/components/consultation/ConflictResolutionModal';
 import { PatientConflictModal } from '@/components/consultation/PatientConflictModal';
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
@@ -31,6 +37,7 @@ import { CompletionMessageModal } from '@/components/consultation/CompletionMess
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/hooks/useDebounce';
 
 // Refactored Components
@@ -92,7 +99,11 @@ const ConsultationPage = () => {
     allergy: '',
     personalNote: '',
     procedure: '',
+    procedure_fee: '',
+    procedure_consultant_cut: '',
     referred_to: '',
+    referred_by: '',
+    referral_amount: '',
     visit_type: 'paid', // default
   });
 
@@ -268,7 +279,11 @@ const ConsultationPage = () => {
       allergy: savedData.allergy || '',
       personalNote: savedData.personalNote || savedData.personal_note || '',
       procedure: savedData.procedure || '',
+      procedure_fee: consultation.procedure_fee || savedData.procedure_fee || '',
+      procedure_consultant_cut: consultation.procedure_consultant_cut || savedData.procedure_consultant_cut || '',
       referred_to: savedData.referred_to || '',
+      referred_by: consultation.referred_by || savedData.referred_by || '',
+      referral_amount: consultation.referral_amount || savedData.referral_amount || '',
       visit_type: savedData.visit_type || consultation.visit_type || 'paid',
     };
     setExtraData(newExtraData as any);
@@ -501,8 +516,17 @@ const ConsultationPage = () => {
         return cleaned;
       };
 
+      // Extract Top-level columns from extraData
+      const {
+        procedure_fee,
+        procedure_consultant_cut,
+        referred_by,
+        referral_amount,
+        ...jsonExtraData
+      } = restExtraData;
+
       const dataToSave = pruneEmptyFields({
-        ...restExtraData,
+        ...jsonExtraData,
         medications: (restExtraData.medications || []).map(cleanMedicationForSave)
       });
 
@@ -531,13 +555,22 @@ const ConsultationPage = () => {
           if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
         }
 
-        const consultationUpdatePayload: { consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string, duration?: number } = {};
+        const consultationUpdatePayload: {
+          consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string, duration?: number,
+          procedure_fee?: number | null, procedure_consultant_cut?: number | null, referred_by?: string | null, referral_amount?: number | null
+        } = {};
 
         if (hasUnsavedChanges || locationChanged || languageChanged) {
           consultationUpdatePayload.consultation_data = dataToSave;
           consultationUpdatePayload.visit_type = extraData.visit_type;
           consultationUpdatePayload.location = selectedHospital.name;
           consultationUpdatePayload.language = i18n.language;
+
+          // New Columns
+          consultationUpdatePayload.procedure_fee = procedure_fee ? Number(procedure_fee) : null;
+          consultationUpdatePayload.procedure_consultant_cut = procedure_consultant_cut ? Number(procedure_consultant_cut) : null;
+          consultationUpdatePayload.referred_by = referred_by || null;
+          consultationUpdatePayload.referral_amount = referral_amount ? Number(referral_amount) : null;
         }
         if (statusChanged) {
           consultationUpdatePayload.status = newStatus;
@@ -1347,6 +1380,70 @@ const ConsultationPage = () => {
                   suggestedFollowup={suggestedFollowup}
                   onFollowupSuggestionClick={(val) => handleAppendSuggestion('followup', val)}
                 />
+
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="financials" className="border rounded-md px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                        <IndianRupee className="w-4 h-4" />
+                        Financial Details & Referrals
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4 space-y-4">
+                      {/* Procedure Financials */}
+                      {extraData.procedure && (
+                        <div className="space-y-4 border-b pb-4">
+                          <h4 className="text-sm font-medium text-muted-foreground">Procedure Financials</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Procedure Fee (₹)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Enter fee amount"
+                                value={extraData.procedure_fee}
+                                onChange={(e) => handleExtraChange('procedure_fee', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Consultant Share (Procedure)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Amount or %"
+                                value={extraData.procedure_consultant_cut}
+                                onChange={(e) => handleExtraChange('procedure_consultant_cut', e.target.value)}
+                              />
+                              <p className="text-[10px] text-muted-foreground">Enter number for fixed amount.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Referral Details */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-muted-foreground">Referral Information</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Referred By (Name)</Label>
+                            <Input
+                              placeholder="Name of referrer"
+                              value={extraData.referred_by}
+                              onChange={(e) => handleExtraChange('referred_by', e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Referral Amount (₹)</Label>
+                            <Input
+                              type="number"
+                              placeholder="Amount to pay referrer"
+                              value={extraData.referral_amount}
+                              onChange={(e) => handleExtraChange('referral_amount', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
 
                 <ConsultationActions
                   isOnline={isOnline}

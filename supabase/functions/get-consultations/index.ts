@@ -56,6 +56,7 @@ async function fetchConsultations(date?: string, patientId?: string) {
     .from('consultations')
     .select(`
       id, status, consultation_data, visit_type, location, language, created_at, duration,
+      procedure_fee, procedure_consultant_cut, referral_amount, referred_by,
       patient:patients (
         id, name, dob, sex, phone, drive_id, is_dob_estimated
       )

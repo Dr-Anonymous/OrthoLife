@@ -27,28 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import ConsultationCard from '@/components/consultation/ConsultationCard';
 
-interface Patient {
-  id: string;
-  name: string;
-  dob: string;
-  sex: string;
-  phone: string;
-  drive_id: string | null;
-}
-
-export interface Consultation {
-  id: string;
-  status: string;
-  created_at: string;
-  patient: Patient;
-  visit_type?: string;
-  location?: string;
-  language?: string;
-  consultation_data?: {
-    location?: string;
-    [key: string]: any;
-  };
-}
+import { Consultation, Patient } from '@/types/consultation';
 
 interface ConsultationDetailsTableProps {
   title: string;
