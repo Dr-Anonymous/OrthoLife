@@ -125,6 +125,11 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
     console.log(`[RecentHistory] Raw InPatients for ${patientId}:`, JSON.stringify(allInPatients));
   }
 
+  const lastOpDate = lastConsultation ? new Date(lastConsultation.created_at) : null;
+  // Relax the cutoff for discharge date to account for timezone differences (e.g. Discharge Date 00:00 UTC vs Consumption created_at)
+  // We add 24 hours to the reference date to ensure we capture discharges that happened "Same Day" even if timestamp logic puts them slightly ahead
+  const dischargeCutoffDate = new Date(new Date(referenceDateIso).getTime() + (24 * 60 * 60 * 1000)).toISOString();
+
   // 2. Fetch Last Discharge Summary
   const { data: lastDischarge } = await supabase
     .from('in_patients')
@@ -132,12 +137,11 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
     .eq('patient_id', patientId)
     .eq('status', 'discharged')
     .not('discharge_summary', 'is', null)
-    .lt('discharge_date', referenceDateIso)
+    .lt('discharge_date', dischargeCutoffDate)
     .order('discharge_date', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const lastOpDate = lastConsultation ? new Date(lastConsultation.created_at) : null;
   const lastDischargeDate = lastDischarge && lastDischarge.discharge_date ? new Date(lastDischarge.discharge_date) : null;
 
   return { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate };

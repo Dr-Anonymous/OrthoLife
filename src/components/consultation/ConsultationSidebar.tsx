@@ -188,7 +188,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             {isFetchingConsultations ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                             <span className="sr-only">Refresh</span>
                         </Button>
-                        <Link to="/consultation-stats">
+                        <Link to="/stats">
                             <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
                         </Link>
                     </div>

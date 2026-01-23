@@ -24,12 +24,6 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { ConflictResolutionModal } from '@/components/consultation/ConflictResolutionModal';
 import { PatientConflictModal } from '@/components/consultation/PatientConflictModal';
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
@@ -216,8 +210,8 @@ const ConsultationPage = () => {
   const [isReferredToExpanded, setIsReferredToExpanded] = useState(false);
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
   const [referralDoctors, setReferralDoctors] = useState<any[]>([]);
+  const [isFinancialExpanded, setIsFinancialExpanded] = useState(false);
 
-  // Timer
   // Timer (Refactored)
   const { timerSeconds, isTimerVisible, setIsTimerVisible, stopTimer, pauseTimer, isTimerPausedRef } = useConsultationTimer(selectedConsultation);
 
@@ -1381,15 +1375,20 @@ const ConsultationPage = () => {
                   onFollowupSuggestionClick={(val) => handleAppendSuggestion('followup', val)}
                 />
 
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="financials" className="border rounded-md px-4">
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                        <IndianRupee className="w-4 h-4" />
-                        Financial Details & Referrals
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4 space-y-4">
+                <div className="border rounded-md p-4 space-y-4">
+                  <div
+                    className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer select-none"
+                    onClick={() => setIsFinancialExpanded(!isFinancialExpanded)}
+                  >
+                    <IndianRupee className="w-4 h-4" />
+                    Financial Details & Referrals
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {isFinancialExpanded ? 'Collapse' : 'Expand'}
+                    </span>
+                  </div>
+
+                  {isFinancialExpanded && (
+                    <div className="space-y-4 pt-4 border-t mt-4">
                       {/* Procedure Financials */}
                       {extraData.procedure && (
                         <div className="space-y-4 border-b pb-4">
@@ -1441,9 +1440,9 @@ const ConsultationPage = () => {
                           </div>
                         </div>
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                    </div>
+                  )}
+                </div>
 
                 <ConsultationActions
                   isOnline={isOnline}

@@ -354,7 +354,7 @@ const ConsultationStats = () => {
                     </div>
                     {admissions.length > 0 && (
                       <div className="bg-muted/30 p-2 rounded col-span-2">
-                        <p className="text-muted-foreground text-xs">IP Financials (Est.)</p>
+                        <p className="text-muted-foreground text-xs">IP Financials</p>
                         <div className="flex justify-between items-end">
                           <div>
                             <p className="font-medium">Bill: ₹{admissions.reduce((sum, a) => sum + (Number(a.total_bill) || 0), 0).toLocaleString()}</p>
@@ -370,7 +370,7 @@ const ConsultationStats = () => {
                       <div className="flex justify-between">
                         <span className="text-xs text-red-600 font-medium">Referral Payouts</span>
                         <span className="text-xs font-bold text-red-700">
-                          ₹{(calculateStats(data).financials.opReferralPayouts + admissions.reduce((sum, a) => sum + (Number(a.referral_amount) || 0), 0)).toLocaleString()}
+                          - ₹{(calculateStats(data).financials.opReferralPayouts + admissions.reduce((sum, a) => sum + (Number(a.referral_amount) || 0), 0)).toLocaleString()}
                         </span>
                       </div>
                     </div>
