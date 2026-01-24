@@ -76,7 +76,7 @@ const ConsultationPage = () => {
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
   const [initialExtraData, setInitialExtraData] = useState<any>(null);
-  const [initialLocation, setInitialLocation] = useState<string>('Badam'); // Default fallback
+  const [initialLocation, setInitialLocation] = useState<string>('OrthoLife'); // Default fallback
   const [initialLanguage, setInitialLanguage] = useState<string>('en');
 
   const [extraData, setExtraData] = useState({
@@ -142,7 +142,7 @@ const ConsultationPage = () => {
 
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
-    if (hospitals.length === 0) return { name: 'Badam', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14 } };
+    if (hospitals.length === 0) return { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14 } };
     return hospitals.find(h => h.name === initialLocation) || hospitals[0];
   }, [hospitals, initialLocation]);
 

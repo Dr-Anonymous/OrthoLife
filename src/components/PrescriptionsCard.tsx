@@ -291,7 +291,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                 consultationDate={new Date(printingConsultation.created_at)}
                 age={printingConsultation.patient.dob ? Math.floor((new Date().getTime() - new Date(printingConsultation.patient.dob).getTime()) / 31557600000) : ''}
                 language={i18n.language}
-                logoUrl={getHospitalByName(printingConsultation.location || 'Badam')?.logoUrl}
+                logoUrl={getHospitalByName(printingConsultation.location || 'OrthoLife')?.logoUrl}
                 className="min-h-[297mm]"
                 forceDesktop={true}
               />

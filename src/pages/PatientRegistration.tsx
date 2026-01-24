@@ -39,7 +39,7 @@ const PatientRegistration = () => {
     if (location.pathname.includes('/badam')) return 'Badam';
     if (location.pathname.includes('/laxmi')) return 'Laxmi';
     if (location.pathname.includes('/ortholife')) return 'OrthoLife';
-    return 'Badam'; // Default fallback
+    return 'OrthoLife'; // Default fallback
   };
 
   const locationName = getLocationName();

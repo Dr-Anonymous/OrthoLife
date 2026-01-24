@@ -119,9 +119,13 @@ serve(async (req) => {
         .lte('created_at', todayEnd.toISOString());
 
       if (existingConsultations && existingConsultations.length > 0) {
-        return new Response(JSON.stringify({ error: `Consultation already booked for ${bestMatch.name} today at ${location}.` }), {
+        return new Response(JSON.stringify({
+          status: 'error',
+          message: `Consultation already booked for ${bestMatch.name} today at ${location}.`
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
+          // Return 200 so the client can parse the custom message easily
+          status: 200,
         });
       }
 
@@ -185,9 +189,12 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({
+      status: 'error',
+      message: error.message || 'An unexpected error occurred.'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     });
   }
 });

@@ -290,7 +290,13 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           throw new Error(error.message);
         }
 
-        if (data.status === 'success') {
+        if (data.status === 'error') {
+          toast({
+            variant: 'destructive',
+            title: 'Registration Failed',
+            description: data.message,
+          });
+        } else if (data.status === 'success') {
           // Calculate visit_type
           let visitType = 'paid';
           const patientId = data.consultation.patient_id;

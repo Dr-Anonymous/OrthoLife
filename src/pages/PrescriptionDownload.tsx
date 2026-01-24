@@ -202,7 +202,7 @@ const PrescriptionDownload = () => {
                         consultationDate={new Date(consultation.created_at)}
                         age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                         language={consultation.language || i18n.language}
-                        logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('Badam')?.logoUrl || '/images/logos/logo.png'}
+                        logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                         className="min-h-[297mm]"
                     />
                 )}
@@ -250,7 +250,7 @@ const PrescriptionDownload = () => {
                             consultationDate={new Date(consultation.created_at)}
                             age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                             language={consultation.language || i18n.language}
-                            logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('Badam')?.logoUrl || '/images/logos/logo.png'}
+                            logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                             qrCodeUrl="/images/assets/qr-code.png"
                             noBackground={true}
                             forceDesktop={true}
