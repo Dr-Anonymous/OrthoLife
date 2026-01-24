@@ -103,6 +103,28 @@ serve(async (req) => {
 
     if (bestMatch) {
       // If a match is found (similarity >= 60%), create a new consultation for that patient
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      // Check for duplicate consultation for this patient today at this location
+      const { data: existingConsultations } = await supabase
+        .from('consultations')
+        .select('id')
+        .eq('patient_id', bestMatch.id)
+        .eq('location', location)
+        .gte('created_at', todayStart.toISOString())
+        .lte('created_at', todayEnd.toISOString());
+
+      if (existingConsultations && existingConsultations.length > 0) {
+        return new Response(JSON.stringify({ error: `Consultation already booked for ${bestMatch.name} today at ${location}.` }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
         .insert({ patient_id: bestMatch.id, status: 'pending', location: location, visit_type: 'paid' })
