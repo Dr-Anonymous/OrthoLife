@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+// import { LanguageSwitcher } from '@/components/LanguageSwitcher'; // Removed in favor of controlled input
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -48,6 +48,8 @@ interface ClinicalNotesFormProps {
     setIsReferredToExpanded: (val: boolean) => void;
 
     referralDoctors: { id: string, name: string, specialization?: string, address?: string, phone?: string }[];
+    language: string;
+    onLanguageChange: (lang: string) => void;
 }
 
 /**
@@ -84,7 +86,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     setIsProcedureExpanded,
     isReferredToExpanded,
     setIsReferredToExpanded,
-    referralDoctors
+    referralDoctors,
+    language,
+    onLanguageChange
 }) => {
     return (
         <>
@@ -170,7 +174,29 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                     <Label htmlFor="advice" className="text-sm font-medium">Medical Advice</Label>
-                    <LanguageSwitcher />
+
+                    {/* Controlled Language Switcher */}
+                    <div className="flex items-center bg-muted rounded-md p-0.5 h-7">
+                        <Button
+                            type="button"
+                            variant={language === 'en' ? 'default' : 'ghost'}
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => onLanguageChange('en')}
+                        >
+                            EN
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={language === 'te' ? 'default' : 'ghost'}
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => onLanguageChange('te')}
+                        >
+                            తె
+                        </Button>
+                    </div>
+
                     {suggestedAdvice.map((advice) => (
                         <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)}>
                             {advice}

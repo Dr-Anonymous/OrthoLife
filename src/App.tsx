@@ -66,6 +66,8 @@ const ActivityLogger = () => {
   return null;
 };
 
+import { GlobalSyncManager } from "./components/GlobalSyncManager";
+
 const App = () => {
   const { installPrompt, handleInstallClick } = usePWAInstall();
 
@@ -88,6 +90,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <ActivityLogger />
+              <GlobalSyncManager />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route path="/" element={<Index />} />

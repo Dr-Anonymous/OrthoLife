@@ -49,6 +49,7 @@ import { getMatchingGuides } from '@/lib/guideMatching';
 import { Guide } from '@/types/consultation';
 import { useConsultationTimer } from '@/hooks/useConsultationTimer';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { generateCompletionMessage as generateCompletionMessageUtil } from '@/lib/consultation-utils';
 
 
 /**
@@ -76,8 +77,13 @@ const ConsultationPage = () => {
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
   const [initialExtraData, setInitialExtraData] = useState<any>(null);
-  const [initialLocation, setInitialLocation] = useState<string>('OrthoLife'); // Default fallback
-  const [initialLanguage, setInitialLanguage] = useState<string>('en');
+  const [initialLocation, setInitialLocation] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selectedHospital') || '';
+    }
+    return '';
+  });
+  const [initialLanguage, setInitialLanguage] = useState<string>(() => i18n.language || 'te');
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -139,6 +145,9 @@ const ConsultationPage = () => {
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [consultationLanguage, setConsultationLanguage] = useState<string>('te');
+
 
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
@@ -240,14 +249,6 @@ const ConsultationPage = () => {
 
   // Timer Stop Logic handled by hook
 
-  useEffect(() => {
-    if (!isHospitalsLoading && hospitals.length > 0 && initialLocation === '') {
-      const storedHospitalName = localStorage.getItem('selectedHospital');
-      const defaultHospital = hospitals.find(h => h.name === storedHospitalName) || hospitals[0];
-      setInitialLocation(defaultHospital.name);
-    }
-  }, [isHospitalsLoading, hospitals, initialLocation]);
-
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     patientSelectionCounter.current += 1;
     setSelectedConsultation(consultation);
@@ -283,7 +284,11 @@ const ConsultationPage = () => {
     setExtraData(newExtraData as any);
     setInitialExtraData(newExtraData);
     setInitialLocation(consultation.location || (hospitals.length > 0 ? hospitals[0].name : '')); // Use hospitals[0] or empty string
-    setInitialLanguage(consultation.language || 'en');
+    const lang = consultation.language || 'te';
+    setInitialLanguage(lang);
+    setConsultationLanguage(lang);
+    // i18n.changeLanguage(lang); // CAUTION: Do not change global language
+
 
     setIsProcedureExpanded(!!newExtraData.procedure);
     setIsReferredToExpanded(!!newExtraData.referred_to);
@@ -415,29 +420,7 @@ const ConsultationPage = () => {
 
   const generateCompletionMessage = (patient: any, guidesMatched: any[]) => {
     // Use current UI language instead of patient default, as per user request
-    const isTelugu = i18n.language === 'te';
-    const patientName = patient.name;
-    const patientPhone = patient.phone;
-
-    const guideLinks = guidesMatched
-      .filter(mg => mg.guideLink)
-      .map(mg => mg.guideLink);
-
-    const linksText = guideLinks.join('\n\n');
-
-    if (isTelugu) {
-      if (guideLinks.length > 0) {
-        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీరు ఇప్పుడు-\n- మీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}\n\n- ఆహారం 🍚 & వ్యాయామ 🧘‍♀️ సలహాలు తెలుసుకోవచ్చు-\n\n${linksText}`;
-      } else {
-        return `🙏 నమస్కారం ${patientName},\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరితో మీ కన్సల్టేషన్ పూర్తయింది 🎉.\n\nమీ ప్రిస్క్రిప్షన్‌ను 📋 డౌన్లోడ్ చేసుకోవచ్చు-\n\nhttps://ortho.life/p/${patientPhone}`;
-      }
-    } else {
-      if (guideLinks.length > 0) {
-        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nYou can now- \n- Download your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}\n\n- Read diet 🍚 & exercise 🧘 advice-\n\n${linksText}`;
-      } else {
-        return `👋 Hi ${patientName},\nYour consultation with Dr Samuel Manoj Cherukuri has concluded 🎉.\n\nDownload your prescription 📋-\n\nhttps://ortho.life/p/${patientPhone}`;
-      }
-    }
+    return generateCompletionMessageUtil(patient, guidesMatched, i18n.language);
   };
 
   const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[], isAuto: boolean = true) => {
@@ -468,7 +451,7 @@ const ConsultationPage = () => {
     const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
     const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
     const locationChanged = selectedHospital.name !== initialLocation;
-    const languageChanged = i18n.language !== initialLanguage;
+    const languageChanged = consultationLanguage !== initialLanguage;
 
     const isPrinting = options.markAsCompleted;
     const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
@@ -532,7 +515,7 @@ const ConsultationPage = () => {
           timestamp: new Date().toISOString(),
         };
         await offlineStore.setItem(selectedConsultation.id, offlineData);
-        setPendingSyncIds(prev => [...new Set([...prev, selectedConsultation.id])]);
+        // setPendingSyncIds handled globally by scanning store
         toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
       } else {
         if (patientDetailsChanged) {
@@ -558,7 +541,7 @@ const ConsultationPage = () => {
           consultationUpdatePayload.consultation_data = dataToSave;
           consultationUpdatePayload.visit_type = extraData.visit_type;
           consultationUpdatePayload.location = selectedHospital.name;
-          consultationUpdatePayload.language = i18n.language;
+          consultationUpdatePayload.language = consultationLanguage;
 
           // New Columns
           consultationUpdatePayload.procedure_fee = procedure_fee ? Number(procedure_fee) : null;
@@ -590,17 +573,17 @@ const ConsultationPage = () => {
         }
 
         await offlineStore.removeItem(selectedConsultation.id);
-        setPendingSyncIds(prev => prev.filter(id => id !== selectedConsultation.id));
+        // setPendingSyncIds handled globally
         if (!options.skipToast) toast({ title: 'Success', description: 'Your changes have been saved.' });
       }
 
       const updatedConsultation = {
         ...selectedConsultation,
         patient: { ...editablePatientDetails },
-        consultation_data: { ...extraData, language: i18n.language },
+        consultation_data: { ...extraData, language: consultationLanguage },
         visit_type: extraData.visit_type,
         location: selectedHospital.name,
-        language: i18n.language,
+        language: consultationLanguage,
         status: newStatus as 'pending' | 'completed' | 'under_evaluation',
         duration: timerSeconds,
       };
@@ -609,7 +592,7 @@ const ConsultationPage = () => {
       setInitialPatientDetails(editablePatientDetails);
       setInitialExtraData(extraData);
       setInitialLocation(selectedHospital.name);
-      setInitialLanguage(i18n.language);
+      setInitialLanguage(consultationLanguage);
 
       const updatedAllConsultations = allConsultations.map(c =>
         c.id === updatedConsultation.id ? updatedConsultation : c
@@ -628,30 +611,21 @@ const ConsultationPage = () => {
   };
 
   /**
-   * Offline Sync Logic
-   * Synchronizes offline storage (IndexedDB) with Supabase when online.
-   * Handles:
-   * - New patient registration (offline- created patients)
-   * - New/Updated consultation data
-   * - Conflict resolution (Server vs Local timestamp)
-   */
-  /**
    * Offline Sync Logic (Refactored to Hook)
+   * MOVED TO GLOBAL LEVEL (App.tsx)
    */
-  const {
-    pendingSyncIds,
-    setPendingSyncIds,
-    conflictData,
-    setConflictData,
-    patientConflictData,
-    setPatientConflictData,
-    resolveConflict,
-    resolvePatientConflict
-  } = useOfflineSync({
-    isOnline,
-    sendConsultationCompletionNotification: useCallback((p, g) => sendConsultationCompletionNotification(p, g), [completionMessage, isMessageManuallyEdited]), // Pass stable wrapper or adapt hook
-    matchedGuides
-  });
+  // const {
+  //   pendingSyncIds,
+  //   setPendingSyncIds,
+  //   conflictData,
+  //   setConflictData,
+  //   patientConflictData,
+  //   setPatientConflictData,
+  //   resolveConflict,
+  //   resolvePatientConflict
+  // } = useOfflineSync({
+  //   isOnline,
+  // });
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -1023,7 +997,7 @@ const ConsultationPage = () => {
     };
 
     const inputText = `${extraData.complaints} ${extraData.diagnosis}`.toLowerCase();
-    const isTelugu = i18n.language === 'te';
+    const isTelugu = consultationLanguage === 'te';
 
     (autofillKeywords as AutofillProtocol[]).forEach(protocol => {
       const match = (protocol.keywords || []).some(k => inputText.includes(k.toLowerCase()));
@@ -1065,7 +1039,7 @@ const ConsultationPage = () => {
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s)),
       suggestedMedications: finalMedications.filter(m => !currentlyAddedMedNames.has((m.name || '').toLowerCase()))
     };
-  }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, i18n.language, savedMedications]);
+  }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
 
   const suggestedFindings = useMemo(() => [], []);
 
@@ -1281,7 +1255,7 @@ const ConsultationPage = () => {
             selectedConsultationId={selectedConsultation?.id}
             onSelectConsultation={confirmSelection}
             onDeleteClick={deleteConsultation}
-            pendingSyncIds={pendingSyncIds}
+
             personalNote={extraData.personalNote}
             onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
             isEvaluationCollapsed={isEvaluationCollapsed}
@@ -1345,6 +1319,8 @@ const ConsultationPage = () => {
                   isReferredToExpanded={isReferredToExpanded}
                   setIsReferredToExpanded={setIsReferredToExpanded}
                   referralDoctors={referralDoctors}
+                  language={consultationLanguage}
+                  onLanguageChange={(lang) => setConsultationLanguage(lang)}
                 />
 
                 <MedicationManager
@@ -1470,7 +1446,7 @@ const ConsultationPage = () => {
       </div >
 
       {/* Hidden Print Components */}
-      <div style={{ position: 'absolute', left: '-9999px' }}><div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={i18n.language} logoUrl={selectedHospital.logoUrl} className="min-h-[297mm]" visitType={extraData.visit_type} forceDesktop={true} />}</div></div>
+      <div style={{ position: 'absolute', left: '-9999px' }}><div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={consultationLanguage} logoUrl={selectedHospital.logoUrl} className="min-h-[297mm]" visitType={extraData.visit_type} forceDesktop={true} />}</div></div>
       <div style={{ position: 'absolute', left: '-9999px' }}><div ref={certificatePrintRef}>{selectedConsultation && editablePatientDetails && certificateData && <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} />}</div></div>
       <div style={{ position: 'absolute', left: '-9999px' }}><div ref={receiptPrintRef}>{selectedConsultation && editablePatientDetails && receiptData && <Receipt patient={editablePatientDetails} receiptData={receiptData} />}</div></div>
 
@@ -1548,7 +1524,7 @@ const ConsultationPage = () => {
                 if (String(newConsultation.patient_id).startsWith('offline-')) {
                   setAllConsultations(prev => [newConsultation, ...prev]);
                   setSelectedConsultation(newConsultation);
-                  setPendingSyncIds(prev => [...new Set([...prev, newConsultation.patient_id])]);
+                  // setPendingSyncIds handled globally by scanning store
                 } else if (selectedDate) {
                   fetchConsultations(selectedDate, newConsultation.patient_id, consultationData);
                 }
@@ -1557,28 +1533,7 @@ const ConsultationPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-      {
-        conflictData && (
-          <ConflictResolutionModal
-            isOpen={!!conflictData}
-            onClose={() => setConflictData(null)}
-            onResolve={resolveConflict}
-            localData={conflictData.local}
-            serverData={conflictData.server}
-          />
-        )
-      }
-      {
-        patientConflictData && (
-          <PatientConflictModal
-            isOpen={!!patientConflictData}
-            onClose={() => setPatientConflictData(null)}
-            onResolve={resolvePatientConflict}
-            offlinePatient={patientConflictData.offlinePatient}
-            conflictingPatients={patientConflictData.conflictingPatients}
-          />
-        )
-      }
+
       <CompletionMessageModal
         isOpen={isCompletionModalOpen}
         onClose={() => setIsCompletionModalOpen(false)}

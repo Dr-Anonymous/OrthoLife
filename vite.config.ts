@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 import vitePrerender from 'vite-plugin-prerender';
+import { VitePWA } from 'vite-plugin-pwa';
 import fs from 'fs';
 
 const getDiscoveredData = () => {
@@ -67,6 +68,34 @@ export default defineConfig(({ mode }) => ({
 
         return renderedRoute;
       },
+    }),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'favicon/apple-touch-icon.png', 'favicon/favicon-32x32.png', 'favicon/favicon-16x16.png'],
+      manifest: {
+        name: 'OrthoLife',
+        short_name: 'OrthoLife',
+        description: 'OrthoLife - Back to Health.',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        icons: [
+          {
+            src: '/favicon/android-chrome-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/favicon/android-chrome-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      },
+      workbox: {
+        cleanupOutdatedCaches: true,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}']
+      }
     }),
   ].filter(Boolean),
   resolve: {

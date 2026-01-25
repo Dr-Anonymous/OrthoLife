@@ -39,7 +39,7 @@ interface ConsultationSidebarProps {
     onSelectConsultation: (consultation: Consultation) => void;
     onDeleteClick: (e: React.MouseEvent, consultation: Consultation) => void;
 
-    pendingSyncIds: string[];
+
 
     personalNote: string;
     onPersonalNoteChange: (value: string) => void;
@@ -85,7 +85,6 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     selectedConsultationId,
     onSelectConsultation,
     onDeleteClick,
-    pendingSyncIds,
     personalNote,
     onPersonalNoteChange,
     isEvaluationCollapsed,
@@ -286,7 +285,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                             setSearchQuery('');
                                         }}>
                                             <span>{c.patient.name}</span>
-                                            {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
                                             <Trash2 className="h-4 w-4" />
@@ -319,7 +318,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                             setSearchQuery('');
                                         }}>
                                             <span>{c.patient.name}</span>
-                                            {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
                                             <Trash2 className="h-4 w-4" />
@@ -352,7 +351,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                             setSearchQuery('');
                                         }}>
                                             <span>{c.patient.name}</span>
-                                            {(pendingSyncIds.includes(c.id) || String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
                                             <Trash2 className="h-4 w-4" />

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
+import { cachePatients, searchLocalPatients } from '@/hooks/useOfflineSync';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -150,24 +151,63 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setSearchResults([]);
     setSelectedPatientId('');
 
-    try {
-      const { data, error } = await supabase.functions.invoke('search-patients', {
-        body: { searchTerm, searchType },
-      });
-
-      if (error) throw error;
-
+    // defined outside for reuse
+    const performLocalSearch = async () => {
+      const data = await searchLocalPatients(searchTerm, searchType) as Patient[];
       if (data && data.length > 0) {
         setSearchResults(data);
         toast({
-          title: 'Patients Found',
-          description: `Found ${data.length} patient(s). Please select one.`,
+          title: 'Cached Patients Found',
+          description: `Found ${data.length} patient(s) in local cache. Please select one.`,
         });
       } else {
         toast({
           title: 'No Patients Found',
-          description: 'No patients found. You can register a new patient.',
+          description: 'No patients found in local cache. Try registering as new.',
         });
+      }
+    };
+
+    try {
+      if (isOnline) {
+        try {
+          // Online Search
+          const response = await supabase.functions.invoke('search-patients', {
+            body: { searchTerm, searchType },
+          });
+          const data = response.data;
+          const error = response.error;
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            setSearchResults(data);
+            cachePatients(data); // Cache successful results
+            toast({
+              title: 'Patients Found',
+              description: `Found ${data.length} patient(s). Please select one.`,
+            });
+          } else {
+            toast({
+              title: 'No Patients Found',
+              description: 'No patients found. You can register a new patient.',
+            });
+          }
+        } catch (onlineError: any) {
+          console.error('Online search failed, falling back to local:', onlineError);
+          const isNetworkError = onlineError.message?.includes('Failed to send a request') ||
+            onlineError.message?.includes('Failed to fetch') ||
+            onlineError.message?.includes('NetworkError');
+
+          if (isNetworkError) {
+            await performLocalSearch();
+          } else {
+            throw onlineError;
+          }
+        }
+      } else {
+        // Offline Search
+        await performLocalSearch();
       }
     } catch (error) {
       console.error('Error searching patients:', error);
@@ -232,10 +272,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     if (!validateForm()) return;
     setIsSubmitting(true);
 
-
-
-    try {
-      if (!isOnline) {
+    const saveOfflinePatient = async () => {
+      try {
         const tempId = `offline-${Date.now()}`;
         const newPatient = {
           id: tempId,
@@ -262,7 +300,9 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
         toast({
           title: 'Patient Registered Locally',
-          description: `${formData.name} will be synced when you are back online.`,
+          description: isOnline
+            ? 'Network request failed. Saved offline and will sync automatically.'
+            : `${formData.name} will be synced when you are back online.`,
         });
 
         if (onSuccess) onSuccess(newConsultation, {});
@@ -270,86 +310,111 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null, isDobEstimated: false });
         setSearchResults([]);
         setSelectedPatientId('');
-
-      } else {
-        const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
-          body: {
-            id: formData.id,
-            name: formData.name,
-            dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
-            sex: formData.sex,
-            phone: formData.phone,
-            driveId: formData.driveId,
-            age: String(age),
-            location: location,
-            is_dob_estimated: formData.isDobEstimated // Pass the flag
-          },
+      } catch (storageError) {
+        console.error("Local storage failed:", storageError);
+        toast({
+          variant: 'destructive',
+          title: 'Storage Error',
+          description: 'Failed to save patient locally.'
         });
+      }
+    };
 
-        if (error) { // Network or unexpected function error
-          throw new Error(error.message);
-        }
-
-        if (data.status === 'error') {
-          toast({
-            variant: 'destructive',
-            title: 'Registration Failed',
-            description: data.message,
+    try {
+      if (!isOnline) {
+        await saveOfflinePatient();
+      } else {
+        try {
+          const { data, error } = await supabase.functions.invoke('register-patient-and-consultation', {
+            body: {
+              id: formData.id,
+              name: formData.name,
+              dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
+              sex: formData.sex,
+              phone: formData.phone,
+              driveId: formData.driveId,
+              age: String(age),
+              location: location,
+              is_dob_estimated: formData.isDobEstimated // Pass the flag
+            },
           });
-        } else if (data.status === 'success') {
-          // Calculate visit_type
-          let visitType = 'paid';
-          const patientId = data.consultation.patient_id;
 
-          // Check for previous paid consultations
-          const { data: lastPaidConsultation, error: fetchError } = await supabase
-            .from('consultations')
-            .select('created_at')
-            .eq('patient_id', patientId)
-            .neq('id', data.consultation.id) // Exclude current one
-            .eq('visit_type', 'paid')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (!fetchError && lastPaidConsultation) {
-            const hospital = location ? getHospitalByName(location) : undefined;
-            const freeDuration = hospital?.settings.free_visit_duration_days || 14;
-
-            const daysSinceLastPaid = differenceInDays(new Date(), new Date(lastPaidConsultation.created_at));
-            if (daysSinceLastPaid <= freeDuration) {
-              visitType = 'free';
-            }
+          if (error) { // Network or unexpected function error
+            throw new Error(error.message);
           }
 
-          // Update visit_type if the calculated one differs from the backend return (e.g. calculated 'free' vs default 'paid')
-          if (visitType !== data.consultation.visit_type) {
-            const { error: updateError } = await supabase
+          if (data.status === 'error') {
+            toast({
+              variant: 'destructive',
+              title: 'Registration Failed',
+              description: data.message,
+            });
+          } else if (data.status === 'success') {
+            // Calculate visit_type
+            let visitType = 'paid';
+            const patientId = data.consultation.patient_id;
+
+            // Check for previous paid consultations
+            const { data: lastPaidConsultation, error: fetchError } = await supabase
               .from('consultations')
-              .update({ visit_type: visitType })
-              .eq('id', data.consultation.id);
+              .select('created_at')
+              .eq('patient_id', patientId)
+              .neq('id', data.consultation.id) // Exclude current one
+              .eq('visit_type', 'paid')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-            if (updateError) {
-              console.error("Error updating consultation data:", updateError);
-            } else {
-              // Reflect the change locally so onSuccess gets the correct value if needed
-              data.consultation.visit_type = visitType;
+            if (!fetchError && lastPaidConsultation) {
+              const hospital = location ? getHospitalByName(location) : undefined;
+              const freeDuration = hospital?.settings.free_visit_duration_days || 14;
+
+              const daysSinceLastPaid = differenceInDays(new Date(), new Date(lastPaidConsultation.created_at));
+              if (daysSinceLastPaid <= freeDuration) {
+                visitType = 'free';
+              }
             }
+
+            // Update visit_type if the calculated one differs from the backend return (e.g. calculated 'free' vs default 'paid')
+            if (visitType !== data.consultation.visit_type) {
+              const { error: updateError } = await supabase
+                .from('consultations')
+                .update({ visit_type: visitType })
+                .eq('id', data.consultation.id);
+
+              if (updateError) {
+                console.error("Error updating consultation data:", updateError);
+              } else {
+                // Reflect the change locally so onSuccess gets the correct value if needed
+                data.consultation.visit_type = visitType;
+              }
+            }
+            toast({
+              title: 'Patient Registered for Consultation',
+              description: `${formData.name} has been successfully registered.`,
+            });
+            setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null, isDobEstimated: false });
+            setSearchResults([]);
+            setSelectedPatientId('');
+            if (onSuccess) {
+              // Exclude visit_type from the passed data so it doesn't override the new calculation
+              const { visit_type, ...restData } = formData.consultation_data || {};
+              onSuccess(data.consultation, restData);
+            }
+          } else {
+            throw new Error(data.error || 'An unexpected error occurred.');
           }
-          toast({
-            title: 'Patient Registered for Consultation',
-            description: `${formData.name} has been successfully registered.`,
-          });
-          setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null, isDobEstimated: false });
-          setSearchResults([]);
-          setSelectedPatientId('');
-          if (onSuccess) {
-            // Exclude visit_type from the passed data so it doesn't override the new calculation
-            const { visit_type, ...restData } = formData.consultation_data || {};
-            onSuccess(data.consultation, restData);
+        } catch (onlineError: any) {
+          console.error('Online registration failed, falling back to offline:', onlineError);
+          const isNetworkError = onlineError.message?.includes('Failed to send a request') ||
+            onlineError.message?.includes('Failed to fetch') ||
+            onlineError.message?.includes('NetworkError');
+
+          if (isNetworkError) {
+            await saveOfflinePatient();
+          } else {
+            throw onlineError; // Re-throw validation/logic errors
           }
-        } else {
-          throw new Error(data.error || 'An unexpected error occurred.');
         }
       }
 
@@ -394,7 +459,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   className={cn("pl-10 pr-10", errors.phone && "border-destructive")}
                   placeholder="Enter 10-digit number"
                 />
-                <button type="button" onClick={() => handleSearch('phone')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching || !isOnline}>
+                <button type="button" onClick={() => handleSearch('phone')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
                 </button>
               </div>
@@ -412,7 +477,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   className={cn("pl-10 pr-10", errors.name && "border-destructive")}
                   placeholder="Enter full name"
                 />
-                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching || !isOnline}>
+                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
                 </button>
               </div>

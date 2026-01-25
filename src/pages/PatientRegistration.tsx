@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { offlineStore } from '@/lib/local-storage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Printer, Pencil, Calendar as CalendarIcon } from 'lucide-react';
@@ -22,6 +24,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
 const PatientRegistration = () => {
+  const isOnline = useOnlineStatus();
   const { hospitals } = useHospitals();
   const [todaysConsultations, setTodaysConsultations] = useState<any[]>([]);
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
@@ -61,22 +64,88 @@ const PatientRegistration = () => {
 
   const fetchTodaysConsultations = async () => {
     setIsFetchingConsultations(true);
+    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+    const cacheKey = `server_cache_${selectedDateStr}`;
+
     try {
-      const { data, error } = await supabase.functions.invoke('get-consultations', {
-        body: { date: format(selectedDate, 'yyyy-MM-dd') },
-      });
+      // 1. Load Local + Cached Data FIRST (Stale-While-Revalidate)
+      const keys = await offlineStore.keys();
+      const localConsultations: any[] = [];
+      let cachedServerData: any[] = [];
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      // Get pending offline items
+      for (const key of keys) {
+        if (String(key).startsWith('offline-')) {
+          const item = await offlineStore.getItem(key) as any;
 
-      setTodaysConsultations(data.consultations || []);
-    } catch (error) {
+          let consultation = null;
+          // Structure check: new_patient registration saves { type: 'new_patient', consultation: ... }
+          if (item?.type === 'new_patient' && item.consultation) {
+            consultation = item.consultation;
+          }
+          // Structure check: standalone offline consultation might be saved directly or differently
+          else if (item?.consultation) {
+            consultation = item.consultation;
+          }
+          else if (item?.status && item?.patient_id) {
+            // Fallback if saved as flat consultation object
+            consultation = item;
+          }
+
+          if (consultation) {
+            const generatedDate = format(new Date(consultation.created_at), 'yyyy-MM-dd');
+            if (generatedDate === selectedDateStr) {
+              localConsultations.push(consultation);
+            }
+          }
+        }
+      }
+
+      // Get cached server data
+      try {
+        const cached = await offlineStore.getItem(cacheKey) as any[];
+        if (cached && Array.isArray(cached)) {
+          cachedServerData = cached;
+        }
+      } catch (e) {
+        console.warn('Error reading server cache', e);
+      }
+
+      // Show immediate data (Optimistic UI)
+      // Deduping: local items might be in server/cached list if previously synced but offline-key not removed yet? 
+      // Actually offline- keys are removed on sync. So simple concat is fine usually.
+      setTodaysConsultations([...localConsultations, ...cachedServerData]);
+
+      if (isOnline) {
+        // 2. Fetch Fresh Server Data
+        const { data, error } = await supabase.functions.invoke('get-consultations', {
+          body: { date: selectedDateStr },
+        });
+
+        if (error) throw error;
+        if (data.error) throw new Error(data.error);
+
+        const serverConsultations = data.consultations || [];
+
+        // 3. Update Cache & State
+        await offlineStore.setItem(cacheKey, serverConsultations);
+        setTodaysConsultations([...localConsultations, ...serverConsultations]);
+      }
+
+    } catch (error: any) {
       console.error('Error fetching today\'s consultations:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error fetching consultations',
-        description: (error as Error).message,
-      });
+
+      const isNetworkError = error.message?.includes('Failed to send a request') ||
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('NetworkError');
+
+      if (!isNetworkError) {
+        toast({
+          variant: 'destructive',
+          title: 'Error fetching consultations',
+          description: (error as Error).message,
+        });
+      }
     } finally {
       setIsFetchingConsultations(false);
     }
