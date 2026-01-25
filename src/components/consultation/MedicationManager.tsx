@@ -18,7 +18,7 @@ interface MedicationManagerProps {
     setExtraData: React.Dispatch<React.SetStateAction<any>>;
     medicationNameInputRef: React.RefObject<HTMLInputElement | null>;
     fetchSavedMedications: () => void;
-    i18n: any;
+    language: string;
     medFrequencyRefs: React.MutableRefObject<{ [key: string]: HTMLTextAreaElement | null }>;
     medDurationRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
     medInstructionsRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
@@ -53,7 +53,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     setExtraData,
     medicationNameInputRef,
     fetchSavedMedications,
-    i18n,
+    language,
     medFrequencyRefs,
     medDurationRefs,
     medInstructionsRefs,
@@ -138,7 +138,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 setExtraData={setExtraData}
                                 medicationNameInputRef={index === medications.length - 1 ? medicationNameInputRef : null}
                                 fetchSavedMedications={fetchSavedMedications}
-                                i18n={i18n}
+                                language={language}
                                 medFrequencyRefs={medFrequencyRefs}
                                 medDurationRefs={medDurationRefs}
                                 medInstructionsRefs={medInstructionsRefs}

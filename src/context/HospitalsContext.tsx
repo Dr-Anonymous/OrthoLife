@@ -32,6 +32,17 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     useEffect(() => {
         const fetchHospitals = async () => {
+            // 1. Try to load from cache first
+            const cached = localStorage.getItem('hospitals_cache');
+            if (cached) {
+                try {
+                    setHospitals(JSON.parse(cached));
+                    setIsLoading(false); // Show cached content immediately
+                } catch (e) {
+                    console.error("Failed to parse hospital cache", e);
+                }
+            }
+
             try {
                 const { data, error } = await supabase
                     .from('hospitals')
@@ -50,9 +61,13 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 }));
 
                 setHospitals(transformed);
+                // 2. Update cache
+                localStorage.setItem('hospitals_cache', JSON.stringify(transformed));
+
             } catch (err: any) {
                 console.error('Error fetching hospitals:', err);
                 setError(err.message);
+                // If offline and no cache, error remains. If cache existed, we showed it.
             } finally {
                 setIsLoading(false);
             }

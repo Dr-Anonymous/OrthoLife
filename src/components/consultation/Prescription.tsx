@@ -53,6 +53,7 @@ interface PrescriptionProps {
   className?: string;
   forceDesktop?: boolean;
   visitType?: string;
+  showDoctorProfile?: boolean;
 }
 
 /**
@@ -66,7 +67,7 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true }, ref) => {
   // Use getFixedT to translate without changing global state
   const { i18n } = useTranslation();
   const t = i18n.getFixedT(language);
@@ -330,194 +331,195 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
       </div>
 
       {/* Doctor Profile (Back Page) */}
-      <section className="break-before-page min-h-[296mm] p-8 flex flex-col justify-center" style={{ pageBreakBefore: 'always' }}>
-        <div className="border-4 border-primary/20 rounded-xl p-6 flex flex-col justify-start bg-white h-full relative overflow-hidden">
+      {showDoctorProfile !== false && (
+        <section className="break-before-page min-h-[296mm] p-8 flex flex-col justify-center" style={{ pageBreakBefore: 'always' }}>
+          <div className="border-4 border-primary/20 rounded-xl p-6 flex flex-col justify-start bg-white h-full relative overflow-hidden">
 
-          {language === 'te' ? (
-            // Telugu Content
-            <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
+            {language === 'te' ? (
+              // Telugu Content
+              <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
 
-              {/* Top Section: Split Layout (Name & Image) */}
-              <div className="flex flex-row justify-between items-start gap-6 pb-6">
-                {/* Left: Text Info */}
-                <div className="flex-1 space-y-4">
-                  <h2 className="text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
+                {/* Top Section: Split Layout (Name & Image) */}
+                <div className="flex flex-row justify-between items-start gap-6 pb-6">
+                  {/* Left: Text Info */}
+                  <div className="flex-1 space-y-4">
+                    <h2 className="text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
+                    <div className="space-y-1">
+                      <h3 className="text-2xl font-bold text-foreground">డాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి</h3>
+                      <p className="text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (మణిపాల్)</p>
+                      <p className="text-lg font-medium text-foreground/80 leading-snug">కన్సల్టెంట్ ఆర్థోపెడిక్, జాయింట్ రీప్లేస్మెంట్ & స్పైన్ సర్జన్</p>
+                    </div>
+                  </div>
 
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-bold text-foreground">డాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి</h3>
-                    <p className="text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (మణిపాల్)</p>
-                    <p className="text-lg font-medium text-foreground/80 leading-snug">కన్సల్టెంట్ ఆర్థోపెడిక్, జాయింట్ రీప్లేస్మెంట్ & స్పైన్ సర్జన్</p>
+                  {/* Right: Image */}
+                  <div className="flex-shrink-0 pt-2">
+                    <img
+                      src="/images/doctors/manojBW.jpg"
+                      alt="Dr. Samuel Manoj Cherukuri"
+                      className="w-48 h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
+                    />
                   </div>
                 </div>
 
-                {/* Right: Image */}
-                <div className="flex-shrink-0 pt-2">
-                  <img
-                    src="/images/doctors/manojBW.jpg"
-                    alt="Dr. Samuel Manoj Cherukuri"
-                    className="w-48 h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
-                  />
+                {/* Middle: Full Width About Section */}
+                <div className="border-b-2 border-primary/10 pb-8">
+                  <p className="text-lg leading-relaxed text-justify text-muted-foreground">
+                    డాక్టర్ మనోజ్ గారు మణిపాల్ హాస్పిటల్ నుండి ప్రత్యేక శిక్షణ పొంది, ఎముకలు మరియు కీళ్ల సమస్యలకు అత్యాధునిక చికిత్సను అందిస్తున్నారు. శస్త్రచికిత్స నైపుణ్యంతో పాటు ఆధునిక వైద్య పద్ధతుల కలయికతో మెరుగైన ఫలితాలను అందిస్తారు.
+                  </p>
+                </div>
+
+                {/* Bottom Section: Full Width Services */}
+                <div className="flex-grow">
+                  <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2 border-b border-primary/10 pb-1">
+                    <Activity className="h-5 w-5 text-primary" />
+                    ప్రత్యేక సేవలు
+                  </h3>
+
+                  <ul className="space-y-2 text-base">
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Bone className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">ట్రామా & ఫ్రాక్చర్ కేర్</strong>
+                        <span className="text-muted-foreground text-sm">క్లిష్టమైన ఎముకల విరుగుడుకు అధునాతన చికిత్స మరియు శస్త్రచికిత్సలు.</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Activity className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">ఆర్థ్రోస్కోపీ (కీహోల్ సర్జరీ)</strong>
+                        <span className="text-muted-foreground text-sm">లిగమెంట్ మరియు క్రీడా గాయాలకు అతి తక్కువ కోతతో చేసే అధునాతన శస్త్రచికిత్స.</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <User className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">జాయింట్ రీప్లేస్మెంట్</strong>
+                        <span className="text-muted-foreground text-sm">మోకాలి మరియు తుంటి కీళ్ల మార్పిడి శస్త్రచికిత్సలు (Total Knee & Hip Replacement).</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Stethoscope className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">వెన్నెముక (Spine) సంరక్షణ</strong>
+                        <span className="text-muted-foreground text-sm">నడుము మరియు మెడ నొప్పికి శస్త్రచికిత్స మరియు శస్త్రచికిత్స లేని పరిష్కారాలు.</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Syringe className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">రీజెనరేటివ్ మెడిసిన్</strong>
+                        <span className="text-muted-foreground text-sm">కీళ్ల నొప్పుల నివారణకు PRP (Platelet Rich Plasma) మరియు విస్కో (Visco) ఇంజెక్షన్లు.</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Footer Note */}
+                <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
+                  <p className="font-semibold text-primary">ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03</p>
+                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong>99 838 49 838</strong></p>
                 </div>
               </div>
 
-              {/* Middle: Full Width About Section */}
-              <div className="border-b-2 border-primary/10 pb-8">
-                <p className="text-lg leading-relaxed text-justify text-muted-foreground">
-                  డాక్టర్ మనోజ్ గారు మణిపాల్ హాస్పిటల్ నుండి ప్రత్యేక శిక్షణ పొంది, ఎముకలు మరియు కీళ్ల సమస్యలకు అత్యాధునిక చికిత్సను అందిస్తున్నారు. శస్త్రచికిత్స నైపుణ్యంతో పాటు ఆధునిక వైద్య పద్ధతుల కలయికతో మెరుగైన ఫలితాలను అందిస్తారు.
-                </p>
-              </div>
+            ) : (
+              // English Content
+              <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
 
-              {/* Bottom Section: Full Width Services */}
-              <div className="flex-grow">
-                <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2 border-b border-primary/10 pb-1">
-                  <Activity className="h-5 w-5 text-primary" />
-                  ప్రత్యేక సేవలు
-                </h3>
+                {/* Top Section: Split Layout (Name & Image) */}
+                <div className="flex flex-row justify-between items-start gap-6 pb-6">
+                  {/* Left: Text Info */}
+                  <div className="flex-1 space-y-4">
+                    <h2 className="text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
 
-                <ul className="space-y-2 text-base">
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Bone className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">ట్రామా & ఫ్రాక్చర్ కేర్</strong>
-                      <span className="text-muted-foreground text-sm">క్లిష్టమైన ఎముకల విరుగుడుకు అధునాతన చికిత్స మరియు శస్త్రచికిత్సలు.</span>
+                    <div className="space-y-1">
+                      <h3 className="text-2xl font-bold text-foreground">Dr. Samuel Manoj Cherukuri</h3>
+                      <p className="text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
+                      <p className="text-lg font-medium text-foreground/80 leading-snug">Consultant Orthopaedic, Joint Replacement & Spine Surgeon</p>
                     </div>
-                  </li>
+                  </div>
 
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Activity className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">ఆర్థ్రోస్కోపీ (కీహోల్ సర్జరీ)</strong>
-                      <span className="text-muted-foreground text-sm">లిగమెంట్ మరియు క్రీడా గాయాలకు అతి తక్కువ కోతతో చేసే అధునాతన శస్త్రచికిత్స.</span>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <User className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">జాయింట్ రీప్లేస్మెంట్</strong>
-                      <span className="text-muted-foreground text-sm">మోకాలి మరియు తుంటి కీళ్ల మార్పిడి శస్త్రచికిత్సలు (Total Knee & Hip Replacement).</span>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Stethoscope className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">వెన్నెముక (Spine) సంరక్షణ</strong>
-                      <span className="text-muted-foreground text-sm">నడుము మరియు మెడ నొప్పికి శస్త్రచికిత్స మరియు శస్త్రచికిత్స లేని పరిష్కారాలు.</span>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Syringe className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">రీజెనరేటివ్ మెడిసిన్</strong>
-                      <span className="text-muted-foreground text-sm">కీళ్ల నొప్పుల నివారణకు PRP (Platelet Rich Plasma) మరియు విస్కో (Visco) ఇంజెక్షన్లు.</span>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Footer Note */}
-              <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
-                <p className="font-semibold text-primary">ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03</p>
-                <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong>99 838 49 838</strong></p>
-              </div>
-            </div>
-
-          ) : (
-            // English Content
-            <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
-
-              {/* Top Section: Split Layout (Name & Image) */}
-              <div className="flex flex-row justify-between items-start gap-6 pb-6">
-                {/* Left: Text Info */}
-                <div className="flex-1 space-y-4">
-                  <h2 className="text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
-
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-bold text-foreground">Dr. Samuel Manoj Cherukuri</h3>
-                    <p className="text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
-                    <p className="text-lg font-medium text-foreground/80 leading-snug">Consultant Orthopaedic, Joint Replacement & Spine Surgeon</p>
+                  {/* Right: Image */}
+                  <div className="flex-shrink-0 pt-2">
+                    <img
+                      src="/images/doctors/manojBW.jpg"
+                      alt="Dr. Samuel Manoj Cherukuri"
+                      className="w-48 h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
+                    />
                   </div>
                 </div>
 
-                {/* Right: Image */}
-                <div className="flex-shrink-0 pt-2">
-                  <img
-                    src="/images/doctors/manojBW.jpg"
-                    alt="Dr. Samuel Manoj Cherukuri"
-                    className="w-48 h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
-                  />
+                {/* Middle: Full Width About Section */}
+                <div className="border-b-2 border-primary/10 pb-8">
+                  <p className="text-lg leading-relaxed text-justify text-muted-foreground">
+                    Dr. Manoj brings specialized training from Manipal Hospital to provide advanced musculoskeletal care. His practice blends surgical precision with modern biological treatments, focusing on restoring mobility and quality of life.
+                  </p>
                 </div>
+
+                {/* Bottom Section: Full Width Services */}
+                <div className="flex-grow">
+                  <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2 border-b border-primary/10 pb-1">
+                    <Activity className="h-5 w-5 text-primary" />
+                    Specialized Services
+                  </h3>
+
+                  <ul className="space-y-2 text-base">
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Bone className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">Trauma & Fracture Care</strong>
+                        <span className="text-muted-foreground text-sm">Advanced fixation techniques for complex injuries and fractures.</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Activity className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">Arthroscopy (Keyhole Surgery)</strong>
+                        <span className="text-muted-foreground text-sm">Minimally invasive ligament and sports injury repair for faster recovery.</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <User className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">Joint Replacement</strong>
+                        <span className="text-muted-foreground text-sm">Total Knee and Hip replacements ensuring lasting mobility.</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Stethoscope className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">Spine Care</strong>
+                        <span className="text-muted-foreground text-sm">Comprehensive surgical and non-surgical management of back and neck pain.</span>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                      <Syringe className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                      <div>
+                        <strong className="block text-primary text-lg mb-0.5">Regenerative Medicine</strong>
+                        <span className="text-muted-foreground text-sm">PRP (Platelet Rich Plasma) and Viscosupplementation for joint preservation.</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Footer Note */}
+                <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
+                  <p className="font-semibold text-primary">OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03</p>
+                  <p>For Appointments, Contact: <strong>99 838 49 838</strong></p>
+                </div>
+
               </div>
-
-              {/* Middle: Full Width About Section */}
-              <div className="border-b-2 border-primary/10 pb-8">
-                <p className="text-lg leading-relaxed text-justify text-muted-foreground">
-                  Dr. Manoj brings specialized training from Manipal Hospital to provide advanced musculoskeletal care. His practice blends surgical precision with modern biological treatments, focusing on restoring mobility and quality of life.
-                </p>
-              </div>
-
-              {/* Bottom Section: Full Width Services */}
-              <div className="flex-grow">
-                <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2 border-b border-primary/10 pb-1">
-                  <Activity className="h-5 w-5 text-primary" />
-                  Specialized Services
-                </h3>
-
-                <ul className="space-y-2 text-base">
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Bone className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">Trauma & Fracture Care</strong>
-                      <span className="text-muted-foreground text-sm">Advanced fixation techniques for complex injuries and fractures.</span>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Activity className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">Arthroscopy (Keyhole Surgery)</strong>
-                      <span className="text-muted-foreground text-sm">Minimally invasive ligament and sports injury repair for faster recovery.</span>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <User className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">Joint Replacement</strong>
-                      <span className="text-muted-foreground text-sm">Total Knee and Hip replacements ensuring lasting mobility.</span>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Stethoscope className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">Spine Care</strong>
-                      <span className="text-muted-foreground text-sm">Comprehensive surgical and non-surgical management of back and neck pain.</span>
-                    </div>
-                  </li>
-
-                  <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                    <Syringe className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <strong className="block text-primary text-lg mb-0.5">Regenerative Medicine</strong>
-                      <span className="text-muted-foreground text-sm">PRP (Platelet Rich Plasma) and Viscosupplementation for joint preservation.</span>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Footer Note */}
-              <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
-                <p className="font-semibold text-primary">OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03</p>
-                <p>For Appointments, Contact: <strong>99 838 49 838</strong></p>
-              </div>
-
-            </div>
-          )}
-        </div>
-      </section>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 });

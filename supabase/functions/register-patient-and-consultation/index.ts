@@ -33,7 +33,7 @@ serve(async (req) => {
   }
 
   try {
-    const { id, name, dob, sex, phone, driveId: existingDriveId, location } = await req.json();
+    const { id, name, dob, sex, phone, driveId: existingDriveId, location, is_dob_estimated } = await req.json();
 
     // Sanitize phone to last 10 digits
     const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
@@ -155,7 +155,7 @@ serve(async (req) => {
     const newPatientId = id || await generateIncrementalId(supabase);
     const { data: newPatient, error: newPatientError } = await supabase
       .from('patients')
-      .insert({ id: newPatientId, name, dob, sex, phone: sanitizedPhone, drive_id: driveId })
+      .insert({ id: newPatientId, name, dob, sex, phone: sanitizedPhone, drive_id: driveId, is_dob_estimated: is_dob_estimated ?? true })
       .select('id, created_at, drive_id')
       .single();
 

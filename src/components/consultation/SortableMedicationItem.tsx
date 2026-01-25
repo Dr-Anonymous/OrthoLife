@@ -22,11 +22,11 @@ interface SortableMedicationItemProps {
     setExtraData: React.Dispatch<React.SetStateAction<any>>;
     medicationNameInputRef: React.RefObject<HTMLInputElement | null>;
     fetchSavedMedications: () => void;
-    i18n: any;
     medFrequencyRefs: React.MutableRefObject<{ [key: string]: HTMLTextAreaElement | null }>;
     medDurationRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
     medInstructionsRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
     medNotesRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
+    language: string;
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -38,11 +38,11 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     setExtraData,
     medicationNameInputRef,
     fetchSavedMedications,
-    i18n,
     medFrequencyRefs,
     medDurationRefs,
     medInstructionsRefs,
-    medNotesRefs
+    medNotesRefs,
+    language
 }) => {
     const {
         attributes,
@@ -77,7 +77,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
         }
         setIsSavingFavorite(true);
         try {
-            const isTelugu = i18n.language === 'te';
+            const isTelugu = language === 'te';
             const payload: any = {
                 name: med.name,
                 dose: med.dose,
@@ -168,7 +168,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 onSuggestionSelected={suggestion => {
                                     const savedMed = savedMedications.find(m => m.id === suggestion.id);
                                     if (savedMed) {
-                                        const medToAdd = i18n.language === 'te' ? {
+                                        const medToAdd = language === 'te' ? {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
                                             name: savedMed.name,
@@ -255,15 +255,33 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 <span className="text-sm">Custom</span>
                             </label>
                         </div>
-                        {isCustom &&
-                            <Textarea
-                                ref={el => medFrequencyRefs.current[`${index}.frequency`] = el}
-                                value={med.frequency || ''}
-                                onChange={e => handleMedChange(index, 'frequency', e.target.value, e.target.selectionStart)}
-                                placeholder="e.g., once a week"
-                                onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
-                            />
-                        }
+                        {isCustom && (
+                            <>
+                                <Textarea
+                                    ref={el => medFrequencyRefs.current[`${index}.frequency`] = el}
+                                    value={med.frequency || ''}
+                                    onChange={e => handleMedChange(index, 'frequency', e.target.value, e.target.selectionStart)}
+                                    placeholder="e.g., once a week"
+                                    onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                />
+                                {(!med.frequency) && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {(language === 'te'
+                                            ? ["వారానికి ఒకసారి", "అవసరమైతే"]
+                                            : ["1/week", "If needed"]
+                                        ).map(text => (
+                                            <div
+                                                key={text}
+                                                className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                                                onClick={() => handleMedChange(index, 'frequency', text)}
+                                            >
+                                                {text}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-2">
@@ -285,6 +303,19 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 placeholder="Special instructions"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                             />
+                            {(!med.instructions) && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    {(language === 'te' ? ["ఆహరం ముందు", "ఆహరం తర్వాత"] : ["Bef. food", "Aft. food"]).map(text => (
+                                        <div
+                                            key={text}
+                                            className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                                            onClick={() => handleMedChange(index, 'instructions', text)}
+                                        >
+                                            {text}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -298,7 +329,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                         />
                     </div>
                 </div>
-            </Card>
-        </div>
+            </Card >
+        </div >
     );
 };

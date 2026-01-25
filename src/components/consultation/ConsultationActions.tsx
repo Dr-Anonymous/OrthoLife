@@ -19,6 +19,8 @@ interface ConsultationActionsProps {
     onSendCompletionClick: () => void;
     isAutoSendEnabled?: boolean;
     onToggleAutoSend?: () => void;
+    showDoctorProfile?: boolean;
+    onToggleDoctorProfile?: (checked: boolean) => void;
 }
 
 /**
@@ -45,7 +47,9 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onManageShortcutsClick,
     onSendCompletionClick,
     isAutoSendEnabled,
-    onToggleAutoSend
+    onToggleAutoSend,
+    showDoctorProfile,
+    onToggleDoctorProfile
 }) => {
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
@@ -105,6 +109,26 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                         </div>
 
                         <DropdownMenuSeparator className="my-2" />
+
+                        <div
+                            className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onToggleDoctorProfile?.(!showDoctorProfile);
+                            }}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Print Doctor Profile</span>
+                                <Switch
+                                    checked={showDoctorProfile}
+                                    onCheckedChange={() => { }} // Handled by parent div click
+                                    className="scale-75"
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                                Include doctor profile in print.
+                            </p>
+                        </div>
 
                         <div
                             className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors"

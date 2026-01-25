@@ -24,8 +24,6 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ConflictResolutionModal } from '@/components/consultation/ConflictResolutionModal';
-import { PatientConflictModal } from '@/components/consultation/PatientConflictModal';
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
 import { CompletionMessageModal } from '@/components/consultation/CompletionMessageModal';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,7 +46,6 @@ import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
 import { Guide } from '@/types/consultation';
 import { useConsultationTimer } from '@/hooks/useConsultationTimer';
-import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { generateCompletionMessage as generateCompletionMessageUtil } from '@/lib/consultation-utils';
 
 
@@ -228,6 +225,26 @@ const ConsultationPage = () => {
   const [isPatientDatePickerOpen, setIsPatientDatePickerOpen] = useState(false);
   const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
 
+  // Doctor Profile Visibility (Location-Aware)
+  const [showDoctorProfile, setShowDoctorProfile] = useState<boolean>(true);
+
+  // Load profile preference on location change
+  useEffect(() => {
+    if (selectedHospital.name) {
+      const key = `showDoctorProfile_${selectedHospital.name}`;
+      const stored = localStorage.getItem(key);
+      // Default to true if not set
+      setShowDoctorProfile(stored !== null ? JSON.parse(stored) : true);
+    }
+  }, [selectedHospital.name]);
+
+  const toggleDoctorProfile = (checked: boolean) => {
+    setShowDoctorProfile(checked);
+    if (selectedHospital.name) {
+      localStorage.setItem(`showDoctorProfile_${selectedHospital.name}`, JSON.stringify(checked));
+    }
+  };
+
   // Guide Matching
   const [guides, setGuides] = useState<Guide[]>([]);
   useEffect(() => {
@@ -323,6 +340,14 @@ const ConsultationPage = () => {
 
 
   const fetchConsultations = useCallback(async (date: Date = selectedDate || new Date(), patientId?: string, consultationData?: any) => {
+    // Offline Guard
+    if (!isOnline) {
+      console.log("Offline mode: Skipping fetchConsultations");
+      setAllConsultations([]); // Or load local if desired, but empty is safe to stop spinner
+      setIsFetchingConsultations(false);
+      return;
+    }
+
     setIsFetchingConsultations(true);
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
@@ -361,13 +386,17 @@ const ConsultationPage = () => {
       } else {
         setAllConsultations([]);
       }
-    } catch (error) {
-      console.error('Error fetching consultations:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch consultations.' });
+    } catch (error: any) {
+      // Suppress network errors if we went offline mid-request
+      const isNetworkError = error.message?.includes('Failed to send a request') || error.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        console.error('Error fetching consultations:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch consultations.' });
+      }
     } finally {
       setIsFetchingConsultations(false);
     }
-  }, [selectedDate, selectedHospital, confirmSelection]);
+  }, [selectedDate, selectedHospital, confirmSelection, isOnline]);
 
   useEffect(() => {
     if (selectedHospital.name) { // Only fetch if a hospital is selected
@@ -507,7 +536,7 @@ const ConsultationPage = () => {
         medications: (restExtraData.medications || []).map(cleanMedicationForSave)
       });
 
-      if (!isOnline) {
+      const saveToOfflineStore = async () => {
         const offlineData = {
           patientDetails: editablePatientDetails,
           extraData: dataToSave,
@@ -515,66 +544,86 @@ const ConsultationPage = () => {
           timestamp: new Date().toISOString(),
         };
         await offlineStore.setItem(selectedConsultation.id, offlineData);
-        // setPendingSyncIds handled globally by scanning store
         toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
+      };
+
+      if (!isOnline) {
+        await saveToOfflineStore();
       } else {
-        if (patientDetailsChanged) {
-          const { error: patientUpdateError } = await supabase
-            .from('patients')
-            .update({
-              name: editablePatientDetails.name,
-              dob: editablePatientDetails.dob,
-              sex: editablePatientDetails.sex,
-              phone: editablePatientDetails.phone,
-              is_dob_estimated: editablePatientDetails.is_dob_estimated
-            })
-            .eq('id', editablePatientDetails.id);
-          if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-        }
+        try {
+          if (patientDetailsChanged) {
+            const { error: patientUpdateError } = await supabase
+              .from('patients')
+              .update({
+                name: editablePatientDetails.name,
+                dob: editablePatientDetails.dob,
+                sex: editablePatientDetails.sex,
+                phone: editablePatientDetails.phone,
+                is_dob_estimated: editablePatientDetails.is_dob_estimated
+              })
+              .eq('id', editablePatientDetails.id);
+            if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
+          }
 
-        const consultationUpdatePayload: {
-          consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string, duration?: number,
-          procedure_fee?: number | null, procedure_consultant_cut?: number | null, referred_by?: string | null, referral_amount?: number | null
-        } = {};
+          const consultationUpdatePayload: {
+            consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string, duration?: number,
+            procedure_fee?: number | null, procedure_consultant_cut?: number | null, referred_by?: string | null, referral_amount?: number | null
+          } = {};
 
-        if (hasUnsavedChanges || locationChanged || languageChanged) {
-          consultationUpdatePayload.consultation_data = dataToSave;
-          consultationUpdatePayload.visit_type = extraData.visit_type;
-          consultationUpdatePayload.location = selectedHospital.name;
-          consultationUpdatePayload.language = consultationLanguage;
+          if (hasUnsavedChanges || locationChanged || languageChanged) {
+            consultationUpdatePayload.consultation_data = dataToSave;
+            consultationUpdatePayload.visit_type = extraData.visit_type;
+            consultationUpdatePayload.location = selectedHospital.name;
+            consultationUpdatePayload.language = consultationLanguage;
 
-          // New Columns
-          consultationUpdatePayload.procedure_fee = procedure_fee ? Number(procedure_fee) : null;
-          consultationUpdatePayload.procedure_consultant_cut = procedure_consultant_cut ? Number(procedure_consultant_cut) : null;
-          consultationUpdatePayload.referred_by = referred_by || null;
-          consultationUpdatePayload.referral_amount = referral_amount ? Number(referral_amount) : null;
-        }
-        if (statusChanged) {
-          consultationUpdatePayload.status = newStatus;
-          if (newStatus === 'completed') {
-            stopTimer();
-            isTimerPausedRef.current = true;
+            // New Columns
+            consultationUpdatePayload.procedure_fee = procedure_fee ? Number(procedure_fee) : null;
+            consultationUpdatePayload.procedure_consultant_cut = procedure_consultant_cut ? Number(procedure_consultant_cut) : null;
+            consultationUpdatePayload.referred_by = referred_by || null;
+            consultationUpdatePayload.referral_amount = referral_amount ? Number(referral_amount) : null;
+          }
+          if (statusChanged) {
+            consultationUpdatePayload.status = newStatus;
+            if (newStatus === 'completed') {
+              stopTimer();
+              isTimerPausedRef.current = true;
+            }
+          }
+
+          // Always save duration
+          consultationUpdatePayload.duration = timerSeconds;
+
+          if (Object.keys(consultationUpdatePayload).length > 0) {
+            const { error: updateError } = await supabase
+              .from('consultations')
+              .update(consultationUpdatePayload)
+              .eq('id', selectedConsultation.id);
+            if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
+          }
+
+          if (statusChanged && newStatus === 'completed' && selectedConsultation.status !== 'completed') {
+            sendConsultationCompletionNotification(editablePatientDetails, matchedGuides);
+          }
+
+          await offlineStore.removeItem(selectedConsultation.id);
+          // setPendingSyncIds handled globally
+          if (!options.skipToast) toast({ title: 'Success', description: 'Your changes have been saved.' });
+        } catch (onlineError: any) {
+          console.error("Online save failed:", onlineError);
+          const isNetworkError =
+            onlineError.message?.includes('Failed to send a request') ||
+            onlineError.message?.includes('Failed to fetch') ||
+            onlineError.message?.includes('NetworkError') ||
+            onlineError.name === 'TypeError'; // fetch often throws TypeError on network fail
+
+          if (isNetworkError) {
+            console.log("Network error detected during save, falling back to offline store.");
+            await saveToOfflineStore();
+            return true;
+          } else {
+            throw onlineError; // Re-throw logic errors
           }
         }
-
-        // Always save duration
-        consultationUpdatePayload.duration = timerSeconds;
-
-        if (Object.keys(consultationUpdatePayload).length > 0) {
-          const { error: updateError } = await supabase
-            .from('consultations')
-            .update(consultationUpdatePayload)
-            .eq('id', selectedConsultation.id);
-          if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
-        }
-
-        if (statusChanged && newStatus === 'completed' && selectedConsultation.status !== 'completed') {
-          sendConsultationCompletionNotification(editablePatientDetails, matchedGuides);
-        }
-
-        await offlineStore.removeItem(selectedConsultation.id);
-        // setPendingSyncIds handled globally
-        if (!options.skipToast) toast({ title: 'Success', description: 'Your changes have been saved.' });
       }
 
       const updatedConsultation = {
@@ -603,7 +652,7 @@ const ConsultationPage = () => {
       return true;
     } catch (err) {
       console.error(err);
-      toast({ variant: "destructive", title: "Error", description: "Failed to save." });
+      toast({ variant: "destructive", title: "Error", description: "Failed to save. Please try again." });
       return false;
     } finally {
       setIsSaving(false);
@@ -1333,7 +1382,7 @@ const ConsultationPage = () => {
                   setExtraData={setExtraData}
                   medicationNameInputRef={medicationNameInputRef}
                   fetchSavedMedications={fetchSavedMedications}
-                  i18n={i18n}
+                  language={consultationLanguage}
                   medFrequencyRefs={medFrequencyRefs}
                   medDurationRefs={medDurationRefs}
                   medInstructionsRefs={medInstructionsRefs}
@@ -1434,19 +1483,22 @@ const ConsultationPage = () => {
                   onSendCompletionClick={handleOpenCompletionModal}
                   isAutoSendEnabled={isAutoSendEnabled}
                   onToggleAutoSend={() => setIsAutoSendEnabled(!isAutoSendEnabled)}
+                  showDoctorProfile={showDoctorProfile}
+                  onToggleDoctorProfile={toggleDoctorProfile}
                 />
-              </div >
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center bg-muted/30 rounded-lg">
                 <p className="text-lg text-muted-foreground">Select a patient to view details.</p>
               </div>
             )}
-          </div >
-        </div >
-      </div >
+          </div>
+        </div>
+      </div>
 
       {/* Hidden Print Components */}
-      <div style={{ position: 'absolute', left: '-9999px' }}><div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={consultationLanguage} logoUrl={selectedHospital.logoUrl} className="min-h-[297mm]" visitType={extraData.visit_type} forceDesktop={true} />}</div></div>
+      < div style={{ position: 'absolute', left: '-9999px' }
+      }> <div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={consultationLanguage} logoUrl={selectedHospital.logoUrl} className="min-h-[297mm]" visitType={extraData.visit_type} forceDesktop={true} />}</div></div >
       <div style={{ position: 'absolute', left: '-9999px' }}><div ref={certificatePrintRef}>{selectedConsultation && editablePatientDetails && certificateData && <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} />}</div></div>
       <div style={{ position: 'absolute', left: '-9999px' }}><div ref={receiptPrintRef}>{selectedConsultation && editablePatientDetails && receiptData && <Receipt patient={editablePatientDetails} receiptData={receiptData} />}</div></div>
 
