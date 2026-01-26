@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
 import { Input } from '@/components/ui/input';
+import { FamilyMemberManager } from './FamilyMemberManager';
 
 interface ConsultationSidebarProps {
     selectedHospitalName: string;
@@ -36,8 +37,10 @@ interface ConsultationSidebarProps {
     completedConsultations: Consultation[];
 
     selectedConsultationId: string | undefined;
+    selectedConsultation?: Consultation | null;
     onSelectConsultation: (consultation: Consultation) => void;
     onDeleteClick: (e: React.MouseEvent, consultation: Consultation) => void;
+    onShowPatientHistory: (patientId: string) => void;
 
 
 
@@ -83,8 +86,10 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     evaluationConsultations,
     completedConsultations,
     selectedConsultationId,
+    selectedConsultation,
     onSelectConsultation,
     onDeleteClick,
+    onShowPatientHistory,
     personalNote,
     onPersonalNoteChange,
     isEvaluationCollapsed,
@@ -215,7 +220,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     </PopoverContent>
                 </Popover>
             </div>
-            {selectedConsultationId && (
+            {selectedConsultationId && selectedConsultation && (
                 <div className={cn(
                     "space-y-2 p-3 rounded-md border transition-all duration-300",
                     personalNote
@@ -252,6 +257,25 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         />
                     )}
                 </div>
+            )}
+
+            {selectedConsultationId && selectedConsultation && (
+                <FamilyMemberManager
+                    currentPatientId={String(selectedConsultation.patient.id)}
+                    currentPatientName={selectedConsultation.patient.name}
+                    onSelectPatient={(p) => {
+                        // Check if this patient has a consultation in the visible list
+                        // If so, switch to it. If not, maybe show a toast or navigation hint.
+                        const consultation = visibleConsultations.find(c => String(c.patient.id) === String(p.id));
+                        if (consultation) {
+                            onSelectConsultation(consultation);
+                        } else {
+                            // If navigation to history is needed, we'd need more logic. 
+                            // For now, simple indication.
+                        }
+                    }}
+                    onViewHistory={onShowPatientHistory}
+                />
             )}
             <div className="space-y-4">
                 <div className="flex flex-col gap-2">

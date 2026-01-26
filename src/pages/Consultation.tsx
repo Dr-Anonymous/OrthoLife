@@ -112,13 +112,21 @@ const ConsultationPage = () => {
   // --- Modals State ---
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<Consultation | null>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletePatientAlso, setDeletePatientAlso] = useState<boolean>(false);
+
+  // History Modal State - generalized to support any patient
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyPatientId, setHistoryPatientId] = useState<string | null>(null);
+
+  const handleOpenHistory = (patientId: string) => {
+    setHistoryPatientId(patientId);
+    setIsHistoryModalOpen(true);
+  };
   const [isOnlyConsultation, setIsOnlyConsultation] = useState<boolean>(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
@@ -1302,9 +1310,10 @@ const ConsultationPage = () => {
             evaluationConsultations={evaluationConsultations}
             completedConsultations={completedConsultations}
             selectedConsultationId={selectedConsultation?.id}
-            onSelectConsultation={confirmSelection}
-            onDeleteClick={deleteConsultation}
-
+            selectedConsultation={selectedConsultation}
+            onSelectConsultation={handleSelectConsultation}
+            onDeleteClick={handleDeleteClick}
+            onShowPatientHistory={handleOpenHistory}
             personalNote={extraData.personalNote}
             onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
             isEvaluationCollapsed={isEvaluationCollapsed}
@@ -1324,7 +1333,7 @@ const ConsultationPage = () => {
                   visitType={extraData.visit_type}
                   onVisitTypeChange={(t) => handleExtraChange('visit_type', t)}
                   lastVisitDate={lastVisitDate}
-                  onHistoryClick={() => setIsHistoryModalOpen(true)}
+                  onHistoryClick={() => selectedConsultation?.patient.id && handleOpenHistory(String(selectedConsultation.patient.id))}
                   onPatientDetailsChange={handlePatientDetailsChange}
                   isPatientDatePickerOpen={isPatientDatePickerOpen}
                   setIsPatientDatePickerOpen={setIsPatientDatePickerOpen}
@@ -1506,7 +1515,14 @@ const ConsultationPage = () => {
       <SavedMedicationsModal isOpen={isMedicationsModalOpen} onClose={() => setIsMedicationsModalOpen(false)} onMedicationsUpdate={fetchSavedMedications} />
       <KeywordManagementModal isOpen={isKeywordModalOpen} onClose={() => { setIsKeywordModalOpen(false); setKeywordModalPrefill(null); }} prefilledData={keywordModalPrefill} />
       <UnsavedChangesModal isOpen={isUnsavedModalOpen} onConfirm={handleConfirmSave} onDiscard={handleDiscardChanges} />
-      <PatientHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} patientId={selectedConsultation?.patient.id || null} />
+      <PatientHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => {
+          setIsHistoryModalOpen(false);
+          setHistoryPatientId(null);
+        }}
+        patientId={historyPatientId}
+      />
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
           <DialogHeader>

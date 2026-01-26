@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Calendar, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import ConsultationCard from './ConsultationCard';
 
 interface PatientHistoryModalProps {
@@ -78,7 +78,9 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <p className="font-semibold">{format(new Date(item.created_at), 'PPP')}</p>
+                        <p className="font-semibold">
+                          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })} ({format(new Date(item.created_at), 'PPP')})
+                        </p>
                       </div>
                       {item.location && (
                         <div className="flex items-center gap-2">
