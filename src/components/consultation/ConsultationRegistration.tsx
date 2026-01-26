@@ -49,6 +49,7 @@ interface FormData {
 interface ConsultationRegistrationProps {
   onSuccess?: (newPatient: any, consultationData?: any) => void;
   location?: string;
+  existingConsultations?: any[];
 }
 
 /**
@@ -62,7 +63,7 @@ interface ConsultationRegistrationProps {
  * - Auto-calc of visit type (Paid/Free) based on history (14-day rule).
  * - Duplicate check via backend logic.
  */
-const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location }) => {
+const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location, existingConsultations = [] }) => {
   const isOnline = useOnlineStatus();
   const { getHospitalByName } = useHospitals();
   const [formData, setFormData] = useState<FormData>({
@@ -273,6 +274,25 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setIsSubmitting(true);
 
     const saveOfflinePatient = async () => {
+      // Offline Duplicate Check
+      // We check against the locally loaded list of today's consultations
+      if (existingConsultations && existingConsultations.length > 0) {
+        const isDuplicate = existingConsultations.some(c =>
+          String(c.patient?.phone) === String(formData.phone) &&
+          c.patient?.name?.toLowerCase().trim() === formData.name.toLowerCase().trim()
+        );
+
+        if (isDuplicate) {
+          toast({
+            variant: 'destructive',
+            title: 'Duplicate Consultation',
+            description: 'This patient is already registered for today at this location.',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       try {
         const tempId = `offline-${Date.now()}`;
         const newPatient = {

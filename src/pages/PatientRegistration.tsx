@@ -4,7 +4,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Printer, Pencil, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Printer, Pencil, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -61,6 +61,46 @@ const PatientRegistration = () => {
       }, 100);
     }
   }, [printingConsultation, handlePrint]);
+
+  const handleDelete = async (c: any) => {
+    if (!window.confirm("Are you sure you want to delete this consultation?")) return;
+
+    try {
+      // Offline Deletion
+      if (String(c.id).startsWith('offline-') || String(c.patient_id).startsWith('offline-')) {
+        // Identify the correct key. Use patient_id if it's an offline key (most common for new registrations), else consultation id.
+        const key = String(c.patient_id).startsWith('offline-') ? c.patient_id : c.id;
+        await offlineStore.removeItem(key);
+        setTodaysConsultations(prev => prev.filter(x => x.id !== c.id));
+        toast({ title: "Deleted", description: "Offline consultation removed." });
+        return;
+      }
+
+      // Online Deletion
+      // Check if this is the only consultation for the patient
+      const { count } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .eq('patient_id', c.patient.id);
+
+      const isLast = count === 1;
+
+      const { error } = await supabase.from('consultations').delete().eq('id', c.id);
+      if (error) throw error;
+
+      if (isLast) {
+        const { error: pError } = await supabase.from('patients').delete().eq('id', c.patient.id);
+        if (pError) console.error("Error deleting patient", pError);
+      }
+
+      setTodaysConsultations(prev => prev.filter(x => x.id !== c.id));
+      toast({ title: "Deleted", description: "Consultation deleted." });
+
+    } catch (e: any) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Error", description: e.message || "Failed to delete." });
+    }
+  };
 
   const fetchTodaysConsultations = async () => {
     setIsFetchingConsultations(true);
@@ -173,7 +213,7 @@ const PatientRegistration = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            <ConsultationRegistration onSuccess={fetchTodaysConsultations} location={locationName} />
+            <ConsultationRegistration onSuccess={fetchTodaysConsultations} location={locationName} existingConsultations={filteredConsultations} />
           </CardContent>
         </Card>
 
@@ -234,6 +274,18 @@ const PatientRegistration = () => {
                           <Pencil className="h-4 w-4" />
                           <span className="sr-only">Edit Patient</span>
                         </Button>
+
+                        {c.status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            onClick={() => handleDelete(c)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete Consultation</span>
+                          </Button>
+                        )}
 
                         {c.status === 'completed' && (
                           <Button

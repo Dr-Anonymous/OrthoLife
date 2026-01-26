@@ -139,8 +139,21 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                 });
                                 if (error) throw error;
 
-                                createdConsultationId = data.consultation.id;
-                                createdPatientId = data.consultation.patient_id;
+                                if (data?.status === 'error') {
+                                    console.warn("Backend rejected offline registration:", data.message);
+                                    // If backend rejects it (e.g. duplicate), we must discard the offline attempt to prevent crash loop
+                                    // Ideally we'd notify user, but for now we just clean up
+                                    await offlineStore.removeItem(key);
+                                    setPendingSyncIds(prev => prev.filter(id => id !== key));
+                                    continue;
+                                }
+
+                                createdConsultationId = data.consultation?.id;
+                                createdPatientId = data.consultation?.patient_id;
+
+                                if (!createdConsultationId) {
+                                    throw new Error("Invalid response format from register-patient-and-consultation");
+                                }
 
                                 // Update the automatically created consultation with actual local data
                                 if (createdConsultationId) {
