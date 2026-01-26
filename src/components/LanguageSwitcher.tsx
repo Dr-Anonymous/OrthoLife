@@ -12,17 +12,19 @@ export const LanguageSwitcher = () => {
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     const currentPath = location.pathname;
-    if (currentPath.includes('/op') || currentPath.includes('/ip') || currentPath.includes('/my')) {
+    const lowerPath = currentPath.toLowerCase();
+
+    if (lowerPath.includes('/op') || lowerPath.includes('/ip') || lowerPath.includes('/my')) {
       return;
     }
     let newPath;
 
     if (lng === 'te') {
-      if (!currentPath.startsWith('/te')) {
+      if (!lowerPath.startsWith('/te')) {
         newPath = `/te${currentPath}`;
       }
     } else { // lng === 'en'
-      if (currentPath.startsWith('/te')) {
+      if (lowerPath.startsWith('/te')) {
         newPath = currentPath.substring(3);
       }
     }

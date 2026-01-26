@@ -106,7 +106,9 @@ const InPatientManagement = () => {
     const [isAdmitModalOpen, setIsAdmitModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+
     const [isDischargeModalOpen, setIsDischargeModalOpen] = useState(false);
+    const [transientDischargeLanguage, setTransientDischargeLanguage] = useState('en');
 
     // Selection States
     const [selectedPatientForEdit, setSelectedPatientForEdit] = useState<InPatient | null>(null);
@@ -456,11 +458,8 @@ const InPatientManagement = () => {
     };
 
     const openDischargeModal = (patient: InPatient) => {
-        if (patient.language) {
-            i18n.changeLanguage(patient.language);
-        } else {
-            i18n.changeLanguage('en');
-        }
+        // Localize language: do NOT change global i18n
+        setTransientDischargeLanguage(patient.language || 'en');
         setSelectedPatientForDischarge(patient);
         setIsDischargeModalOpen(true);
     };
@@ -569,7 +568,7 @@ const InPatientManagement = () => {
 
             {/* 1. Admission Modal */}
             <Dialog open={isAdmitModalOpen} onOpenChange={setIsAdmitModalOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>New Patient Admission</DialogTitle>
                         <DialogDescription>Search for a patient and enter admission details.</DialogDescription>
@@ -721,7 +720,7 @@ const InPatientManagement = () => {
 
             {/* 2. Edit Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Edit Patient Details</DialogTitle>
                     </DialogHeader>
@@ -743,7 +742,27 @@ const InPatientManagement = () => {
                             <DialogDescription>Review and complete discharge summary.</DialogDescription>
                         </div>
                         <div className="flex items-center gap-2 mr-10">
-                            <LanguageSwitcher />
+                            {/* Local Language Switcher */}
+                            <div className="flex items-center gap-1">
+                                <div className="flex bg-muted rounded-md p-1">
+                                    {[
+                                        { code: 'en', label: 'EN' },
+                                        { code: 'te', label: 'తె' }
+                                    ].map(({ code, label }) => (
+                                        <Button
+                                            key={code}
+                                            size="sm"
+                                            variant={transientDischargeLanguage === code ? "default" : "ghost"}
+                                            className="h-6 px-2 text-xs"
+                                            onClick={() => setTransientDischargeLanguage(code)}
+                                            type="button"
+                                        >
+                                            {label}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <Button
                                 variant="outline"
                                 size="icon"
@@ -758,6 +777,7 @@ const InPatientManagement = () => {
                         <DischargeForm
                             ref={dischargeFormRef}
                             patient={selectedPatientForDischarge}
+                            currentLanguage={transientDischargeLanguage}
                             onSubmit={(summary, date) => {
                                 // Use the date selected in the form
                                 let isoDate = date;
@@ -769,7 +789,7 @@ const InPatientManagement = () => {
                                 dischargeMutation.mutate({
                                     id: selectedPatientForDischarge.id,
                                     summary: pruneEmptyFields(summary),
-                                    language: i18n.language,
+                                    language: transientDischargeLanguage,
                                     dischargeDate: isoDate
                                 });
                             }}
@@ -886,7 +906,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Admission Date</Label>
                     <Input type="date" value={data.admission_date} onChange={e => setData({ ...data, admission_date: e.target.value })} />
@@ -909,7 +929,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
                 <Input type="date" value={data.procedure_date} onChange={e => setData({ ...data, procedure_date: e.target.value })} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
                 <div className="space-y-2">
                     <Label>Total Bill (₹)</Label>
                     <Input type="number" value={data.total_bill} onChange={e => setData({ ...data, total_bill: e.target.value })} />
@@ -939,13 +959,13 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
 };
 
 // --- Discharge Form with Medication Manager ---
-// --- Discharge Form with Medication Manager ---
 const DischargeForm = forwardRef<{ print: () => void }, {
     patient: InPatient | null,
     onSubmit: (d: DischargeSummary, date: string) => void,
     isSaving: boolean,
-    onPrint?: (d: DischargeSummary) => void
-}>(({ patient, onSubmit, isSaving, onPrint }, ref) => {
+    onPrint?: (d: DischargeSummary) => void,
+    currentLanguage: string
+}>(({ patient, onSubmit, isSaving, onPrint, currentLanguage }, ref) => {
     const [activeTab, setActiveTab] = useState("demographics");
     const { i18n } = useTranslation();
     const [dischargeDate, setDischargeDate] = useState<string>('');
@@ -1176,7 +1196,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     };
 
     const handleMedicationSuggestionClick = (med: Medication) => {
-        const isTelugu = i18n.language === 'te';
+        const isTelugu = currentLanguage === 'te';
         const newMed: Medication = {
             id: crypto.randomUUID(),
             name: med.name || '',
@@ -1291,7 +1311,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-primary">
                                 <User className="w-4 h-4" /> Patient Snapshot
                             </h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Patient Name</Label>
                                     <Input value={snapshot.name} onChange={e => setSnapshot({ ...snapshot, name: e.target.value })} />
@@ -1330,8 +1350,8 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-primary">
                                 <ClipboardList className="w-4 h-4" /> Hospital Course
                             </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2 col-span-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2 md:col-span-2">
                                     <Label>Diagnosis</Label>
                                     <Input value={course.diagnosis} onChange={e => setCourse({ ...course, diagnosis: e.target.value })} />
                                 </div>
@@ -1347,7 +1367,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     <Label>Procedure Date</Label>
                                     <Input type="date" value={course.procedure_date} onChange={e => setCourse({ ...course, procedure_date: e.target.value })} />
                                 </div>
-                                <div className="space-y-2 col-span-2">
+                                <div className="space-y-2 md:col-span-2">
                                     <Label>Operation Notes / Intro</Label>
                                     <Textarea
                                         placeholder="Tourniquet time, findings, implants used..."
@@ -1366,7 +1386,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     {/* Tab 3: Discharge Plan & Meds */}
                     <TabsContent value="discharge" className="space-y-4 h-full flex flex-col">
                         <div className="space-y-4 flex-grow overflow-y-auto pr-2">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Discharge Date</Label>
                                     <Input type="date" value={dischargeDate} onChange={e => setDischargeDate(e.target.value)} />
@@ -1390,7 +1410,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     setExtraData={setDischarge as any}
                                     medicationNameInputRef={medicationNameInputRef}
                                     fetchSavedMedications={fetchSavedMedications}
-                                    i18n={{ language: i18n.language }}
+                                    language={currentLanguage}
                                     medFrequencyRefs={medFrequencyRefs}
                                     medDurationRefs={medDurationRefs}
                                     medInstructionsRefs={medInstructionsRefs}

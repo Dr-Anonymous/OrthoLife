@@ -18,7 +18,7 @@ export const GlobalSyncManager = () => {
     // Hiding it on public pages to avoid confusion
     const showSyncStatus = [
         '/op', '/badam', '/laxmi', '/ortholife', '/ip', '/pharmacy', '/diagnostics', '/admin'
-    ].some(path => location.pathname.includes(path));
+    ].some(path => location.pathname.toLowerCase().includes(path));
 
     const {
         pendingSyncIds,

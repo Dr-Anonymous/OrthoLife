@@ -6,12 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MapPin, Search, UserPlus, RefreshCw, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { MapPin, Search, UserPlus, RefreshCw, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
 import { Input } from '@/components/ui/input';
+import { addSeconds } from 'date-fns';
 import { FamilyMemberManager } from './FamilyMemberManager';
 
 interface ConsultationSidebarProps {
@@ -154,6 +155,33 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
             }
         }
     };
+
+    // --- Timer Calculations ---
+    const completedWithDuration = completedConsultations.filter(c => (c.duration || 0) > 0);
+    const avgDurationSeconds = completedWithDuration.length > 0
+        ? completedWithDuration.reduce((acc, curr) => acc + (curr.duration || 0), 0) / completedWithDuration.length
+        : 0;
+
+    const remainingCount = pendingConsultations.length + evaluationConsultations.length;
+
+    // Heuristic: If we are currently in a consultation (timerSeconds > 0), we might subtract "time elapsed" from that specific slot,
+    // but a simple "Average * Count" added to "Current Time" is usually sufficient and stable.
+    // However, if we just finished one, avg updates.
+
+    let estimatedEndTime: Date | null = null;
+    let estimatedEndTimeElement = <span>--:--</span>;
+
+    if (avgDurationSeconds > 0) {
+        const totalRemainingSeconds = remainingCount * avgDurationSeconds;
+        // If there's an active timer, maybe we count the current one as partially done?
+        // Let's stick to simple: Now + (Remaining * Avg). 
+        // Note: remainingCount includes the current one if it's in evaluation/pending list.
+        estimatedEndTime = addSeconds(new Date(), totalRemainingSeconds);
+        estimatedEndTimeElement = <span>{format(estimatedEndTime, 'h:mm a')}</span>;
+    }
+
+    const avgMinutes = avgDurationSeconds > 0 ? Math.round(avgDurationSeconds / 60) : 0;
+
 
     return (
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)] lg:overflow-y-auto pr-2">
@@ -387,15 +415,50 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     )}
                 </div>
-                <div className="flex justify-between items-center mt-4">
+                <div className="mt-4 pt-4 border-t">
+                    <div className="flex justify-between items-center mb-2">
+                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            Time Tracking
+                        </Label>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsTimerVisible(!isTimerVisible)}>
+                            {isTimerVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        </Button>
+                    </div>
+
                     {isTimerVisible && (
-                        <div className="text-lg font-semibold">
-                            {formatTime(timerSeconds)}
+                        <div className="grid grid-cols-3 gap-2 text-center bg-secondary/10 p-3 rounded-lg border border-secondary/20">
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                    <Timer className="w-3 h-3" />
+                                    Current
+                                </span>
+                                <span className={cn("text-lg font-bold font-mono", timerSeconds > 600 ? "text-amber-600" : "text-primary")}>
+                                    {formatTime(timerSeconds)}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col items-center border-l border-r border-border/50 px-2">
+                                <span className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Avg
+                                </span>
+                                <span className="text-lg font-semibold">
+                                    {avgMinutes > 0 ? `${avgMinutes}m` : '--'}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                    <Hourglass className="w-3 h-3" />
+                                    Est. End
+                                </span>
+                                <span className="text-sm font-semibold mt-1">
+                                    {estimatedEndTimeElement}
+                                </span>
+                            </div>
                         </div>
                     )}
-                    <Button variant="ghost" size="icon" onClick={() => setIsTimerVisible(!isTimerVisible)}>
-                        {isTimerVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
                 </div>
             </div>
         </div>

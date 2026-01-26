@@ -39,9 +39,10 @@ const PatientRegistration = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const getLocationName = () => {
-    if (location.pathname.includes('/badam')) return 'Badam';
-    if (location.pathname.includes('/laxmi')) return 'Laxmi';
-    if (location.pathname.includes('/ortholife')) return 'OrthoLife';
+    const path = location.pathname.toLowerCase();
+    if (path.includes('/badam')) return 'Badam';
+    if (path.includes('/laxmi')) return 'Laxmi';
+    if (path.includes('/ortholife')) return 'OrthoLife';
     return 'OrthoLife'; // Default fallback
   };
 
