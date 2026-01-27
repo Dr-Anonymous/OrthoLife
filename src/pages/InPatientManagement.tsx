@@ -48,6 +48,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { calculateAge } from "@/lib/age";
 import { MedicationManager } from '@/components/consultation/MedicationManager';
@@ -1027,6 +1029,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         dama_description: ''
     });
 
+    // State for Suture Removal Date
+    const [sutureDate, setSutureDate] = useState<Date | undefined>();
+    const [isSutureDatePickerOpen, setIsSutureDatePickerOpen] = useState(false);
+
     // -- Medication Manager Refs --
     const medicationNameInputRef = useRef<HTMLInputElement>(null);
     const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
@@ -1116,7 +1122,12 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     })),
                     post_op_care: s.discharge_data.post_op_care || '',
                     review_date: s.discharge_data.review_date || '',
-                    clinical_notes: s.discharge_data.clinical_notes || ''
+                    clinical_notes: s.discharge_data.clinical_notes || '',
+                    red_flags: s.discharge_data.red_flags || '',
+                    wound_care: s.discharge_data.wound_care || '',
+                    activity: s.discharge_data.activity || '',
+                    dama_clause: s.discharge_data.dama_clause || false,
+                    dama_description: s.discharge_data.dama_description || ''
                 });
             } else {
                 // Initialize from Admission Record
@@ -1489,7 +1500,54 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                 </Alert>
 
                                 <div className="space-y-2">
-                                    <Label className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Wound Care Instructions</Label>
+                                    <div className="flex justify-between items-center">
+                                        <Label className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Wound Care Instructions</Label>
+                                        <Popover open={isSutureDatePickerOpen} onOpenChange={setIsSutureDatePickerOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant={"outline"}
+                                                    size="sm"
+                                                    className={cn(
+                                                        "h-8 text-xs font-normal",
+                                                        !sutureDate && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <Calendar className="mr-2 h-3 w-3" />
+                                                    {sutureDate ? format(sutureDate, "dd MMM") : <span>Set Suture Date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="end">
+                                                <CalendarUI
+                                                    mode="single"
+                                                    selected={sutureDate}
+                                                    onSelect={(date) => {
+                                                        setSutureDate(date);
+                                                        setIsSutureDatePickerOpen(false);
+                                                        if (date) {
+                                                            const formattedDate = format(date, 'dd MMM yyyy');
+                                                            const prefix = isTelugu ? '- కుట్లు తీసే తేదీ: ' : '- Suture Removal: ';
+                                                            const newLine = `${prefix}${formattedDate}`;
+                                                            let currentText = discharge.wound_care || '';
+
+                                                            // Check if the line already exists
+                                                            if (currentText.includes(prefix)) {
+                                                                // Replace existing line (regex to match line)
+                                                                // Escape regex special chars in prefix if any (none in this case)
+                                                                const regex = new RegExp(`${prefix}.*`);
+                                                                setDischarge(prev => ({ ...prev, wound_care: currentText.replace(regex, newLine) }));
+                                                            } else {
+                                                                // Append new line
+                                                                // Ensure newline before if text exists
+                                                                const separator = currentText.length > 0 && !currentText.endsWith('\n') ? '\n' : '';
+                                                                setDischarge(prev => ({ ...prev, wound_care: `${currentText}${separator}${newLine}` }));
+                                                            }
+                                                        }
+                                                    }}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
                                     <Textarea
                                         value={discharge.wound_care || ''}
                                         onChange={e => setDischarge({ ...discharge, wound_care: e.target.value })}

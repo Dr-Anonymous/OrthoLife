@@ -9,8 +9,7 @@ export const DISCHARGE_INSTRUCTIONS = {
 - Color Change: Fingers looking blue, pale, or feeling unusually cold.`,
         wound_care: `Wound Instructions:
 - Keep Dry: Do not allow the dressing or surgical site to get wet. Cover with a plastic bag during bathing.
-- Do Not Disturb: Do not remove the bandage or apply any ointments/powders yourself.
-- Suture Removal: Planned for: [____]`,
+- Do Not Disturb: Do not remove the bandage or apply any ointments/powders yourself.`,
         activity: `Instructions for Recovery:
 - Elevation: Keep the operated limb elevated above heart level using a pillow to reduce swelling.
 - Movement: Move your fingers and shoulder frequently to prevent stiffness.
@@ -20,20 +19,19 @@ export const DISCHARGE_INSTRUCTIONS = {
 - Ankle Pumps: Move your ankles up and down frequently.`
     },
     te: {
-        red_flags: `వెంటనే డాక్టర్ని సంప్రదించండి:
-- మందులు వేసుకున్నా తగ్గని తీవ్రమైన నొప్పి.
+        red_flags: `డాక్టర్ని వెంటనే సంప్రదించవలసిన పరిస్థితులు:
+- మందులు వేసుకున్నా తగ్గని తీవ్రమైన నొప్పి ఉంటె.
 - వేళ్లు వాపు రావడం లేదా తిమ్మిర్లు రావడం.
 - తీవ్రమైన జ్వరం రావడం (>100°F).
 - కట్టు నుంచి రక్తం, చీము లేదా దుర్వాసన రావడం.
 - వేళ్లు నీలం రంగులోకి మారడం లేదా చల్లబడిపోవడం.`,
         wound_care: `గాయం మరియు కట్టు జాగ్రత్తలు:
 - కట్టును తడవనివ్వకూడదు. స్నానం చేసేటప్పుడు జాగ్రత్త వహించండి.
-- కట్టును విప్పకూడదు మరియు డాక్టర్ చెప్పకుండా ఎలాంటి మందులు రాయకూడదు.
-- కుట్లు తీసే తేదీ: [____]`,
-        activity: `శారీరక కదలికలు (సూచనలు):
+- కట్టును విప్పకూడదు మరియు డాక్టర్ చెప్పకుండా ఎలాంటి మందులు రాయకూడదు.`,
+        activity: `పునరుద్ధరణ కొరకు సూచనలు:
 - వాపు తగ్గడానికి చేతిని/కాలుని గుండె కంటే ఎత్తులో దిండు మీద ఉంచండి.
 - వేళ్లు మరియు భుజాన్ని కదుపుతూ ఉండాలి.
-- చెప్పినంత వరకు స్లింగ్ ఎప్పుడూ వేసుకోవాలి.
+- చెప్పినంత వరకు స్లింగ్ (arm pouch) ఎప్పుడూ వేసుకోవాలి.
 - నడిచేటప్పుడు వాకర్ సహాయం తీసుకోండి.
 - మోకాలి వ్యాయామాలు చెప్పిన విధంగా చేయండి.
 - చీలమండ కదలికలు (Ankle Pumps) చేస్తూ ఉండాలి.`

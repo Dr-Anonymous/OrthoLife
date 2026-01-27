@@ -91,7 +91,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                 </section>
 
                 {/* Diagnosis & Procedure */}
-                <section className="grid grid-cols-1 gap-4">
+                <section className="grid grid-cols-1 gap-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                     {courseDetails.diagnosis && (
                         <div>
                             <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis</h3>
@@ -113,7 +113,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                 {/* Operation Notes */}
                 {courseDetails.operation_notes && (
-                    <section>
+                    <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                         <h3 className="font-heading font-semibold text-primary mb-1">Operation Notes</h3>
                         <p className="whitespace-pre-wrap text-sm">{courseDetails.operation_notes}</p>
                     </section>
@@ -121,7 +121,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                 {/* Clinical Notes / Post Op Care */}
                 {(dischargeData.clinical_notes || dischargeData.post_op_care) && (
-                    <section className="grid grid-cols-1 gap-6">
+                    <section className="grid grid-cols-1 gap-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                         {dischargeData.clinical_notes && (
                             <div>
                                 <h3 className="font-heading font-semibold text-primary mb-1">Clinical Course / Notes</h3>
@@ -142,7 +142,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                     <section className="space-y-4">
                         {/* Red Flags - Print Friendly Red Box */}
                         {dischargeData.red_flags && (
-                            <div className="border border-red-500 bg-red-50 p-4 rounded-md print:border-black print:bg-transparent">
+                            <div className="border border-red-500 bg-red-50 p-4 rounded-md print:border-black print:bg-transparent break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                 <h3 className="font-heading font-semibold text-red-700 flex items-center gap-2 mb-2 print:text-black">
                                     <AlertTriangle className="h-5 w-5 text-red-600 print:text-black" />
                                     {language === 'te' ? 'జాగ్రత్తలు / ప్రమాద సంకేతాలు' : 'Emergency Red Flags'}
@@ -153,7 +153,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                         {/* Wound Care */}
                         {dischargeData.wound_care && (
-                            <div>
+                            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                 <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
                                     <ClipboardList className="h-4 w-4" />
                                     {language === 'te' ? 'గాయం జాగ్రత్తలు' : 'Wound Care Instructions'}
@@ -164,7 +164,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                         {/* Activity */}
                         {dischargeData.activity && (
-                            <div>
+                            <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                 <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
                                     <Activity className="h-4 w-4" />
                                     {language === 'te' ? 'శారీరక కదలికలు' : 'Activity & Physiotherapy'}
@@ -177,7 +177,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                 {/* Medications */}
                 {dischargeData.medications && dischargeData.medications.length > 0 && (
-                    <section>
+                    <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                         <h3 className="font-heading font-semibold text-primary mb-2 flex items-center gap-2">
                             <Pill className="h-4 w-4" />
                             {t('prescription.medication', 'Medications at Discharge')}
@@ -277,18 +277,30 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                 )}
             </main>
 
-            {/* Print Footer Spacer - Reserves space so content doesn't get hidden behind fixed footer */}
-            <div className="hidden print:block h-24" aria-hidden="true" />
+            {/* Signature Block */}
+            <div className="mt-8 flex justify-between items-end px-8 break-inside-avoid relative z-[60]" style={{ pageBreakInside: 'avoid' }}>
+                <div></div>
+                <div className="text-center">
+                    <img src="/images/assets/sign.png" alt="Doctor's Signature" className="h-16" />
+                    <div className="relative">
+                        <img src="/images/assets/seal.png" alt="Doctor's Seal" className="h-20 absolute -top-12 left-1/2 -translate-x-1/2 opacity-50" />
+                    </div>
+                </div>
+            </div>
 
-            {/* Footer */}
+            {/* Print Spacer to prevent content overlap with fixed footer */}
+            <div className="h-24 w-full hidden print:block" />
+
+            {/* Footer - Fixed at bottom */}
+            {/* Footer - Fixed at bottom for Print, Pushed to bottom for PDF/Screen */}
             <footer
-                className="mt-auto p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center print:fixed print:bottom-0 print:left-0 print:right-0 print:w-full print:bg-white print:z-50 print:m-0 print:px-8 print:mb-4"
-                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
+                className="mt-auto w-full p-2 border-t-2 border-primary-light flex justify-between items-center bg-white z-50 print:fixed print:bottom-0 print:left-0 print:right-0 print:px-8 print:mb-4 px-8 mb-4 break-inside-avoid"
+                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
             >
                 <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
                 <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
             </footer>
-        </div >
+        </div>
     );
 });
 DischargeSummaryPrint.displayName = 'DischargeSummaryPrint';

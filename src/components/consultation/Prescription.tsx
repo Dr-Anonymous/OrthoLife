@@ -320,17 +320,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
         </main>
 
-        {/* Print Footer Spacer - Reserves space so content doesn't get hidden behind fixed footer */}
-        <div className="hidden print:block h-24" aria-hidden="true" />
-
-        {/* Footer */}
-        <footer
-          className="mt-auto p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center print:fixed print:bottom-0 print:left-0 print:right-0 print:w-full print:bg-white print:z-50 print:m-0 print:px-8 print:mb-4"
-          style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
-        >
-          <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
-          <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />
-        </footer>
+        {/* Footer Group */}
+        <div className="mt-auto break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+          <footer
+            className="mt-4 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center bg-white"
+            style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
+          >
+            <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
+            <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />
+          </footer>
+        </div>
       </div>
 
       {/* Doctor Profile (Back Page) */}
@@ -425,7 +424,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                       <Syringe className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
                       <div>
                         <strong className="block text-primary text-lg mb-0.5">రీజెనరేటివ్ మెడిసిన్</strong>
-                        <span className="text-muted-foreground text-sm">కీళ్ల నొప్పుల నివారణకు PRP (Platelet Rich Plasma) మరియు విస్కో (Visco) ఇంజెక్షన్లు.</span>
+                        <span className="text-muted-foreground text-sm">కీళ్ల నొప్పుల నివారణకు PRP (Platelet Rich Plasma) మరియు గుజ్జు (Visco) ఇంజెక్షన్లు.</span>
                       </div>
                     </li>
                   </ul>
