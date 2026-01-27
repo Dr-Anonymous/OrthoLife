@@ -3,7 +3,8 @@ import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { InPatient, DischargeData, CourseDetails } from '@/types/inPatients';
-import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, FileText, User } from 'lucide-react';
+import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, FileText, User, AlertTriangle, ClipboardList, Activity } from 'lucide-react';
+import { DAMA_TEXT } from '@/utils/dischargeConstants';
 
 interface DischargeSummaryPrintProps {
     patientSnapshot: {
@@ -20,6 +21,7 @@ interface DischargeSummaryPrintProps {
     className?: string;
     noBackground?: boolean;
     forceDesktop?: boolean;
+    dischargeDate?: string;
 }
 
 export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeSummaryPrintProps>(({
@@ -30,7 +32,8 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     logoUrl,
     className,
     noBackground,
-    forceDesktop
+    forceDesktop,
+    dischargeDate
 }, ref) => {
     const { t, i18n } = useTranslation();
 
@@ -41,8 +44,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
     return (
-        <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col", className)} style={{ fontFamily: 'var(--font-sans)' }}>
-            {/* Header */}
+        <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground flex flex-col min-h-[296mm]", className)} style={{ fontFamily: 'var(--font-sans)' }}>
             {/* Header */}
             <header
                 className={cn(
@@ -84,12 +86,12 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                         <span className="font-semibold text-muted-foreground">Admission Date:</span>
                         <span>{courseDetails.admission_date ? format(new Date(courseDetails.admission_date), 'dd MMM yyyy') : 'N/A'}</span>
                         <span className="font-semibold text-muted-foreground">Discharge Date:</span>
-                        <span className="text-sm">{format(new Date(), 'dd MMM yyyy')}</span>
+                        <span className="text-sm">{dischargeDate ? format(new Date(dischargeDate), 'dd MMM yyyy') : format(new Date(), 'dd MMM yyyy')}</span>
                     </div>
                 </section>
 
                 {/* Diagnosis & Procedure */}
-                <section className="grid grid-cols-1 gap-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <section className="grid grid-cols-1 gap-4">
                     {courseDetails.diagnosis && (
                         <div>
                             <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis</h3>
@@ -111,7 +113,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                 {/* Operation Notes */}
                 {courseDetails.operation_notes && (
-                    <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                    <section>
                         <h3 className="font-heading font-semibold text-primary mb-1">Operation Notes</h3>
                         <p className="whitespace-pre-wrap text-sm">{courseDetails.operation_notes}</p>
                     </section>
@@ -119,7 +121,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
                 {/* Clinical Notes / Post Op Care */}
                 {(dischargeData.clinical_notes || dischargeData.post_op_care) && (
-                    <section className="grid grid-cols-1 gap-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                    <section className="grid grid-cols-1 gap-6">
                         {dischargeData.clinical_notes && (
                             <div>
                                 <h3 className="font-heading font-semibold text-primary mb-1">Clinical Course / Notes</h3>
@@ -135,9 +137,47 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                     </section>
                 )}
 
+                {/* New Sections: Red Flags, Wound Care, Activity */}
+                {(dischargeData.red_flags || dischargeData.wound_care || dischargeData.activity) && (
+                    <section className="space-y-4">
+                        {/* Red Flags - Print Friendly Red Box */}
+                        {dischargeData.red_flags && (
+                            <div className="border border-red-500 bg-red-50 p-4 rounded-md print:border-black print:bg-transparent">
+                                <h3 className="font-heading font-semibold text-red-700 flex items-center gap-2 mb-2 print:text-black">
+                                    <AlertTriangle className="h-5 w-5 text-red-600 print:text-black" />
+                                    {language === 'te' ? 'జాగ్రత్తలు / ప్రమాద సంకేతాలు' : 'Emergency Red Flags'}
+                                </h3>
+                                <p className="whitespace-pre-wrap text-sm">{dischargeData.red_flags}</p>
+                            </div>
+                        )}
+
+                        {/* Wound Care */}
+                        {dischargeData.wound_care && (
+                            <div>
+                                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                    <ClipboardList className="h-4 w-4" />
+                                    {language === 'te' ? 'గాయం జాగ్రత్తలు' : 'Wound Care Instructions'}
+                                </h3>
+                                <p className="whitespace-pre-wrap text-sm">{dischargeData.wound_care}</p>
+                            </div>
+                        )}
+
+                        {/* Activity */}
+                        {dischargeData.activity && (
+                            <div>
+                                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                    <Activity className="h-4 w-4" />
+                                    {language === 'te' ? 'శారీరక కదలికలు' : 'Activity & Physiotherapy'}
+                                </h3>
+                                <p className="whitespace-pre-wrap text-sm">{dischargeData.activity}</p>
+                            </div>
+                        )}
+                    </section>
+                )}
+
                 {/* Medications */}
                 {dischargeData.medications && dischargeData.medications.length > 0 && (
-                    <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                    <section>
                         <h3 className="font-heading font-semibold text-primary mb-2 flex items-center gap-2">
                             <Pill className="h-4 w-4" />
                             {t('prescription.medication', 'Medications at Discharge')}
@@ -226,12 +266,24 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                         <p className="text-sm font-medium ml-7">{format(new Date(dischargeData.review_date), 'dd MMM yyyy')}</p>
                     </section>
                 )}
+
+                {/* DAMA Clause */}
+                {dischargeData.dama_clause && (
+                    <section className="mt-8 border-t border-dashed pt-4">
+                        <p className="text-xs text-muted-foreground text-justify italic">
+                            *** {dischargeData.dama_description || (language === 'te' ? DAMA_TEXT.te : DAMA_TEXT.en)}
+                        </p>
+                    </section>
+                )}
             </main>
+
+            {/* Print Footer Spacer - Reserves space so content doesn't get hidden behind fixed footer */}
+            <div className="hidden print:block h-24" aria-hidden="true" />
 
             {/* Footer */}
             <footer
-                className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center break-inside-avoid"
-                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
+                className="mt-auto p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center print:fixed print:bottom-0 print:left-0 print:right-0 print:w-full print:bg-white print:z-50 print:m-0 print:px-8 print:mb-4"
+                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
             >
                 <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
                 <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />

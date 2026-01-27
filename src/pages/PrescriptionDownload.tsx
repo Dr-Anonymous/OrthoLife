@@ -185,7 +185,7 @@ const PrescriptionDownload = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center relative">
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center relative pb-24">
             <PatientSelectionModal
                 isOpen={isPatientSelectionModalOpen}
                 patients={patientList}

@@ -86,7 +86,9 @@ const DischargeSummaryDownload = () => {
             if (inPatientData && inPatientData.discharge_summary) {
                 setSummaryData({
                     ...inPatientData.discharge_summary,
-                    language: inPatientData.language // Use saved language preference
+                    ...inPatientData.discharge_summary,
+                    language: inPatientData.language, // Use saved language preference
+                    savedDischargeDate: inPatientData.discharge_date
                 });
             } else {
                 setError("No discharge summary found for this patient");
@@ -202,6 +204,7 @@ const DischargeSummaryDownload = () => {
                         language={summaryData.language || i18n.language}
                         logoUrl="/images/logos/logo.png"
                         className="min-h-[297mm]"
+                        dischargeDate={summaryData.savedDischargeDate}
                     />
                 )}
             </div>
@@ -248,6 +251,7 @@ const DischargeSummaryDownload = () => {
                             language={summaryData.language || i18n.language}
                             logoUrl="/images/logos/logo.png"
                             forceDesktop={true}
+                            dischargeDate={summaryData.savedDischargeDate}
                         />
                     )}
                 </div>

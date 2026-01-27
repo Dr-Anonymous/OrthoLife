@@ -21,6 +21,11 @@ export interface DischargeData {
     post_op_care: string;
     review_date: string;
     clinical_notes: string;
+    red_flags?: string;
+    wound_care?: string;
+    activity?: string;
+    dama_clause?: boolean;
+    dama_description?: string;
 }
 
 export interface DischargeSummary {

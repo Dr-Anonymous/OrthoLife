@@ -97,7 +97,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>MBBS, MS Ortho (Manipal)</p>
             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>Orthopaedic Surgeon</p>
             <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
-              <a href="tel:+919983849838" className="font-semibold hover:underline">📞 99 838 49 838</a>
+              <a href="tel:+919983849838" className="font-semibold hover:underline">📞 98668 12555</a>
               <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
               <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
             </p>
@@ -320,10 +320,13 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
         </main>
 
+        {/* Print Footer Spacer - Reserves space so content doesn't get hidden behind fixed footer */}
+        <div className="hidden print:block h-24" aria-hidden="true" />
+
         {/* Footer */}
         <footer
-          className="mt-8 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center break-inside-avoid"
-          style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
+          className="mt-auto p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center print:fixed print:bottom-0 print:left-0 print:right-0 print:w-full print:bg-white print:z-50 print:m-0 print:px-8 print:mb-4"
+          style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
         >
           <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
           <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />
@@ -332,7 +335,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
       {/* Doctor Profile (Back Page) */}
       {showDoctorProfile !== false && (
-        <section className="break-before-page min-h-[296mm] p-8 flex flex-col justify-center" style={{ pageBreakBefore: 'always' }}>
+        <section className="break-before-page min-h-[296mm] p-8 flex flex-col justify-center relative print:z-[60] print:bg-white" style={{ pageBreakBefore: 'always' }}>
           <div className="border-4 border-primary/20 rounded-xl p-6 flex flex-col justify-start bg-white h-full relative overflow-hidden">
 
             {language === 'te' ? (
@@ -340,23 +343,33 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
               <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
 
                 {/* Top Section: Split Layout (Name & Image) */}
-                <div className="flex flex-row justify-between items-start gap-6 pb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 pb-6">
                   {/* Left: Text Info */}
-                  <div className="flex-1 space-y-4">
-                    <h2 className="text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
+                  <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
+                    <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
+
+                    {/* Mobile Image */}
+                    <div className="block sm:hidden print:hidden flex justify-center py-4">
+                      <img
+                        src="/images/doctors/manojBW.jpg"
+                        alt="Dr. Samuel Manoj Cherukuri"
+                        className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
+                      />
+                    </div>
+
                     <div className="space-y-1">
-                      <h3 className="text-2xl font-bold text-foreground">డాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి</h3>
-                      <p className="text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (మణిపాల్)</p>
-                      <p className="text-lg font-medium text-foreground/80 leading-snug">కన్సల్టెంట్ ఆర్థోపెడిక్, జాయింట్ రీప్లేస్మెంట్ & స్పైన్ సర్జన్</p>
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">డాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి</h3>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (మణిపాల్)</p>
+                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">కన్సల్టెంట్ ఆర్థోపెడిక్, జాయింట్ రీప్లేస్మెంట్ & స్పైన్ సర్జన్</p>
                     </div>
                   </div>
 
                   {/* Right: Image */}
-                  <div className="flex-shrink-0 pt-2">
+                  <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
                     <img
                       src="/images/doctors/manojBW.jpg"
                       alt="Dr. Samuel Manoj Cherukuri"
-                      className="w-48 h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
+                      className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
                     />
                   </div>
                 </div>
@@ -421,7 +434,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
                   <p className="font-semibold text-primary">ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03</p>
-                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong>99 838 49 838</strong></p>
+                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">99 838 49 838</strong></p>
                 </div>
               </div>
 
@@ -430,24 +443,33 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
               <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
 
                 {/* Top Section: Split Layout (Name & Image) */}
-                <div className="flex flex-row justify-between items-start gap-6 pb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 pb-6">
                   {/* Left: Text Info */}
-                  <div className="flex-1 space-y-4">
-                    <h2 className="text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
+                  <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
+                    <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
+
+                    {/* Mobile Image */}
+                    <div className="block sm:hidden print:hidden flex justify-center py-4">
+                      <img
+                        src="/images/doctors/manojBW.jpg"
+                        alt="Dr. Samuel Manoj Cherukuri"
+                        className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
+                      />
+                    </div>
 
                     <div className="space-y-1">
-                      <h3 className="text-2xl font-bold text-foreground">Dr. Samuel Manoj Cherukuri</h3>
-                      <p className="text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
-                      <p className="text-lg font-medium text-foreground/80 leading-snug">Consultant Orthopaedic, Joint Replacement & Spine Surgeon</p>
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">Dr. Samuel Manoj Cherukuri</h3>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
+                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">Consultant Orthopaedic, Joint Replacement & Spine Surgeon</p>
                     </div>
                   </div>
 
                   {/* Right: Image */}
-                  <div className="flex-shrink-0 pt-2">
+                  <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
                     <img
                       src="/images/doctors/manojBW.jpg"
                       alt="Dr. Samuel Manoj Cherukuri"
-                      className="w-48 h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
+                      className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
                     />
                   </div>
                 </div>
@@ -512,7 +534,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
                   <p className="font-semibold text-primary">OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03</p>
-                  <p>For Appointments, Contact: <strong>99 838 49 838</strong></p>
+                  <p>For Appointments, Contact: <strong className="whitespace-nowrap">99 838 49 838</strong></p>
                 </div>
 
               </div>

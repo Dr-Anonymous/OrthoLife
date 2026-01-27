@@ -19,8 +19,12 @@ import {
     CalendarDays,
     User,
     CalendarCheck,
-    BookOpen
+    BookOpen,
+    AlertTriangle,
+    Activity
 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from '@/integrations/supabase/client';
 import { pruneEmptyFields } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,11 +56,11 @@ import { DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } fr
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
 
 // --- Types ---
 
-import { InPatient, DischargeSummary } from '@/types/inPatients';
+import { InPatient, DischargeSummary, DischargeData } from '@/types/inPatients';
 
 
 interface AutofillProtocol {
@@ -82,6 +86,7 @@ const InPatientManagement = () => {
 
     // Printing
     const [printData, setPrintData] = useState<DischargeSummary | null>(null);
+    const [printDate, setPrintDate] = useState<string | undefined>(undefined);
     const [isReadyToPrint, setIsReadyToPrint] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
@@ -96,8 +101,9 @@ const InPatientManagement = () => {
         }
     }, [isReadyToPrint]);
 
-    const triggerPrint = (summary: DischargeSummary) => {
+    const triggerPrint = (summary: DischargeSummary, date?: string) => {
         setPrintData(summary);
+        setPrintDate(date);
         setIsReadyToPrint(true);
     };
 
@@ -555,7 +561,7 @@ const InPatientManagement = () => {
                                 onSendWhatsApp={initWhatsApp}
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
-                                onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary)}
+                                onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary, p.discharge_date || undefined)}
                             />
                         )) : (
                             <EmptyState icon={History} message="No discharge history found" />
@@ -794,8 +800,9 @@ const InPatientManagement = () => {
                                 });
                             }}
                             isSaving={dischargeMutation.isPending}
-                            onPrint={(summary: DischargeSummary) => {
+                            onPrint={(summary: DischargeSummary, date: string) => {
                                 setPrintData(summary);
+                                setPrintDate(date);
                                 setIsReadyToPrint(true);
                             }}
                         />
@@ -813,6 +820,7 @@ const InPatientManagement = () => {
                         dischargeData={printData.discharge_data}
                         language={i18n.language}
                         logoUrl="/images/logos/logo.png"
+                        dischargeDate={printDate}
                     />
                 )}
             </div>
@@ -963,7 +971,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     patient: InPatient | null,
     onSubmit: (d: DischargeSummary, date: string) => void,
     isSaving: boolean,
-    onPrint?: (d: DischargeSummary) => void,
+    onPrint?: (d: DischargeSummary, date: string) => void,
     currentLanguage: string
 }>(({ patient, onSubmit, isSaving, onPrint, currentLanguage }, ref) => {
     const [activeTab, setActiveTab] = useState("demographics");
@@ -1007,11 +1015,16 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         operation_notes: ''
     });
 
-    const [discharge, setDischarge] = useState({
-        medications: [] as Medication[],
+    const [discharge, setDischarge] = useState<DischargeData>({
+        medications: [],
         post_op_care: '',
         review_date: '',
         clinical_notes: '',
+        red_flags: '',
+        wound_care: '',
+        activity: '',
+        dama_clause: false,
+        dama_description: ''
     });
 
     // -- Medication Manager Refs --
@@ -1130,7 +1143,12 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     medications: [],
                     post_op_care: '',
                     review_date: '',
-                    clinical_notes: ''
+                    clinical_notes: '',
+                    red_flags: '',
+                    wound_care: '',
+                    activity: '',
+                    dama_clause: false,
+                    dama_description: ''
                 });
             }
         }
@@ -1265,6 +1283,19 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications]);
 
 
+    const isTelugu = currentLanguage === 'te';
+
+    // Auto-fill new sections if empty when language changes or modal opens
+    React.useEffect(() => {
+        const lang = isTelugu ? 'te' : 'en';
+        setDischarge(prev => ({
+            ...prev,
+            red_flags: prev.red_flags || DISCHARGE_INSTRUCTIONS[lang].red_flags,
+            wound_care: prev.wound_care || DISCHARGE_INSTRUCTIONS[lang].wound_care,
+            activity: prev.activity || DISCHARGE_INSTRUCTIONS[lang].activity
+        }));
+    }, [isTelugu]);
+
     const buildSummary = (): DischargeSummary => ({
         patient_snapshot: {
             id: snapshot.id,
@@ -1285,7 +1316,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
     useImperativeHandle(ref, () => ({
         print: () => {
-            if (onPrint) onPrint(buildSummary());
+            if (onPrint) onPrint(buildSummary(), dischargeDate);
         }
     }));
 
@@ -1298,7 +1329,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     return (
         <div className="flex flex-col h-full gap-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
                     <TabsTrigger value="demographics">1. Demographics</TabsTrigger>
                     <TabsTrigger value="course">2. Course Details</TabsTrigger>
                     <TabsTrigger value="discharge">3. Plan & Medications</TabsTrigger>
@@ -1437,6 +1468,79 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     onChange={e => handleTextChange('clinical_notes', e.target.value, e.target.selectionStart)}
                                 />
                             </div>
+
+
+                            {/* New Sections (Moved to Bottom) */}
+                            <div className="grid grid-cols-1 gap-4 pt-4 border-t">
+                                <Alert className="bg-red-50 border-red-200">
+                                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                                    <AlertTitle className="text-red-700">Medical Warning</AlertTitle>
+                                    <AlertDescription>
+                                        <div className="space-y-2 mt-2">
+                                            <Label className="text-red-700 font-semibold">Red Flags / Emergency Instructions</Label>
+                                            <Textarea
+                                                value={discharge.red_flags || ''}
+                                                onChange={e => setDischarge({ ...discharge, red_flags: e.target.value })}
+                                                className="bg-white border-red-200"
+                                                rows={5}
+                                            />
+                                        </div>
+                                    </AlertDescription>
+                                </Alert>
+
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Wound Care Instructions</Label>
+                                    <Textarea
+                                        value={discharge.wound_care || ''}
+                                        onChange={e => setDischarge({ ...discharge, wound_care: e.target.value })}
+                                        rows={4}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><Activity className="w-4 h-4" /> Activity / Physio Instructions</Label>
+                                    <Textarea
+                                        value={discharge.activity || ''}
+                                        onChange={e => setDischarge({ ...discharge, activity: e.target.value })}
+                                        rows={6}
+                                    />
+                                </div>
+
+                                <div className="space-y-4 border p-4 rounded-md bg-yellow-50 border-yellow-200">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="dama_clause"
+                                            checked={discharge.dama_clause}
+                                            onCheckedChange={(checked) => {
+                                                const isChecked = checked === true;
+                                                setDischarge({
+                                                    ...discharge,
+                                                    dama_clause: isChecked,
+                                                    // Auto-fill DAMA text if checking box and text is empty
+                                                    dama_description: (isChecked && !discharge.dama_description)
+                                                        ? (isTelugu ? DAMA_TEXT.te : DAMA_TEXT.en)
+                                                        : discharge.dama_description
+                                                });
+                                            }}
+                                        />
+                                        <Label htmlFor="dama_clause" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                                            Patient Discharged Against Medical Advice (DAMA)
+                                        </Label>
+                                    </div>
+
+                                    {discharge.dama_clause && (
+                                        <div className="ml-6 space-y-2">
+                                            <Label className="text-xs text-muted-foreground">Legal Clause (Editable):</Label>
+                                            <Textarea
+                                                value={discharge.dama_description || ''}
+                                                onChange={e => setDischarge({ ...discharge, dama_description: e.target.value })}
+                                                className="bg-white text-xs"
+                                                rows={3}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         <div className="flex justify-between mt-4 pt-4 border-t sticky bottom-0 bg-background">
                             <Button variant="outline" onClick={() => setActiveTab("course")}>Back</Button>
@@ -1447,8 +1551,8 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                         </div>
                     </TabsContent>
                 </div>
-            </Tabs>
-        </div>
+            </Tabs >
+        </div >
     );
 });
 DischargeForm.displayName = "DischargeForm";
