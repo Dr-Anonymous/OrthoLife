@@ -293,6 +293,34 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 placeholder="e.g., 7 days"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                             />
+                            {/* Smart Duration Helpers */}
+                            {(() => {
+                                const val = (med.duration || '').trim();
+                                const match = val.match(/^(\d+)/);
+                                const number = match ? parseInt(match[1]) : null;
+
+                                if (number !== null) {
+                                    const isPlural = number > 1;
+                                    const units = language === 'te'
+                                        ? (isPlural ? ["రోజులు", "వారాలు", "నెలలు"] : ["రోజు", "వారం", "నెల"])
+                                        : (isPlural ? ["days", "weeks", "months"] : ["day", "week", "month"]);
+
+                                    return (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {units.map(unit => (
+                                                <div
+                                                    key={unit}
+                                                    className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                                                    onClick={() => handleMedChange(index, 'duration', `${number} ${unit}`)}
+                                                >
+                                                    {unit}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                         <div className="space-y-2">
                             <Label className="text-sm font-medium">Instructions</Label>

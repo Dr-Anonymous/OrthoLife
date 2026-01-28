@@ -45,6 +45,7 @@ export interface InPatient {
     procedure_date: string | null;
     status: 'admitted' | 'discharged';
     room_number?: string | null;
+    emergency_contact?: string;
     discharge_summary?: DischargeSummary | null;
     language?: string | null;
     patient: {

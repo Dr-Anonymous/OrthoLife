@@ -94,7 +94,25 @@ const InPatientManagement = () => {
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
-        onAfterPrint: () => setIsReadyToPrint(false)
+        onAfterPrint: () => setIsReadyToPrint(false),
+        pageStyle: `
+            @page {
+                /* Custom size: Width (210mm) followed by Height (310mm) */
+                size: 210mm 302mm;
+                /* General margins for 2nd page onwards - safer bottom margin to prevent footer cutoff */
+                margin: 7mm 10mm 0mm 20mm;
+            }
+            @page :first {
+                size: 210mm 297mm;
+                /* Specific margins for 1st page - as requested */
+                margin: 2mm 10mm 1mm 20mm;
+            }
+            @media print {
+                body {
+                    -webkit-print-color-adjust: exact;
+                }
+            }
+        `
     });
 
     React.useEffect(() => {
@@ -143,6 +161,7 @@ const InPatientManagement = () => {
         consultant_cut: '',
         referred_by: '',
         referral_amount: '',
+        emergency_contact: '',
     });
 
     const { toast } = useToast();
@@ -196,6 +215,7 @@ const InPatientManagement = () => {
                 consultant_cut: vars.consultant_cut ? Number(vars.consultant_cut) : 0,
                 referred_by: vars.referred_by || null,
                 referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
+                emergency_contact: vars.emergency_contact || null,
             }]);
             if (error) throw error;
         },
@@ -222,6 +242,7 @@ const InPatientManagement = () => {
                 consultant_cut: vars.consultant_cut ? Number(vars.consultant_cut) : 0,
                 referred_by: vars.referred_by || null,
                 referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
+                emergency_contact: vars.emergency_contact || null,
             }).eq('id', vars.id);
             if (error) throw error;
         },
@@ -296,6 +317,7 @@ const InPatientManagement = () => {
             consultant_cut: '',
             referred_by: '',
             referral_amount: '',
+            emergency_contact: '',
         });
     };
 
@@ -717,6 +739,14 @@ const InPatientManagement = () => {
                                 />
                             </div>
                         </div>
+                        <div className="space-y-2 col-span-1 lg:col-span-2">
+                            <Label>Emergency Contact</Label>
+                            <Input
+                                placeholder="Name / Phone"
+                                value={admissionData.emergency_contact}
+                                onChange={(e) => setAdmissionData({ ...admissionData, emergency_contact: e.target.value })}
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsAdmitModalOpen(false)}>Cancel</Button>
@@ -891,7 +921,7 @@ const InPatientManagement = () => {
                 </DialogContent>
             </Dialog>
 
-        </div>
+        </div >
     );
 };
 
@@ -915,6 +945,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
         consultant_cut: patient?.consultant_cut || '',
         referred_by: patient?.referred_by || '',
         referral_amount: patient?.referral_amount || '',
+        emergency_contact: patient?.emergency_contact || '',
     });
 
     if (!patient) return null;
@@ -960,6 +991,10 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
                 <div className="space-y-2">
                     <Label>Referral Amount (₹)</Label>
                     <Input type="number" value={data.referral_amount} onChange={e => setData({ ...data, referral_amount: e.target.value })} />
+                </div>
+                <div className="space-y-2 col-span-1 lg:col-span-2">
+                    <Label>Emergency Contact</Label>
+                    <Input value={data.emergency_contact || ''} onChange={e => setData({ ...data, emergency_contact: e.target.value })} />
                 </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -1433,15 +1468,20 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     {/* Tab 3: Discharge Plan & Meds */}
                     <TabsContent value="discharge" className="space-y-4 h-full flex flex-col">
                         <div className="space-y-4 flex-grow overflow-y-auto pr-2">
-                            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
+                            <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Discharge Date</Label>
                                     <Input type="date" value={dischargeDate} onChange={e => setDischargeDate(e.target.value)} />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Review Date</Label>
-                                    <Input type="date" value={discharge.review_date} onChange={e => setDischarge({ ...discharge, review_date: e.target.value })} />
-                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Additional Clinical Notes / Summary</Label>
+                                <Textarea
+                                    placeholder="Summary of hospital stay..."
+                                    value={discharge.clinical_notes}
+                                    onChange={e => handleTextChange('clinical_notes', e.target.value, e.target.selectionStart)}
+                                />
                             </div>
 
                             {/* Medication Manager */}
@@ -1476,33 +1516,12 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>Additional Clinical Notes / Summary</Label>
-                                <Textarea
-                                    placeholder="Summary of hospital stay..."
-                                    value={discharge.clinical_notes}
-                                    onChange={e => handleTextChange('clinical_notes', e.target.value, e.target.selectionStart)}
-                                />
-                            </div>
+
 
 
                             {/* New Sections (Moved to Bottom) */}
                             <div className="grid grid-cols-1 gap-4 pt-4 border-t">
-                                <Alert className="bg-red-50 border-red-200">
-                                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                                    <AlertTitle className="text-red-700">Medical Warning</AlertTitle>
-                                    <AlertDescription>
-                                        <div className="space-y-2 mt-2">
-                                            <Label className="text-red-700 font-semibold">Red Flags / Emergency Instructions</Label>
-                                            <Textarea
-                                                value={discharge.red_flags || ''}
-                                                onChange={e => setDischarge({ ...discharge, red_flags: e.target.value })}
-                                                className="bg-white border-red-200"
-                                                rows={5}
-                                            />
-                                        </div>
-                                    </AlertDescription>
-                                </Alert>
+
 
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
@@ -1567,6 +1586,27 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                         onChange={e => setDischarge({ ...discharge, activity: e.target.value })}
                                         rows={6}
                                     />
+                                </div>
+
+                                <Alert className="bg-red-50 border-red-200">
+                                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                                    <AlertTitle className="text-red-700">Medical Warning</AlertTitle>
+                                    <AlertDescription>
+                                        <div className="space-y-2 mt-2">
+                                            <Label className="text-red-700 font-semibold">Red Flags / Emergency Instructions</Label>
+                                            <Textarea
+                                                value={discharge.red_flags || ''}
+                                                onChange={e => setDischarge({ ...discharge, red_flags: e.target.value })}
+                                                className="bg-white border-red-200"
+                                                rows={5}
+                                            />
+                                        </div>
+                                    </AlertDescription>
+                                </Alert>
+
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Review Date</Label>
+                                    <Input type="date" value={discharge.review_date} onChange={e => setDischarge({ ...discharge, review_date: e.target.value })} />
                                 </div>
 
                                 <div className="space-y-4 border p-4 rounded-md bg-yellow-50 border-yellow-200">
@@ -1681,6 +1721,14 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                             </Badge>
                             <span>•</span>
                             <span className="text-xs font-mono">{patient.patient.phone}</span>
+                            {patient.emergency_contact && (
+                                <>
+                                    <span>•</span>
+                                    <span className="text-xs font-mono text-red-600 flex items-center gap-1">
+                                        {patient.emergency_contact}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
