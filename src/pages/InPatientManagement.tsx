@@ -576,12 +576,31 @@ const InPatientManagement = () => {
 
             {/* 1. Admission Modal */}
             <Dialog open={isAdmitModalOpen} onOpenChange={setIsAdmitModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>New Patient Admission</DialogTitle>
-                        <DialogDescription>Search for a patient and enter admission details.</DialogDescription>
+                <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader className="flex flex-row items-start justify-between text-left pr-10">
+                        <div className="space-y-1">
+                            <DialogTitle>New Patient Admission</DialogTitle>
+                            <DialogDescription>Search for a patient and enter admission details.</DialogDescription>
+                        </div>
+                        <div className="flex bg-muted rounded-md p-1 shrink-0 mt-0 ml-2">
+                            {[
+                                { code: 'en', label: 'EN' },
+                                { code: 'te', label: 'తె' }
+                            ].map(({ code, label }) => (
+                                <Button
+                                    key={code}
+                                    size="sm"
+                                    variant={admissionData.language === code ? "default" : "ghost"}
+                                    className="h-6 px-2 text-xs"
+                                    onClick={() => setAdmissionData({ ...admissionData, language: code })}
+                                    type="button"
+                                >
+                                    {label}
+                                </Button>
+                            ))}
+                        </div>
                     </DialogHeader>
-                    <div className="py-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="py-2 flex flex-col lg:grid lg:grid-cols-2 gap-4">
                         <div className="space-y-2 col-span-2">
                             <Label>Search Patient (Name/Phone)</Label>
                             <Input
@@ -631,23 +650,9 @@ const InPatientManagement = () => {
                                 onChange={(e) => setAdmissionData({ ...admissionData, room_number: e.target.value })}
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label>Preferred Language</Label>
-                            <Select
-                                value={admissionData.language || 'en'}
-                                onValueChange={(val) => setAdmissionData({ ...admissionData, language: val })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Language" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="en">English</SelectItem>
-                                    <SelectItem value="te">Telugu</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* Language Selection Moved to Header */}
 
-                        <div className="space-y-2 col-span-2">
+                        <div className="space-y-2 col-span-1 lg:col-span-2">
                             <Label>Diagnosis</Label>
                             <Input
                                 placeholder="Clinical diagnosis..."
@@ -656,7 +661,7 @@ const InPatientManagement = () => {
                             />
                         </div>
 
-                        <div className="space-y-2 col-span-2">
+                        <div className="space-y-2 col-span-1 lg:col-span-2">
                             <Label>Procedure Plan</Label>
                             <Textarea
                                 placeholder="Procedure details..."
@@ -693,7 +698,7 @@ const InPatientManagement = () => {
                                 onChange={(e) => setAdmissionData({ ...admissionData, consultant_cut: e.target.value })}
                             />
                         </div>
-                        <div className="space-y-2 col-span-2 grid grid-cols-2 gap-4">
+                        <div className="space-y-2 col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Referred By</Label>
                                 <Input
@@ -728,7 +733,7 @@ const InPatientManagement = () => {
 
             {/* 2. Edit Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Edit Patient Details</DialogTitle>
                     </DialogHeader>
@@ -743,8 +748,8 @@ const InPatientManagement = () => {
 
             {/* 3. Discharge Modal */}
             <Dialog open={isDischargeModalOpen} onOpenChange={setIsDischargeModalOpen}>
-                <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0">
-                    <div className="flex justify-between items-center px-6 py-4 border-b">
+                <DialogContent className="w-[95vw] sm:max-w-4xl h-[90vh] sm:h-[85vh] flex flex-col p-0 gap-0">
+                    <div className="flex justify-between items-center px-4 py-3 sm:px-6 sm:py-4 border-b">
                         <div className="space-y-1">
                             <DialogTitle>Discharge Process</DialogTitle>
                             <DialogDescription>Review and complete discharge summary.</DialogDescription>
@@ -829,7 +834,7 @@ const InPatientManagement = () => {
 
             {/* 4. WhatsApp Modal */}
             <Dialog open={isWhatsAppModalOpen} onOpenChange={setIsWhatsAppModalOpen}>
-                <DialogContent>
+                <DialogContent className="w-[95vw] sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Send WhatsApp Message</DialogTitle>
                         <DialogDescription>Review and edit the message before sending.</DialogDescription>
@@ -916,7 +921,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Admission Date</Label>
                     <Input type="date" value={data.admission_date} onChange={e => setData({ ...data, admission_date: e.target.value })} />
@@ -926,11 +931,11 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
                     <Input value={data.room_number || ''} onChange={e => setData({ ...data, room_number: e.target.value })} />
                 </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-1 lg:col-span-2">
                 <Label>Diagnosis</Label>
                 <Input value={data.diagnosis} onChange={e => setData({ ...data, diagnosis: e.target.value })} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-1 lg:col-span-2">
                 <Label>Procedure</Label>
                 <Textarea value={data.procedure} onChange={e => setData({ ...data, procedure: e.target.value })} />
             </div>
@@ -939,7 +944,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
                 <Input type="date" value={data.procedure_date} onChange={e => setData({ ...data, procedure_date: e.target.value })} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 border-t pt-4">
                 <div className="space-y-2">
                     <Label>Total Bill (₹)</Label>
                     <Input type="number" value={data.total_bill} onChange={e => setData({ ...data, total_bill: e.target.value })} />
@@ -1346,14 +1351,14 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     <TabsTrigger value="discharge">3. Plan & Medications</TabsTrigger>
                 </TabsList>
 
-                <div className="flex-grow mt-4">
+                <div className="flex-grow mt-4 min-h-0">
                     {/* Tab 1: Demographics */}
-                    <TabsContent value="demographics" className="space-y-4">
+                    <TabsContent value="demographics" className="space-y-4 h-full overflow-y-auto px-1">
                         <div className="p-4 bg-muted/20 rounded-lg border border-primary/20">
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-primary">
                                 <User className="w-4 h-4" /> Patient Snapshot
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Patient Name</Label>
                                     <Input value={snapshot.name} onChange={e => setSnapshot({ ...snapshot, name: e.target.value })} />
@@ -1387,17 +1392,17 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     </TabsContent>
 
                     {/* Tab 2: Course Details */}
-                    <TabsContent value="course" className="space-y-4">
+                    <TabsContent value="course" className="space-y-4 h-full overflow-y-auto px-1">
                         <div className="p-4 bg-muted/20 rounded-lg border border-primary/20">
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-primary">
                                 <ClipboardList className="w-4 h-4" /> Hospital Course
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2 md:col-span-2">
+                            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
+                                <div className="space-y-2 col-span-1 lg:col-span-2">
                                     <Label>Diagnosis</Label>
                                     <Input value={course.diagnosis} onChange={e => setCourse({ ...course, diagnosis: e.target.value })} />
                                 </div>
-                                <div className="space-y-2 col-span-2">
+                                <div className="space-y-2 col-span-1 lg:col-span-2">
                                     <Label>Procedure Performed</Label>
                                     <Textarea value={course.procedure} onChange={e => setCourse({ ...course, procedure: e.target.value })} />
                                 </div>
@@ -1409,7 +1414,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     <Label>Procedure Date</Label>
                                     <Input type="date" value={course.procedure_date} onChange={e => setCourse({ ...course, procedure_date: e.target.value })} />
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
+                                <div className="space-y-2 col-span-1 lg:col-span-2">
                                     <Label>Operation Notes / Intro</Label>
                                     <Textarea
                                         placeholder="Tourniquet time, findings, implants used..."
@@ -1428,7 +1433,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     {/* Tab 3: Discharge Plan & Meds */}
                     <TabsContent value="discharge" className="space-y-4 h-full flex flex-col">
                         <div className="space-y-4 flex-grow overflow-y-auto pr-2">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Discharge Date</Label>
                                     <Input type="date" value={dischargeDate} onChange={e => setDischargeDate(e.target.value)} />
