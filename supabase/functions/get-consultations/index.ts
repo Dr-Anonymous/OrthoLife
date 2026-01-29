@@ -64,7 +64,20 @@ async function fetchConsultations(date?: string, patientId?: string) {
     .order('created_at', { ascending: false });
 
   if (patientId) {
-    query = query.eq('patient_id', patientId);
+    // query = query.eq('patient_id', patientId);
+    // Support for Linked Patients: Fetch all IDs belonging to this patient's cluster
+    const { data: connectedIds, error: rpcError } = await supabase
+      .rpc('get_linked_patient_ids', { p_id: patientId });
+
+    if (rpcError) {
+      console.error('Error fetching linked patients:', rpcError);
+      // Fallback to single ID if RPC fails (though it shouldn't)
+      query = query.eq('patient_id', patientId);
+    } else if (connectedIds && connectedIds.length > 0) {
+      query = query.in('patient_id', connectedIds);
+    } else {
+      query = query.eq('patient_id', patientId);
+    }
   } else if (date) {
     const targetDate = new Date(date);
     const nextDay = new Date(targetDate);
@@ -105,36 +118,41 @@ async function fetchConsultations(date?: string, patientId?: string) {
  * Helper: Fetches the most recent completed consultation and discharge summary *strictly before* the reference date.
  */
 async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
+  // Support for Linked Patients: Fetch all IDs
+  let patientIds = [patientId];
+  const { data: connectedIds } = await supabase.rpc('get_linked_patient_ids', { p_id: patientId });
+  if (connectedIds && connectedIds.length > 0) {
+    patientIds = connectedIds;
+  }
+
   // 1. Fetch Last Consultation (Any status, meant to capture "Last Visit")
   const { data: lastConsultation } = await supabase
     .from('consultations')
     .select('consultation_data, created_at')
-    .eq('patient_id', patientId)
+    .in('patient_id', patientIds) // Use IN instead of EQ
     .lt('created_at', referenceDateIso)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   // DEBUG: Inspect ALL InPatients records for this user (to see why filter failed)
-  if (patientId) {
-    const { data: allInPatients } = await supabase
-      .from('in_patients')
-      .select('id, status, discharge_date, discharge_summary')
-      .eq('patient_id', patientId);
-
-    console.log(`[RecentHistory] Raw InPatients for ${patientId}:`, JSON.stringify(allInPatients));
-  }
+  // if (patientId) {
+  //   const { data: allInPatients } = await supabase
+  //     .from('in_patients')
+  //     .select('id, status, discharge_date, discharge_summary')
+  //     .in('patient_id', patientIds);
+  //   console.log(`[RecentHistory] Raw InPatients for ${patientIds}:`, JSON.stringify(allInPatients));
+  // }
 
   const lastOpDate = lastConsultation ? new Date(lastConsultation.created_at) : null;
-  // Relax the cutoff for discharge date to account for timezone differences (e.g. Discharge Date 00:00 UTC vs Consumption created_at)
-  // We add 24 hours to the reference date to ensure we capture discharges that happened "Same Day" even if timestamp logic puts them slightly ahead
+  // Relax the cutoff for discharge date to account for timezone differences
   const dischargeCutoffDate = new Date(new Date(referenceDateIso).getTime() + (24 * 60 * 60 * 1000)).toISOString();
 
   // 2. Fetch Last Discharge Summary
   const { data: lastDischarge } = await supabase
     .from('in_patients')
     .select('discharge_date, discharge_summary, procedure_date')
-    .eq('patient_id', patientId)
+    .in('patient_id', patientIds) // Use IN instead of EQ
     .eq('status', 'discharged')
     .not('discharge_summary', 'is', null)
     .lt('discharge_date', dischargeCutoffDate)

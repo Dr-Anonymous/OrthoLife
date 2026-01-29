@@ -32,6 +32,7 @@ interface PatientDemographicsProps {
     onDateChange: (date: Date | undefined) => void;
     handleYearChange: (year: string) => void;
     handleMonthChange: (month: string) => void;
+    onLinkClick: () => void;
 }
 
 
@@ -64,6 +65,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
     onDateChange,
     handleYearChange,
     handleMonthChange,
+    onLinkClick,
 }) => {
     return (
         <div className="space-y-4">
@@ -88,6 +90,10 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onHistoryClick}>
                         <History className="h-4 w-4" />
                         <span className="sr-only">View Patient History</span>
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onLinkClick} title="Link Duplicate Patient">
+                        <User className="h-4 w-4 text-orange-500" />
+                        <span className="sr-only">Link Duplicate Patient</span>
                     </Button>
                 </div>
                 {patient.drive_id && (

@@ -25,6 +25,7 @@ import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
+import { LinkPatientModal } from '@/components/consultation/LinkPatientModal';
 import { CompletionMessageModal } from '@/components/consultation/CompletionMessageModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -129,6 +130,7 @@ const ConsultationPage = () => {
   };
   const [isOnlyConsultation, setIsOnlyConsultation] = useState<boolean>(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isLinkPatientModalOpen, setIsLinkPatientModalOpen] = useState(false);
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [completionMessage, setCompletionMessage] = useState('');
   const [isMessageManuallyEdited, setIsMessageManuallyEdited] = useState(false);
@@ -1344,6 +1346,7 @@ const ConsultationPage = () => {
                   onDateChange={handleDateChange}
                   handleYearChange={handleYearChange}
                   handleMonthChange={handleMonthChange}
+                  onLinkClick={() => setIsLinkPatientModalOpen(true)}
                 />
 
                 <VitalsForm
@@ -1622,6 +1625,18 @@ const ConsultationPage = () => {
           setIsSearchModalOpen(false);
         }}
       />
+
+      {editablePatientDetails && (
+        <LinkPatientModal
+          isOpen={isLinkPatientModalOpen}
+          onClose={() => setIsLinkPatientModalOpen(false)}
+          currentPatientId={String(editablePatientDetails.id)}
+          onLinkSuccess={() => {
+            // Refresh consultations to reflect merged history
+            fetchConsultations();
+          }}
+        />
+      )}
     </>
   );
 };
