@@ -97,7 +97,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>MBBS, MS Ortho (Manipal)</p>
             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>Orthopaedic Surgeon</p>
             <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
-              <a href="tel:+919983849838" className="font-semibold hover:underline">📞 98668 12555</a>
+              <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
               <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
               <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
             </p>

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, FileEdit, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // --- Interfaces ---
@@ -26,6 +26,7 @@ export interface CertificateData {
   rejoinActivity?: string;
   certificateDate: Date;
   consultationDate: Date;
+  customContent?: string;
 }
 
 interface MedicalCertificateProps {
@@ -57,7 +58,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   diagnosis,
   certificateData,
 }) => {
-  const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity, certificateDate, consultationDate } = certificateData;
+  const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity, certificateDate, consultationDate, customContent } = certificateData;
   const restPeriodEndDate = addDays(restPeriodStartDate, restPeriodDays - 1);
   const patientPrefix = patient.sex === 'M' ? 'Mr.' : 'Mrs.';
   const pronounHeShe = patient.sex === 'M' ? 'He' : 'She';
@@ -95,26 +96,30 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           <h2 className="text-2xl font-bold text-center underline mb-12">
             Medical certificate
           </h2>
-          <div className="text-lg leading-relaxed space-y-6">
-            <p>
-              This is to certify that {patientPrefix} <strong>{patient.name}</strong>, bearing ID No.: <strong>{patient.id}</strong>
-              &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>.{" "}
-              {pronounHeShe} is under treatment for the above condition from <strong>{format(treatmentFromDate, 'PPP')}</strong> to the present date.
-            </p>
-            <p>
-              {pronounHeShe} has been prescribed medication, physiotherapy and rest for a period of <strong>{restPeriodDays}</strong> days
-              from <strong>{format(restPeriodStartDate, 'PPP')}</strong> to <strong>{format(restPeriodEndDate, 'PPP')}</strong>.
-            </p>
-            {rejoinDate && rejoinActivity ? (
+          {customContent ? (
+            <div className="text-lg leading-relaxed space-y-6 prose max-w-none" dangerouslySetInnerHTML={{ __html: customContent }} />
+          ) : (
+            <div className="text-lg leading-relaxed space-y-6">
               <p>
-                {pronounHeShe} has been reevaluated on follow-up and found to be fit to resume <strong>{rejoinActivity}</strong> duties from <strong>{format(rejoinDate, 'PPP')}</strong>.
+                This is to certify that {patientPrefix} <strong>{patient.name}</strong>, bearing ID No.: <strong>{patient.id}</strong>
+                &nbsp;has presented with <strong>{diagnosis}</strong> to our healthcare facility on <strong>{format(consultationDate, 'PPP')}</strong>.{" "}
+                {pronounHeShe} is under treatment for the above condition from <strong>{format(treatmentFromDate, 'PPP')}</strong> to the present date.
               </p>
-            ) : (
               <p>
-                {pronounHeShe} needs to be reevaluated on follow-up to certify fitness.
+                {pronounHeShe} has been prescribed medication, physiotherapy and rest for a period of <strong>{restPeriodDays}</strong> days
+                from <strong>{format(restPeriodStartDate, 'PPP')}</strong> to <strong>{format(restPeriodEndDate, 'PPP')}</strong>.
               </p>
-            )}
-          </div>
+              {rejoinDate && rejoinActivity ? (
+                <p>
+                  {pronounHeShe} has been reevaluated on follow-up and found to be fit to resume <strong>{rejoinActivity}</strong> duties from <strong>{format(rejoinDate, 'PPP')}</strong>.
+                </p>
+              ) : (
+                <p>
+                  {pronounHeShe} needs to be reevaluated on follow-up to certify fitness.
+                </p>
+              )}
+            </div>
+          )}
         </main>
 
         <footer className="mt-auto">
@@ -153,7 +158,50 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   );
 };
 
+// --- Helper: Generate Default HTML ---
+const generateDefaultCertificateHtml = (
+  patient: Patient,
+  diagnosis: string,
+  certificateData: CertificateData
+): string => {
+  const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity, consultationDate } = certificateData;
+  const restPeriodEndDate = addDays(restPeriodStartDate, restPeriodDays - 1);
+  const patientPrefix = patient.sex === 'M' ? 'Mr.' : 'Mrs.';
+  const pronounHeShe = patient.sex === 'M' ? 'He' : 'She';
+
+  let html = `
+    <p>
+      This is to certify that ${patientPrefix} <strong>${patient.name}</strong>, bearing ID No.: <strong>${patient.id}</strong>
+      &nbsp;has presented with <strong>${diagnosis}</strong> to our healthcare facility on <strong>${format(consultationDate, 'PPP')}</strong>.
+      ${pronounHeShe} is under treatment for the above condition from <strong>${format(treatmentFromDate, 'PPP')}</strong> to the present date.
+    </p>
+    <p>
+      ${pronounHeShe} has been prescribed medication, physiotherapy and rest for a period of <strong>${restPeriodDays}</strong> days
+      from <strong>${format(restPeriodStartDate, 'PPP')}</strong> to <strong>${format(restPeriodEndDate, 'PPP')}</strong>.
+    </p>
+  `;
+
+  if (rejoinDate && rejoinActivity) {
+    html += `
+      <p>
+        ${pronounHeShe} has been reevaluated on follow-up and found to be fit to resume <strong>${rejoinActivity}</strong> duties from <strong>${format(rejoinDate, 'PPP')}</strong>.
+      </p>
+    `;
+  } else {
+    html += `
+      <p>
+        ${pronounHeShe} needs to be reevaluated on follow-up to certify fitness.
+      </p>
+    `;
+  }
+
+  return html;
+};
+
 // --- MedicalCertificateModal Component (Data Entry) ---
+
+// Import RichTextEditor dynamically or normally
+import RichTextEditor from '@/components/RichTextEditor';
 
 /**
  * MedicalCertificateModal Component
@@ -162,41 +210,34 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
  * Features:
  * - Date pickers for Rest From, Rest To, Treatment From, Rejoin Date.
  * - Auto-calculation of End Date based on duration.
+ * - Rich Text Editing of the final Certificate content.
  */
-export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = ({ isOpen, onClose, onSubmit, patientName }) => {
+export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
+  patient: Patient;
+  diagnosis: string;
+}> = ({ isOpen, onClose, onSubmit, patientName, patient, diagnosis }) => {
+  const [step, setStep] = useState<'input' | 'edit'>('input');
+
+  // Data input states
   const [restPeriodDays, setRestPeriodDays] = useState<number | ''>('');
   const [restPeriodStartDate, setRestPeriodStartDate] = useState<Date | undefined>(new Date());
   const [treatmentFromDate, setTreatmentFromDate] = useState<Date | undefined>(new Date());
   const [rejoinDate, setRejoinDate] = useState<Date | undefined>();
   const [rejoinActivity, setRejoinActivity] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [certificateDate, setCertificateDate] = useState<Date | undefined>(new Date());
+  const [consultationDate, setConsultationDate] = useState<Date | undefined>(new Date());
+
+  // Picker visibility states
   const [isRestPeriodDatePickerOpen, setIsRestPeriodDatePickerOpen] = useState(false);
   const [isTreatmentFromDatePickerOpen, setIsTreatmentFromDatePickerOpen] = useState(false);
   const [isRejoinDatePickerOpen, setIsRejoinDatePickerOpen] = useState(false);
-  const [certificateDate, setCertificateDate] = useState<Date | undefined>(new Date());
-  const [consultationDate, setConsultationDate] = useState<Date | undefined>(new Date());
   const [isCertificateDatePickerOpen, setIsCertificateDatePickerOpen] = useState(false);
   const [isConsultationDatePickerOpen, setIsConsultationDatePickerOpen] = useState(false);
 
-
-  const handleSubmit = () => {
-    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate || !certificateDate || !consultationDate) {
-      // Basic validation
-      return;
-    }
-    setIsSubmitting(true);
-    onSubmit({
-      restPeriodDays: Number(restPeriodDays),
-      restPeriodStartDate,
-      treatmentFromDate,
-      rejoinDate,
-      rejoinActivity,
-      certificateDate,
-      consultationDate,
-    });
-    // The parent component will handle closing the modal on success
-    setIsSubmitting(false);
-  };
+  // Editing state
+  const [editorContent, setEditorContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const restPeriodEndDate = restPeriodStartDate && restPeriodDays ? addDays(restPeriodStartDate, Number(restPeriodDays) - 1) : null;
 
@@ -206,210 +247,206 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps> = (
     }
   }, [restPeriodStartDate]);
 
+  // Reset step on open
+  useEffect(() => {
+    if (isOpen) {
+      setStep('input');
+    }
+  }, [isOpen]);
+
+  const handleNext = () => {
+    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate || !certificateDate || !consultationDate) {
+      // Basic validation toast could be added here
+      return;
+    }
+
+    const data: CertificateData = {
+      restPeriodDays: Number(restPeriodDays),
+      restPeriodStartDate,
+      treatmentFromDate,
+      rejoinDate,
+      rejoinActivity,
+      certificateDate,
+      consultationDate,
+    };
+
+    const generatedHtml = generateDefaultCertificateHtml(patient, diagnosis, data);
+    setEditorContent(generatedHtml);
+    setStep('edit');
+  };
+
+  const handleSubmit = () => {
+    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate || !certificateDate || !consultationDate) return;
+
+    setIsSubmitting(true);
+    onSubmit({
+      restPeriodDays: Number(restPeriodDays),
+      restPeriodStartDate,
+      treatmentFromDate,
+      rejoinDate,
+      rejoinActivity,
+      certificateDate,
+      consultationDate,
+      customContent: editorContent,
+    });
+    setIsSubmitting(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className={cn(
+        "sm:max-w-[425px]",
+        step === 'edit' && "sm:max-w-[800px]"
+      )}>
         <DialogHeader>
-          <DialogTitle>Generate Medical Certificate</DialogTitle>
+          <DialogTitle>Generate Medical Certificate - {step === 'input' ? 'Details' : 'Edit Content'}</DialogTitle>
           <DialogDescription>
-            Enter the required details for {patientName}'s medical certificate.
+            {step === 'input'
+              ? `Enter the required details for ${patientName}'s medical certificate.`
+              : "Review and edit the certificate content before printing."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-              Certificate Date
-            </Label>
-            <Popover open={isCertificateDatePickerOpen} onOpenChange={setIsCertificateDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "col-span-3 justify-start text-left font-normal",
-                    !certificateDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {certificateDate ? format(certificateDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={certificateDate}
-                  onSelect={(date) => {
-                    setCertificateDate(date);
-                    setIsCertificateDatePickerOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-              First Consultation
-            </Label>
-            <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "col-span-3 justify-start text-left font-normal",
-                    !consultationDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {consultationDate ? format(consultationDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={consultationDate}
-                  onSelect={(date) => {
-                    setConsultationDate(date);
-                    setIsConsultationDatePickerOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+        {step === 'input' ? (
+          <div className="grid gap-4 py-4">
+            {/* --- Input Fields (Same as before) --- */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Certificate Date</Label>
+              <Popover open={isCertificateDatePickerOpen} onOpenChange={setIsCertificateDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !certificateDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {certificateDate ? format(certificateDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={certificateDate} onSelect={(d) => { setCertificateDate(d); setIsCertificateDatePickerOpen(false); }} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-              Injury From
-            </Label>
-            <Popover open={isTreatmentFromDatePickerOpen} onOpenChange={setIsTreatmentFromDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "col-span-3 justify-start text-left font-normal",
-                    !treatmentFromDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {treatmentFromDate ? format(treatmentFromDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={treatmentFromDate}
-                  onSelect={(date) => {
-                    setTreatmentFromDate(date);
-                    setIsTreatmentFromDatePickerOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">First Consultation</Label>
+              <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !consultationDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {consultationDate ? format(consultationDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={consultationDate} onSelect={(d) => { setConsultationDate(d); setIsConsultationDatePickerOpen(false); }} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="rest-days" className="text-right">
-              Rest (Days)
-            </Label>
-            <Input
-              id="rest-days"
-              type="number"
-              value={restPeriodDays}
-              onChange={(e) => setRestPeriodDays(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-              className="col-span-3"
-            />
-          </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Injury From</Label>
+              <Popover open={isTreatmentFromDatePickerOpen} onOpenChange={setIsTreatmentFromDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !treatmentFromDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {treatmentFromDate ? format(treatmentFromDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={treatmentFromDate} onSelect={(d) => { setTreatmentFromDate(d); setIsTreatmentFromDatePickerOpen(false); }} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-              Rest From
-            </Label>
-            <Popover open={isRestPeriodDatePickerOpen} onOpenChange={setIsRestPeriodDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "col-span-3 justify-start text-left font-normal",
-                    !restPeriodStartDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {restPeriodStartDate ? format(restPeriodStartDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={restPeriodStartDate}
-                  onSelect={(date) => {
-                    setRestPeriodStartDate(date);
-                    setIsRestPeriodDatePickerOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rest-days" className="text-right">Rest (Days)</Label>
+              <Input
+                id="rest-days"
+                type="number"
+                value={restPeriodDays}
+                onChange={(e) => setRestPeriodDays(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                className="col-span-3"
+              />
+            </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right col-span-1">Rest To</Label>
-            <div className="col-span-3 text-sm font-medium text-muted-foreground h-10 flex items-center">
-              {restPeriodEndDate ? format(restPeriodEndDate, "PPP") : 'Please enter rest days & start date'}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Rest From</Label>
+              <Popover open={isRestPeriodDatePickerOpen} onOpenChange={setIsRestPeriodDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !restPeriodStartDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {restPeriodStartDate ? format(restPeriodStartDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={restPeriodStartDate} onSelect={(d) => { setRestPeriodStartDate(d); setIsRestPeriodDatePickerOpen(false); }} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right col-span-1">Rest To</Label>
+              <div className="col-span-3 text-sm font-medium text-muted-foreground h-10 flex items-center">
+                {restPeriodEndDate ? format(restPeriodEndDate, "PPP") : 'Please enter rest days & start date'}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Rejoin Date</Label>
+              <Popover open={isRejoinDatePickerOpen} onOpenChange={setIsRejoinDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !rejoinDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {rejoinDate ? format(rejoinDate, "PPP") : <span>Pick a date (Optional)</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={rejoinDate} onSelect={(d) => { setRejoinDate(d); setIsRejoinDatePickerOpen(false); }} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rejoin-activity" className="text-right">Rejoin Activity</Label>
+              <Input
+                id="rejoin-activity"
+                value={rejoinActivity}
+                onChange={(e) => setRejoinActivity(e.target.value)}
+                className="col-span-3"
+                placeholder="normal/light"
+              />
             </div>
           </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">
-              Rejoin Date
-            </Label>
-            <Popover open={isRejoinDatePickerOpen} onOpenChange={setIsRejoinDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "col-span-3 justify-start text-left font-normal",
-                    !rejoinDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {rejoinDate ? format(rejoinDate, "PPP") : <span>Pick a date (Optional)</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={rejoinDate}
-                  onSelect={(date) => {
-                    setRejoinDate(date);
-                    setIsRejoinDatePickerOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+        ) : (
+          <div className="py-4">
+            <RichTextEditor content={editorContent} onChange={setEditorContent} />
           </div>
+        )}
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="rejoin-activity" className="text-right">
-              Rejoin Activity
-            </Label>
-            <Input
-              id="rejoin-activity"
-              value={rejoinActivity}
-              onChange={(e) => setRejoinActivity(e.target.value)}
-              className="col-span-3"
-              placeholder="normal/light"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Generate & Print
-          </Button>
+        <DialogFooter className="flex items-center justify-between sm:justify-end gap-2 w-full">
+          {step === 'input' ? (
+            <div className="flex w-full items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={handleNext} title="Edit Content">
+                <FileEdit className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Edit</span>
+              </Button>
+              <Button type="submit" onClick={handleSubmit} disabled={isSubmitting} title="Generate & Print">
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                ) : (
+                  <Printer className="h-4 w-4 sm:mr-2" />
+                )}
+                <span className="hidden sm:inline">Print</span>
+              </Button>
+            </div>
+          ) : (
+            <div className="flex w-full items-center justify-between">
+              <Button type="button" variant="outline" onClick={() => setStep('input')} title="Back">
+                Back
+              </Button>
+              <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Generate & Print
+              </Button>
+            </div>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

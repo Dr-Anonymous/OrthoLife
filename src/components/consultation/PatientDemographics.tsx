@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { User, Folder, Calendar as CalendarIcon, History } from 'lucide-react';
+import { User, Folder, Calendar as CalendarIcon, History, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Patient } from '@/types/consultation';
@@ -92,7 +92,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                         <span className="sr-only">View Patient History</span>
                     </Button>
                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onLinkClick} title="Link Duplicate Patient">
-                        <User className="h-4 w-4 text-orange-500" />
+                        <LinkIcon className="h-4 w-4 text-orange-500" />
                         <span className="sr-only">Link Duplicate Patient</span>
                     </Button>
                 </div>

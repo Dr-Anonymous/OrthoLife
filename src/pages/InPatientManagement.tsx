@@ -59,6 +59,7 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { useTranslation } from 'react-i18next';
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
+import { ConsentManagementModal } from '@/components/inpatient/ConsentManagementModal';
 
 // --- Types ---
 
@@ -140,6 +141,8 @@ const InPatientManagement = () => {
     const [selectedPatientForEdit, setSelectedPatientForEdit] = useState<InPatient | null>(null);
     const [selectedPatientForWhatsApp, setSelectedPatientForWhatsApp] = useState<InPatient | null>(null);
     const [selectedPatientForDischarge, setSelectedPatientForDischarge] = useState<InPatient | null>(null);
+    const [selectedPatientForConsent, setSelectedPatientForConsent] = useState<InPatient | null>(null);
+    const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
     const [whatsAppType, setWhatsAppType] = useState<'pre-op' | 'post-op' | 'rehab' | 'general'>('general');
     const [whatsAppMessage, setWhatsAppMessage] = useState('');
     const [matchedGuideTitle, setMatchedGuideTitle] = useState<string | null>(null);
@@ -494,6 +497,11 @@ const InPatientManagement = () => {
         setIsDischargeModalOpen(true);
     };
 
+    const openConsentModal = (patient: InPatient) => {
+        setSelectedPatientForConsent(patient);
+        setIsConsentModalOpen(true);
+    };
+
     const filteredPatients = useMemo(() => {
         if (!inPatients) return [];
         return inPatients.filter(p =>
@@ -566,6 +574,7 @@ const InPatientManagement = () => {
                                 onSendWhatsApp={initWhatsApp}
                                 onEdit={() => openEditModal(p)}
                                 onDischarge={() => openDischargeModal(p)}
+                                onConsents={() => openConsentModal(p)}
                             />
                         )) : (
                             <div className="col-span-full py-20 text-center bg-muted/20 rounded-xl border-2 border-dashed">
@@ -586,6 +595,7 @@ const InPatientManagement = () => {
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
                                 onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary, p.discharge_date || undefined)}
+                                onConsents={() => openConsentModal(p)} // Added Consents support
                             />
                         )) : (
                             <EmptyState icon={History} message="No discharge history found" />
@@ -920,6 +930,12 @@ const InPatientManagement = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConsentManagementModal
+                isOpen={isConsentModalOpen}
+                onClose={() => setIsConsentModalOpen(false)}
+                patient={selectedPatientForConsent}
+            />
 
         </div >
     );
@@ -1660,13 +1676,14 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 });
 DischargeForm.displayName = "DischargeForm";
 
-const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, onViewSummary }: {
+const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, onViewSummary, onConsents }: {
     patient: InPatient;
     onSendWhatsApp: (p: InPatient, type: 'pre-op' | 'post-op' | 'rehab' | 'general') => void;
     onEdit?: () => void;
     onDischarge?: () => void;
     onPrint?: () => void;
     onViewSummary?: () => void;
+    onConsents?: () => void;
 }) => {
 
     const calculateDays = (startDate: string | null) => {
@@ -1812,8 +1829,8 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                 </div>
 
                 {/* Actions */}
-                {!isDischarged && (
-                    <div className="pt-3 flex flex-col gap-2 mt-auto">
+                <div className="pt-3 flex flex-col gap-2 mt-auto">
+                    {!isDischarged && (
                         <div className="grid grid-cols-4 gap-2">
                             <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'pre-op')}>
                                 Pre-Op
@@ -1828,15 +1845,23 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                                 General
                             </Button>
                         </div>
+                    )}
 
+                    <div className="grid grid-cols-2 gap-2">
+                        {onConsents && (
+                            <Button variant="secondary" size="sm" className={cn("w-full text-xs px-1", !onDischarge && "col-span-2")} onClick={onConsents}>
+                                <FileText className="w-3 h-3 mr-1" />
+                                Consents
+                            </Button>
+                        )}
                         {onDischarge && (
-                            <Button variant="destructive" size="sm" className="w-full" onClick={onDischarge}>
-                                <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                Discharge Patient
+                            <Button variant="destructive" size="sm" className="w-full text-xs px-1" onClick={onDischarge}>
+                                <ArrowRightLeft className="w-3 h-3 mr-1" />
+                                Discharge
                             </Button>
                         )}
                     </div>
-                )}
+                </div>
             </CardContent>
         </Card>
     );

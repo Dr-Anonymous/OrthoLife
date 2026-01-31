@@ -1562,6 +1562,12 @@ const ConsultationPage = () => {
               setIsReadyToPrintCertificate(true);
             }}
             patientName={editablePatientDetails.name}
+            patient={{
+              id: editablePatientDetails.id, // Using existing data structure
+              name: editablePatientDetails.name,
+              sex: editablePatientDetails.sex || 'M' // Fallback
+            }}
+            diagnosis={extraData.diagnosis}
           />
         )
       }

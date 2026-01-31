@@ -56,3 +56,24 @@ export interface InPatient {
         drive_id?: string | null;
     };
 }
+
+export interface SurgicalConsent {
+    id: string;
+    in_patient_id: string;
+    surgery_date: string;
+    procedure_name: string;
+    risks_general: string;
+    risks_anesthesia: string;
+    risks_procedure: string;
+    doctor_id?: string;
+    patient_phone: string;
+    patient_signature?: string;
+    doctor_signature?: string;
+    witness_signature?: string;
+    selfie_url?: string;
+    consent_status: 'pending' | 'signed';
+    created_at: string;
+    signed_at?: string;
+    // Relations
+    in_patient?: InPatient;
+}

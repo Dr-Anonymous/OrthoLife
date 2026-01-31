@@ -16,10 +16,12 @@ import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, M
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
+  toolbarClassName?: string;
 }
 
 /**
@@ -36,7 +38,7 @@ interface RichTextEditorProps {
  * - Floating Bubble Menu for image manipulation.
  * - Sticky Toolbar for easy access to formatting tools.
  */
-const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) => {
+const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange, toolbarClassName }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editor = useEditor({
     extensions: [
@@ -134,7 +136,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
 
   return (
     <div className="border rounded-md">
-      <div className="p-2 border-b flex items-center flex-wrap gap-1 sticky top-[104px] bg-background z-40">
+      <div className={cn("p-2 border-b flex items-center flex-wrap gap-1 sticky top-[104px] bg-background z-40", toolbarClassName)}>
         <Button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
