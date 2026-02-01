@@ -47,24 +47,32 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
     });
 
     const createMutation = useMutation({
-        mutationFn: async (data: Partial<SurgicalConsent>) => {
-            const { error } = await supabase
+        mutationFn: async ({ data, shouldClose = true }: { data: Partial<SurgicalConsent>, shouldClose?: boolean }) => {
+            const { data: saved, error } = await supabase
                 .from('surgical_consents')
-                .upsert([data]);
+                .upsert([data])
+                .select()
+                .single();
+
             if (error) throw error;
+            return { shouldClose, saved };
         },
-        onSuccess: () => {
+        onSuccess: ({ shouldClose, saved }) => {
             queryClient.invalidateQueries({ queryKey: ['surgical-consents'] });
-            toast.success("Consent saved successfully");
-            setViewMode('list');
+            if (shouldClose) {
+                toast.success("Consent saved successfully");
+                setViewMode('list');
+            } else {
+                if (saved) setSelectedConsent(saved); // Update selected consent so form has ID
+            }
         },
         onError: (err: any) => {
-            toast.error("Failed to save consent: " + err.message);
+            toast.error(err.message);
         }
     });
 
-    const handleCreate = (data: Partial<SurgicalConsent>) => {
-        createMutation.mutate(data);
+    const handleCreate = async (data: Partial<SurgicalConsent>, shouldClose: boolean = true) => {
+        return createMutation.mutateAsync({ data, shouldClose });
     };
 
     const handleView = (consent: SurgicalConsent) => {

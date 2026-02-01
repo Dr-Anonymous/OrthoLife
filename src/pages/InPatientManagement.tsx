@@ -21,7 +21,8 @@ import {
     CalendarCheck,
     BookOpen,
     AlertTriangle,
-    Activity
+    Activity,
+    Trash2
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -304,6 +305,20 @@ const InPatientManagement = () => {
         }
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from('in_patients').delete().eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['in-patients'] });
+            toast({ title: "Deleted", description: "Patient record deleted successfully." });
+        },
+        onError: (err: any) => {
+            toast({ variant: "destructive", title: "Error", description: err.message });
+        }
+    });
+
     // --- Helpers ---
 
     const resetAdmitForm = () => {
@@ -502,6 +517,12 @@ const InPatientManagement = () => {
         setIsConsentModalOpen(true);
     };
 
+    const handleDeletePatient = async (patient: InPatient) => {
+        if (window.confirm(`Are you sure you want to delete ${patient.patient.name}? This action cannot be undone.`)) {
+            deleteMutation.mutate(patient.id);
+        }
+    };
+
     const filteredPatients = useMemo(() => {
         if (!inPatients) return [];
         return inPatients.filter(p =>
@@ -575,6 +596,7 @@ const InPatientManagement = () => {
                                 onEdit={() => openEditModal(p)}
                                 onDischarge={() => openDischargeModal(p)}
                                 onConsents={() => openConsentModal(p)}
+                                onDelete={() => handleDeletePatient(p)}
                             />
                         )) : (
                             <div className="col-span-full py-20 text-center bg-muted/20 rounded-xl border-2 border-dashed">
@@ -652,9 +674,40 @@ const InPatientManagement = () => {
                                                 "p-2 cursor-pointer hover:bg-muted transition-colors flex justify-between items-center",
                                                 selectedPatientId === p.id && "bg-primary/10 border-l-4 border-primary"
                                             )}
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 setSelectedPatientId(p.id);
                                                 setPatientSearch(p.name);
+
+                                                // Fetch latest consultation data for this patient
+                                                try {
+                                                    const { data: consultations, error } = await supabase
+                                                        .from('consultations')
+                                                        .select('consultation_data')
+                                                        .eq('patient_id', p.id)
+                                                        .order('created_at', { ascending: false }) // Use created_at if visit_date is unreliable, or check schema. consultation columns usually have created_at. The Types said created_at exists.
+                                                        .limit(1);
+
+                                                    if (consultations && consultations.length > 0 && consultations[0].consultation_data) {
+                                                        const data = consultations[0].consultation_data;
+                                                        const latestAdvice = data.advice || '';
+                                                        const diagnosis = data.diagnosis || '';
+
+                                                        // Filter out any lines that contain the word "guide"
+                                                        const cleanAdvice = latestAdvice
+                                                            .split('\n')
+                                                            .filter((line: string) => !line.toLowerCase().includes('guide'))
+                                                            .join('\n')
+                                                            .trim();
+
+                                                        setAdmissionData(prev => ({
+                                                            ...prev,
+                                                            procedure: cleanAdvice || prev.procedure,
+                                                            diagnosis: diagnosis || prev.diagnosis
+                                                        }));
+                                                    }
+                                                } catch (err) {
+                                                    console.error("Error fetching patient advice:", err);
+                                                }
                                             }}
                                         >
                                             <span className="font-medium">{p.name}</span>
@@ -1676,7 +1729,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 });
 DischargeForm.displayName = "DischargeForm";
 
-const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, onViewSummary, onConsents }: {
+const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, onViewSummary, onConsents, onDelete }: {
     patient: InPatient;
     onSendWhatsApp: (p: InPatient, type: 'pre-op' | 'post-op' | 'rehab' | 'general') => void;
     onEdit?: () => void;
@@ -1684,6 +1737,7 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
     onPrint?: () => void;
     onViewSummary?: () => void;
     onConsents?: () => void;
+    onDelete?: () => void;
 }) => {
 
     const calculateDays = (startDate: string | null) => {
@@ -1725,6 +1779,11 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                                 <Pencil className="w-3 h-3 text-muted-foreground" />
                             </Button>
                         )}
+                        {!isDischarged && onDelete && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-red-600 hover:bg-red-50" onClick={onDelete} title="Delete Record">
+                                <Trash2 className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                        )}
                     </div>
                 )}
                 <div className="flex justify-between items-start pr-6">
@@ -1758,7 +1817,6 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                             <BedDouble className="w-3 h-3" /> {patient.room_number}
                         </Badge>
                     )}
-                    {isDischarged && <Badge variant="secondary">Discharged</Badge>}
                 </div>
             </CardHeader>
 

@@ -7,7 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SurgicalConsent, InPatient } from '@/types/inPatients';
-import { Camera, Save, Eraser, CheckCircle2, Lock, AlertTriangle } from 'lucide-react';
+import {
+    Camera,
+    Save,
+    Eraser,
+    Lock,
+    AlertTriangle,
+    Send
+} from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
@@ -17,7 +24,7 @@ import { CONSENT_RISKS } from '@/utils/consentConstants';
 
 interface SurgicalConsentFormProps {
     patient: InPatient;
-    onSave: (data: Partial<SurgicalConsent>) => void;
+    onSave: (data: Partial<SurgicalConsent>, shouldClose?: boolean) => Promise<any>;
     onCancel: () => void;
     initialData?: Partial<SurgicalConsent>;
     isReadOnly?: boolean;
@@ -34,14 +41,16 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     const lang = patient.language === 'te' ? 'te' : 'en';
     const content = CONSENT_RISKS[lang];
 
-    const [formData, setFormData] = useState<Partial<SurgicalConsent>>(initialData || {
-        procedure_name: patient.procedure || '',
-        surgery_date: patient.procedure_date ? new Date(patient.procedure_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        risks_general: content.general,
-        risks_anesthesia: content.anesthesia,
+    const [formData, setFormData] = useState<Partial<SurgicalConsent>>({
+        in_patient_id: patient.id,
+        procedure_name: initialData?.procedure_name || patient.procedure || '',
+        surgery_date: initialData?.surgery_date || (patient.procedure_date ? new Date(patient.procedure_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+        risks_general: initialData?.risks_general || (patient.language === 'te' ? CONSENT_RISKS.te.general : CONSENT_RISKS.en.general),
+        risks_anesthesia: initialData?.risks_anesthesia || content.anesthesia,
         risks_procedure: initialData?.risks_procedure || content.procedure_placeholder,
-        patient_phone: patient.patient.phone,
-        consent_status: 'pending'
+        patient_phone: initialData?.patient_phone || patient.patient.phone,
+        consent_status: initialData?.consent_status || 'pending',
+        consent_language: initialData?.consent_language || lang
     });
 
     // Signature Refs
@@ -54,6 +63,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [selfieImage, setSelfieImage] = useState<string | null>(initialData?.selfie_url || null);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
     // OTP State
     const [otp, setOtp] = useState('');
@@ -69,17 +79,26 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         }
     }, [initialData]);
 
-    const handleNext = () => setStep(prev => prev + 1);
+    const handleNext = () => {
+        if (step === 2) {
+            // Auto-save draft when moving to verification step to prevent data loss
+            const draftData = {
+                ...formData,
+                in_patient_id: patient.id,
+                consent_status: 'pending' as const,
+            };
+            onSave(draftData, false); // false = do not close modal
+        }
+        setStep(prev => prev + 1);
+    };
     const handleBack = () => setStep(prev => prev - 1);
 
     // --- Selfie ---
     const startCamera = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                setIsCameraOpen(true);
-            }
+            setCameraStream(stream);
+            setIsCameraOpen(true);
         } catch (err) {
             console.error("Error accessing camera:", err);
             toast.error("Could not access camera");
@@ -87,12 +106,28 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     };
 
     const stopCamera = () => {
-        if (videoRef.current && videoRef.current.srcObject) {
-            const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-            tracks.forEach(track => track.stop());
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            setCameraStream(null);
             setIsCameraOpen(false);
         }
     };
+
+    // Attach stream to video element when it becomes available
+    useEffect(() => {
+        if (isCameraOpen && videoRef.current && cameraStream) {
+            videoRef.current.srcObject = cameraStream;
+        }
+    }, [isCameraOpen, cameraStream]);
+
+    // Cleanup camera on unmount
+    useEffect(() => {
+        return () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [cameraStream]);
 
     const captureSelfie = () => {
         if (videoRef.current && canvasRef.current) {
@@ -157,6 +192,47 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
             consent_status: 'pending' as const,
         };
         onSave(finalData);
+    };
+
+    const handleWhatsApp = async () => {
+        const draftData = {
+            ...formData,
+            in_patient_id: patient.id,
+            consent_status: 'pending' as const,
+        };
+
+        try {
+            toast.loading("Saving draft...");
+            const result = await onSave(draftData, false);
+            toast.dismiss();
+
+            const savedId = result?.saved?.id || initialData?.id;
+
+            if (savedId) {
+                const link = `https://ortho.life/consent-verify/${savedId}`;
+                const message = `Hello ${patient.patient.name}, please review and sign your surgical consent for ${formData.procedure_name} here:\n ${link}`;
+
+                try {
+                    const { error } = await supabase.functions.invoke('send-whatsapp', {
+                        body: { number: patient.patient.phone, message: message },
+                    });
+
+                    if (error) throw error;
+                    toast.success("WhatsApp sent to patient!");
+                } catch (err: any) {
+                    console.error("Failed to send WhatsApp:", err);
+                    toast.error("Failed to send WhatsApp message automatically. Opening WhatsApp...");
+                    // Fallback to manual open if function fails
+                    const encodedMessage = encodeURIComponent(message);
+                    window.open(`https://wa.me/${patient.patient.phone}?text=${encodedMessage}`, '_blank');
+                }
+            } else {
+                toast.error("Could not save draft to generate link.");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to save draft.");
+        }
     };
 
     const handleSubmit = async () => {
@@ -403,9 +479,14 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
                 <div className="flex gap-2">
                     {step === 2 && (
-                        <Button variant="secondary" onClick={handleSaveDraft}>
-                            <Save className="w-4 h-4 mr-2" /> Save for Later
-                        </Button>
+                        <>
+                            <Button variant="secondary" onClick={handleSaveDraft}>
+                                <Save className="w-4 h-4 mr-2" /> Save
+                            </Button>
+                            <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleWhatsApp}>
+                                <Send className="w-4 h-4 mr-2" /> Send
+                            </Button>
+                        </>
                     )}
                     {step < 3 && (
                         <Button onClick={handleNext}>Next</Button>

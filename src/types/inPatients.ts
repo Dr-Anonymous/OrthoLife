@@ -72,6 +72,7 @@ export interface SurgicalConsent {
     witness_signature?: string;
     selfie_url?: string;
     consent_status: 'pending' | 'signed';
+    consent_language?: string;
     created_at: string;
     signed_at?: string;
     // Relations

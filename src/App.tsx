@@ -45,6 +45,7 @@ const PharmacySupplierPage = lazy(() => import("./pages/PharmacySupplierPage"));
 const PharmacyAuthGuard = lazy(() => import("./components/PharmacyAuthGuard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const InPatientManagement = lazy(() => import("./pages/InPatientManagement"));
+const PublicConsentVerification = lazy(() => import("./pages/PublicConsentVerification"));
 
 const queryClient = new QueryClient();
 
@@ -157,6 +158,7 @@ const App = () => {
                   <Route path="/prescription" element={<PrescriptionDownload />} />
                   <Route path="/d/:patientPhone" element={<DischargeSummaryDownload />} />
                   <Route path="/d" element={<DischargeSummaryDownload />} />
+                  <Route path="/consent-verify/:id" element={<PublicConsentVerification />} />
 
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
