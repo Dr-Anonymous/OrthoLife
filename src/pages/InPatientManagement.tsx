@@ -168,6 +168,21 @@ const InPatientManagement = () => {
         emergency_contact: '',
     });
 
+    // Suggestion Navigation State
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const suggestionsListRef = useRef<HTMLDivElement>(null);
+
+    // Scroll highlighted item into view
+    React.useEffect(() => {
+        if (highlightedIndex >= 0 && suggestionsListRef.current) {
+            const list = suggestionsListRef.current;
+            const element = list.children[highlightedIndex] as HTMLElement;
+            if (element) {
+                element.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [highlightedIndex]);
+
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -324,6 +339,7 @@ const InPatientManagement = () => {
     const resetAdmitForm = () => {
         setSelectedPatientId(null);
         setPatientSearch('');
+        setHighlightedIndex(-1);
         setAdmissionData({
             diagnosis: '',
             procedure: '',
@@ -337,6 +353,42 @@ const InPatientManagement = () => {
             referral_amount: '',
             emergency_contact: '',
         });
+    };
+
+    const handleSelectPatient = async (p: any) => {
+        setSelectedPatientId(p.id);
+        setPatientSearch(p.name);
+        setHighlightedIndex(-1);
+
+        // Fetch latest consultation data for this patient
+        try {
+            const { data: consultations } = await supabase
+                .from('consultations')
+                .select('consultation_data')
+                .eq('patient_id', p.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (consultations && consultations.length > 0 && consultations[0].consultation_data) {
+                const data = consultations[0].consultation_data;
+                const latestAdvice = data.advice || '';
+                const diagnosis = data.diagnosis || '';
+
+                const cleanAdvice = latestAdvice
+                    .split('\n')
+                    .filter((line: string) => !line.toLowerCase().includes('guide'))
+                    .join('\n')
+                    .trim();
+
+                setAdmissionData(prev => ({
+                    ...prev,
+                    procedure: cleanAdvice || prev.procedure,
+                    diagnosis: diagnosis || prev.diagnosis
+                }));
+            }
+        } catch (err) {
+            console.error("Error fetching patient advice:", err);
+        }
     };
 
     const sendDischargeNotification = async (patient: InPatient, language: string) => {
@@ -663,52 +715,36 @@ const InPatientManagement = () => {
                                 onChange={(e) => {
                                     setPatientSearch(e.target.value);
                                     setSelectedPatientId(null);
+                                    setHighlightedIndex(-1);
+                                }}
+                                onKeyDown={async (e) => {
+                                    if (!searchPatients || searchPatients.length === 0) return;
+
+                                    if (e.key === 'ArrowDown') {
+                                        e.preventDefault();
+                                        setHighlightedIndex(prev => (prev < searchPatients.length - 1 ? prev + 1 : prev));
+                                    } else if (e.key === 'ArrowUp') {
+                                        e.preventDefault();
+                                        setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev));
+                                    } else if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (highlightedIndex >= 0 && searchPatients[highlightedIndex]) {
+                                            handleSelectPatient(searchPatients[highlightedIndex]);
+                                        }
+                                    }
                                 }}
                             />
                             {searchPatients && searchPatients.length > 0 && !selectedPatientId && (
-                                <div className="border rounded-md mt-1 divide-y max-h-32 overflow-y-auto">
-                                    {searchPatients.map(p => (
+                                <div ref={suggestionsListRef} className="border rounded-md mt-1 divide-y max-h-32 overflow-y-auto">
+                                    {searchPatients.map((p, index) => (
                                         <div
                                             key={p.id}
                                             className={cn(
-                                                "p-2 cursor-pointer hover:bg-muted transition-colors flex justify-between items-center",
-                                                selectedPatientId === p.id && "bg-primary/10 border-l-4 border-primary"
+                                                "p-2 cursor-pointer transition-colors flex justify-between items-center",
+                                                (selectedPatientId === p.id || index === highlightedIndex) && "bg-primary/10 border-l-4 border-primary",
+                                                index === highlightedIndex && "bg-accent"
                                             )}
-                                            onClick={async () => {
-                                                setSelectedPatientId(p.id);
-                                                setPatientSearch(p.name);
-
-                                                // Fetch latest consultation data for this patient
-                                                try {
-                                                    const { data: consultations, error } = await supabase
-                                                        .from('consultations')
-                                                        .select('consultation_data')
-                                                        .eq('patient_id', p.id)
-                                                        .order('created_at', { ascending: false }) // Use created_at if visit_date is unreliable, or check schema. consultation columns usually have created_at. The Types said created_at exists.
-                                                        .limit(1);
-
-                                                    if (consultations && consultations.length > 0 && consultations[0].consultation_data) {
-                                                        const data = consultations[0].consultation_data;
-                                                        const latestAdvice = data.advice || '';
-                                                        const diagnosis = data.diagnosis || '';
-
-                                                        // Filter out any lines that contain the word "guide"
-                                                        const cleanAdvice = latestAdvice
-                                                            .split('\n')
-                                                            .filter((line: string) => !line.toLowerCase().includes('guide'))
-                                                            .join('\n')
-                                                            .trim();
-
-                                                        setAdmissionData(prev => ({
-                                                            ...prev,
-                                                            procedure: cleanAdvice || prev.procedure,
-                                                            diagnosis: diagnosis || prev.diagnosis
-                                                        }));
-                                                    }
-                                                } catch (err) {
-                                                    console.error("Error fetching patient advice:", err);
-                                                }
-                                            }}
+                                            onClick={() => handleSelectPatient(p)}
                                         >
                                             <span className="font-medium">{p.name}</span>
                                             <span className="text-xs text-muted-foreground">{p.phone}</span>

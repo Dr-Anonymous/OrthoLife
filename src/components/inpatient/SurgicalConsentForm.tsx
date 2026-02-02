@@ -43,6 +43,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
     const [formData, setFormData] = useState<Partial<SurgicalConsent>>({
         in_patient_id: patient.id,
+        id: initialData?.id, // Added ID persistence
         procedure_name: initialData?.procedure_name || patient.procedure || '',
         surgery_date: initialData?.surgery_date || (patient.procedure_date ? new Date(patient.procedure_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
         risks_general: initialData?.risks_general || (patient.language === 'te' ? CONSENT_RISKS.te.general : CONSENT_RISKS.en.general),
@@ -73,9 +74,8 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
     // Load signatures if editing/viewing
     useEffect(() => {
-        if (initialData) {
-            // Should ideally load into canvas if possible, but canvas usually just takes new input. 
-            // For readonly we display image.
+        if (initialData?.id) {
+            setFormData(prev => ({ ...prev, id: initialData.id }));
         }
     }, [initialData]);
 
@@ -87,7 +87,12 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 in_patient_id: patient.id,
                 consent_status: 'pending' as const,
             };
-            onSave(draftData, false); // false = do not close modal
+            // Use onSave result to update ID
+            onSave(draftData, false).then(res => {
+                if (res?.saved?.id) {
+                    setFormData(prev => ({ ...prev, id: res.saved.id }));
+                }
+            });
         }
         setStep(prev => prev + 1);
     };
@@ -191,7 +196,11 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
             in_patient_id: patient.id,
             consent_status: 'pending' as const,
         };
-        onSave(finalData);
+        onSave(finalData).then(res => {
+            if (res?.saved?.id) {
+                setFormData(prev => ({ ...prev, id: res.saved.id }));
+            }
+        });
     };
 
     const handleWhatsApp = async () => {
@@ -207,6 +216,10 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
             toast.dismiss();
 
             const savedId = result?.saved?.id || initialData?.id;
+
+            if (result?.saved?.id) {
+                setFormData(prev => ({ ...prev, id: result.saved.id }));
+            }
 
             if (savedId) {
                 const link = `https://ortho.life/consent-verify/${savedId}`;
@@ -410,15 +423,15 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                             <Label>1. Patient Identification (Selfie)</Label>
                             <div className="flex flex-col items-center gap-4 p-4 border rounded-lg bg-card">
                                 {selfieImage ? (
-                                    <div className="relative">
-                                        <img src={selfieImage} alt="Selfie" className="w-[300px] h-[225px] object-cover rounded-md border" />
+                                    <div className="relative w-full flex justify-center">
+                                        <img src={selfieImage} alt="Selfie" className="w-full max-w-[300px] aspect-[4/3] object-cover rounded-md border" />
                                         <Button size="sm" variant="destructive" className="absolute top-2 right-2" onClick={() => setSelfieImage(null)}>Retake</Button>
                                     </div>
                                 ) : (
                                     <>
                                         {isCameraOpen ? (
-                                            <div className="relative">
-                                                <video ref={videoRef} autoPlay className="w-[300px] h-[225px] object-cover rounded-md bg-black" />
+                                            <div className="relative w-full flex justify-center">
+                                                <video ref={videoRef} autoPlay className="w-full max-w-[300px] aspect-[4/3] object-cover rounded-md bg-black" />
                                                 <canvas ref={canvasRef} width="300" height="225" className="hidden" />
                                                 <Button size="sm" className="absolute bottom-4 left-1/2 -translate-x-1/2" onClick={captureSelfie}>Capture</Button>
                                             </div>
@@ -470,26 +483,26 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 )}
             </div>
 
-            <div className="flex justify-between pt-6 border-t mt-4">
+            <div className="flex flex-col-reverse sm:flex-row justify-between pt-6 border-t mt-4 gap-4">
                 {step > 1 ? (
-                    <Button variant="outline" onClick={handleBack}>Back</Button>
+                    <Button variant="outline" onClick={handleBack} className="w-full sm:w-auto">Back</Button>
                 ) : (
-                    <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+                    <Button variant="ghost" onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     {step === 2 && (
                         <>
-                            <Button variant="secondary" onClick={handleSaveDraft}>
-                                <Save className="w-4 h-4 mr-2" /> Save
+                            <Button variant="secondary" onClick={handleSaveDraft} className="w-full sm:w-auto">
+                                <Save className="w-4 h-4 mr-2" /> Save Draft
                             </Button>
-                            <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleWhatsApp}>
-                                <Send className="w-4 h-4 mr-2" /> Send
+                            <Button className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto" onClick={handleWhatsApp}>
+                                <Send className="w-4 h-4 mr-2" /> Send to WhatsApp
                             </Button>
                         </>
                     )}
                     {step < 3 && (
-                        <Button onClick={handleNext}>Next</Button>
+                        <Button onClick={handleNext} className="w-full sm:w-auto">Next</Button>
                     )}
                 </div>
             </div>

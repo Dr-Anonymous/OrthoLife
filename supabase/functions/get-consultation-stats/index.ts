@@ -16,7 +16,7 @@ serve(async (req) => {
     const { month, year, day, dataType = 'day', includeMonthly = true } = await req.json();
 
     const monthStartDate = new Date(year, month, 1).toISOString();
-    const monthEndDate = new Date(year, month + 1, 0).toISOString();
+    const monthEndDate = new Date(year, month + 1, 1).toISOString();
 
     if (dataType === 'month') {
       const { data: monthlyData, error: monthlyDataError } = await supabase
@@ -42,7 +42,7 @@ serve(async (req) => {
           )
         `)
         .gte('created_at', monthStartDate)
-        .lte('created_at', monthEndDate)
+        .lt('created_at', monthEndDate)
         .order('created_at', { ascending: false });
 
       if (monthlyDataError) throw monthlyDataError;
@@ -66,7 +66,7 @@ serve(async (req) => {
         .from('consultations')
         .select('consultation_data, visit_type, location, language, procedure_fee, procedure_consultant_cut, referral_amount')
         .gte('created_at', monthStartDate)
-        .lte('created_at', monthEndDate);
+        .lt('created_at', monthEndDate);
 
       if (monthlyError) throw monthlyError;
       monthlyData = mData;
@@ -89,7 +89,7 @@ serve(async (req) => {
           referral_amount
         `)
         .gte('admission_date', monthStartDate)
-        .lte('admission_date', monthEndDate);
+        .lt('admission_date', monthEndDate);
 
       if (maError) throw maError;
       monthlyAdmissions = maData;

@@ -91,7 +91,7 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-6">
+            <DialogContent className="w-[95vw] max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-4 md:p-6">
                 <DialogHeader>
                     <div className="flex justify-between items-center pr-8">
                         <div>

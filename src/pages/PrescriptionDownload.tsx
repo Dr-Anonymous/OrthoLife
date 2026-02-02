@@ -241,10 +241,10 @@ const PrescriptionDownload = () => {
 
             {/* Hidden Print Version - Fixed A4 Width */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-                <div ref={printRef} style={{ width: '210mm', minHeight: '296mm', backgroundColor: 'white' }}>
+                <div ref={printRef} style={{ width: '210mm', minHeight: '297mm', backgroundColor: 'white' }}>
                     {consultation && (
                         <Prescription
-                            className="min-h-[296mm]"
+                            className="min-h-[297mm]"
                             patient={consultation.patient}
                             consultation={cleanConsultationData(consultation.consultation_data)}
                             consultationDate={new Date(consultation.created_at)}
