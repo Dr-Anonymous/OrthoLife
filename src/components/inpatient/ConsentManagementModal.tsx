@@ -48,9 +48,15 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
 
     const createMutation = useMutation({
         mutationFn: async ({ data, shouldClose = true }: { data: Partial<SurgicalConsent>, shouldClose?: boolean }) => {
+            // Sanitize payload: remove id if it is null/undefined so DB generates it
+            const payload = { ...data };
+            if (!payload.id) {
+                delete payload.id;
+            }
+
             const { data: saved, error } = await supabase
                 .from('surgical_consents')
-                .upsert([data])
+                .upsert([payload])
                 .select()
                 .single();
 

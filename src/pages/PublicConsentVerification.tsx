@@ -135,12 +135,16 @@ const PublicConsentVerification = () => {
 
     // --- OTP Logic (Real) ---
     useEffect(() => {
-        if (!window.recaptchaVerifier) {
-            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-verify-container', {
-                'size': 'invisible',
-            });
+        if (!loading && consentData && !window.recaptchaVerifier) {
+            try {
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-verify-container', {
+                    'size': 'invisible',
+                });
+            } catch (e) {
+                console.error("Recaptcha Init Error:", e);
+            }
         }
-    }, []);
+    }, [loading, consentData]);
 
 
     // --- Camera Logic (reused) ---
