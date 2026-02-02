@@ -19,6 +19,8 @@ begin
     sc.patient_signature,
     sc.doctor_signature,
     sc.signed_at,
+    sc.selfie_url,
+    sc.consent_language,
     p.name as patient_name,
     p.phone as patient_phone
   into v_consent

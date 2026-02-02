@@ -215,3 +215,9 @@
   overflow-x: auto;
   display: block;
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

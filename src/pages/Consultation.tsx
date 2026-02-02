@@ -13,7 +13,6 @@ import SavedMedicationsModal from '@/components/consultation/SavedMedicationsMod
 import KeywordManagementModal, { KeywordPrefillData } from '@/components/consultation/KeywordManagementModal';
 import UnsavedChangesModal from '@/components/consultation/UnsavedChangesModal';
 import PatientHistoryModal from '@/components/consultation/PatientHistoryModal';
-import { useTranslation } from 'react-i18next';
 import TextShortcutManagementModal from '@/components/consultation/TextShortcutManagementModal';
 
 import { useReactToPrint } from 'react-to-print';
@@ -64,7 +63,40 @@ import { generateCompletionMessage as generateCompletionMessageUtil } from '@/li
 const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
   const { hospitals, isLoading: isHospitalsLoading } = useHospitals();
-  const { i18n, t } = useTranslation();
+
+  // Local Translations
+  const TRANSLATIONS = {
+    en: {
+      day: "day",
+      day_plural: "days",
+      week: "week",
+      week_plural: "weeks",
+      month: "month",
+      month_plural: "months",
+      followup_message_structure: "after {{count}} {{unit}}, or immediately if symptoms worsen."
+    },
+    te: {
+      day: "రోజు తర్వాత",
+      day_plural: "రోజుల తర్వాత",
+      week: "వారం తర్వాత",
+      week_plural: "వారాల తర్వాత",
+      month: "నెల తర్వాత",
+      month_plural: "నెలల తర్వాత",
+      followup_message_structure: "{{count}} {{unit}} / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే."
+    }
+  };
+
+  const t = useCallback((key: string, options?: { lng?: string, count?: number, unit?: string }) => {
+    const lang = (options?.lng || 'en') as keyof typeof TRANSLATIONS;
+    let text = (TRANSLATIONS[lang] as any)[key] || key;
+
+    if (options) {
+      Object.entries(options).forEach(([k, v]) => {
+        text = text.replace(`{{${k}}}`, String(v));
+      });
+    }
+    return text;
+  }, []);
 
   // --- Data State ---
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -81,7 +113,7 @@ const ConsultationPage = () => {
     }
     return '';
   });
-  const [initialLanguage, setInitialLanguage] = useState<string>(() => i18n.language || 'te');
+  const [initialLanguage, setInitialLanguage] = useState<string>('te');
 
   const [extraData, setExtraData] = useState({
     complaints: '',
@@ -198,7 +230,7 @@ const ConsultationPage = () => {
   const [keywordModalPrefill, setKeywordModalPrefill] = useState<KeywordPrefillData | null>(null);
 
   const handleSaveBundleClick = () => {
-    const isTelugu = i18n.language === 'te';
+    const isTelugu = consultationLanguage === 'te';
     setKeywordModalPrefill({
       medications: extraData.medications.map(m => ({ name: m.name || '' })),
       advice: isTelugu ? '' : extraData.advice, // Default to empty if not English
@@ -271,8 +303,8 @@ const ConsultationPage = () => {
   }, []);
 
   const matchedGuides = useMemo(() => {
-    return getMatchingGuides(debouncedAdvice, guides, i18n.language);
-  }, [debouncedAdvice, guides, i18n.language]);
+    return getMatchingGuides(debouncedAdvice, guides, consultationLanguage);
+  }, [debouncedAdvice, guides, consultationLanguage]);
 
   // Timer Stop Logic handled by hook
 
@@ -458,8 +490,8 @@ const ConsultationPage = () => {
   });
 
   const generateCompletionMessage = (patient: any, guidesMatched: any[]) => {
-    // Use current UI language instead of patient default, as per user request
-    return generateCompletionMessageUtil(patient, guidesMatched, i18n.language);
+    // Use selected consultation language
+    return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage);
   };
 
   const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[], isAuto: boolean = true) => {
@@ -873,8 +905,8 @@ const ConsultationPage = () => {
             case 'm': unitKey = count === 1 ? 'month' : 'month_plural'; break;
           }
           if (unitKey) {
-            const unitText = t(unitKey);
-            const expandedText = t('followup_message_structure', { count, unit: unitText });
+            const unitText = t(unitKey, { lng: consultationLanguage });
+            const expandedText = t('followup_message_structure', { count, unit: unitText, lng: consultationLanguage });
             const shortcutIndex = value.indexOf(shortcut);
             if (shortcutIndex !== -1) {
               processedValue = value.replace(shortcut, expandedText);
@@ -919,14 +951,14 @@ const ConsultationPage = () => {
 
     setExtraData(prev => ({ ...prev, [field]: value }));
     setHasUnsavedChanges(true);
-  }, [t, textShortcuts]);
+  }, [t, textShortcuts, consultationLanguage]);
 
   /**
    * Adds a medication to the list from a suggestion.
    * Handles language-specific fields (Telugu support) if applicable.
    */
   const handleMedicationSuggestionClick = useCallback((med: Medication) => {
-    const isTelugu = i18n.language === 'te';
+    const isTelugu = consultationLanguage === 'te';
     const newMed: Medication = {
       id: crypto.randomUUID(),
       name: med.name,
@@ -942,7 +974,7 @@ const ConsultationPage = () => {
 
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
     setHasUnsavedChanges(true);
-  }, [i18n.language]);
+  }, [consultationLanguage]);
 
   /**
    * Handles changes to individual medication fields.

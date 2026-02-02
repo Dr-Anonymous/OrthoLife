@@ -23,20 +23,22 @@ interface PublicConsentData {
     patient_name: string;
     patient_phone: string;
     consent_language?: string;
+    patient_signature?: string;
+    signed_at?: string;
+    selfie_url?: string;
 }
 
 const UI_TEXT = {
     en: {
-        title: "OrthoLife Secure Consent",
+        title: "Surgical Consent Form",
+        headerTitle: "OrthoLife Secure Consent",
         disclaimer: "Please read the entire document carefully before signing.",
-        patientInfo: "Patient Information",
+        patientInfo: "Patient & Procedure Details",
+        procedureName: "Procedure Name",
         patientName: "Patient Name",
         surgeryDate: "Surgery Date",
         dateNotSet: "Date Not Set",
         risksTitle: "Risks & Complications",
-        generalRisks: "General Surgical Risks",
-        procedureRisks: "Procedure Specific Risks",
-        anesthesiaRisks: "Anesthesia Risks",
         verificationTitle: "Patient Verification",
         selfieTitle: "1. Patient Photo Verification",
         selfieDesc: "Please take a clear photo of your face to verify your identity.",
@@ -56,16 +58,15 @@ const UI_TEXT = {
         footer: "Protected by OrthoLife Secure System"
     },
     te: {
-        title: "ఆర్థోలైఫ్ సురక్షిత అంగీకారం",
+        title: "శస్త్రచికిత్స సమ్మతి పత్రం",
+        headerTitle: "ఆర్థోలైఫ్ సురక్షిత అంగీకారం",
         disclaimer: "దయచేసి సంతకం చేసే ముందు మొత్తం పత్రాన్ని జాగ్రత్తగా చదవండి.",
-        patientInfo: "రోగి సమాచారం",
+        patientInfo: "రోగి మరియు శస్త్రచికిత్స వివరాలు",
+        procedureName: "శస్త్రచికిత్స పేరు",
         patientName: "రోగి పేరు",
         surgeryDate: "శస్త్రచికిత్స తేదీ",
         dateNotSet: "తేదీ నిర్ణయించబడలేదు",
         risksTitle: "ప్రమాదాలు & సమస్యలు",
-        generalRisks: "సాధారణ శస్త్రచికిత్స ప్రమాదాలు",
-        procedureRisks: "శస్త్రచికిత్స నిర్దిష్ట ప్రమాదాలు",
-        anesthesiaRisks: "అనస్థీషియా (మత్తు) ప్రమాదాలు",
         verificationTitle: "రోగి నిర్ధారణ",
         selfieTitle: "1. రోగి ఫోటో నిర్ధారణ",
         selfieDesc: "మీ గుర్తింపును నిర్ధారించడానికి దయచేసి మీ ముఖం యొక్క స్పష్టమైన ఫోటోను తీసుకోండి.",
@@ -82,7 +83,7 @@ const UI_TEXT = {
         signedTitle: "అంగీకారం పూర్తయింది",
         signedDesc: "మీ అంగీకారం సురక్షితంగా నమోదు చేయబడింది.",
         closeWindow: "మీరు ఈ విండోను మూసివేయవచ్చు.",
-        footer: "ఆర్థోలైఫ్ సురక్షిత సిస్టమ్ ద్వారా రక్షించబడింది"
+        footer: "Protected by OrthoLife Secure System"
     }
 };
 
@@ -107,7 +108,9 @@ const PublicConsentVerification = () => {
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
     const [otp, setOtp] = useState('');
     const [isOtpSent, setIsOtpSent] = useState(false);
+
     const [isVerifying, setIsVerifying] = useState(false);
+    const [justSigned, setJustSigned] = useState(false);
 
     useEffect(() => {
         const fetchConsent = async () => {
@@ -243,12 +246,41 @@ const PublicConsentVerification = () => {
             await confirmationResult.confirm(otp);
             toast.success("OTP Verified!");
 
-            const patientSig = patientSigRef.current?.toDataURL();
+            // Upload Signature
+            let finalSigUrl = patientSigRef.current?.toDataURL() || null;
+            if (finalSigUrl && finalSigUrl.startsWith('data:')) {
+                const res = await fetch(finalSigUrl);
+                const blob = await res.blob();
+                const fileName = `sig_${consentData.id}_${Date.now()}.png`;
+                const { error: uploadError } = await supabase.storage.from('consent-evidence').upload(fileName, blob);
+                if (uploadError) {
+                    console.error("Sig upload failed", uploadError);
+                    // Decide if we should block or continue. Continuing for now but prefer storage.
+                } else {
+                    const { data: pubData } = supabase.storage.from('consent-evidence').getPublicUrl(fileName);
+                    finalSigUrl = pubData.publicUrl;
+                }
+            }
+
+            // Upload Selfie
+            let finalSelfieUrl = selfieImage;
+            if (selfieImage && selfieImage.startsWith('data:')) {
+                const res = await fetch(selfieImage);
+                const blob = await res.blob();
+                const fileName = `selfie_${consentData.id}_${Date.now()}.jpg`;
+                const { error: uploadError } = await supabase.storage.from('consent-evidence').upload(fileName, blob);
+                if (uploadError) {
+                    console.error("Selfie upload failed", uploadError);
+                } else {
+                    const { data: pubData } = supabase.storage.from('consent-evidence').getPublicUrl(fileName);
+                    finalSelfieUrl = pubData.publicUrl;
+                }
+            }
 
             const { data, error } = await supabase.rpc('submit_public_consent', {
                 p_consent_id: consentData.id,
-                p_patient_signature: patientSig,
-                p_selfie_url: selfieImage,
+                p_patient_signature: finalSigUrl,
+                p_selfie_url: finalSelfieUrl,
                 p_otp: 'VERIFIED_BY_FIREBASE' // Backend just logs usage, validation done here
             });
 
@@ -256,6 +288,7 @@ const PublicConsentVerification = () => {
             if (data) {
                 toast.success("Consent Signed Successfully!");
                 setIsSigned(true);
+                setJustSigned(true);
                 window.scrollTo(0, 0);
             }
         } catch (err: any) {
@@ -269,13 +302,13 @@ const PublicConsentVerification = () => {
     if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>;
     if (!consentData) return <div className="p-8 text-center text-red-500">Consent not found.</div>;
 
-    if (isSigned) {
+    if (justSigned) {
         return (
             <div className="container mx-auto p-4 max-w-md h-screen flex flex-col justify-center items-center text-center">
                 <CheckCircle2 className="w-20 h-20 text-green-500 mb-6" />
                 <h1 className="text-2xl font-bold mb-2">{t.signedTitle}</h1>
                 <p className="text-muted-foreground">{t.signedDesc}</p>
-                <div className="mt-8 text-sm text-gray-400">{t.closeWindow}</div>
+                <div className="mt-8 text-sm text-gray-400 no-print">{t.closeWindow}</div>
             </div>
         );
     }
@@ -284,8 +317,8 @@ const PublicConsentVerification = () => {
         <div className="container mx-auto p-4 max-w-3xl bg-slate-50 min-h-screen pb-20">
             <div id="recaptcha-verify-container"></div>
             <div className="mb-6 text-center border-b pb-4">
-                <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-1">{t.title}</p>
-                <h1 className="text-2xl font-bold text-slate-900">{consentData.procedure_name}</h1>
+                <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-1">{t.headerTitle}</p>
+                <h1 className="text-2xl font-bold text-slate-900">{t.title}</h1>
                 <p className="text-muted-foreground mt-2">{t.disclaimer}</p>
             </div>
 
@@ -297,6 +330,10 @@ const PublicConsentVerification = () => {
                     </CardHeader>
                     <CardContent className="pt-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2">
+                                <Label className="text-muted-foreground text-xs uppercase tracking-wide">{t.procedureName}</Label>
+                                <p className="font-semibold text-xl text-primary">{consentData.procedure_name}</p>
+                            </div>
                             <div>
                                 <Label className="text-muted-foreground text-xs uppercase tracking-wide">{t.patientName}</Label>
                                 <p className="font-semibold text-lg">{consentData.patient_name}</p>
@@ -316,30 +353,15 @@ const PublicConsentVerification = () => {
                     <h3 className="font-semibold text-lg px-2">{t.risksTitle}</h3>
 
                     <Card className="border-l-4 border-l-red-500 shadow-sm">
-                        <CardHeader className="py-3 bg-red-50/50">
-                            <CardTitle className="text-base flex gap-2 items-center text-red-700">
-                                <AlertTriangle size={18} className="text-red-500" /> {t.generalRisks}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_general || '' }} />
+                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_general || '' }} />
                     </Card>
 
                     <Card className="border-l-4 border-l-blue-500 shadow-sm">
-                        <CardHeader className="py-3 bg-blue-50/50">
-                            <CardTitle className="text-base flex gap-2 items-center text-blue-700">
-                                <Syringe size={18} className="text-blue-500" /> {t.anesthesiaRisks}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_anesthesia || '' }} />
+                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_anesthesia || '' }} />
                     </Card>
 
                     <Card className="border-l-4 border-l-orange-500 shadow-sm">
-                        <CardHeader className="py-3 bg-orange-50/50">
-                            <CardTitle className="text-base flex gap-2 items-center text-orange-700">
-                                <AlertTriangle size={18} className="text-orange-500" /> {t.procedureRisks}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_procedure || '' }} />
+                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_procedure || '' }} />
                     </Card>
                 </div>
 
@@ -353,86 +375,116 @@ const PublicConsentVerification = () => {
                             {/* Selfie */}
                             <div id="selfie-section" className="space-y-3">
                                 <Label className="text-base">{t.selfieTitle}</Label>
-                                <p className="text-sm text-muted-foreground">{t.selfieDesc}</p>
-
-                                <div className="flex flex-col items-center gap-4 p-4 border-2 border-dashed rounded-xl bg-slate-50">
-                                    {selfieImage ? (
-                                        <div className="relative">
-                                            <img src={selfieImage} alt="Selfie" className="w-[300px] h-[225px] object-cover rounded-md shadow-sm" />
-                                            <Button size="sm" variant="destructive" className="absolute top-2 right-2 shadow-sm" onClick={() => setSelfieImage(null)}>{t.retake}</Button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {isCameraOpen ? (
-                                                <div className="relative overflow-hidden rounded-md">
-                                                    <video ref={videoRef} autoPlay playsInline className="w-[300px] h-[225px] object-cover bg-black" />
-                                                    <canvas ref={canvasRef} width="300" height="225" className="hidden" />
-                                                    <Button size="sm" className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg" onClick={captureSelfie}>{t.capture}</Button>
+                                {isSigned && consentData.selfie_url ? (
+                                    <div className="flex flex-col items-center gap-4 p-4 border rounded-xl bg-slate-50">
+                                        <img src={consentData.selfie_url} alt="Selfie" className="w-[300px] h-[225px] object-cover rounded-md shadow-sm" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-muted-foreground">{t.selfieDesc}</p>
+                                        <div className="flex flex-col items-center gap-4 p-4 border-2 border-dashed rounded-xl bg-slate-50">
+                                            {selfieImage ? (
+                                                <div className="relative">
+                                                    <img src={selfieImage} alt="Selfie" className="w-[300px] h-[225px] object-cover rounded-md shadow-sm" />
+                                                    <Button size="sm" variant="destructive" className="absolute top-2 right-2 shadow-sm" onClick={() => setSelfieImage(null)}>{t.retake}</Button>
                                                 </div>
                                             ) : (
-                                                <div className="text-center py-8 w-full">
-                                                    <Button variant="default" size="lg" onClick={startCamera} className="gap-2">
-                                                        <Camera className="h-5 w-5" /> {t.openCamera}
-                                                    </Button>
-                                                </div>
+                                                <>
+                                                    {isCameraOpen ? (
+                                                        <div className="relative overflow-hidden rounded-md">
+                                                            <video ref={videoRef} autoPlay playsInline className="w-[300px] h-[225px] object-cover bg-black" />
+                                                            <canvas ref={canvasRef} width="300" height="225" className="hidden" />
+                                                            <Button size="sm" className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg" onClick={captureSelfie}>{t.capture}</Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center py-8 w-full">
+                                                            <Button variant="default" size="lg" onClick={startCamera} className="gap-2">
+                                                                <Camera className="h-5 w-5" /> {t.openCamera}
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
-                                        </>
-                                    )}
-                                </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Signature */}
                             <div id="signature-section" className="space-y-3">
                                 <Label className="text-base">{t.signatureTitle}</Label>
-                                <p className="text-sm text-muted-foreground">{t.signatureDesc}</p>
-                                <div className="border-2 border-slate-200 rounded-lg bg-white touch-none shadow-inner" style={{ height: 180 }}>
-                                    <SignatureCanvas
-                                        ref={patientSigRef}
-                                        penColor="black"
-                                        canvasProps={{ className: 'w-full h-full' }}
-                                    />
-                                </div>
-                                <div className="flex justify-end">
-                                    <Button size="sm" variant="ghost" onClick={() => patientSigRef.current?.clear()} className="text-muted-foreground hover:text-destructive">
-                                        <Eraser className="w-4 h-4 mr-1" /> {t.clearSignature}
-                                    </Button>
-                                </div>
+                                {isSigned && consentData.patient_signature ? (
+                                    <div className="border-2 border-slate-200 rounded-lg bg-white p-4">
+                                        <img src={consentData.patient_signature} alt="Patient Signature" className="max-h-32 mx-auto" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-muted-foreground">{t.signatureDesc}</p>
+                                        <div className="border-2 border-slate-200 rounded-lg bg-white touch-none shadow-inner" style={{ height: 180 }}>
+                                            <SignatureCanvas
+                                                ref={patientSigRef}
+                                                penColor="black"
+                                                backgroundColor="white"
+                                                canvasProps={{ className: 'w-full h-full' }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-end no-print">
+                                            <Button size="sm" variant="ghost" onClick={() => patientSigRef.current?.clear()} className="text-muted-foreground hover:text-destructive">
+                                                <Eraser className="w-4 h-4 mr-1" /> {t.clearSignature}
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* OTP */}
-                            <div className="pt-6 border-t">
-                                <Label className="text-base mb-2 block">{t.confirmTitle}</Label>
-                                {!isOtpSent ? (
-                                    <Button size="lg" className="w-full text-base py-6" onClick={sendOtp} disabled={!selfieImage}>
-                                        <Lock className="w-5 h-5 mr-2" /> {t.sendOtp}
-                                    </Button>
-                                ) : (
-                                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                                        <div className="bg-blue-50 p-4 rounded-lg text-blue-700 text-sm mb-4">
-                                            {t.otpSent} {consentData.patient_phone}
+                            {!isSigned && (
+                                <div className="pt-6 border-t no-print">
+                                    <Label className="text-base mb-2 block">{t.confirmTitle}</Label>
+                                    {!isOtpSent ? (
+                                        <Button size="lg" className="w-full text-base py-6" onClick={sendOtp} disabled={!selfieImage}>
+                                            <Lock className="w-5 h-5 mr-2" /> {t.sendOtp}
+                                        </Button>
+                                    ) : (
+                                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                            <div className="bg-blue-50 p-4 rounded-lg text-blue-700 text-sm mb-4">
+                                                {t.otpSent} {consentData.patient_phone}
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <Input
+                                                    className="text-center text-lg tracking-widest"
+                                                    placeholder="000000"
+                                                    value={otp}
+                                                    onChange={e => setOtp(e.target.value)}
+                                                    maxLength={6}
+                                                />
+                                                <Button size="lg" className="w-[180px]" onClick={verifyAndSubmit} disabled={isVerifying}>
+                                                    {isVerifying ? <Loader2 className="animate-spin w-5 h-5" /> : t.verifySign}
+                                                </Button>
+                                            </div>
                                         </div>
-                                        <div className="flex gap-3">
-                                            <Input
-                                                className="text-center text-lg tracking-widest"
-                                                placeholder="000000"
-                                                value={otp}
-                                                onChange={e => setOtp(e.target.value)}
-                                                maxLength={6}
-                                            />
-                                            <Button size="lg" className="w-[180px]" onClick={verifyAndSubmit} disabled={isVerifying}>
-                                                {isVerifying ? <Loader2 className="animate-spin w-5 h-5" /> : t.verifySign}
-                                            </Button>
-                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Signed Status Badge */}
+                            {isSigned && (
+                                <div className="pt-6 border-t text-center space-y-2">
+                                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full font-medium">
+                                        <CheckCircle2 size={20} /> Signed Successfully
                                     </div>
-                                )}
-                            </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Signed on: {new Date(consentData.signed_at || '').toLocaleString()}
+                                    </p>
+                                </div>
+                            )}
 
                         </CardContent>
                     </Card>
                 </div>
             </div>
 
-            <footer className="mt-12 text-center text-xs text-muted-foreground">
+            <footer className="mt-12 text-center text-xs text-muted-foreground no-print">
                 <p>{t.footer}</p>
                 <p>&copy; {new Date().getFullYear()} OrthoLife</p>
             </footer>

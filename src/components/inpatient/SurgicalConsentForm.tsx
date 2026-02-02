@@ -3,9 +3,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SurgicalConsent, InPatient } from '@/types/inPatients';
 import {
     Camera,
@@ -16,9 +14,26 @@ import {
     Send
 } from 'lucide-react';
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { supabase } from '@/integrations/supabase/client';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { auth } from '@/integrations/firebase/client';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { useQuery } from '@tanstack/react-query';
 import RichTextEditor from '@/components/RichTextEditor';
 import { CONSENT_RISKS } from '@/utils/consentConstants';
 
@@ -43,7 +58,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
     const [formData, setFormData] = useState<Partial<SurgicalConsent>>({
         in_patient_id: patient.id,
-        id: initialData?.id, // Added ID persistence
+        id: initialData?.id,
         procedure_name: initialData?.procedure_name || patient.procedure || '',
         surgery_date: initialData?.surgery_date || (patient.procedure_date ? new Date(patient.procedure_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
         risks_general: initialData?.risks_general || (patient.language === 'te' ? CONSENT_RISKS.te.general : CONSENT_RISKS.en.general),
@@ -51,7 +66,10 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         risks_procedure: initialData?.risks_procedure || content.procedure_placeholder,
         patient_phone: initialData?.patient_phone || patient.patient.phone,
         consent_status: initialData?.consent_status || 'pending',
-        consent_language: initialData?.consent_language || lang
+        consent_language: initialData?.consent_language || lang,
+        signed_at: initialData?.signed_at,
+        patient_signature: initialData?.patient_signature,
+        selfie_url: initialData?.selfie_url
     });
 
     // Signature Refs
@@ -71,6 +89,68 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [isOtpSent, setIsOtpSent] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
+
+    // Template State
+    const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
+    const [templateName, setTemplateName] = useState('');
+
+    // Fetch Templates
+    const { data: templates } = useQuery({
+        queryKey: ['surgical-consent-templates', formData.consent_language],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('surgical_consent_templates')
+                .select('*')
+                .eq('language', formData.consent_language || 'en')
+                .order('name');
+            if (error) throw error;
+            return data;
+        },
+        enabled: step === 2
+    });
+
+    const handleSaveTemplate = async () => {
+        if (!templateName.trim()) {
+            toast.error("Please enter a template name");
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('surgical_consent_templates')
+                .insert({
+                    name: templateName,
+                    language: formData.consent_language || 'en',
+                    procedure_name: formData.procedure_name,
+                    risks_general: formData.risks_general,
+                    risks_anesthesia: formData.risks_anesthesia,
+                    risks_procedure: formData.risks_procedure
+                });
+
+            if (error) throw error;
+
+            toast.success("Template saved successfully");
+            setIsSaveTemplateOpen(false);
+            setTemplateName('');
+        } catch (err: any) {
+            console.error("Error saving template:", err);
+            toast.error("Failed to save template: " + err.message);
+        }
+    };
+
+    const handleLoadTemplate = (templateId: string) => {
+        const template = templates?.find(t => t.id === templateId);
+        if (template) {
+            setFormData(prev => ({
+                ...prev,
+                procedure_name: template.procedure_name || prev.procedure_name,
+                risks_general: template.risks_general,
+                risks_anesthesia: template.risks_anesthesia,
+                risks_procedure: template.risks_procedure
+            }));
+            toast.success(`Loaded template: ${template.name}`);
+        }
+    };
 
     // Load signatures if editing/viewing
     useEffect(() => {
@@ -153,6 +233,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
     // --- OTP ---
     useEffect(() => {
+        if (isReadOnly) return;
         if (!window.recaptchaVerifier) {
             window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-consent-container', {
                 'size': 'invisible',
@@ -226,8 +307,8 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 const isTelugu = formData.consent_language === 'te';
 
                 const message = isTelugu
-                    ? `నమస్కారం ${patient.patient.name},\nదయచేసి ${formData.procedure_name} కోసం మీ శస్త్రచికిత్స సమ్మతి పత్రాన్ని ఈ లింక్ ద్వారా సమీక్షించి సంతకం చేయండి:\n${link}`
-                    : `Hello ${patient.patient.name},\nPlease review and sign your surgical consent for ${formData.procedure_name} here:\n${link}`;
+                    ? `నమస్కారం ${patient.patient.name},\nదయచేసి ${formData.procedure_name} కోసం మీ సమ్మతి పత్రాన్ని ఈ లింక్ ద్వారా సమీక్షించి సంతకం చేయండి:\n${link}`
+                    : `Hello ${patient.patient.name},\nPlease review and sign your consent for ${formData.procedure_name} here:\n${link}`;
 
                 try {
                     const { error } = await supabase.functions.invoke('send-whatsapp', {
@@ -275,10 +356,27 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
             }
         }
 
+        // Upload Signature if changed and is base64
+        let finalSigUrl = patientSig || formData.patient_signature;
+        if (patientSig && patientSig.startsWith('data:')) {
+            try {
+                const res = await fetch(patientSig);
+                const blob = await res.blob();
+                const fileName = `sig_${initialData?.id || patient.id}_${Date.now()}.png`;
+                const { error } = await supabase.storage.from('consent-evidence').upload(fileName, blob);
+                if (!error) {
+                    const { data } = supabase.storage.from('consent-evidence').getPublicUrl(fileName);
+                    finalSigUrl = data.publicUrl;
+                }
+            } catch (e) {
+                console.error("Signature upload failed", e);
+            }
+        }
+
         const finalData = {
             ...formData,
             in_patient_id: patient.id,
-            patient_signature: patientSig || formData.patient_signature,
+            patient_signature: finalSigUrl,
             selfie_url: finalSelfieUrl,
             consent_status: 'signed' as const,
             signed_at: new Date().toISOString()
@@ -287,58 +385,76 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         onSave(finalData);
     };
 
+    const isTelugu = formData.consent_language === 'te' || patient.language === 'te';
+    const RISK_LABELS = {
+        en: {
+            general: "General Surgical Risks",
+            anesthesia: "Anesthesia Risks",
+            procedure: "Procedure Specific Risks"
+        },
+        te: {
+            general: "సాధారణ శస్త్రచికిత్స ప్రమాదాలు",
+            anesthesia: "అనస్థీషియా (మత్తు) ప్రమాదాలు",
+            procedure: "శస్త్రచికిత్స నిర్దిష్ట ప్రమాదాలు"
+        }
+    };
+    const t = isTelugu ? RISK_LABELS.te : RISK_LABELS.en;
+
     if (isReadOnly) {
         return (
-            <div className="space-y-6 max-h-[80vh] overflow-y-auto p-4">
-                <div className="text-center border-b pb-4">
-                    <h2 className="text-2xl font-bold">Surgical Consent Form</h2>
-                    <p className="text-muted-foreground">{formData.procedure_name} - {formData.surgery_date}</p>
-                </div>
+            <div className="flex flex-col h-full overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                    <div className="text-center border-b pb-4">
+                        <h2 className="text-2xl font-bold">Consent Form</h2>
+                        <p className="text-muted-foreground">for {formData.procedure_name} on {formData.surgery_date ? format(new Date(formData.surgery_date), 'dd MMM yyyy') : ''}</p>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                        <CardHeader><CardTitle>General Risks</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="prose text-sm" dangerouslySetInnerHTML={{ __html: formData.risks_general || '' }} />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Anesthesia Risks</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="prose text-sm" dangerouslySetInnerHTML={{ __html: formData.risks_anesthesia || '' }} />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-full">
-                        <CardHeader><CardTitle>Procedure Risks</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="prose text-sm" dangerouslySetInnerHTML={{ __html: formData.risks_procedure || '' }} />
-                        </CardContent>
-                    </Card>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card>
+                            {/* Header removed to avoid duplication with content */}
+                            <CardContent className="pt-6">
+                                <div className="prose text-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: formData.risks_general || '' }} />
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            {/* Header removed to avoid duplication with content */}
+                            <CardContent className="pt-6">
+                                <div className="prose text-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: formData.risks_anesthesia || '' }} />
+                            </CardContent>
+                        </Card>
+                        <Card className="col-span-full">
+                            <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle size={18} className="text-orange-500" /> {t.procedure}</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="prose text-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: formData.risks_procedure || '' }} />
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                <div className="flex gap-4 items-center justify-center border-t pt-4">
-                    {formData.patient_signature && (
-                        <div className="text-center">
-                            <p className="font-semibold mb-2">Patient Signature</p>
-                            <img src={formData.patient_signature} alt="Patient Sig" className="border rounded h-24" />
-                        </div>
-                    )}
-                    {formData.selfie_url && (
-                        <div className="text-center">
-                            <p className="font-semibold mb-2">Patient Verification</p>
-                            <img src={formData.selfie_url} alt="Selfie" className="border rounded h-24 object-cover w-32" />
-                        </div>
-                    )}
+                    <div className="flex flex-col sm:flex-row gap-6 items-center justify-center border-t pt-6">
+                        {formData.patient_signature && (
+                            <div className="text-center w-full sm:w-auto">
+                                <p className="font-semibold mb-2">Patient Signature</p>
+                                <img src={formData.patient_signature} alt="Patient Sig" className="border rounded h-auto max-h-32 max-w-full mx-auto" />
+                            </div>
+                        )}
+                        {formData.selfie_url && (
+                            <div className="text-center w-full sm:w-auto">
+                                <p className="font-semibold mb-2">Patient Verification</p>
+                                <img src={formData.selfie_url} alt="Selfie" className="border rounded h-auto max-h-32 max-w-full object-cover mx-auto" />
+                            </div>
+                        )}
+                    </div>
+                    <div className="text-center text-sm text-muted-foreground pb-4">
+                        Signed on: {new Date(formData.signed_at || '').toLocaleString()}
+                    </div>
                 </div>
-                <div className="text-center text-sm text-muted-foreground">
-                    Signed on: {new Date(formData.signed_at || '').toLocaleString()}
-                </div>
-                <div className="flex justify-end">
-                    <Button onClick={onCancel}>Close</Button>
+                <div className="p-4 border-t bg-background">
+                    <Button onClick={onCancel} className="w-full sm:w-auto float-right">Close</Button>
                 </div>
             </div>
         )
     }
+
 
     return (
         <div className="flex flex-col h-full max-h-[85vh]">
@@ -386,8 +502,31 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
                 {step === 2 && (
                     <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/30 p-4 rounded-lg border">
+                            <div className="w-full sm:w-1/2">
+                                <Label className="block mb-2 text-xs uppercase text-muted-foreground">Load from Template</Label>
+                                <Select onValueChange={handleLoadTemplate}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a template..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {templates?.length === 0 ? (
+                                            <div className="p-2 text-sm text-muted-foreground text-center">No templates found for {formData.consent_language === 'te' ? 'Telugu' : 'English'}</div>
+                                        ) : (
+                                            templates?.map(t => (
+                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button variant="outline" onClick={() => setIsSaveTemplateOpen(true)} className="w-full sm:w-auto mt-auto">
+                                <Save className="w-4 h-4 mr-2" /> Save as Template
+                            </Button>
+                        </div>
+
                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><AlertTriangle size={16} /> General Surgical Risks</Label>
+                            <Label className="flex items-center gap-2"><AlertTriangle size={16} /> {t.general}</Label>
                             <RichTextEditor
                                 content={formData.risks_general || ''}
                                 onChange={content => setFormData({ ...formData, risks_general: content })}
@@ -395,7 +534,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><AlertTriangle size={16} /> Anesthesia Risks</Label>
+                            <Label className="flex items-center gap-2"><AlertTriangle size={16} /> {t.anesthesia}</Label>
                             <RichTextEditor
                                 content={formData.risks_anesthesia || ''}
                                 onChange={content => setFormData({ ...formData, risks_anesthesia: content })}
@@ -403,7 +542,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><AlertTriangle size={16} /> Procedure Specific Risks</Label>
+                            <Label className="flex items-center gap-2"><AlertTriangle size={16} /> {t.procedure}</Label>
                             <RichTextEditor
                                 content={formData.risks_procedure || ''}
                                 onChange={content => setFormData({ ...formData, risks_procedure: content })}
@@ -456,6 +595,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                 <SignatureCanvas
                                     ref={patientSigRef}
                                     penColor="black"
+                                    backgroundColor="white"
                                     canvasProps={{ className: 'w-full h-full' }}
                                 />
                             </div>
@@ -510,6 +650,31 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                     )}
                 </div>
             </div>
+            {/* Save Template Dialog */}
+            <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Save Consent Template</DialogTitle>
+                        <DialogDescription>
+                            Save the current risks and procedure details as a reusable template for {formData.consent_language === 'te' ? 'Telugu' : 'English'} consents.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Template Name</Label>
+                            <Input
+                                placeholder="e.g. ACL Reconstruction (Standard)"
+                                value={templateName}
+                                onChange={e => setTemplateName(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsSaveTemplateOpen(false)}>Cancel</Button>
+                        <Button onClick={handleSaveTemplate}>Save Template</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

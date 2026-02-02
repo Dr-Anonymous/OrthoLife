@@ -87,12 +87,10 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
     };
 
     const handlePrint = (consent: SurgicalConsent) => {
-        // Basic print for now - we might want a dedicated print component later
-        // For MVP, open a new window or use a print component in 'view' mode.
-        // Let's just toast for now or maybe rely on the view mode's potential print button if added.
-        // Actually, let's open the view mode and maybe user can print from browser for now.
-        handleView(consent);
-        setTimeout(() => window.print(), 500);
+        // Open the public verification page in a new tab for printing
+        // This ensures a clean, standalone document view
+        const url = `${window.location.origin}/consent-verify/${consent.id}`;
+        window.open(url, '_blank');
     };
 
     return (
@@ -129,14 +127,14 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
                             ) : (
                                 <div className="space-y-3">
                                     {consents?.map(consent => (
-                                        <div key={consent.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                                            <div className="flex items-start gap-4">
-                                                <div className={`p-2 rounded-full ${consent.consent_status === 'signed' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                                        <div key={consent.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors gap-4">
+                                            <div className="flex items-start gap-4 w-full md:w-auto">
+                                                <div className={`p-2 rounded-full flex-shrink-0 ${consent.consent_status === 'signed' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
                                                     {consent.consent_status === 'signed' ? <CheckCircle2 size={24} /> : <Clock size={24} />}
                                                 </div>
                                                 <div>
                                                     <h4 className="font-semibold">{consent.procedure_name}</h4>
-                                                    <p className="text-sm text-muted-foreground">
+                                                    <p className="text-sm text-muted-foreground mr-2">
                                                         Date: {new Date(consent.surgery_date).toLocaleDateString()}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground mt-1">
@@ -144,22 +142,22 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
                                                 {consent.consent_status === 'pending' ? (
-                                                    <Button variant="default" size="sm" onClick={() => {
+                                                    <Button variant="default" size="sm" className="flex-1 md:flex-none" onClick={() => {
                                                         setSelectedConsent(consent);
                                                         setViewMode('create'); // Reuse create mode for editing
                                                     }}>
                                                         <FileText className="w-4 h-4 mr-2" /> Resume
                                                     </Button>
                                                 ) : (
-                                                    <Button variant="ghost" size="sm" onClick={() => handleView(consent)}>
+                                                    <Button variant="ghost" size="sm" className="flex-1 md:flex-none" onClick={() => handleView(consent)}>
                                                         <Eye className="w-4 h-4 mr-2" /> View
                                                     </Button>
                                                 )}
 
                                                 {consent.consent_status === 'signed' && (
-                                                    <Button variant="outline" size="sm" onClick={() => handlePrint(consent)}>
+                                                    <Button variant="outline" size="sm" className="flex-1 md:flex-none" onClick={() => handlePrint(consent)}>
                                                         <Printer className="w-4 h-4 mr-2" /> Print
                                                     </Button>
                                                 )}

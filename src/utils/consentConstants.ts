@@ -17,7 +17,8 @@ export const CONSENT_RISKS = {
 <li><strong>Nerve Damage</strong>: Rare risk of temporary or permanent nerve injury from needle placement or positioning.</li>
 <li><strong>Awareness</strong>: Extremely rare chance of being partially awake or recalling events during surgery.</li>
 </ul>`,
-                procedure_placeholder: `<ul>
+                procedure_placeholder: `<h2>Procedure Specific Risks</h2>
+<ul>
 <li><strong>Specific Nerve Injury</strong>: Risk of damage to nerves near the surgical site causing numbness or weakness.</li>
 <li><strong>Stiffness</strong>: Reduced range of motion in the operated joint or area.</li>
 <li><strong>Hardware Issues</strong>: Implants (if used) may loosen, break, or cause irritation over time.</li>
@@ -44,7 +45,8 @@ export const CONSENT_RISKS = {
 <li><strong>నరాల బలహీనత</strong>: సూది వేసిన చోట నరం దెబ్బతిని స్పర్శ తగ్గడం లేదా బలహీనంగా అనిపించడం.</li>
 <li><strong>స్పృహ</strong>: ఆపరేషన్ జరుగుతున్నప్పుడు తెలివి రావడం అనేది చాలా చాలా అరుదు.</li>
 </ul>`,
-                procedure_placeholder: `<ul>
+                procedure_placeholder: `<h2>శస్త్రచికిత్స నిర్దిష్ట ప్రమాదాలు</h2>
+<ul>
 <li><strong>నరాల గాయం</strong>: ఆపరేషన్ చేసే ప్రాంతం చుట్టూ ఉన్న నరాలు దెబ్బతినే అవకాశం ఉంది.</li>
 <li><strong>బిగుసుకుపోవడం</strong>: కీలు లేదా ఆపరేషన్ చేసిన భాగం బిగుసుకుపోవచ్చు.</li>
 <li><strong>ఇంప్లాంట్ సమస్యలు</strong>: రాడ్లు లేదా ప్లేట్లు వేస్తే అవి భవిష్యత్తులో లూజ్ అవ్వొచ్చు లేదా విరిగిపోవచ్చు.</li>
