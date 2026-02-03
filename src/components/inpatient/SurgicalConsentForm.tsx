@@ -159,9 +159,8 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 ...prev,
                 id: initialData.id,
                 // Ensure other fields are also updated if they exist in initialData
-                // This fixes the bug where date/procedure didn't reload on resume
                 procedure_name: initialData.procedure_name || prev.procedure_name,
-                surgery_date: initialData.surgery_date || prev.surgery_date,
+                surgery_date: initialData.surgery_date ? new Date(initialData.surgery_date).toISOString().split('T')[0] : prev.surgery_date,
                 patient_phone: initialData.patient_phone || prev.patient_phone,
                 risks_general: initialData.risks_general || prev.risks_general,
                 risks_anesthesia: initialData.risks_anesthesia || prev.risks_anesthesia,

@@ -25,7 +25,7 @@ export const CONSENT_RISKS = {
 <li><strong>Incomplete Relief</strong>: Surgery may not completely resolve all symptoms or pain.</li>
 <li><strong>Need for Revision</strong>: Possibility of needing further surgery in the future.</li>
 </ul>`,
-                declaration: (name: string, procedure: string) => `I, ${name}, confirm that the nature of the ${procedure} procedure, its purpose, benefits, and possible alternative treatments have been explained to me in language I understand. I have read (or had read to me) the risks listed above, including general, anesthesia, and procedure-specific risks, and I have had the opportunity to ask questions. I voluntarily give my consent for this procedure.`
+                declaration: (name: string, procedure: string) => `I, ${name}, confirm that the nature of the ${procedure} procedure, its purpose, benefits, and possible alternative treatments have been explained to me in language I understand. I have read (or had read to me) the risks listed above and I have had the opportunity to ask questions. I voluntarily give my consent for this procedure.`
         },
         te: {
                 general: `<h2>సాధారణ శస్త్రచికిత్స ప్రమాదాలు</h2>
@@ -53,6 +53,6 @@ export const CONSENT_RISKS = {
 <li><strong>పూర్తి ఉపశమనం</strong>: ఆపరేషన్ తర్వాత కూడా నొప్పి పూర్తిగా తగ్గకపోవచ్చు.</li>
 <li><strong>మళ్ళీ ఆపరేషన్</strong>: భవిష్యత్తులో ఇదే సమస్యకు మళ్ళీ ఆపరేషన్ అవసరం రావచ్చు.</li>
 </ul>`,
-                declaration: (name: string, procedure: string) => `నేను, ${name}, ${procedure} శస్త్రచికిత్స గురించి, దాని లాభాలు, మరియు నష్టాల గురించి నాకు అర్థమయ్యే భాషలో డాక్టర్ గారు వివరించారని ధృవీకరిస్తున్నాను. పైన పేర్కొన్న సాధారణ మరియు మత్తు మందు ప్రమాదాలను నేను చదివాను (లేదా నాకు చదివి వినిపించారు). నాకు ఉన్న సందేహాలన్నీ అడిగి తెలుసుకున్నాను. నా పూర్తి ఇష్టపూర్వకంగా ఈ ఆపరేషన్ కు సమ్మతి తెలియజేస్తున్నాను.`
+                declaration: (name: string, procedure: string) => `నేను, ${name}, ${procedure} శస్త్రచికిత్స గురించి, దాని లాభాలు, మరియు నష్టాల గురించి నాకు అర్థమయ్యే భాషలో డాక్టర్ గారు వివరించారని ధృవీకరిస్తున్నాను. పైన పేర్కొన్న ప్రమాదాలను నేను చదివాను (లేదా నాకు చదివి వినిపించారు). నాకు ఉన్న సందేహాలన్నీ అడిగి తెలుసుకున్నాను. నా పూర్తి ఇష్టపూర్వకంగా ఈ ఆపరేషన్ కు సమ్మతి తెలియజేస్తున్నాను.`
         }
 };

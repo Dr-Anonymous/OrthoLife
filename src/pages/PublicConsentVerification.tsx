@@ -111,6 +111,7 @@ const PublicConsentVerification = () => {
 
     const [isVerifying, setIsVerifying] = useState(false);
     const [justSigned, setJustSigned] = useState(false);
+    const [isSendingOtp, setIsSendingOtp] = useState(false);
 
     // Local signature state for persistence
     const [capturedSignature, setCapturedSignature] = useState<string | null>(null);
@@ -126,15 +127,22 @@ const PublicConsentVerification = () => {
         setCapturedSignature(null);
     };
 
-    // Restore signature on mount/resize if available
+    // Restore signature on mount/updates if available and canvas is empty
     useEffect(() => {
         if (!isSigned && capturedSignature && patientSigRef.current) {
-            // small delay for canvas to be ready
-            setTimeout(() => {
-                patientSigRef.current?.fromDataURL(capturedSignature, { ratio: 1 });
+            // Check if canvas is actually empty before restoring to avoid flickering/overwriting active drawing
+            // However, isEmpty() might be true if it was just cleared by a re-render.
+            // We can safely restore if we have a captured signature.
+            // Using a small timeout to ensure ref is ready after any DOM updates
+            const timer = setTimeout(() => {
+                const canvas = patientSigRef.current;
+                if (canvas && canvas.isEmpty()) {
+                    canvas.fromDataURL(capturedSignature, { ratio: 1 });
+                }
             }, 50);
+            return () => clearTimeout(timer);
         }
-    }, [capturedSignature, isSigned]);
+    }, [capturedSignature, isSigned, isOtpSent]); // Re-run when OTP state changes (UI update)
 
     useEffect(() => {
         const fetchConsent = async () => {
@@ -238,6 +246,7 @@ const PublicConsentVerification = () => {
         }
         if (!consentData?.patient_phone) return;
 
+        setIsSendingOtp(true);
         try {
             const appVerifier = window.recaptchaVerifier;
             // Ensure phone format
@@ -259,6 +268,8 @@ const PublicConsentVerification = () => {
                     'size': 'invisible',
                 });
             }
+        } finally {
+            setIsSendingOtp(false);
         }
     };
 
@@ -449,6 +460,7 @@ const PublicConsentVerification = () => {
                                                 ref={patientSigRef}
                                                 penColor="black"
                                                 backgroundColor="white"
+                                                clearOnResize={false}
                                                 canvasProps={{ className: 'w-full h-full' }}
                                                 onEnd={handleSignatureEnd}
                                             />
@@ -467,8 +479,9 @@ const PublicConsentVerification = () => {
                                 <div className="pt-6 border-t no-print">
                                     <Label className="text-base mb-2 block">{t.confirmTitle}</Label>
                                     {!isOtpSent ? (
-                                        <Button size="lg" className="w-full text-base py-6" onClick={sendOtp} disabled={!selfieImage}>
-                                            <Lock className="w-5 h-5 mr-2" /> {t.sendOtp}
+                                        <Button size="lg" className="w-full text-base py-6" onClick={sendOtp} disabled={!selfieImage || isSendingOtp}>
+                                            {isSendingOtp ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Lock className="w-5 h-5 mr-2" />}
+                                            {isSendingOtp ? "Sending..." : t.sendOtp}
                                         </Button>
                                     ) : (
                                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
