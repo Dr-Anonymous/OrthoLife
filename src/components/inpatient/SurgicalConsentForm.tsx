@@ -152,10 +152,30 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         }
     };
 
-    // Load signatures if editing/viewing
+    // Load signatures and data if editing/viewing
     useEffect(() => {
         if (initialData?.id) {
-            setFormData(prev => ({ ...prev, id: initialData.id }));
+            setFormData(prev => ({
+                ...prev,
+                id: initialData.id,
+                // Ensure other fields are also updated if they exist in initialData
+                // This fixes the bug where date/procedure didn't reload on resume
+                procedure_name: initialData.procedure_name || prev.procedure_name,
+                surgery_date: initialData.surgery_date || prev.surgery_date,
+                patient_phone: initialData.patient_phone || prev.patient_phone,
+                risks_general: initialData.risks_general || prev.risks_general,
+                risks_anesthesia: initialData.risks_anesthesia || prev.risks_anesthesia,
+                risks_procedure: initialData.risks_procedure || prev.risks_procedure,
+                consent_status: initialData.consent_status || prev.consent_status,
+                patient_signature: initialData.patient_signature || prev.patient_signature,
+                selfie_url: initialData.selfie_url || prev.selfie_url,
+                signed_at: initialData.signed_at || prev.signed_at,
+            }));
+
+            // Also update selfie state if present
+            if (initialData.selfie_url) {
+                setSelfieImage(initialData.selfie_url);
+            }
         }
     }, [initialData]);
 
@@ -229,7 +249,26 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     // --- Signatures ---
     const clearSignature = (ref: React.RefObject<SignatureCanvas>) => {
         ref.current?.clear();
+        if (ref === patientSigRef) {
+            setFormData(prev => ({ ...prev, patient_signature: null }));
+        }
     };
+
+    const handleSignatureEnd = () => {
+        if (patientSigRef.current && !patientSigRef.current.isEmpty()) {
+            setFormData(prev => ({ ...prev, patient_signature: patientSigRef.current?.toDataURL() }));
+        }
+    };
+
+    // Restore signature when step changes or resize happens if data exists
+    useEffect(() => {
+        if (step === 3 && formData.patient_signature && patientSigRef.current) {
+            // slight delay to allow canvas layout to settle
+            setTimeout(() => {
+                patientSigRef.current?.fromDataURL(formData.patient_signature!, { ratio: 1 });
+            }, 100);
+        }
+    }, [step, formData.patient_signature]);
 
     // --- OTP ---
     useEffect(() => {
@@ -270,18 +309,69 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         }
     };
 
+    // --- Upload Helper ---
+    const uploadImage = async (dataUrl: string | null | undefined, prefix: string): Promise<string | null> => {
+        if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl || null;
+
+        try {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const fileName = `${prefix}_${patient.id}_${Date.now()}.${blob.type.split('/')[1]}`;
+            const { error } = await supabase.storage.from('consent-evidence').upload(fileName, blob);
+
+            if (error) throw error;
+
+            const { data } = supabase.storage.from('consent-evidence').getPublicUrl(fileName);
+            return data.publicUrl;
+        } catch (e) {
+            console.error(`Upload failed for ${prefix}`, e);
+            return null;
+        }
+    };
+
     // --- Submit ---
     const handleSaveDraft = async () => {
-        const finalData = {
-            ...formData,
-            in_patient_id: patient.id,
-            consent_status: 'pending' as const,
-        };
-        onSave(finalData).then(res => {
-            if (res?.saved?.id) {
-                setFormData(prev => ({ ...prev, id: res.saved.id }));
+        toast.loading("Saving draft...");
+
+        try {
+            // Upload images first to avoid base64 storage
+            // Update local state is not strictly needed if we just use the returned URLs for the save
+            // but good for consistency
+            let finalSelfieUrl = await uploadImage(selfieImage, 'selfie');
+
+            // For signature, update state from ref if needed before saving
+            let sigData = formData.patient_signature;
+            if (patientSigRef.current && !patientSigRef.current.isEmpty()) {
+                sigData = patientSigRef.current.toDataURL();
             }
-        });
+            let finalSigUrl = await uploadImage(sigData, 'sig');
+
+            if (finalSelfieUrl && finalSelfieUrl !== selfieImage) {
+                setSelfieImage(finalSelfieUrl);
+            }
+            if (finalSigUrl && finalSigUrl !== formData.patient_signature) {
+                setFormData(prev => ({ ...prev, patient_signature: finalSigUrl }));
+            }
+
+            const finalData = {
+                ...formData,
+                in_patient_id: patient.id,
+                consent_status: 'pending' as const,
+                selfie_url: finalSelfieUrl,
+                patient_signature: finalSigUrl
+            };
+
+            const res = await onSave(finalData);
+            if (res?.saved?.id) {
+                setFormData(prev => ({ ...prev, id: res.saved.id, selfie_url: finalSelfieUrl, patient_signature: finalSigUrl }));
+            }
+            toast.dismiss();
+            toast.success("Draft saved");
+        } catch (e: any) {
+            console.error(e);
+            toast.dismiss();
+            toast.error("Failed to save draft: " + e.message);
+        }
     };
 
     const handleWhatsApp = async () => {
@@ -334,44 +424,23 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     };
 
     const handleSubmit = async () => {
-        // Prepare data
-        const patientSig = patientSigRef.current?.isEmpty() ? null : patientSigRef.current?.toDataURL();
-        // const doctorSig = doctorSigRef.current?.isEmpty() ? null : doctorSigRef.current?.toDataURL(); // Optional?
+        // Upload Selfie
+        let finalSelfieUrl = await uploadImage(selfieImage, 'selfie');
 
-        // Upload Selfie if it's base64
-        let finalSelfieUrl = selfieImage;
-        if (selfieImage && selfieImage.startsWith('data:')) {
-            try {
-                const res = await fetch(selfieImage);
-                const blob = await res.blob();
-                const fileName = `${patient.id}_${Date.now()}.jpg`;
-                const { data, error } = await supabase.storage.from('consent-evidence').upload(fileName, blob);
-
-                if (error) throw error;
-                const publicUrl = supabase.storage.from('consent-evidence').getPublicUrl(fileName).data.publicUrl;
-                finalSelfieUrl = publicUrl;
-            } catch (e) {
-                console.error("Upload failed", e);
-                // Fallback or alert? Proceeding for now.
+        // Signature
+        let sigData = formData.patient_signature;
+        if (patientSigRef.current && !patientSigRef.current.isEmpty()) {
+            sigData = patientSigRef.current.toDataURL();
+        } else if (patientSigRef.current && patientSigRef.current.isEmpty()) {
+            // Check if user cleared it? If ref is empty but we have data, keep data?
+            // Actually trust ref if explicitly modifying, but if loading existing, ref might be empty if not rendered
+            // But we come from a flow.
+            // Safe logic: if ref is valid and not empty, use it. Else use existing.
+            if (patientSigRef.current && !patientSigRef.current.isEmpty()) {
+                sigData = patientSigRef.current.toDataURL();
             }
         }
-
-        // Upload Signature if changed and is base64
-        let finalSigUrl = patientSig || formData.patient_signature;
-        if (patientSig && patientSig.startsWith('data:')) {
-            try {
-                const res = await fetch(patientSig);
-                const blob = await res.blob();
-                const fileName = `sig_${initialData?.id || patient.id}_${Date.now()}.png`;
-                const { error } = await supabase.storage.from('consent-evidence').upload(fileName, blob);
-                if (!error) {
-                    const { data } = supabase.storage.from('consent-evidence').getPublicUrl(fileName);
-                    finalSigUrl = data.publicUrl;
-                }
-            } catch (e) {
-                console.error("Signature upload failed", e);
-            }
-        }
+        let finalSigUrl = await uploadImage(sigData, 'sig');
 
         const finalData = {
             ...formData,
@@ -597,6 +666,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                     penColor="black"
                                     backgroundColor="white"
                                     canvasProps={{ className: 'w-full h-full' }}
+                                    onEnd={handleSignatureEnd}
                                 />
                             </div>
                             <Button size="sm" variant="ghost" onClick={() => clearSignature(patientSigRef)} ><Eraser className="w-4 h-4 mr-1" /> Clear</Button>
@@ -641,7 +711,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                 <Save className="w-4 h-4 mr-2" /> Save Draft
                             </Button>
                             <Button className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto" onClick={handleWhatsApp}>
-                                <Send className="w-4 h-4 mr-2" /> Send to WhatsApp
+                                <Send className="w-4 h-4 mr-2" /> WhatsApp
                             </Button>
                         </>
                     )}

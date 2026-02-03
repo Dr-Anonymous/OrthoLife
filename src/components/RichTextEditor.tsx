@@ -102,6 +102,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange, tool
     }
   };
 
+  // Update editor content when content prop changes (e.g., loading template)
+  React.useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !editor) return;

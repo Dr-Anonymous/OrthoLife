@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, Lock, Camera, Eraser, CheckCircle2, Loader2, Syringe, Phone } from 'lucide-react';
+import { Lock, Camera, Eraser, CheckCircle2, Loader2, Syringe, Phone } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -111,6 +111,30 @@ const PublicConsentVerification = () => {
 
     const [isVerifying, setIsVerifying] = useState(false);
     const [justSigned, setJustSigned] = useState(false);
+
+    // Local signature state for persistence
+    const [capturedSignature, setCapturedSignature] = useState<string | null>(null);
+
+    const handleSignatureEnd = () => {
+        if (patientSigRef.current && !patientSigRef.current.isEmpty()) {
+            setCapturedSignature(patientSigRef.current.toDataURL());
+        }
+    };
+
+    const clearSignature = () => {
+        patientSigRef.current?.clear();
+        setCapturedSignature(null);
+    };
+
+    // Restore signature on mount/resize if available
+    useEffect(() => {
+        if (!isSigned && capturedSignature && patientSigRef.current) {
+            // small delay for canvas to be ready
+            setTimeout(() => {
+                patientSigRef.current?.fromDataURL(capturedSignature, { ratio: 1 });
+            }, 50);
+        }
+    }, [capturedSignature, isSigned]);
 
     useEffect(() => {
         const fetchConsent = async () => {
@@ -247,7 +271,7 @@ const PublicConsentVerification = () => {
             toast.success("OTP Verified!");
 
             // Upload Signature
-            let finalSigUrl = patientSigRef.current?.toDataURL() || null;
+            let finalSigUrl = patientSigRef.current?.isEmpty() ? capturedSignature : patientSigRef.current?.toDataURL();
             if (finalSigUrl && finalSigUrl.startsWith('data:')) {
                 const res = await fetch(finalSigUrl);
                 const blob = await res.blob();
@@ -331,8 +355,8 @@ const PublicConsentVerification = () => {
                     <CardContent className="pt-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="md:col-span-2">
-                                <Label className="text-muted-foreground text-xs uppercase tracking-wide">{t.procedureName}</Label>
-                                <p className="font-semibold text-xl text-primary">{consentData.procedure_name}</p>
+                                <Label className="text-muted-foreground text-xs uppercase tracking-wide flex items-center gap-1.5"><Syringe size={14} className="text-primary" /> {t.procedureName}</Label>
+                                <p className="font-semibold text-xl text-primary pl-5">{consentData.procedure_name}</p>
                             </div>
                             <div>
                                 <Label className="text-muted-foreground text-xs uppercase tracking-wide">{t.patientName}</Label>
@@ -426,10 +450,11 @@ const PublicConsentVerification = () => {
                                                 penColor="black"
                                                 backgroundColor="white"
                                                 canvasProps={{ className: 'w-full h-full' }}
+                                                onEnd={handleSignatureEnd}
                                             />
                                         </div>
                                         <div className="flex justify-end no-print">
-                                            <Button size="sm" variant="ghost" onClick={() => patientSigRef.current?.clear()} className="text-muted-foreground hover:text-destructive">
+                                            <Button size="sm" variant="ghost" onClick={clearSignature} className="text-muted-foreground hover:text-destructive">
                                                 <Eraser className="w-4 h-4 mr-1" /> {t.clearSignature}
                                             </Button>
                                         </div>
@@ -447,8 +472,9 @@ const PublicConsentVerification = () => {
                                         </Button>
                                     ) : (
                                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                                            <div className="bg-blue-50 p-4 rounded-lg text-blue-700 text-sm mb-4">
-                                                {t.otpSent} {consentData.patient_phone}
+                                            <div className="bg-blue-50 p-4 rounded-lg text-blue-700 text-sm mb-4 flex items-center gap-2">
+                                                <Phone className="w-4 h-4" />
+                                                <span>{t.otpSent} {consentData.patient_phone}</span>
                                             </div>
                                             <div className="flex gap-3">
                                                 <Input
