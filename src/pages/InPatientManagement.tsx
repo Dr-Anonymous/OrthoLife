@@ -322,6 +322,30 @@ const InPatientManagement = () => {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
+            // 1. Fetch linked consents to find files
+            const { data: consents } = await supabase
+                .from('surgical_consents')
+                .select('patient_signature, selfie_url')
+                .eq('in_patient_id', id);
+
+            if (consents && consents.length > 0) {
+                const filesToDelete: string[] = [];
+                consents.forEach(c => {
+                    if (c.patient_signature?.includes('consent-evidence')) {
+                        const parts = c.patient_signature.split('consent-evidence/');
+                        if (parts[1]) filesToDelete.push(parts[1]);
+                    }
+                    if (c.selfie_url?.includes('consent-evidence')) {
+                        const parts = c.selfie_url.split('consent-evidence/');
+                        if (parts[1]) filesToDelete.push(parts[1]);
+                    }
+                });
+
+                if (filesToDelete.length > 0) {
+                    await supabase.storage.from('consent-evidence').remove(filesToDelete);
+                }
+            }
+
             const { error } = await supabase.from('in_patients').delete().eq('id', id);
             if (error) throw error;
         },
