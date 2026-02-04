@@ -99,7 +99,10 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                           {calculateAge(new Date(patient.dob))}/{patient.sex}
                         </span>
                       </div>
-                      <span className="text-sm text-gray-500">{patient.phone}</span>
+                      <div className="flex flex-col items-end text-sm text-gray-500">
+                        <span>{patient.phone}</span>
+                        {patient.secondary_phone && <span>(Alt: {patient.secondary_phone})</span>}
+                      </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>

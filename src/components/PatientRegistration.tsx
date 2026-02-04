@@ -16,6 +16,7 @@ interface PatientData {
   phone: string;
   address: string;
   dateOfBirth: Date | undefined;
+  secondary_phone?: string;
 }
 
 interface PatientRegistrationProps {
@@ -29,7 +30,8 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
     email: initialData?.email || '',
     phone: initialData?.phone || '',
     address: initialData?.address || '',
-    dateOfBirth: initialData?.dateOfBirth || undefined
+    dateOfBirth: initialData?.dateOfBirth || undefined,
+    secondary_phone: initialData?.secondary_phone || ''
   });
 
   useEffect(() => {
@@ -44,6 +46,13 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
   const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
   const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [showSecondaryPhone, setShowSecondaryPhone] = useState(false);
+
+  useEffect(() => {
+    if (formData.secondary_phone) {
+      setShowSecondaryPhone(true);
+    }
+  }, [formData.secondary_phone]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof PatientData, string>> = {};
@@ -206,18 +215,47 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
 
           <div>
             <Label htmlFor="phone">Phone Number</Label>
-            <div className="relative">
-              <Phone className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
-                placeholder="1234567890"
-              />
+            <div className="flex gap-2 items-start">
+              <div className="relative flex-1">
+                <Phone className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
+                  placeholder="1234567890"
+                />
+              </div>
+              {!showSecondaryPhone && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowSecondaryPhone(true)}
+                  title="Add Secondary Phone"
+                >
+                  <span className="text-lg">+</span>
+                </Button>
+              )}
             </div>
             {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
           </div>
+
+          {showSecondaryPhone && (
+            <div>
+              <Label htmlFor="secondary_phone">Secondary Phone Number</Label>
+              <div className="relative">
+                <Phone className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                <Input
+                  id="secondary_phone"
+                  value={formData.secondary_phone || ''}
+                  onChange={(e) => handleInputChange('secondary_phone', e.target.value)}
+                  className="pl-10"
+                  placeholder="Secondary phone (optional)"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="email">Email</Label>

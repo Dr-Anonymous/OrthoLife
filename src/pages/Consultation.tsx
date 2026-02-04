@@ -224,7 +224,6 @@ const ConsultationPage = () => {
   const medInstructionsRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Keyword Modal Prefill
   const [keywordModalPrefill, setKeywordModalPrefill] = useState<KeywordPrefillData | null>(null);
@@ -311,8 +310,12 @@ const ConsultationPage = () => {
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     patientSelectionCounter.current += 1;
     setSelectedConsultation(consultation);
-    setEditablePatientDetails(consultation.patient);
-    setInitialPatientDetails(consultation.patient);
+    const normalizedPatient = {
+      ...consultation.patient,
+      secondary_phone: consultation.patient.secondary_phone || '',
+    };
+    setEditablePatientDetails(normalizedPatient);
+    setInitialPatientDetails(normalizedPatient);
     if (consultation.patient.dob) {
       setAge(calculateAge(new Date(consultation.patient.dob)));
       setCalendarDate(new Date(consultation.patient.dob));
@@ -352,7 +355,6 @@ const ConsultationPage = () => {
     setIsProcedureExpanded(!!newExtraData.procedure);
     setIsReferredToExpanded(!!newExtraData.referred_to);
 
-    setHasUnsavedChanges(false);
 
     // --- Last Visit Date Logic ---
     // We display the last visit date in the Patient Demographics header.
@@ -516,23 +518,57 @@ const ConsultationPage = () => {
     }
   };
 
-  const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
-    if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
+  // Helper for robust patient comparison
+  // Moved outside or kept here, but effectively used for derived state too
 
-    const patientDetailsChanged = JSON.stringify(editablePatientDetails) !== JSON.stringify(initialPatientDetails);
+  // Derived state to check for changes
+  const hasChanges = useMemo(() => {
+    if (!selectedConsultation || !editablePatientDetails || !initialPatientDetails) return false;
+
+    const arePatientsEqual = (p1: any, p2: any) => {
+      if (!p1 || !p2) return p1 === p2;
+      const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+      return (
+        normalize(p1.name) === normalize(p2.name) &&
+        normalize(p1.phone) === normalize(p2.phone) &&
+        normalize(p1.dob) === normalize(p2.dob) &&
+        normalize(p1.sex) === normalize(p2.sex) &&
+        normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
+        normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
+      );
+    };
+
+    const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
+
+    // Prune empty strings before comparing extraData to avoid false positives on initialized fields
+    // Actually, JSON.stringify is fine if we assume structure matches. 
+    // To be closer to previous logic:
     const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
+
+    // Check Status Change (if manually changed? mostly status is derived or set on print)
+    // Actually status is usually changed by printing. 
+    // Let's stick to explicit fields for "unsaved" warning.
+
     const locationChanged = selectedHospital.name !== initialLocation;
     const languageChanged = consultationLanguage !== initialLanguage;
 
-    const isPrinting = options.markAsCompleted;
+    return patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
+  }, [selectedConsultation, editablePatientDetails, initialPatientDetails, extraData, initialExtraData, selectedHospital, initialLocation, consultationLanguage, initialLanguage]);
+
+  const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
+    if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
+
+    // Re-using logic from hasChanges essentially, but we need variables for saving condition
     const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
 
     let newStatus = selectedConsultation.status;
-    if (isPrinting) {
+    if (options.markAsCompleted) {
       newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
     }
     const statusChanged = newStatus !== selectedConsultation.status;
-    const shouldSave = hasUnsavedChanges || statusChanged || locationChanged || languageChanged;
+
+    // Use the derived check + status check
+    const shouldSave = hasChanges || statusChanged;
 
     if (!shouldSave) {
       if (!options.skipToast) toast({ title: 'No Changes', description: 'No new changes to save.' });
@@ -593,6 +629,21 @@ const ConsultationPage = () => {
         await saveToOfflineStore();
       } else {
         try {
+          // Re-evaluate patientDetailsChanged based on current state vs initial state
+          const arePatientsEqual = (p1: any, p2: any) => {
+            if (!p1 || !p2) return p1 === p2;
+            const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+            return (
+              normalize(p1.name) === normalize(p2.name) &&
+              normalize(p1.phone) === normalize(p2.phone) &&
+              normalize(p1.dob) === normalize(p2.dob) &&
+              normalize(p1.sex) === normalize(p2.sex) &&
+              normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
+              normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
+            );
+          };
+          const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
+
           if (patientDetailsChanged) {
             const { error: patientUpdateError } = await supabase
               .from('patients')
@@ -601,7 +652,8 @@ const ConsultationPage = () => {
                 dob: editablePatientDetails.dob,
                 sex: editablePatientDetails.sex,
                 phone: editablePatientDetails.phone,
-                is_dob_estimated: editablePatientDetails.is_dob_estimated
+                is_dob_estimated: editablePatientDetails.is_dob_estimated,
+                secondary_phone: editablePatientDetails.secondary_phone,
               })
               .eq('id', editablePatientDetails.id);
             if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
@@ -612,7 +664,13 @@ const ConsultationPage = () => {
             procedure_fee?: number | null, procedure_consultant_cut?: number | null, referred_by?: string | null, referral_amount?: number | null
           } = {};
 
-          if (hasUnsavedChanges || locationChanged || languageChanged) {
+          // Re-evaluate locationChanged and languageChanged based on current state vs initial state
+          const locationChanged = selectedHospital.name !== initialLocation;
+          const languageChanged = consultationLanguage !== initialLanguage;
+          const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
+
+
+          if (extraDataChanged || locationChanged || languageChanged) {
             consultationUpdatePayload.consultation_data = dataToSave;
             consultationUpdatePayload.visit_type = extraData.visit_type;
             consultationUpdatePayload.location = selectedHospital.name;
@@ -689,7 +747,6 @@ const ConsultationPage = () => {
         c.id === updatedConsultation.id ? updatedConsultation : c
       );
       setAllConsultations(updatedAllConsultations);
-      setHasUnsavedChanges(false);
 
       return true;
     } catch (err) {
@@ -720,7 +777,7 @@ const ConsultationPage = () => {
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      if (hasChanges) {
         e.preventDefault();
         e.returnValue = ''; // Trigger browser's native confirmation dialog
       }
@@ -728,7 +785,7 @@ const ConsultationPage = () => {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, [hasChanges]);
 
 
 
@@ -744,7 +801,8 @@ const ConsultationPage = () => {
 
   const handleSelectConsultation = async (consultation: Consultation) => {
     // If passing from fetch logic, we might need to skip unsaved check or handle it
-    if (hasUnsavedChanges) {
+    // If passing from fetch logic, we might need to skip unsaved check or handle it
+    if (hasChanges) {
       setPendingSelection(consultation);
       setIsUnsavedModalOpen(true);
     } else {
@@ -763,7 +821,7 @@ const ConsultationPage = () => {
 
   const handleDiscardChanges = () => {
     setIsUnsavedModalOpen(false);
-    setHasUnsavedChanges(false);
+    // No need to setHasUnsavedChanges(false) as we are selecting new data which resets initial/current state MATCH
     if (pendingSelection) confirmSelection(pendingSelection);
     setPendingSelection(null);
   };
@@ -817,7 +875,6 @@ const ConsultationPage = () => {
       if (!prev) return null;
       return { ...prev, [field]: value };
     });
-    setHasUnsavedChanges(true);
   }, []);
 
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -831,7 +888,6 @@ const ConsultationPage = () => {
         if (!prev) return null;
         return { ...prev, dob: format(currentDob, 'yyyy-MM-dd'), is_dob_estimated: true };
       });
-      setHasUnsavedChanges(true);
       setCalendarDate(currentDob);
     }
   };
@@ -843,7 +899,6 @@ const ConsultationPage = () => {
       if (!prev) return null;
       return { ...prev, dob: format(date || new Date(), 'yyyy-MM-dd'), is_dob_estimated: false };
     });
-    setHasUnsavedChanges(true);
     if (date) {
       setAge(calculateAge(date));
     }
@@ -867,7 +922,6 @@ const ConsultationPage = () => {
       const separator = currentVal.trim() ? '\n' : '';
       return { ...prev, [field]: currentVal + separator + suggestion };
     });
-    setHasUnsavedChanges(true);
   };
 
 
@@ -918,7 +972,6 @@ const ConsultationPage = () => {
                   followupRef.current.setSelectionRange(newCursor, newCursor);
                 }
               }, 0);
-              setHasUnsavedChanges(true);
               return;
             }
           }
@@ -944,13 +997,11 @@ const ConsultationPage = () => {
             refMap[field].setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
           }
         }, 0);
-        setHasUnsavedChanges(true);
         return;
       }
     }
 
     setExtraData(prev => ({ ...prev, [field]: value }));
-    setHasUnsavedChanges(true);
   }, [t, textShortcuts, consultationLanguage]);
 
   /**
@@ -973,7 +1024,6 @@ const ConsultationPage = () => {
     };
 
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-    setHasUnsavedChanges(true);
   }, [consultationLanguage]);
 
   /**
@@ -1025,7 +1075,6 @@ const ConsultationPage = () => {
       newMeds[index] = { ...newMeds[index], [field]: value };
       return { ...prev, medications: newMeds };
     });
-    setHasUnsavedChanges(true);
   }, [textShortcuts]);
 
   const addMedication = useCallback(() => {
@@ -1035,7 +1084,6 @@ const ConsultationPage = () => {
       freqMorning: false, freqNoon: false, freqNight: false
     };
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-    setHasUnsavedChanges(true);
   }, []);
 
   const removeMedication = useCallback((index: number) => {
@@ -1043,7 +1091,6 @@ const ConsultationPage = () => {
       ...prev,
       medications: prev.medications.filter((_, i) => i !== index)
     }));
-    setHasUnsavedChanges(true);
   }, []);
 
 
@@ -1063,7 +1110,6 @@ const ConsultationPage = () => {
           medications: arrayMove(prev.medications, oldIndex, newIndex),
         };
       });
-      setHasUnsavedChanges(true);
     }
   }, []);
 

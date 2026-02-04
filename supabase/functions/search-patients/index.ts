@@ -70,7 +70,8 @@ serve(async (req) => {
       // searchType === 'phone'
       // Sanitize phone number to the last 10 digits for consistent searching.
       const sanitizedPhone = searchTerm.slice(-10);
-      query = query.like('phone', `%${sanitizedPhone}%`);
+      // Search both phone and secondary_phone using OR syntax
+      query = query.or(`phone.ilike.%${sanitizedPhone}%,secondary_phone.ilike.%${sanitizedPhone}%`);
 
       const { data, error } = await query;
       dbData = data;

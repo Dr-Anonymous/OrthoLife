@@ -24,15 +24,18 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
         dob: string;
         sex: string;
         is_dob_estimated: boolean;
+        secondary_phone: string;
     }>({
         name: '',
         phone: '',
         dob: '',
         sex: 'M',
         is_dob_estimated: false,
+        secondary_phone: '',
     });
     const [age, setAge] = useState<number | ''>('');
     const [isSaving, setIsSaving] = useState(false);
+    const [showSecondaryPhone, setShowSecondaryPhone] = useState(false);
 
     useEffect(() => {
         if (patient) {
@@ -42,7 +45,13 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                 dob: patient.dob,
                 sex: patient.sex || 'M',
                 is_dob_estimated: patient.is_dob_estimated || false,
+                secondary_phone: patient.secondary_phone || '',
             });
+            if (patient.secondary_phone) {
+                setShowSecondaryPhone(true);
+            } else {
+                setShowSecondaryPhone(false);
+            }
             if (patient.dob) {
                 setAge(calculateAge(new Date(patient.dob)));
             } else {
@@ -82,6 +91,7 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                     dob: formData.dob,
                     sex: formData.sex,
                     is_dob_estimated: formData.is_dob_estimated,
+                    secondary_phone: formData.secondary_phone,
                 })
                 .eq('id', patient.id);
 
@@ -129,7 +139,30 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             className="col-span-3"
                         />
+                        {!showSecondaryPhone && !formData.secondary_phone && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="col-start-4 justify-start p-0 h-auto font-normal text-muted-foreground hover:text-primary"
+                                onClick={() => setShowSecondaryPhone(true)}
+                            >
+                                + Add Alternate
+                            </Button>
+                        )}
                     </div>
+                    {(showSecondaryPhone || formData.secondary_phone) && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="secondary_phone" className="text-right">Alt. Phone</Label>
+                            <Input
+                                id="secondary_phone"
+                                value={formData.secondary_phone}
+                                onChange={(e) => setFormData({ ...formData, secondary_phone: e.target.value })}
+                                className="col-span-3"
+                                placeholder="Secondary Phone"
+                            />
+                        </div>
+                    )}
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="age" className="text-right">Age</Label>
                         <div className="col-span-3 flex items-center gap-2">

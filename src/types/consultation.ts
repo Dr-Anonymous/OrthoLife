@@ -29,6 +29,7 @@ export interface Patient {
     phone: string;
     drive_id: string | null;
     is_dob_estimated?: boolean;
+    secondary_phone?: string;
 }
 
 export interface Consultation {

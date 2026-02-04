@@ -67,6 +67,14 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
     handleMonthChange,
     onLinkClick,
 }) => {
+    const [showSecondaryPhone, setShowSecondaryPhone] = React.useState(false);
+
+    React.useEffect(() => {
+        if (patient.secondary_phone) {
+            setShowSecondaryPhone(true);
+        }
+    }, [patient.secondary_phone]);
+
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between mb-4">
@@ -109,7 +117,33 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" value={patient.phone} onChange={e => onPatientDetailsChange('phone', e.target.value)} />
+                    <div className="flex gap-2">
+                        <Input id="phone" value={patient.phone} onChange={e => onPatientDetailsChange('phone', e.target.value)} />
+                        {showSecondaryPhone && (
+                            <Input
+                                id="secondary_phone"
+                                value={patient.secondary_phone || ''}
+                                onChange={e => onPatientDetailsChange('secondary_phone', e.target.value)}
+                                onBlur={() => {
+                                    if (!patient.secondary_phone?.trim()) {
+                                        setShowSecondaryPhone(false);
+                                        onPatientDetailsChange('secondary_phone', ''); // Ensure it's clean empty string
+                                    }
+                                }}
+                                placeholder="Alt Phone"
+                            />
+                        )}
+                        {!showSecondaryPhone && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setShowSecondaryPhone(true)}
+                                title="Add Secondary Phone"
+                            >
+                                <span className="text-lg">+</span>
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
