@@ -30,6 +30,7 @@ export interface ConsultationData {
     advice?: string;
     followup?: string;
     referred_to?: string;
+    referred_by?: string;
     personalNote?: string;
     [key: string]: any;
 }
@@ -195,6 +196,17 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                     <div>
                         <h4 className="font-semibold">Follow Up</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.followup)}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Referred By */}
+            {data.referred_by && (
+                <div className="flex items-start gap-3">
+                    <Undo2 className="w-5 h-5 mt-1 text-primary" />
+                    <div>
+                        <h4 className="font-semibold">Referred By</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.referred_by)}</p>
                     </div>
                 </div>
             )}

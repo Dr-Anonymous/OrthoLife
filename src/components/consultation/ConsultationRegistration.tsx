@@ -23,6 +23,7 @@ interface Patient {
   dob: string;
   sex: string;
   phone: string;
+  secondary_phone?: string;
   drive_id: string | null;
   complaints?: string;
   findings?: string;
@@ -41,6 +42,8 @@ interface FormData {
   dob: Date | undefined;
   sex: string;
   phone: string;
+  secondary_phone?: string;
+  referred_by?: string;
   driveId: string | null;
   consultation_data: any | null;
   isDobEstimated: boolean;
@@ -72,6 +75,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     dob: undefined,
     sex: 'M',
     phone: '',
+    secondary_phone: '',
+    referred_by: '',
     driveId: null,
     consultation_data: null,
     isDobEstimated: false,
@@ -237,6 +242,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         dob: dob ? new Date(dob) : undefined,
         sex,
         phone,
+        secondary_phone: selected.secondary_phone || '',
         driveId: drive_id,
         consultation_data,
         isDobEstimated: selected.is_dob_estimated || false
@@ -355,7 +361,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               driveId: formData.driveId,
               age: String(age),
               location: location,
-              is_dob_estimated: formData.isDobEstimated // Pass the flag
+              is_dob_estimated: formData.isDobEstimated,
+              referred_by: formData.referred_by // Pass referrer as top-level column
             },
           });
 
@@ -515,7 +522,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                 <SelectContent>
                   {searchResults.map((patient) => (
                     <SelectItem key={patient.id} value={patient.id.toString()}>
-                      {patient.name} - {patient.phone}
+                      {patient.name} - {patient.phone} {patient.secondary_phone ? `(Alt: ${patient.secondary_phone})` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -193,7 +193,7 @@ const InPatientManagement = () => {
             if (patientSearch.length < 3) return [];
             const { data, error } = await supabase
                 .rpc('search_patients_normalized', { search_term: patientSearch })
-                .select('id, name, phone')
+                .select('id, name, phone, secondary_phone')
                 .limit(5);
             if (error) throw error;
             return data;
@@ -407,7 +407,8 @@ const InPatientManagement = () => {
                 setAdmissionData(prev => ({
                     ...prev,
                     procedure: cleanAdvice || prev.procedure,
-                    diagnosis: diagnosis || prev.diagnosis
+                    diagnosis: diagnosis || prev.diagnosis,
+                    emergency_contact: p.secondary_phone || prev.emergency_contact
                 }));
             }
         } catch (err) {

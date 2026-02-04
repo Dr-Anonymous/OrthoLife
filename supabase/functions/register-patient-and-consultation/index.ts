@@ -33,7 +33,7 @@ serve(async (req) => {
   }
 
   try {
-    const { id, name, dob, sex, phone, driveId: existingDriveId, location, is_dob_estimated } = await req.json();
+    const { id, name, dob, sex, phone, driveId: existingDriveId, location, is_dob_estimated, referred_by } = await req.json();
 
     // Sanitize phone to last 10 digits
     const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
@@ -131,7 +131,7 @@ serve(async (req) => {
 
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
-        .insert({ patient_id: bestMatch.id, status: 'pending', location: location, visit_type: 'paid' })
+        .insert({ patient_id: bestMatch.id, status: 'pending', location: location, visit_type: 'paid', referred_by: referred_by })
         .select()
         .single();
 
@@ -173,7 +173,8 @@ serve(async (req) => {
         status: 'pending',
         visit_type: 'paid',
         consultation_data: {},
-        location: location
+        location: location,
+        referred_by: referred_by
       })
       .select()
       .single();
