@@ -753,6 +753,12 @@ const ConsultationPage = () => {
         language: consultationLanguage,
         status: newStatus as 'pending' | 'completed' | 'under_evaluation',
         duration: timerSeconds,
+
+        // Update top-level fields to ensure local state reflects changes without reload
+        procedure_fee: extraData.procedure_fee ? Number(extraData.procedure_fee) : null,
+        procedure_consultant_cut: extraData.procedure_consultant_cut ? Number(extraData.procedure_consultant_cut) : null,
+        referred_by: extraData.referred_by || null,
+        referral_amount: extraData.referral_amount ? Number(extraData.referral_amount) : null,
       };
 
       setSelectedConsultation(updatedConsultation);

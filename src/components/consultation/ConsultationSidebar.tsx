@@ -120,6 +120,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     const [isPersonalNoteExpanded, setIsPersonalNoteExpanded] = useState(!!personalNote);
     const [isReferredByExpanded, setIsReferredByExpanded] = useState(!!referredBy);
 
+    // Reset expanded states when consultation changes
+    React.useEffect(() => {
+        setIsPersonalNoteExpanded(!!personalNote);
+        setIsReferredByExpanded(!!referredBy);
+    }, [selectedConsultationId, personalNote, referredBy]);
+
 
     const [searchQuery, setSearchQuery] = useState('');
     const searchInputRef = React.useRef<HTMLInputElement>(null);
