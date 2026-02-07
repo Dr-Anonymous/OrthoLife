@@ -283,7 +283,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                 }).eq('id', key);
 
                                 if (status === 'completed' && serverConsultation.status !== 'completed') {
-                                    await sendNotification(patientDetails, extraData, offlineData.patientDetails.language || 'en');
+                                    await sendNotification(patientDetails, extraData, offlineData.language || 'te');
                                 }
 
                                 await offlineStore.removeItem(key);

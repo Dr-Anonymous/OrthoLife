@@ -3,10 +3,10 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { toast } from '@/hooks/use-toast';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { Loader2, IndianRupee } from 'lucide-react';
+import { Loader2, IndianRupee, ChevronDown } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
-import { cleanConsultationData, pruneEmptyFields } from '@/lib/utils';
+import { cleanConsultationData, pruneEmptyFields, cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import SavedMedicationsModal from '@/components/consultation/SavedMedicationsModal';
@@ -637,6 +637,7 @@ const ConsultationPage = () => {
           extraData: dataToSave,
           status: newStatus,
           timestamp: new Date().toISOString(),
+          language: consultationLanguage,
         };
         await offlineStore.setItem(selectedConsultation.id, offlineData);
         toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
@@ -1526,67 +1527,70 @@ const ConsultationPage = () => {
                   initialFollowup={initialExtraData?.followup}
                 />
 
-                <div className="border rounded-md p-4 space-y-4">
-                  <div
-                    className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer select-none"
-                    onClick={() => setIsFinancialExpanded(!isFinancialExpanded)}
-                  >
-                    <IndianRupee className="w-4 h-4" />
-                    Financial Details & Referrals
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {isFinancialExpanded ? 'Collapse' : 'Expand'}
-                    </span>
-                  </div>
-
-                  {isFinancialExpanded && (
-                    <div className="space-y-4 pt-4 border-t mt-4">
-                      {/* Procedure Financials */}
-                      {extraData.procedure && (
-                        <div className="space-y-4 border-b pb-4">
-                          <h4 className="text-sm font-medium text-muted-foreground">Procedure Financials</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Procedure Fee (₹)</Label>
-                              <Input
-                                type="number"
-                                placeholder="Enter fee amount"
-                                value={extraData.procedure_fee}
-                                onChange={(e) => handleExtraChange('procedure_fee', e.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Consultant Share (Procedure)</Label>
-                              <Input
-                                type="number"
-                                placeholder="Amount or %"
-                                value={extraData.procedure_consultant_cut}
-                                onChange={(e) => handleExtraChange('procedure_consultant_cut', e.target.value)}
-                              />
-                              <p className="text-[10px] text-muted-foreground">Enter number for fixed amount.</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Referral Details */}
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-muted-foreground">Referral Information</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                          <div className="space-y-2">
-                            <Label>Referral Amount (₹)</Label>
-                            <Input
-                              type="number"
-                              placeholder="Amount to pay referrer"
-                              value={extraData.referral_amount}
-                              onChange={(e) => handleExtraChange('referral_amount', e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
+                {(extraData.procedure || extraData.referred_by) && (
+                  <div className="border rounded-md p-4 space-y-4">
+                    <div
+                      className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer select-none"
+                      onClick={() => setIsFinancialExpanded(!isFinancialExpanded)}
+                    >
+                      <IndianRupee className="w-4 h-4" />
+                      Financial Details
+                      <ChevronDown
+                        className={cn(
+                          "ml-auto h-4 w-4 shrink-0 transition-transform duration-200 text-muted-foreground",
+                          isFinancialExpanded && "rotate-180"
+                        )}
+                      />
                     </div>
-                  )}
-                </div>
+
+                    {isFinancialExpanded && (
+                      <div className="space-y-4 pt-4 border-t mt-4">
+
+                        {/* Unified Financial Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          {/* Procedure Fields (only if procedure selected) */}
+                          {extraData.procedure && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>Procedure Fee (₹)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="Enter fee amount"
+                                  value={extraData.procedure_fee}
+                                  onChange={(e) => handleExtraChange('procedure_fee', e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Consultant Share</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="Amount or %"
+                                  value={extraData.procedure_consultant_cut}
+                                  onChange={(e) => handleExtraChange('procedure_consultant_cut', e.target.value)}
+                                />
+                                <p className="text-[10px] text-muted-foreground">Enter number for fixed amount.</p>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Referral Amount (Only if referred_by is set) */}
+                          {extraData.referred_by && (
+                            <div className="space-y-2">
+                              <Label>Referral Amount (₹)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Amount to pay referrer"
+                                value={extraData.referral_amount}
+                                onChange={(e) => handleExtraChange('referral_amount', e.target.value)}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <ConsultationActions
                   isOnline={isOnline}

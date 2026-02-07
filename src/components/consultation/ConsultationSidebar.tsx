@@ -260,18 +260,17 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 </Popover>
             </div>
             {selectedConsultationId && selectedConsultation && (
-                <div className={cn(
-                    "space-y-2 p-3 rounded-md border transition-all duration-300",
-                    (() => {
-                        const isPersonalNoteAutofilled = initialPersonalNote && personalNote && String(personalNote).trim() === String(initialPersonalNote).trim() && String(personalNote).trim().length > 0;
-                        const isReferredByAutofilled = initialReferredBy && referredBy && String(referredBy).trim() === String(initialReferredBy).trim() && String(referredBy).trim().length > 0;
-                        return (isPersonalNoteAutofilled || isReferredByAutofilled)
-                            ? "bg-amber-50/80 border-amber-200 shadow-sm"
-                            : "bg-secondary/10 border-secondary/20";
-                    })()
-                )}>
+                <div className="space-y-4">
                     {/* Referred By Field */}
-                    <div className="mb-4">
+                    <div className={cn(
+                        "transition-all duration-300 rounded-md p-3 border space-y-2",
+                        (() => {
+                            const isReferredByAutofilled = initialReferredBy && referredBy && String(referredBy).trim() === String(initialReferredBy).trim() && String(referredBy).trim().length > 0;
+                            return isReferredByAutofilled
+                                ? "bg-amber-50/80 border-amber-200 shadow-sm"
+                                : "bg-secondary/10 border-secondary/20";
+                        })()
+                    )}>
                         <Label
                             className={cn(
                                 "text-sm font-medium flex items-center gap-2 cursor-pointer select-none hover:underline",
@@ -300,12 +299,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 placeholder="Referrer name..."
                                 className={cn(
                                     "mt-1 text-sm transition-all",
-                                    (() => {
-                                        const isReferredByAutofilled = initialReferredBy && referredBy && String(referredBy).trim() === String(initialReferredBy).trim() && String(referredBy).trim().length > 0;
-                                        return isReferredByAutofilled
-                                            ? "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40"
-                                            : "bg-background/50";
-                                    })()
+                                    "bg-background/50"
                                 )}
                                 autoFocus={isReferredByExpanded && !referredBy}
                                 onBlur={() => {
@@ -317,47 +311,61 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         )}
                     </div>
 
-                    <Label
-                        className={cn(
-                            "text-sm font-medium flex items-center gap-2 cursor-pointer select-none hover:underline",
-                            personalNote ? "text-amber-900" : "text-foreground"
-                        )}
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            setIsPersonalNoteExpanded(!isPersonalNoteExpanded);
-                        }}
-                    >
-                        <Stethoscope className={cn("w-4 h-4", personalNote ? "text-amber-600" : "text-primary")} />
-                        Doctor's Personal Note
-                        {/* Only show chevron if not expanded AND empty (prompt to open) */}
-                        {(!isPersonalNoteExpanded && !personalNote) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
-                    </Label>
-
-                    {(personalNote || isPersonalNoteExpanded) && (
-                        <Textarea
-                            id="personalNoteSidebar"
-                            value={personalNote}
-                            onChange={e => onPersonalNoteChange(e.target.value)}
-                            placeholder="Private notes..."
+                    {/* Personal Note Field */}
+                    <div className={cn(
+                        "transition-all duration-300 rounded-md p-3 border space-y-2",
+                        (() => {
+                            const isPersonalNoteAutofilled = initialPersonalNote && personalNote && String(personalNote).trim() === String(initialPersonalNote).trim() && String(personalNote).trim().length > 0;
+                            return isPersonalNoteAutofilled
+                                ? "bg-amber-50/80 border-amber-200 shadow-sm"
+                                : "bg-secondary/10 border-secondary/20";
+                        })()
+                    )}>
+                        <Label
                             className={cn(
-                                "min-h-[100px] text-sm resize-y transition-all",
+                                "text-sm font-medium flex items-center gap-2 cursor-pointer select-none hover:underline",
                                 (() => {
-                                    if (!initialPersonalNote) return "bg-background/50";
-                                    const isUnchanged = String(personalNote).trim() === String(initialPersonalNote).trim();
-                                    const hasContent = personalNote && String(personalNote).trim().length > 0;
-                                    return (isUnchanged && hasContent)
-                                        ? "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40"
-                                        : "bg-background/50";
+                                    const isPersonalNoteAutofilled = initialPersonalNote && personalNote && String(personalNote).trim() === String(initialPersonalNote).trim() && String(personalNote).trim().length > 0;
+                                    return isPersonalNoteAutofilled ? "text-amber-900" : "text-foreground";
                                 })()
                             )}
-                            autoFocus={isPersonalNoteExpanded && !personalNote}
-                            onBlur={() => {
-                                if (!personalNote || personalNote.trim() === '') {
-                                    setIsPersonalNoteExpanded(false);
-                                }
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                setIsPersonalNoteExpanded(!isPersonalNoteExpanded);
                             }}
-                        />
-                    )}
+                        >
+                            <Stethoscope className={cn("w-4 h-4", personalNote ? "text-amber-600" : "text-primary")} />
+                            Doctor's Personal Note
+                            {/* Only show chevron if not expanded AND empty (prompt to open) */}
+                            {(!isPersonalNoteExpanded && !personalNote) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
+                        </Label>
+
+                        {(personalNote || isPersonalNoteExpanded) && (
+                            <Textarea
+                                id="personalNoteSidebar"
+                                value={personalNote}
+                                onChange={e => onPersonalNoteChange(e.target.value)}
+                                placeholder="Private notes..."
+                                className={cn(
+                                    "min-h-[100px] text-sm resize-y transition-all",
+                                    (() => {
+                                        if (!initialPersonalNote) return "bg-background/50";
+                                        const isUnchanged = String(personalNote).trim() === String(initialPersonalNote).trim();
+                                        const hasContent = personalNote && String(personalNote).trim().length > 0;
+                                        return (isUnchanged && hasContent)
+                                            ? "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40"
+                                            : "bg-background/50";
+                                    })()
+                                )}
+                                autoFocus={isPersonalNoteExpanded && !personalNote}
+                                onBlur={() => {
+                                    if (!personalNote || personalNote.trim() === '') {
+                                        setIsPersonalNoteExpanded(false);
+                                    }
+                                }}
+                            />
+                        )}
+                    </div>
                 </div>
             )}
 
