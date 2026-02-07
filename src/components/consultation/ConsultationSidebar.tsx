@@ -58,6 +58,9 @@ interface ConsultationSidebarProps {
     setIsTimerVisible: (visible: boolean) => void;
 
     timerSeconds: number;
+    referredBy: string;
+    onReferredByChange: (value: string) => void;
+    initialReferredBy?: string;
 }
 
 /**
@@ -101,10 +104,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     setIsCompletedCollapsed,
     isTimerVisible,
     setIsTimerVisible,
-    timerSeconds
+    timerSeconds,
+    referredBy,
+    onReferredByChange,
+    initialReferredBy
 }) => {
     const { hospitals } = useHospitals();
-    const sortedHospitals = [...hospitals].sort((a, b) => a.name.localeCompare(b.name));
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
@@ -113,7 +118,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     };
 
     const [isPersonalNoteExpanded, setIsPersonalNoteExpanded] = useState(!!personalNote);
-    const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
+    const [isReferredByExpanded, setIsReferredByExpanded] = useState(!!referredBy);
 
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -257,10 +262,61 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
             {selectedConsultationId && selectedConsultation && (
                 <div className={cn(
                     "space-y-2 p-3 rounded-md border transition-all duration-300",
-                    personalNote
-                        ? "bg-amber-50/80 border-amber-200 shadow-sm"
-                        : "bg-secondary/10 border-secondary/20"
+                    (() => {
+                        const isPersonalNoteAutofilled = initialPersonalNote && personalNote && String(personalNote).trim() === String(initialPersonalNote).trim() && String(personalNote).trim().length > 0;
+                        const isReferredByAutofilled = initialReferredBy && referredBy && String(referredBy).trim() === String(initialReferredBy).trim() && String(referredBy).trim().length > 0;
+                        return (isPersonalNoteAutofilled || isReferredByAutofilled)
+                            ? "bg-amber-50/80 border-amber-200 shadow-sm"
+                            : "bg-secondary/10 border-secondary/20";
+                    })()
                 )}>
+                    {/* Referred By Field */}
+                    <div className="mb-4">
+                        <Label
+                            className={cn(
+                                "text-sm font-medium flex items-center gap-2 cursor-pointer select-none hover:underline",
+                                (() => {
+                                    const isReferredByAutofilled = initialReferredBy && referredBy && String(referredBy).trim() === String(initialReferredBy).trim() && String(referredBy).trim().length > 0;
+                                    return isReferredByAutofilled ? "text-amber-900" : "text-foreground";
+                                })()
+                            )}
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                setIsReferredByExpanded(!isReferredByExpanded);
+                            }}
+                        >
+                            <UserPlus className={cn("w-4 h-4", (() => {
+                                const isReferredByAutofilled = initialReferredBy && referredBy && String(referredBy).trim() === String(initialReferredBy).trim() && String(referredBy).trim().length > 0;
+                                return isReferredByAutofilled ? "text-amber-600" : "text-primary";
+                            })())} />
+                            Referred By
+                            {(!isReferredByExpanded && !referredBy) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
+                        </Label>
+
+                        {(referredBy || isReferredByExpanded) && (
+                            <Input
+                                value={referredBy}
+                                onChange={e => onReferredByChange(e.target.value)}
+                                placeholder="Referrer name..."
+                                className={cn(
+                                    "mt-1 text-sm transition-all",
+                                    (() => {
+                                        const isReferredByAutofilled = initialReferredBy && referredBy && String(referredBy).trim() === String(initialReferredBy).trim() && String(referredBy).trim().length > 0;
+                                        return isReferredByAutofilled
+                                            ? "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40"
+                                            : "bg-background/50";
+                                    })()
+                                )}
+                                autoFocus={isReferredByExpanded && !referredBy}
+                                onBlur={() => {
+                                    if (!referredBy || referredBy.trim() === '') {
+                                        setIsReferredByExpanded(false);
+                                    }
+                                }}
+                            />
+                        )}
+                    </div>
+
                     <Label
                         className={cn(
                             "text-sm font-medium flex items-center gap-2 cursor-pointer select-none hover:underline",

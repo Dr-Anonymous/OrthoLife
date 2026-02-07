@@ -1350,8 +1350,6 @@ const ConsultationPage = () => {
         e.preventDefault();
         setIsSearchModalOpen(true);
       }
-      // Add Medication: Ctrl/Cmd + M
-
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -1435,6 +1433,9 @@ const ConsultationPage = () => {
             isTimerVisible={isTimerVisible}
             setIsTimerVisible={setIsTimerVisible}
             timerSeconds={timerSeconds}
+            referredBy={extraData.referred_by}
+            onReferredByChange={(val) => handleExtraChange('referred_by', val)}
+            initialReferredBy={initialExtraData?.referred_by}
           />
 
           <div className="lg:col-span-3 min-h-[calc(100vh-2rem)]">
@@ -1571,14 +1572,7 @@ const ConsultationPage = () => {
                       <div className="space-y-4">
                         <h4 className="text-sm font-medium text-muted-foreground">Referral Information</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Referred By (Name)</Label>
-                            <Input
-                              placeholder="Name of referrer"
-                              value={extraData.referred_by}
-                              onChange={(e) => handleExtraChange('referred_by', e.target.value)}
-                            />
-                          </div>
+
                           <div className="space-y-2">
                             <Label>Referral Amount (₹)</Label>
                             <Input
