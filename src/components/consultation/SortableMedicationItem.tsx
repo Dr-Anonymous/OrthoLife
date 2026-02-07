@@ -27,6 +27,7 @@ interface SortableMedicationItemProps {
     medInstructionsRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
     medNotesRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
     language: string;
+    initialMedications?: Medication[];
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -42,8 +43,28 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     medDurationRefs,
     medInstructionsRefs,
     medNotesRefs,
-    language
+    language,
+    initialMedications
 }) => {
+    // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
+    const getStyle = (field: keyof Medication, value: any) => {
+        if (!initialMedications) return ""; // Default style
+
+        // Find corresponding initial medication by ID
+        const initialMed = initialMedications.find(m => m.id === med.id);
+        if (!initialMed) return ""; // New medication (or id mismatch), no highlight
+
+        const initialValue = initialMed[field];
+        // Check if value equals initial value AND value is not empty/falsy
+        // We trim strings to be safe
+        const isUnchanged = String(value).trim() === String(initialValue || '').trim();
+        const hasContent = value && String(value).trim().length > 0;
+
+        if (isUnchanged && hasContent) {
+            return "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40";
+        }
+        return ""; // Default style
+    };
     const {
         attributes,
         listeners,
@@ -161,6 +182,9 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 </div>
                             </div>
                             <AutosuggestInput
+                                inputProps={{
+                                    className: getStyle('name', med.name)
+                                }}
                                 ref={medicationNameInputRef}
                                 value={med.name || ''}
                                 onChange={value => handleMedChange(index, 'name', value)}
@@ -195,6 +219,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 onChange={e => handleMedChange(index, 'dose', e.target.value, e.target.selectionStart)}
                                 placeholder="e.g., 500mg"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                className={getStyle('dose', med.dose)}
                             />
                         </div>
                     </div>
@@ -263,6 +288,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     onChange={e => handleMedChange(index, 'frequency', e.target.value, e.target.selectionStart)}
                                     placeholder="e.g., once a week"
                                     onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                    className={getStyle('frequency', med.frequency)}
                                 />
                                 {(!med.frequency) && (
                                     <div className="flex flex-wrap gap-1 mt-1">
@@ -292,6 +318,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 onChange={e => handleMedChange(index, 'duration', e.target.value, e.target.selectionStart)}
                                 placeholder="e.g., 7 days"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                className={getStyle('duration', med.duration)}
                             />
                             {/* Smart Duration Helpers */}
                             {(() => {
@@ -330,6 +357,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 onChange={e => handleMedChange(index, 'instructions', e.target.value, e.target.selectionStart)}
                                 placeholder="Special instructions"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                                className={getStyle('instructions', med.instructions)}
                             />
                             {(!med.instructions) && (
                                 <div className="flex flex-wrap gap-1 mt-1">
@@ -354,6 +382,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                             onChange={e => handleMedChange(index, 'notes', e.target.value, e.target.selectionStart)}
                             placeholder="e.g., side effects"
                             onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
+                            className={getStyle('notes', med.notes)}
                         />
                     </div>
                 </div>

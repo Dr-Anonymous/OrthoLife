@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 // import { LanguageSwitcher } from '@/components/LanguageSwitcher'; // Removed in favor of controlled input
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
-import { CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchedGuide } from '@/types/consultation';
 
@@ -18,8 +19,9 @@ interface ClinicalNotesFormProps {
         advice: string;
         followup: string;
         referred_to: string;
+        referred_to_list?: string[];
     };
-    onExtraChange: (field: string, value: string, cursorPosition?: number | null) => void;
+    onExtraChange: (field: string, value: any, cursorPosition?: number | null) => void;
 
     // Refs
     complaintsRef: React.RefObject<HTMLTextAreaElement>;
@@ -50,6 +52,7 @@ interface ClinicalNotesFormProps {
     referralDoctors: { id: string, name: string, specialization?: string, address?: string, phone?: string }[];
     language: string;
     onLanguageChange: (lang: string) => void;
+    initialData?: Partial<ClinicalNotesFormProps['extraData']>;
 }
 
 /**
@@ -88,8 +91,25 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     setIsReferredToExpanded,
     referralDoctors,
     language,
-    onLanguageChange
+    onLanguageChange,
+    initialData
 }) => {
+    // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
+    const getStyle = (field: keyof typeof extraData, value: any) => {
+        if (!initialData) return "bg-background/50";
+
+        const initialValue = initialData[field];
+        // Check if value equals initial value AND value is not empty/falsy
+        // We trim strings to be safe
+        const isUnchanged = String(value).trim() === String(initialValue || '').trim();
+        const hasContent = value && String(value).trim().length > 0;
+
+        if (isUnchanged && hasContent) {
+            return "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40";
+        }
+        return "bg-background/50"; // Default style
+    };
+
     return (
         <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -101,7 +121,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         value={extraData.complaints}
                         onChange={e => onExtraChange('complaints', e.target.value, e.target.selectionStart)}
                         placeholder="Patient complaints..."
-                        className="min-h-[100px]"
+                        className={cn("min-h-[100px]", getStyle('complaints', extraData.complaints))}
                     />
                 </div>
 
@@ -113,7 +133,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         value={extraData.findings}
                         onChange={e => onExtraChange('findings', e.target.value, e.target.selectionStart)}
                         placeholder="Clinical findings..."
-                        className="min-h-[100px]"
+                        className={cn("min-h-[100px]", getStyle('findings', extraData.findings))}
                     />
                 </div>
             </div>
@@ -134,7 +154,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         value={extraData.investigations}
                         onChange={e => onExtraChange('investigations', e.target.value, e.target.selectionStart)}
                         placeholder="Investigations required..."
-                        className="min-h-[100px]"
+                        className={cn("min-h-[100px]", getStyle('investigations', extraData.investigations))}
                     />
                 </div>
 
@@ -146,7 +166,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         value={extraData.diagnosis}
                         onChange={e => onExtraChange('diagnosis', e.target.value, e.target.selectionStart)}
                         placeholder="Clinical diagnosis..."
-                        className="min-h-[100px]"
+                        className={cn("min-h-[100px]", getStyle('diagnosis', extraData.diagnosis))}
                     />
                 </div>
             </div>
@@ -154,10 +174,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             <div className="space-y-2">
                 <Label
                     htmlFor="procedure"
-                    className="text-sm font-medium cursor-pointer hover:underline"
-                    onClick={() => setIsProcedureExpanded(!isProcedureExpanded)}
+                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2"
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        setIsProcedureExpanded(!isProcedureExpanded);
+                    }}
                 >
-                    Procedure Done {(!extraData.procedure && !isProcedureExpanded) && <span className="text-muted-foreground text-xs">(click to add)</span>}
+                    Procedure Done
+                    {(!isProcedureExpanded && !extraData.procedure) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                 </Label>
                 {(extraData.procedure || isProcedureExpanded) && (
                     <Textarea
@@ -166,7 +190,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         value={extraData.procedure}
                         onChange={e => onExtraChange('procedure', e.target.value, e.target.selectionStart)}
                         placeholder="Procedure done..."
-                        className="min-h-[80px]"
+                        className={cn("min-h-[80px]", getStyle('procedure', extraData.procedure))}
+                        onBlur={() => {
+                            if (!extraData.procedure || extraData.procedure.trim() === '') {
+                                setIsProcedureExpanded(false);
+                            }
+                        }}
                     />
                 )}
             </div>
@@ -209,7 +238,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     value={extraData.advice}
                     onChange={e => onExtraChange('advice', e.target.value, e.target.selectionStart)}
                     placeholder="Medical advice..."
-                    className="min-h-[80px]"
+                    className={cn("min-h-[80px]", getStyle('advice', extraData.advice))}
                 />
 
                 {matchedGuides.length > 0 && (
@@ -239,27 +268,112 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             <div className="space-y-2">
                 <Label
                     htmlFor="referred_to"
-                    className="text-sm font-medium cursor-pointer hover:underline"
-                    onClick={() => setIsReferredToExpanded(!isReferredToExpanded)}
+                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2"
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        setIsReferredToExpanded(!isReferredToExpanded);
+                    }}
                 >
-                    Referred To {(!extraData.referred_to && !isReferredToExpanded) && <span className="text-muted-foreground text-xs">(click to add)</span>}
+                    Referred To
+                    {/* Only show + if:
+                        1. Not expanded (so inputs are hidden)
+                        2. AND no data in the list (if there is data, we don't need a prompt, we see the list)
+                     */}
+                    {(!isReferredToExpanded && (!extraData.referred_to_list || !extraData.referred_to_list.some(s => s.trim()))) && <Plus className="w-4 h-4 text-muted-foreground ml-auto" />}
                 </Label>
-                {(extraData.referred_to || isReferredToExpanded) && (
-                    <AutosuggestInput
-                        ref={referredToRef}
-                        value={extraData.referred_to}
-                        onChange={value => onExtraChange('referred_to', value, (referredToRef.current as any)?.selectionStart || value.length)}
-                        suggestions={referralDoctors.map(d => ({
-                            id: d.id,
-                            name: `${d.name}${d.specialization ? `, ${d.specialization}` : ''}${d.address ? `, ${d.address}` : ''}${d.phone ? `, ${d.phone}` : ''}`
-                        }))}
-                        onSuggestionSelected={suggestion => onExtraChange('referred_to', suggestion.name)}
-                        placeholder="Referred to..."
-                    />
-                )}
+                {/* Show list if:
+                    1. Expanded (user clicked to add)
+                    2. OR there is data (user previously added)
+                 */}
+                {((isReferredToExpanded) || (extraData.referred_to_list && extraData.referred_to_list.some(s => s.trim()))) && (
+                    (extraData.referred_to_list && extraData.referred_to_list.length > 0 ? extraData.referred_to_list : ['']).map((item, index) => (
+                        <div key={index} className="flex gap-2 items-center mb-2">
+                            <div className="flex-1">
+                                <AutosuggestInput
+                                    ref={index === 0 ? referredToRef : null}
+                                    value={item}
+                                    onChange={value => {
+                                        const newList = [...(extraData.referred_to_list && extraData.referred_to_list.length > 0 ? extraData.referred_to_list : [''])];
+                                        newList[index] = value;
+                                        onExtraChange('referred_to_list', newList);
+                                    }}
+                                    suggestions={referralDoctors.map(d => ({
+                                        id: d.id,
+                                        name: `${d.name}${d.specialization ? `, ${d.specialization}` : ''}${d.address ? `, ${d.address}` : ''}${d.phone ? `, ${d.phone}` : ''}`
+                                    }))}
+                                    onSuggestionSelected={suggestion => {
+                                        const newList = [...(extraData.referred_to_list && extraData.referred_to_list.length > 0 ? extraData.referred_to_list : [''])];
+                                        newList[index] = suggestion.name;
+                                        onExtraChange('referred_to_list', newList);
+                                    }}
+                                    placeholder="Referred to..."
+                                    inputProps={{
+                                        className: (() => {
+                                            if (!initialData || !initialData.referred_to_list) return "bg-background/50";
+                                            const initialVal = initialData.referred_to_list[index] || '';
+                                            const currentVal = item || '';
+                                            const isUnchanged = String(currentVal).trim() === String(initialVal).trim();
+                                            const hasContent = currentVal && String(currentVal).trim().length > 0;
+
+                                            if (isUnchanged && hasContent) {
+                                                return "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40";
+                                            }
+                                            return "bg-background/50";
+                                        })(),
+                                        onBlur: () => {
+                                            // Check if ALL entries are empty
+                                            const currentList = extraData.referred_to_list || [];
+                                            // We use the current state 'item' for this specific input, but we need to check the whole list.
+                                            // However, state updates might be async or buffered.
+                                            // But onBlur happens after typing.
+                                            // IMPORTANT: We must check the ACTUAL list data.
+                                            const hasData = currentList.some(str => str && str.trim().length > 0);
+                                            if (!hasData) {
+                                                // Also check if the current input value (which might be in the process of updating?)
+                                                // Actually 'item' is passed in.
+                                                // If I just cleared it, 'item' might still be old in this render cycle?
+                                                // No, React re-renders on change. onBlur happens after.
+                                                setIsReferredToExpanded(false);
+                                            }
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="flex gap-1">
+                                {/* Only show delete if it's not the only item OR if it has value */}
+                                {(extraData.referred_to_list?.length > 1 || item) && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive"
+                                        onClick={() => {
+                                            const newList = [...(extraData.referred_to_list || [])];
+                                            newList.splice(index, 1);
+                                            onExtraChange('referred_to_list', newList.length > 0 ? newList : ['']);
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                {/* Show Add button on the last item */}
+                                {index === (extraData.referred_to_list?.length || 1) - 1 && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-primary"
+                                        onClick={() => {
+                                            const newList = [...(extraData.referred_to_list || [''])];
+                                            newList.push('');
+                                            onExtraChange('referred_to_list', newList);
+                                        }}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    )))}
             </div>
-
-
         </>
     );
 };

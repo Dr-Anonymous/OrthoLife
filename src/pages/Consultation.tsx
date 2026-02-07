@@ -132,6 +132,7 @@ const ConsultationPage = () => {
     procedure_fee: '',
     procedure_consultant_cut: '',
     referred_to: '',
+    referred_to_list: [] as string[],
     referred_by: '',
     referral_amount: '',
     visit_type: 'paid', // default
@@ -322,6 +323,12 @@ const ConsultationPage = () => {
     }
 
     const savedData = consultation.consultation_data || {};
+    // Handle Referred To List Backward Compatibility
+    let loadedReferredToList = savedData.referred_to_list || [];
+    if ((!loadedReferredToList || loadedReferredToList.length === 0) && savedData.referred_to) {
+      loadedReferredToList = [savedData.referred_to];
+    }
+
     const newExtraData = {
       complaints: savedData.complaints || '',
       findings: savedData.findings || '',
@@ -336,11 +343,15 @@ const ConsultationPage = () => {
       allergy: savedData.allergy || '',
       personalNote: savedData.personalNote || savedData.personal_note || '',
       procedure: savedData.procedure || '',
-      procedure_fee: consultation.procedure_fee || savedData.procedure_fee || '',
-      procedure_consultant_cut: consultation.procedure_consultant_cut || savedData.procedure_consultant_cut || '',
+
+      procedure_fee: consultation.procedure_fee !== null ? String(consultation.procedure_fee) : '',
+      procedure_consultant_cut: consultation.procedure_consultant_cut !== null ? String(consultation.procedure_consultant_cut) : '',
+      referred_by: consultation.referred_by || '',
+      referral_amount: consultation.referral_amount !== null ? String(consultation.referral_amount) : '',
+
       referred_to: savedData.referred_to || '',
-      referred_by: consultation.referred_by || savedData.referred_by || '',
-      referral_amount: consultation.referral_amount || savedData.referral_amount || '',
+      referred_to_list: loadedReferredToList,
+
       visit_type: savedData.visit_type || consultation.visit_type || 'paid',
     };
     setExtraData(newExtraData as any);
@@ -606,11 +617,16 @@ const ConsultationPage = () => {
         procedure_consultant_cut,
         referred_by,
         referral_amount,
+        referred_to, // Extract legacy if present
+        referred_to_list, // Extract new list
         ...jsonExtraData
       } = restExtraData;
 
       const dataToSave = pruneEmptyFields({
         ...jsonExtraData,
+        // Join list to string for legacy/reporting compatibility
+        referred_to: referred_to_list && referred_to_list.length > 0 ? referred_to_list.join(', ') : '',
+        referred_to_list: referred_to_list || [],
         medications: (restExtraData.medications || []).map(cleanMedicationForSave)
       });
 
@@ -1396,6 +1412,7 @@ const ConsultationPage = () => {
             onShowPatientHistory={handleOpenHistory}
             personalNote={extraData.personalNote}
             onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
+            initialPersonalNote={initialExtraData?.personalNote}
             isEvaluationCollapsed={isEvaluationCollapsed}
             setIsEvaluationCollapsed={setIsEvaluationCollapsed}
             isCompletedCollapsed={isCompletedCollapsed}
@@ -1460,10 +1477,12 @@ const ConsultationPage = () => {
                   referralDoctors={referralDoctors}
                   language={consultationLanguage}
                   onLanguageChange={(lang) => setConsultationLanguage(lang)}
+                  initialData={initialExtraData}
                 />
 
                 <MedicationManager
                   medications={extraData.medications}
+                  initialMedications={initialExtraData?.medications}
                   sensors={sensors}
                   handleDragEnd={handleDragEnd}
                   handleMedChange={handleMedChange}
@@ -1488,6 +1507,7 @@ const ConsultationPage = () => {
                   followupRef={followupRef}
                   suggestedFollowup={suggestedFollowup}
                   onFollowupSuggestionClick={(val) => handleAppendSuggestion('followup', val)}
+                  initialFollowup={initialExtraData?.followup}
                 />
 
                 <div className="border rounded-md p-4 space-y-4">

@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface FollowUpSectionProps {
     followup: string;
@@ -9,6 +10,7 @@ interface FollowUpSectionProps {
     followupRef: React.RefObject<HTMLTextAreaElement>;
     suggestedFollowup: string[];
     onFollowupSuggestionClick: (val: string) => void;
+    initialFollowup?: string;
 }
 
 /**
@@ -26,7 +28,21 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
     followupRef,
     suggestedFollowup,
     onFollowupSuggestionClick,
+    initialFollowup
 }) => {
+    // Highlighting logic
+    const getStyle = () => {
+        if (initialFollowup === undefined) return "";
+
+        const isUnchanged = String(followup).trim() === String(initialFollowup || '').trim();
+        const hasContent = followup && String(followup).trim().length > 0;
+
+        if (isUnchanged && hasContent) {
+            return "bg-amber-100/60 border-amber-300 focus-visible:ring-amber-500 placeholder:text-amber-900/50";
+        }
+        return "";
+    };
+
     return (
         <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -50,7 +66,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                 value={followup}
                 onChange={e => onExtraChange('followup', e.target.value, e.target.selectionStart)}
                 placeholder="Follow-up instructions..."
-                className="min-h-[80px]"
+                className={cn("min-h-[80px]", getStyle())}
             />
         </div>
     );

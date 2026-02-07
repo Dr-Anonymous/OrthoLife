@@ -10,6 +10,7 @@ import { Medication } from '@/types/consultation';
 
 interface MedicationManagerProps {
     medications: Medication[];
+    initialMedications?: Medication[];
     sensors: any; // Using any for dnd-kit sensors mainly due to complex types
     handleDragEnd: (event: DragEndEvent) => void;
     handleMedChange: (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => void;
@@ -60,7 +61,8 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     medNotesRefs,
     addMedication,
     suggestedMedications,
-    handleMedicationSuggestionClick
+    handleMedicationSuggestionClick,
+    initialMedications
 }) => {
     // Track previous length to detect additions
     const prevMedicationsLength = React.useRef(medications.length);
@@ -143,6 +145,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 medDurationRefs={medDurationRefs}
                                 medInstructionsRefs={medInstructionsRefs}
                                 medNotesRefs={medNotesRefs}
+                                initialMedications={initialMedications}
                             />
                         ))}
                     </SortableContext>

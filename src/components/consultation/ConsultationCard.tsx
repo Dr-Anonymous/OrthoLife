@@ -13,7 +13,8 @@ import {
     Eye,
     Microscope,
     Clock,
-    Undo2
+    Undo2,
+    ArrowRightCircle
 } from 'lucide-react';
 
 export interface ConsultationData {
@@ -30,6 +31,7 @@ export interface ConsultationData {
     advice?: string;
     followup?: string;
     referred_to?: string;
+    referred_to_list?: string[];
     referred_by?: string;
     personalNote?: string;
     [key: string]: any;
@@ -212,12 +214,20 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             )}
 
             {/* Referred To */}
-            {data.referred_to && (
+            {(data.referred_to_list?.length > 0 || data.referred_to) && (
                 <div className="flex items-start gap-3">
-                    <Share className="w-5 h-5 mt-1 text-primary" />
+                    <ArrowRightCircle className="w-5 h-5 mt-1 text-primary" />
                     <div>
                         <h4 className="font-semibold">Referred To</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.referred_to)}</p>
+                        {data.referred_to_list && data.referred_to_list.length > 0 ? (
+                            <ul className="list-disc list-inside text-sm text-muted-foreground">
+                                {data.referred_to_list.map((name, i) => (
+                                    <li key={i}>{renderText(name)}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.referred_to)}</p>
+                        )}
                     </div>
                 </div>
             )}

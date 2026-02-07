@@ -386,6 +386,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <Activity className="h-5 w-5 text-primary" />
                     ప్రత్యేక సేవలు
                   </h3>
+                  <p className="text-base font-semibold text-primary/90 mb-3">8+ సంవత్సరాల అనుభవం మరియు 5000 పైగా శస్త్రచికిత్సలు</p>
 
                   <ul className="space-y-2 text-base">
                     <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
@@ -486,6 +487,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <Activity className="h-5 w-5 text-primary" />
                     Specialized Services
                   </h3>
+                  <p className="text-base font-semibold text-primary/90 mb-3">8+ years and 5000+ surgeries experience</p>
 
                   <ul className="space-y-2 text-base">
                     <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
