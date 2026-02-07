@@ -101,6 +101,7 @@ const ConsultationPage = () => {
   // --- Data State ---
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
+  const [completedCount, setCompletedCount] = useState(0); // Auto-refresh counter
   const [isEvaluationCollapsed, setIsEvaluationCollapsed] = useState(true);
   const [isCompletedCollapsed, setIsCompletedCollapsed] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
@@ -763,6 +764,20 @@ const ConsultationPage = () => {
         c.id === updatedConsultation.id ? updatedConsultation : c
       );
       setAllConsultations(updatedAllConsultations);
+
+      setAllConsultations(updatedAllConsultations);
+
+      // Auto-Refresh Logic: Trigger background refresh every 5 completions
+      if (statusChanged && newStatus === 'completed') {
+        setCompletedCount(prev => {
+          const newCount = prev + 1;
+          if (newCount > 0 && newCount % 5 === 0) {
+            console.log(`Auto-refreshing list (Completion #${newCount})`);
+            fetchConsultations().catch(console.error);
+          }
+          return newCount;
+        });
+      }
 
       return true;
     } catch (err) {

@@ -30,6 +30,14 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
     const [selectedConsent, setSelectedConsent] = useState<SurgicalConsent | null>(null);
     const queryClient = useQueryClient();
 
+    // Reset state when modal closes to prevent stale data when switching patients
+    React.useEffect(() => {
+        if (!isOpen) {
+            setViewMode('list');
+            setSelectedConsent(null);
+        }
+    }, [isOpen]);
+
     const { data: consents, isLoading } = useQuery({
         queryKey: ['surgical-consents', patient?.id],
         queryFn: async () => {
@@ -169,6 +177,7 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
                         </ScrollArea>
                     ) : (
                         <SurgicalConsentForm
+                            key={patient?.id + (selectedConsent?.id || 'new')}
                             patient={patient!}
                             onSave={handleCreate}
                             onCancel={() => {
