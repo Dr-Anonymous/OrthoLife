@@ -16,7 +16,7 @@ interface PatientDemographicsProps {
     visitType: string;
     onVisitTypeChange: (type: string) => void;
     lastVisitDate: string | null;
-    onHistoryClick: () => void;
+    onHistoryClick?: () => void;
 
     onPatientDetailsChange: (field: string, value: string) => void;
 
@@ -95,10 +95,12 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                             {lastVisitDate}
                         </span>
                     )}
-                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onHistoryClick}>
-                        <History className="h-4 w-4" />
-                        <span className="sr-only">View Patient History</span>
-                    </Button>
+                    {onHistoryClick && (
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onHistoryClick}>
+                            <History className="h-4 w-4" />
+                            <span className="sr-only">View Patient History</span>
+                        </Button>
+                    )}
                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onLinkClick} title="Link Duplicate Patient">
                         <LinkIcon className="h-4 w-4 text-orange-500" />
                         <span className="sr-only">Link Duplicate Patient</span>

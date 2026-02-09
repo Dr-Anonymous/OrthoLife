@@ -47,6 +47,7 @@ interface FormData {
   driveId: string | null;
   consultation_data: any | null;
   isDobEstimated: boolean;
+  language?: string;
 }
 
 interface ConsultationRegistrationProps {
@@ -228,9 +229,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   };
 
   const handleSelectPatient = (patientId: string, patientList: Patient[] = searchResults) => {
-    // The review identified a bug here. The patientId from the Select component is a string,
-    // while the patient.id from the search results is a number. We need to ensure the comparison
-    // works correctly by coercing the types.
     const selected = patientList.find(p => p.id == Number(patientId));
     setSelectedPatientId(patientId);
 
@@ -247,6 +245,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         consultation_data,
         isDobEstimated: selected.is_dob_estimated || false
       });
+
       toast({
         title: 'Patient Data Loaded',
         description: "The form has been auto-filled with the selected patient's data.",
@@ -362,7 +361,9 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               age: String(age),
               location: location,
               is_dob_estimated: formData.isDobEstimated,
-              referred_by: formData.referred_by // Pass referrer as top-level column
+              referred_by: formData.referred_by,
+              language: formData.language,
+              free_visit_duration_days: location ? getHospitalByName(location)?.settings.free_visit_duration_days : 14
             },
           });
 
@@ -377,45 +378,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               description: data.message,
             });
           } else if (data.status === 'success') {
-            // Calculate visit_type
-            let visitType = 'paid';
-            const patientId = data.consultation.patient_id;
-
-            // Check for previous paid consultations
-            const { data: lastPaidConsultation, error: fetchError } = await supabase
-              .from('consultations')
-              .select('created_at')
-              .eq('patient_id', patientId)
-              .neq('id', data.consultation.id) // Exclude current one
-              .eq('visit_type', 'paid')
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-            if (!fetchError && lastPaidConsultation) {
-              const hospital = location ? getHospitalByName(location) : undefined;
-              const freeDuration = hospital?.settings.free_visit_duration_days || 14;
-
-              const daysSinceLastPaid = differenceInDays(new Date(), new Date(lastPaidConsultation.created_at));
-              if (daysSinceLastPaid <= freeDuration) {
-                visitType = 'free';
-              }
-            }
-
-            // Update visit_type if the calculated one differs from the backend return (e.g. calculated 'free' vs default 'paid')
-            if (visitType !== data.consultation.visit_type) {
-              const { error: updateError } = await supabase
-                .from('consultations')
-                .update({ visit_type: visitType })
-                .eq('id', data.consultation.id);
-
-              if (updateError) {
-                console.error("Error updating consultation data:", updateError);
-              } else {
-                // Reflect the change locally so onSuccess gets the correct value if needed
-                data.consultation.visit_type = visitType;
-              }
-            }
             toast({
               title: 'Patient Registered for Consultation',
               description: `${formData.name} has been successfully registered.`,
@@ -426,7 +388,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             if (onSuccess) {
               // Exclude visit_type from the passed data so it doesn't override the new calculation
               const { visit_type, ...restData } = formData.consultation_data || {};
-              onSuccess(data.consultation, restData);
+              // Prioritize the fetched language, otherwise it might perform default logic in parent
+              onSuccess({ ...data.consultation, language: formData.language || data.consultation.language }, restData);
             }
           } else {
             throw new Error(data.error || 'An unexpected error occurred.');

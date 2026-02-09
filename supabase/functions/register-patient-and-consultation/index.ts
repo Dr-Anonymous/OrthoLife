@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const supabase = createClient(
@@ -7,7 +7,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
-async function generateIncrementalId(supabaseClient) {
+async function generateIncrementalId(supabaseClient: SupabaseClient) {
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -27,13 +27,55 @@ async function generateIncrementalId(supabaseClient) {
   }
 }
 
-serve(async (req) => {
+// Helper to determine visit type based on 14-day rule (or hospital specific)
+async function getVisitType(supabaseClient: SupabaseClient, patientId: string | number, freeVisitDurationDays = 14) {
+  const { data: lastPaidConsultation, error } = await supabaseClient
+    .from('consultations')
+    .select('created_at')
+    .eq('patient_id', patientId)
+    .eq('visit_type', 'paid')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!error && lastPaidConsultation) {
+    const lastDate = new Date(lastPaidConsultation.created_at);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - lastDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // differenceInDays from date-fns is usually more precise but raw JS math is fine for this approximation
+
+    if (diffDays <= freeVisitDurationDays) {
+      return 'free';
+    }
+  }
+  return 'paid';
+}
+
+// Helper to get last used language
+async function getLastLanguage(supabaseClient: SupabaseClient, patientId: string | number) {
+  const { data, error } = await supabaseClient
+    .from('consultations')
+    .select('language')
+    .eq('patient_id', patientId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!error && data?.language) {
+    return data.language;
+  }
+  return null;
+}
+
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { id, name, dob, sex, phone, driveId: existingDriveId, location, is_dob_estimated, referred_by } = await req.json();
+    const { id, name, dob, sex, phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days } = await req.json();
+    const freeDuration = free_visit_duration_days ? Number(free_visit_duration_days) : 14;
 
     // Sanitize phone to last 10 digits
     const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
@@ -129,9 +171,25 @@ serve(async (req) => {
         });
       }
 
+      // Determine fields efficiently by running in parallel
+      const visitTypePromise = getVisitType(supabase, bestMatch.id, freeDuration);
+
+      const languagePromise = language
+        ? Promise.resolve(language)
+        : getLastLanguage(supabase, bestMatch.id);
+
+      const [visitType, finalLanguage] = await Promise.all([visitTypePromise, languagePromise]);
+
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
-        .insert({ patient_id: bestMatch.id, status: 'pending', location: location, visit_type: 'paid', referred_by: referred_by })
+        .insert({
+          patient_id: bestMatch.id,
+          status: 'pending',
+          location: location,
+          visit_type: visitType,
+          referred_by: referred_by,
+          language: finalLanguage
+        })
         .select()
         .single();
 
@@ -165,6 +223,9 @@ serve(async (req) => {
       throw new Error("Patient could not be created.");
     }
 
+    // New patient => First visit => Paid (unless overridden, but logic dictates new patient has no history)
+    // New patient => Language is provided or default (null)
+
     // Create the consultation record for the new patient
     const { data: consultation, error: newConsultationError } = await supabase
       .from('consultations')
@@ -174,7 +235,8 @@ serve(async (req) => {
         visit_type: 'paid',
         consultation_data: {},
         location: location,
-        referred_by: referred_by
+        referred_by: referred_by,
+        language: language
       })
       .select()
       .single();
@@ -192,7 +254,7 @@ serve(async (req) => {
   } catch (error) {
     return new Response(JSON.stringify({
       status: 'error',
-      message: error.message || 'An unexpected error occurred.'
+      message: (error as Error).message || 'An unexpected error occurred.'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

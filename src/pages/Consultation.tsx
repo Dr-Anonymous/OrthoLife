@@ -395,7 +395,7 @@ const ConsultationPage = () => {
   // Timer Effect handled by hook
 
 
-  const fetchConsultations = useCallback(async (date: Date = selectedDate || new Date(), patientId?: string, consultationData?: any) => {
+  const fetchConsultations = useCallback(async (date: Date = selectedDate || new Date(), patientId?: string, consultationData?: any, languageOverride?: string) => {
     // Offline Guard
     if (!isOnline) {
       console.log("Offline mode: Skipping fetchConsultations");
@@ -435,6 +435,9 @@ const ConsultationPage = () => {
             const consultationToSelect = { ...found };
             if (consultationData) {
               consultationToSelect.consultation_data = consultationData;
+            }
+            if (languageOverride) {
+              consultationToSelect.language = languageOverride;
             }
             confirmSelection(consultationToSelect);
           }
@@ -1453,7 +1456,11 @@ const ConsultationPage = () => {
                   visitType={extraData.visit_type}
                   onVisitTypeChange={(t) => handleExtraChange('visit_type', t)}
                   lastVisitDate={lastVisitDate}
-                  onHistoryClick={() => selectedConsultation?.patient.id && handleOpenHistory(String(selectedConsultation.patient.id))}
+                  onHistoryClick={
+                    (lastVisitDate && lastVisitDate !== 'First Consultation')
+                      ? () => selectedConsultation?.patient.id && handleOpenHistory(String(selectedConsultation.patient.id))
+                      : undefined
+                  }
                   onPatientDetailsChange={handlePatientDetailsChange}
                   isPatientDatePickerOpen={isPatientDatePickerOpen}
                   setIsPatientDatePickerOpen={setIsPatientDatePickerOpen}
@@ -1717,10 +1724,11 @@ const ConsultationPage = () => {
                 setIsRegistrationModalOpen(false);
                 if (String(newConsultation.patient_id).startsWith('offline-')) {
                   setAllConsultations(prev => [newConsultation, ...prev]);
-                  setSelectedConsultation(newConsultation);
+                  confirmSelection(newConsultation); // Use confirmSelection to ensure extraData is populated
                   // setPendingSyncIds handled globally by scanning store
                 } else if (selectedDate) {
-                  fetchConsultations(selectedDate, newConsultation.patient_id, consultationData);
+                  // Pass language from newConsultation if available
+                  fetchConsultations(selectedDate, newConsultation.patient_id, consultationData, newConsultation.language);
                 }
               }}
             />
