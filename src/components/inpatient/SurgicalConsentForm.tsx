@@ -396,7 +396,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 const isTelugu = formData.consent_language === 'te';
 
                 const message = isTelugu
-                    ? `నమస్కారం ${patient.patient.name},\nదయచేసి ${formData.procedure_name} కోసం మీ సమ్మతి పత్రాన్ని ఈ లింక్ ద్వారా సమీక్షించి సంతకం చేయండి:\n${link}`
+                    ? `నమస్కారం ${patient.patient.name} గారు,\nదయచేసి ${formData.procedure_name} కోసం మీ సమ్మతి పత్రాన్ని ఈ లింక్ ద్వారా సమీక్షించి సంతకం చేయండి:\n${link}`
                     : `Hello ${patient.patient.name},\nPlease review and sign your consent for ${formData.procedure_name} here:\n${link}`;
 
                 try {
