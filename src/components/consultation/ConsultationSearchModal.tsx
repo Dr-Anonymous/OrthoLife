@@ -27,7 +27,8 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = async () => {
-    if (!name && !phone && !keyword) {
+    const trimmedKeyword = keyword.trim();
+    if (!name && !phone && !trimmedKeyword) {
       setResults([]);
       return;
     }
@@ -36,7 +37,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
 
     setIsLoading(true);
     const { data, error } = await supabase.functions.invoke('search-consultations', {
-      body: { name, phone: sanitizedPhone, keyword },
+      body: { name, phone: sanitizedPhone, keyword: trimmedKeyword },
     });
 
     if (error) {
@@ -65,8 +66,9 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
   };
 
   const highlightKeyword = (text: string) => {
-    if (!keyword || !text) return text;
-    const regex = new RegExp(`(${keyword})`, 'gi');
+    const trimmed = keyword.trim();
+    if (!trimmed || !text) return text;
+    const regex = new RegExp(`(${trimmed})`, 'gi');
     return text.replace(regex, '<strong class="bg-yellow-200">$1</strong>');
   };
 

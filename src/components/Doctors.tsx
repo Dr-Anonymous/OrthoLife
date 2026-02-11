@@ -35,7 +35,7 @@ const doctors: Doctor[] = [
         name: "Dr. Samuel Manoj Cherukuri",
         title: "Orthopedic Surgeon",
         qualifications: "M.S Ortho (Manipal)",
-        bio: "I'm an Orthopaedic surgeon (M.S) trained at the prestigious Kasturba Hospital (KMC), Manipal. I practice orthopaedics in and around the capital city of Kakinada district of Andhra Pradesh, India.",
+        bio: "He is an Orthopaedic surgeon (M.S) trained at the prestigious Kasturba Hospital (KMC), Manipal. He practices orthopaedics in and around the capital city of Kakinada district of Andhra Pradesh, India.",
         image: "/images/doctors/manoj.jpg",
         specialties: [
             { title: "Trauma Care", description: "Fractures of limbs, spine and pelvis" },
@@ -58,7 +58,7 @@ const doctors: Doctor[] = [
         name: "Dr. Shalima Pinnamaneni",
         title: "General Physician",
         qualifications: "MBBS, MD (Internal Medicine)",
-        bio: "I'm a general physician practicing in Kakinada, India. I've been trained at Dr.PSIMS & RF, Andhra. Following that I've worked at AIG, Hyderabad in their IBD team. Currently I'm heading the Internal Medicine department at The Team Hospital, Kakinada.",
+        bio: "She is a general physician practicing in Kakinada, India. She has been trained at Dr.PSIMS & RF, Andhra. Following that she has worked at AIG, Hyderabad in their IBD team. Currently she is heading the Internal Medicine department at The Team Hospital, Kakinada.",
         image: "/images/doctors/shalima.jpg",
         specialties: [
             { title: "General Internal Medicine", description: "Comprehensive care for acute & chronic illnesses (Diabetes, Hypertension)" },
