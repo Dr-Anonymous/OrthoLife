@@ -131,7 +131,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                         <ConsultationCard
                           data={{
                             ...consultation.consultation_data,
-                            referred_by: consultation.referred_by // Inject top-level column
+                            referred_by: consultation.referred_by
                           }}
                           highlightKeyword={highlightKeyword}
                         />

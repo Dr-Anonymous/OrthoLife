@@ -166,6 +166,7 @@ const InPatientManagement = () => {
         referred_by: '',
         referral_amount: '',
         emergency_contact: '',
+        payment_mode: 'Cash',
     });
 
     // Suggestion Navigation State
@@ -235,6 +236,7 @@ const InPatientManagement = () => {
                 referred_by: vars.referred_by || null,
                 referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
                 emergency_contact: vars.emergency_contact || null,
+                payment_mode: vars.payment_mode || 'Cash',
             }]);
             if (error) throw error;
         },
@@ -262,6 +264,7 @@ const InPatientManagement = () => {
                 referred_by: vars.referred_by || null,
                 referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
                 emergency_contact: vars.emergency_contact || null,
+                payment_mode: vars.payment_mode || 'Cash',
             }).eq('id', vars.id);
             if (error) throw error;
         },
@@ -376,6 +379,7 @@ const InPatientManagement = () => {
             referred_by: '',
             referral_amount: '',
             emergency_contact: '',
+            payment_mode: 'Cash',
         });
     };
 
@@ -827,6 +831,23 @@ const InPatientManagement = () => {
                         </div>
 
                         <div className="space-y-2">
+                            <Label>Payment Mode</Label>
+                            <Select
+                                value={admissionData.payment_mode || 'Cash'}
+                                onValueChange={(value) => setAdmissionData({ ...admissionData, payment_mode: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select mode" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Cash">Cash</SelectItem>
+                                    <SelectItem value="Health Insurance">Health Insurance</SelectItem>
+                                    <SelectItem value="Govt Insurance">Govt Insurance</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
                             <Label>Approx Total Bill (₹)</Label>
                             <Input
                                 type="number"
@@ -835,6 +856,7 @@ const InPatientManagement = () => {
                                 onChange={(e) => setAdmissionData({ ...admissionData, total_bill: e.target.value })}
                             />
                         </div>
+
                         <div className="space-y-2">
                             <Label>Consultant Cut (₹)</Label>
                             <Input
@@ -1106,6 +1128,22 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
             </div>
 
             <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 border-t pt-4">
+                <div className="space-y-2">
+                    <Label>Payment Mode</Label>
+                    <Select
+                        value={(data as any).payment_mode || 'Cash'}
+                        onValueChange={(value) => setData({ ...data, payment_mode: value } as any)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Cash">Cash</SelectItem>
+                            <SelectItem value="Health Insurance">Health Insurance</SelectItem>
+                            <SelectItem value="Govt Insurance">Govt Insurance</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
                 <div className="space-y-2">
                     <Label>Total Bill (₹)</Label>
                     <Input type="number" value={data.total_bill} onChange={e => setData({ ...data, total_bill: e.target.value })} />

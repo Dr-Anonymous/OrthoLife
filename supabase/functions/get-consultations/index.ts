@@ -104,9 +104,17 @@ async function fetchConsultations(date?: string, patientId?: string) {
       consultation_data = generateAutofillData(c, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
     }
 
+    // 4. Autofill Referred By if missing (only if we are also autofilling data or it's just missing)
+    // Actually, if it's a new consultation (implied by !c.consultation_data), we should carry over referred_by.
+    let referred_by = c.referred_by;
+    if (!referred_by && !c.consultation_data && lastConsultation && lastConsultation.referred_by) {
+      referred_by = lastConsultation.referred_by;
+    }
+
     return {
       ...c,
       consultation_data,
+      referred_by,
       last_visit_date: lastVisitDateString
     };
   }));
@@ -128,7 +136,7 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
   // 1. Fetch Last Consultation (Any status, meant to capture "Last Visit")
   const { data: lastConsultation } = await supabase
     .from('consultations')
-    .select('consultation_data, created_at')
+    .select('consultation_data, created_at, referred_by')
     .in('patient_id', patientIds) // Use IN instead of EQ
     .lt('created_at', referenceDateIso)
     .order('created_at', { ascending: false })

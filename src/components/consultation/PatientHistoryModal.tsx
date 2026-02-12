@@ -10,6 +10,7 @@ interface PatientHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   patientId: string | null;
+  onSelectConsultation?: (consultation: any) => void;
 }
 
 /**
@@ -21,8 +22,9 @@ interface PatientHistoryModalProps {
  * - Shows Timeline view of consultations.
  * - Integration with `ConsultationCard` for detailed view.
  * - Handles loading and error states.
+ * - Clickable consultations to load into main view
  */
-const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClose, patientId }) => {
+const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClose, patientId, onSelectConsultation }) => {
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -55,6 +57,13 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
     }
   }, [isOpen, patientId]);
 
+  const handleConsultationClick = (item: any) => {
+    if (onSelectConsultation) {
+      onSelectConsultation(item);
+      onClose();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl">
@@ -72,7 +81,11 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
             <div className="relative pl-6">
               <div className="absolute left-3 top-0 h-full w-0.5 bg-border"></div>
               {history.map((item) => (
-                <div key={item.id} className="mb-8 relative">
+                <div
+                  key={item.id}
+                  className={`mb-8 relative ${onSelectConsultation ? 'cursor-pointer hover:bg-muted/30 rounded-lg p-2 transition-colors' : ''}`}
+                  onClick={() => handleConsultationClick(item)}
+                >
                   <div className="absolute -left-5 top-1.5 h-4 w-4 rounded-full bg-primary"></div>
                   <div className="pl-4">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
@@ -97,7 +110,7 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                     </div>
 
                     <div className="p-4 bg-muted/50 rounded-lg">
-                      <ConsultationCard data={item.consultation_data} />
+                      <ConsultationCard data={{ ...item.consultation_data, referred_by: item.referred_by }} />
                     </div>
                   </div>
                 </div>

@@ -28,10 +28,10 @@ async function generateIncrementalId(supabaseClient: SupabaseClient) {
 }
 
 // Helper to determine visit type based on 14-day rule (or hospital specific)
-async function getVisitType(supabaseClient: SupabaseClient, patientId: string | number, freeVisitDurationDays = 14) {
+async function getVisitType(supabaseClient: SupabaseClient, patientId: string | number, currentLocation: string, freeVisitDurationDays = 14) {
   const { data: lastPaidConsultation, error } = await supabaseClient
     .from('consultations')
-    .select('created_at')
+    .select('created_at, location')
     .eq('patient_id', patientId)
     .eq('visit_type', 'paid')
     .order('created_at', { ascending: false })
@@ -39,13 +39,29 @@ async function getVisitType(supabaseClient: SupabaseClient, patientId: string | 
     .maybeSingle();
 
   if (!error && lastPaidConsultation) {
+    // Rule 1: Different location = Paid
+    if (currentLocation && lastPaidConsultation.location && lastPaidConsultation.location !== currentLocation) {
+      return 'paid';
+    }
+
     const lastDate = new Date(lastPaidConsultation.created_at);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - lastDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    // differenceInDays from date-fns is usually more precise but raw JS math is fine for this approximation
 
     if (diffDays <= freeVisitDurationDays) {
+      // Rule 2: Only 1 free visit allowed within the window
+      const { count, error: countError } = await supabaseClient
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .eq('patient_id', patientId)
+        .eq('visit_type', 'free')
+        .gt('created_at', lastPaidConsultation.created_at);
+
+      if (!countError && count !== null && count >= 1) {
+        return 'paid';
+      }
+
       return 'free';
     }
   }
@@ -172,7 +188,7 @@ serve(async (req: Request) => {
       }
 
       // Determine fields efficiently by running in parallel
-      const visitTypePromise = getVisitType(supabase, bestMatch.id, freeDuration);
+      const visitTypePromise = getVisitType(supabase, bestMatch.id, location, freeDuration);
 
       const languagePromise = language
         ? Promise.resolve(language)

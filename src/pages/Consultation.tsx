@@ -73,6 +73,8 @@ const ConsultationPage = () => {
       week_plural: "weeks",
       month: "month",
       month_plural: "months",
+      year: "year",
+      year_plural: "years",
       followup_message_structure: "after {{count}} {{unit}}, or immediately if symptoms worsen."
     },
     te: {
@@ -82,6 +84,8 @@ const ConsultationPage = () => {
       week_plural: "వారాల తర్వాత",
       month: "నెల తర్వాత",
       month_plural: "నెలల తర్వాత",
+      year: "సంవత్సరం తర్వాత",
+      year_plural: "సంవత్సరాల తర్వాత",
       followup_message_structure: "{{count}} {{unit}} / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే."
     }
   };
@@ -309,6 +313,14 @@ const ConsultationPage = () => {
 
   // Timer Stop Logic handled by hook
 
+  /**
+   * Loads a selected consultation into the editing state.
+   * 
+   * - Hydrates form fields (`extraData`) from `consultation_data`.
+   * - Sets initial comparison point for `hasChanges`.
+   * - Handles backward compatibility for fields like `referred_to_list`.
+   * - Sets `lastVisitDate` for display.
+   */
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     patientSelectionCounter.current += 1;
     setSelectedConsultation(consultation);
@@ -395,6 +407,14 @@ const ConsultationPage = () => {
   // Timer Effect handled by hook
 
 
+  /**
+   * Fetches the list of consultations for a given date and optionally selects a specific one.
+   * 
+   * @param date - The date to fetch consultations for. Defaults to `selectedDate`.
+   * @param patientId - (Optional) If provided, finds and selects the consultation for this patient on the given date.
+   * @param consultationData - (Optional) Consultation data to hydrate if selecting a specific consultation (e.g., from search/history).
+   * @param languageOverride - (Optional) Force a specific language for the consultation.
+   */
   const fetchConsultations = useCallback(async (date: Date = selectedDate || new Date(), patientId?: string, consultationData?: any, languageOverride?: string) => {
     // Offline Guard
     if (!isOnline) {
@@ -430,7 +450,7 @@ const ConsultationPage = () => {
         setAllConsultations(list);
 
         if (patientId) {
-          const found = list.find((c: Consultation) => c.patient.id === patientId && c.created_at.startsWith(formattedDate));
+          const found = list.find((c: Consultation) => String(c.patient.id) === String(patientId) && c.created_at.startsWith(formattedDate));
           if (found) {
             const consultationToSelect = { ...found };
             if (consultationData) {
@@ -570,6 +590,21 @@ const ConsultationPage = () => {
     return patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
   }, [selectedConsultation, editablePatientDetails, initialPatientDetails, extraData, initialExtraData, selectedHospital, initialLocation, consultationLanguage, initialLanguage]);
 
+  /**
+   * Persists changes to the current consultation.
+   * 
+   * Handles:
+   * - Determining if changes exist (`hasChanges`).
+   * - Cleaning and preparing data for Supabase/Offline Store.
+   * - Handling offline persistence via `offlineStore`.
+   * - Updating patient demographics if changed.
+   * - Updating consultation status and stopping timer on completion.
+   * - Sending completion notifications (WhatsApp) if enabled.
+   * - Triggering auto-refresh of consultation list.
+   * 
+   * @param options.markAsCompleted - If true, attempts to mark status as 'completed' (or 'under_evaluation' if incomplete).
+   * @param options.skipToast - If true, suppresses success toasts (e.g., for auto-saves).
+   */
   const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
 
@@ -775,18 +810,14 @@ const ConsultationPage = () => {
       );
       setAllConsultations(updatedAllConsultations);
 
-      setAllConsultations(updatedAllConsultations);
-
       // Auto-Refresh Logic: Trigger background refresh every 5 completions
       if (statusChanged && newStatus === 'completed') {
-        setCompletedCount(prev => {
-          const newCount = prev + 1;
-          if (newCount > 0 && newCount % 5 === 0) {
-            console.log(`Auto-refreshing list (Completion #${newCount})`);
-            fetchConsultations().catch(console.error);
-          }
-          return newCount;
-        });
+        const nextCount = completedCount + 1;
+        setCompletedCount(nextCount);
+        if (nextCount > 0 && nextCount % 5 === 0) {
+          console.log(`Auto-refreshing list (Completion #${nextCount})`);
+          fetchConsultations().catch(console.error);
+        }
       }
 
       return true;
@@ -969,10 +1000,16 @@ const ConsultationPage = () => {
 
   /**
    * Handles changes to "Extra Data" fields (Complaints, Findings, etc.).
-   * Includes logic for:
-   * - Text Shortcut Expansion (triggers replacement)
-   * - Special "followup" shortcuts (e.g., "3d.", "2w.")
-   * - Cursor position management after expansion
+   * 
+   * Features:
+   * - Text Shortcut Expansion: Replaces triggers like `//` with expansion content.
+   * - Complaints Shortcuts: Expands `2w.` -> "2 weeks".
+   * - Follow-up Shortcuts: Expands `2w.` -> "after 2 weeks...".
+   * - Cursor Management: Restore cursor position after text replacement.
+   * 
+   * @param field - The field name in `extraData`.
+   * @param value - The new value (usually string).
+   * @param cursorPosition - The current cursor position (if applicable) for managing caret placement.
    */
   const handleExtraChange = useCallback((field: string, value: any, cursorPosition?: number | null) => {
     if (field === 'complaints' && typeof value === 'string' && value.includes('//')) {
@@ -984,6 +1021,42 @@ const ConsultationPage = () => {
     if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to')) {
       let processedValue = value;
       let newCursor = cursorPosition || value.length;
+
+      // Special Duration Shortcuts for Complaints
+      if (field === 'complaints') {
+        const durationRegex = /(\d+)([dwm])\./i;
+        const match = value.match(durationRegex);
+        if (match) {
+          const shortcut = match[0];
+          const count = parseInt(match[1], 10);
+          const unitChar = match[2].toLowerCase();
+          let unitText = '';
+
+          switch (unitChar) {
+            case 'd': unitText = count === 1 ? 'day' : 'days'; break;
+            case 'w': unitText = count === 1 ? 'week' : 'weeks'; break;
+            case 'm': unitText = count === 1 ? 'month' : 'months'; break;
+            case 'y': unitText = count === 1 ? 'year' : 'years'; break;
+          }
+
+          if (unitText) {
+            const expandedText = `${count} ${unitText}`;
+            const shortcutIndex = value.indexOf(shortcut);
+            if (shortcutIndex !== -1) {
+              processedValue = value.replace(shortcut, expandedText);
+              newCursor = shortcutIndex + expandedText.length;
+
+              setExtraData(prev => ({ ...prev, [field]: processedValue }));
+              setTimeout(() => {
+                if (complaintsRef.current) {
+                  complaintsRef.current.setSelectionRange(newCursor, newCursor);
+                }
+              }, 0);
+              return;
+            }
+          }
+        }
+      }
 
       // Special Followup Shortcuts (Restored)
       if (field === 'followup') {
@@ -998,6 +1071,7 @@ const ConsultationPage = () => {
             case 'd': unitKey = count === 1 ? 'day' : 'day_plural'; break;
             case 'w': unitKey = count === 1 ? 'week' : 'week_plural'; break;
             case 'm': unitKey = count === 1 ? 'month' : 'month_plural'; break;
+            case 'y': unitKey = count === 1 ? 'year' : 'year_plural'; break;
           }
           if (unitKey) {
             const unitText = t(unitKey, { lng: consultationLanguage });
@@ -1374,25 +1448,7 @@ const ConsultationPage = () => {
     }
   };
 
-  const deleteConsultation = useCallback(async (e: React.MouseEvent, c: Consultation) => {
-    e.stopPropagation();
-    setPendingSelection(c);
-    setIsDeleteModalOpen(true);
-    setIsOnlyConsultation(false); // Reset first
 
-    try {
-      const { count, error } = await supabase
-        .from('consultations')
-        .select('*', { count: 'exact', head: true })
-        .eq('patient_id', c.patient.id);
-
-      if (!error && count !== null) {
-        setIsOnlyConsultation(count === 1);
-      }
-    } catch (err) {
-      console.error("Error checking consultation count:", err);
-    }
-  }, []);
 
   if (isHospitalsLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>;
@@ -1649,6 +1705,14 @@ const ConsultationPage = () => {
           setHistoryPatientId(null);
         }}
         patientId={historyPatientId}
+        onSelectConsultation={(consultation) => {
+          const consultationDate = new Date(consultation.created_at);
+          setSelectedDate(consultationDate);
+          // Pass consultation_data explicitly if needed or rely on fetch
+          fetchConsultations(consultationDate, consultation.patient.id, consultation.consultation_data);
+          setIsHistoryModalOpen(false);
+          setHistoryPatientId(null);
+        }}
       />
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
