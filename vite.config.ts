@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
 
-    vitePrerender({
+    process.env.CI ? vitePrerender({
       staticDir: path.join(__dirname, 'dist'),
       routes: [...staticRoutes, ...discoveredRoutes],
       postProcess(renderedRoute: any) {
@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => ({
 
         return renderedRoute;
       },
-    }),
+    }) : null,
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'favicon/apple-touch-icon.png', 'favicon/favicon-32x32.png', 'favicon/favicon-16x16.png'],

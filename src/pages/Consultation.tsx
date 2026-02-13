@@ -1023,8 +1023,8 @@ const ConsultationPage = () => {
       let newCursor = cursorPosition || value.length;
 
       // Special Duration Shortcuts for Complaints
-      if (field === 'complaints') {
-        const durationRegex = /(\d+)([dwm])\./i;
+      if (field === 'complaints' || field === 'advice') {
+        const durationRegex = /(\d+)([dwmy])\./i;
         const match = value.match(durationRegex);
         if (match) {
           const shortcut = match[0];
@@ -1055,12 +1055,66 @@ const ConsultationPage = () => {
               return;
             }
           }
+        } else {
+          // Unit-only shortcuts (e.g. "y." -> "years")
+          // Must be preceded by space or start of string to avoid false positives (e.g. inside words)
+          const unitOnlyRegex = /(?:^|\s)([dwmy])\./i;
+          const unitMatch = value.match(unitOnlyRegex);
+
+          if (unitMatch) {
+            const fullShortcut = unitMatch[0]; // Includes preceding space if matched
+            // If matched with space, unit char is group 1. If start of string (empty group 1 from `(?:^|\s)`?), actually group 1 is capturing.
+            // `(?:^|\s)` is non-capturing group for OR logic but we want to capture it? No, `(?:...)` is non-capturing.
+            // Wait, previous thought process: `/(^|\s)([dwmy])\./` captures group 1
+            // Here I used `/(?:^|\s)([dwmy])\./`.
+            // So group 1 is the unit char.
+            // But fullShortcut ensures we replace correctly (including space if present).
+
+            const unitChar = unitMatch[1].toLowerCase();
+            let unitText = '';
+
+            switch (unitChar) {
+              case 'd': unitText = 'days'; break;
+              case 'w': unitText = 'weeks'; break;
+              case 'm': unitText = 'months'; break;
+              case 'y': unitText = 'years'; break;
+            }
+
+            if (unitText) {
+              // If fullShortcut was " y.", we want to replace " y." with " years".
+              // If fullShortcut was "y.", we want to replace "y." with "years".
+              // Logic: fullShortcut contains the space if it existed.
+              // But we want to REPLACE the unit with word, keeping the space.
+              // " y." -> " years"
+              // "y." -> "years"
+
+              // We can just construct replacement string based on fullShortcut.
+              // If fullShortcut starts with space, use space + unitText.
+              // Else use unitText.
+              const prefix = fullShortcut.match(/^\s/) ? ' ' : '';
+              const expandedText = `${prefix}${unitText}`;
+
+              const shortcutIndex = value.indexOf(fullShortcut);
+              if (shortcutIndex !== -1) {
+                processedValue = value.replace(fullShortcut, expandedText);
+                newCursor = shortcutIndex + expandedText.length;
+
+                setExtraData(prev => ({ ...prev, [field]: processedValue }));
+                setTimeout(() => {
+                  if (complaintsRef.current) {
+                    complaintsRef.current.setSelectionRange(newCursor, newCursor);
+                  }
+                }, 0);
+                return;
+              }
+            }
+          }
         }
       }
 
       // Special Followup Shortcuts (Restored)
       if (field === 'followup') {
-        const shortcutRegex = /(\d+)([dwm])\./i;
+        const shortcutRegex = /(\d+)([dwmy])\./i;
         const match = value.match(shortcutRegex);
         if (match) {
           const shortcut = match[0];
