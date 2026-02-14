@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Patient } from '@/types/consultation';
 import { format } from 'date-fns';
 import { calculateAge } from '@/lib/age';
+import { sanitizePhoneNumber } from '@/lib/phone-utils';
 
 interface PatientEditModalProps {
     patient: Patient | null;
@@ -87,11 +88,11 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                 .from('patients')
                 .update({
                     name: formData.name,
-                    phone: formData.phone,
+                    phone: sanitizePhoneNumber(formData.phone),
                     dob: formData.dob,
                     sex: formData.sex,
                     is_dob_estimated: formData.is_dob_estimated,
-                    secondary_phone: formData.secondary_phone,
+                    secondary_phone: formData.secondary_phone ? sanitizePhoneNumber(formData.secondary_phone) : null,
                 })
                 .eq('id', patient.id);
 

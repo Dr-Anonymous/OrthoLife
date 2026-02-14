@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { User, MapPin, Loader2 } from 'lucide-react';
+import { isValidPhoneNumber } from '@/lib/phone-utils';
 
 interface PatientDetailsFormProps {
   patientData: {
@@ -34,7 +35,7 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
     try {
       await onSubmit();
@@ -44,8 +45,8 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
       setIsSubmitting(false);
     }
   };
-  
-  const isFormValid = patientData.name.trim() && patientData.phone.trim() && patientData.address.trim();
+
+  const isFormValid = patientData.name.trim() && patientData.phone.trim() && isValidPhoneNumber(patientData.phone) && patientData.address.trim();
 
   return (
     <Card>
@@ -99,16 +100,16 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
           </div>
         </div>
         <div className="flex gap-3 pt-4">
-          <Button 
-            variant="outline" 
-            onClick={onBack} 
+          <Button
+            variant="outline"
+            onClick={onBack}
             className="flex-1"
             disabled={isSubmitting}
           >
             Back
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={!isFormValid || isSubmitting}
             className="flex-1"
           >

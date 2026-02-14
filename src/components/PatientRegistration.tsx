@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { User, Mail, Phone, MapPin, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { sanitizePhoneNumber, isValidPhoneNumber } from '@/lib/phone-utils';
 
 interface PatientData {
   name: string;
@@ -58,18 +59,17 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
     const newErrors: Partial<Record<keyof PatientData, string>> = {};
 
     if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-    //if (!formData.address.trim()) newErrors.address = 'Address is required';
-
-    if (formData.phone && !/^\d{10,12}$/.test(formData.phone.replace(/\D/g, ''))) {
+    if (!formData.phone.trim() || !isValidPhoneNumber(formData.phone)) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     } else {
-      if (formData.phone.startsWith('91') && formData.phone.length === 12) {
-        formData.phone = formData.phone.slice(2);
-      }
-      if (formData.phone.startsWith('0') && formData.phone.length === 11) {
-        formData.phone = formData.phone.slice(1);
-      }
+      formData.phone = sanitizePhoneNumber(formData.phone);
+    }
+
+    if (formData.secondary_phone && !isValidPhoneNumber(formData.secondary_phone)) {
+      // Optional, but if provided should be valid
+      // Note: we might want a separate error field for secondary_phone if needed
+    } else if (formData.secondary_phone) {
+      formData.secondary_phone = sanitizePhoneNumber(formData.secondary_phone);
     }
 
     if (formData.dateOfBirth && formData.dateOfBirth > new Date()) {

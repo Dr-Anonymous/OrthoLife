@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ShoppingCart, Pill, Plus, Minus, RefreshCw, CalendarClock, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePhoneNumber } from '@/lib/phone-utils';
 
 interface SizeVariant {
   size: string;
@@ -388,7 +389,7 @@ const PharmacyPage = () => {
   };
 
   const getCartTotal = () => {
-    return Object.entries(cart).reduce((total, [cartKey, quantity]) => {
+    const total = Object.entries(cart).reduce((total, [cartKey, quantity]) => {
       const cartKeyParts = cartKey.split('_');
       const medicineId = cartKeyParts[0];
       const medicine = medicines.find(m => m.id === medicineId);
@@ -536,6 +537,7 @@ const PharmacyPage = () => {
       }).filter(Boolean);
 
       const total = getCartTotal();
+      const sanitizedPhone = sanitizePhoneNumber(patientData.phone);
 
       trackEvent({
         eventType: "purchase",
@@ -555,9 +557,13 @@ const PharmacyPage = () => {
           items,
           totalAmount: total,
           subscription: autoReorder ? { frequency: `${reorderFrequencyCount}-${reorderFrequencyUnit}` } : null,
-          patientData: patientData
+          patientData: {
+            ...patientData,
+            phone: sanitizedPhone
+          }
         }
       });
+
 
       if (error) {
         console.error('Error sending email:', error);

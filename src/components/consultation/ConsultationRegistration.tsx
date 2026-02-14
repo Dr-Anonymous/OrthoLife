@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { useHospitals } from '@/context/HospitalsContext';
+import { sanitizePhoneNumber, isValidPhoneNumber } from '@/lib/phone-utils';
 
 interface Patient {
   id: number;
@@ -128,7 +129,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.dob) newErrors.dob = 'Date of birth is required';
     if (formData.dob && formData.dob > new Date()) newErrors.dob = 'Date of birth cannot be in the future';
-    if (!formData.phone || !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) newErrors.phone = 'A valid 10-digit phone number is required';
+    if (!formData.phone || !isValidPhoneNumber(formData.phone)) newErrors.phone = 'A valid 10-digit phone number is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -144,7 +145,11 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   };
 
   const handleSearch = async (searchType: 'name' | 'phone') => {
-    const searchTerm = searchType === 'name' ? formData.name : formData.phone;
+    let searchTerm = searchType === 'name' ? formData.name : formData.phone;
+
+    if (searchType === 'phone') {
+      searchTerm = sanitizePhoneNumber(searchTerm);
+    }
     if (!searchTerm.trim()) {
       toast({
         title: 'Search term required',
@@ -305,7 +310,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           name: formData.name,
           dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
           sex: formData.sex,
-          phone: formData.phone,
+          phone: sanitizePhoneNumber(formData.phone),
+          secondary_phone: formData.secondary_phone ? sanitizePhoneNumber(formData.secondary_phone) : null,
           drive_id: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -356,7 +362,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               name: formData.name,
               dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
               sex: formData.sex,
-              phone: formData.phone,
+              phone: sanitizePhoneNumber(formData.phone),
+              secondary_phone: formData.secondary_phone ? sanitizePhoneNumber(formData.secondary_phone) : null,
               driveId: formData.driveId,
               age: String(age),
               location: location,

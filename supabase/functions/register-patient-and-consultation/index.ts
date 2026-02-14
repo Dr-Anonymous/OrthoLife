@@ -1,12 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import { corsHeaders } from '../_shared/cors.ts';
+import { sanitizePhoneNumber } from "../_shared/phone-utils.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
-
 async function generateIncrementalId(supabaseClient: SupabaseClient) {
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -94,7 +94,7 @@ serve(async (req: Request) => {
     const freeDuration = free_visit_duration_days ? Number(free_visit_duration_days) : 14;
 
     // Sanitize phone to last 10 digits
-    const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
+    const sanitizedPhone = sanitizePhoneNumber(phone);
 
     // Check for existing patients with the same phone number
     const { data: existingPatients, error: patientError } = await supabase

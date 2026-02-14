@@ -23,6 +23,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.4';
 import { corsHeaders } from '../_shared/cors.ts';
 import { searchPhoneNumberInDrive } from "../_shared/google-drive.ts";
+import { sanitizePhoneNumber } from "../_shared/phone-utils.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -69,7 +70,7 @@ serve(async (req) => {
       let query = supabase.from('patients').select('*');
       // searchType === 'phone'
       // Sanitize phone number to the last 10 digits for consistent searching.
-      const sanitizedPhone = searchTerm.slice(-10);
+      const sanitizedPhone = sanitizePhoneNumber(searchTerm);
       // Search both phone and secondary_phone using OR syntax
       query = query.or(`phone.ilike.%${sanitizedPhone}%,secondary_phone.ilike.%${sanitizedPhone}%`);
 
