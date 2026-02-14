@@ -112,6 +112,12 @@ const ConsultationPage = () => {
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
   const [initialExtraData, setInitialExtraData] = useState<any>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selectedHospital') || '';
+    }
+    return '';
+  });
   const [initialLocation, setInitialLocation] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('selectedHospital') || '';
@@ -186,6 +192,11 @@ const ConsultationPage = () => {
     setIsCompletionModalOpen(true);
   };
 
+  useEffect(() => {
+    setCompletionMessage('');
+    setIsMessageManuallyEdited(false);
+  }, [selectedConsultation?.id]);
+
   // UI State
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -197,8 +208,8 @@ const ConsultationPage = () => {
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
     if (hospitals.length === 0) return { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14 } };
-    return hospitals.find(h => h.name === initialLocation) || hospitals[0];
-  }, [hospitals, initialLocation]);
+    return hospitals.find(h => h.name === selectedLocation) || hospitals[0];
+  }, [hospitals, selectedLocation]);
 
   const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
     const stored = localStorage.getItem('isGpsEnabled');
@@ -333,9 +344,25 @@ const ConsultationPage = () => {
     if (consultation.patient.dob) {
       setAge(calculateAge(new Date(consultation.patient.dob)));
       setCalendarDate(new Date(consultation.patient.dob));
+    } else {
+      setAge('');
+      setCalendarDate(new Date());
     }
 
     const savedData = consultation.consultation_data || {};
+    const loadedMedications = (() => {
+      if (Array.isArray(savedData.medications)) return savedData.medications;
+      if (typeof savedData.medications === 'string') {
+        try {
+          const parsed = JSON.parse(savedData.medications);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          console.warn('Invalid medications payload in consultation data:', error);
+          return [];
+        }
+      }
+      return [];
+    })();
     // Handle Referred To List Backward Compatibility
     let loadedReferredToList = savedData.referred_to_list || [];
     if ((!loadedReferredToList || loadedReferredToList.length === 0) && savedData.referred_to) {
@@ -349,7 +376,7 @@ const ConsultationPage = () => {
       diagnosis: savedData.diagnosis || '',
       advice: savedData.advice || '',
       followup: savedData.followup || '',
-      medications: typeof savedData.medications === 'string' ? JSON.parse(savedData.medications) : (savedData.medications || []),
+      medications: loadedMedications,
       weight: savedData.weight || '',
       bp: savedData.bp || '',
       temperature: savedData.temperature || '',
@@ -369,7 +396,9 @@ const ConsultationPage = () => {
     };
     setExtraData(newExtraData as any);
     setInitialExtraData(newExtraData);
-    setInitialLocation(consultation.location || (hospitals.length > 0 ? hospitals[0].name : '')); // Use hospitals[0] or empty string
+    const consultationLocation = consultation.location || (hospitals.length > 0 ? hospitals[0].name : '');
+    setSelectedLocation(consultationLocation);
+    setInitialLocation(consultationLocation);
     const lang = consultation.language || 'te';
     setInitialLanguage(lang);
     setConsultationLanguage(lang);
@@ -506,7 +535,7 @@ const ConsultationPage = () => {
           });
 
           if (closest.name !== selectedHospital.name) {
-            setInitialLocation(closest.name); // Update initialLocation to trigger selectedHospital re-evaluation
+            setSelectedLocation(closest.name);
             toast({
               title: "Location Updated",
               description: `Switched to ${closest.name} based on your location.`,
@@ -886,7 +915,11 @@ const ConsultationPage = () => {
 
   const handleConfirmSave = async () => {
     setIsUnsavedModalOpen(false);
-    await saveChanges();
+    const saved = await saveChanges();
+    if (!saved) {
+      setIsUnsavedModalOpen(true);
+      return;
+    }
     if (pendingSelection) confirmSelection(pendingSelection);
     setPendingSelection(null);
   };
@@ -1048,8 +1081,9 @@ const ConsultationPage = () => {
 
               setExtraData(prev => ({ ...prev, [field]: processedValue }));
               setTimeout(() => {
-                if (complaintsRef.current) {
-                  complaintsRef.current.setSelectionRange(newCursor, newCursor);
+                const targetRef = field === 'advice' ? adviceRef : complaintsRef;
+                if (targetRef.current) {
+                  targetRef.current.setSelectionRange(newCursor, newCursor);
                 }
               }, 0);
               return;
@@ -1101,8 +1135,9 @@ const ConsultationPage = () => {
 
                 setExtraData(prev => ({ ...prev, [field]: processedValue }));
                 setTimeout(() => {
-                  if (complaintsRef.current) {
-                    complaintsRef.current.setSelectionRange(newCursor, newCursor);
+                  const targetRef = field === 'advice' ? adviceRef : complaintsRef;
+                  if (targetRef.current) {
+                    targetRef.current.setSelectionRange(newCursor, newCursor);
                   }
                 }, 0);
                 return;
@@ -1362,6 +1397,7 @@ const ConsultationPage = () => {
     setPendingSelection(c);
     setIsDeleteModalOpen(true);
     setIsOnlyConsultation(false); // Reset first
+    setDeletePatientAlso(false);
 
     try {
       const { count, error } = await supabase
@@ -1400,6 +1436,9 @@ const ConsultationPage = () => {
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error", description: "Failed to delete." });
+    } finally {
+      setDeletePatientAlso(false);
+      setPendingSelection(null);
     }
   };
 
@@ -1497,7 +1536,7 @@ const ConsultationPage = () => {
   const handleLocationChange = (name: string) => {
     const h = hospitals.find(x => x.name === name);
     if (h) {
-      setInitialLocation(h.name); // Update initialLocation
+      setSelectedLocation(h.name);
       setIsGpsEnabled(false);
     }
   };
@@ -1514,13 +1553,7 @@ const ConsultationPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <ConsultationSidebar
             selectedHospitalName={selectedHospital.name}
-            onHospitalSelect={(name) => {
-              const h = hospitals.find(x => x.name === name);
-              if (h) {
-                setInitialLocation(h.name);
-                setIsGpsEnabled(false);
-              }
-            }}
+            onHospitalSelect={handleLocationChange}
             isGpsEnabled={isGpsEnabled}
             onToggleGps={() => setIsGpsEnabled(!isGpsEnabled)}
             selectedDate={selectedDate || new Date()}
@@ -1768,7 +1801,16 @@ const ConsultationPage = () => {
           setHistoryPatientId(null);
         }}
       />
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+      <Dialog
+        open={isDeleteModalOpen}
+        onOpenChange={(open) => {
+          setIsDeleteModalOpen(open);
+          if (!open) {
+            setDeletePatientAlso(false);
+            setPendingSelection(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-lg">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>

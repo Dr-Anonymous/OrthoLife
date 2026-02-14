@@ -70,9 +70,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
     const [showSecondaryPhone, setShowSecondaryPhone] = React.useState(false);
 
     React.useEffect(() => {
-        if (patient.secondary_phone) {
-            setShowSecondaryPhone(true);
-        }
+        setShowSecondaryPhone(Boolean(patient.secondary_phone));
     }, [patient.secondary_phone]);
 
     return (

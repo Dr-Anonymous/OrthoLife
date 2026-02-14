@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, differenceInDays, startOfDay } from 'date-fns';
+import { format, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 import {
     Users,
     UserPlus,
@@ -83,6 +83,9 @@ interface AutofillProtocol {
 
 const InPatientManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [dischargeDateStart, setDischargeDateStart] = useState<string>('');
+    const [dischargeDateEnd, setDischargeDateEnd] = useState<string>('');
+    const [paymentFilter, setPaymentFilter] = useState<string>('all');
     const { i18n } = useTranslation();
 
     // Refs
@@ -616,6 +619,39 @@ const InPatientManagement = () => {
     const admittedPatients = filteredPatients.filter(p => p.status === 'admitted');
     const dischargedPatients = filteredPatients.filter(p => p.status === 'discharged');
 
+    const filteredDischargedPatients = useMemo(() => {
+        let result = [...dischargedPatients];
+
+        // Sort by discharge date desc (most recent first)
+        result.sort((a, b) => {
+            const dateA = new Date(a.discharge_date || 0).getTime();
+            const dateB = new Date(b.discharge_date || 0).getTime();
+            return dateB - dateA;
+        });
+
+        if (dischargeDateStart) {
+            const start = startOfDay(new Date(dischargeDateStart));
+            result = result.filter(p => {
+                if (!p.discharge_date) return false;
+                return new Date(p.discharge_date) >= start;
+            });
+        }
+
+        if (dischargeDateEnd) {
+            const end = endOfDay(new Date(dischargeDateEnd));
+            result = result.filter(p => {
+                if (!p.discharge_date) return false;
+                return new Date(p.discharge_date) <= end;
+            });
+        }
+
+        if (paymentFilter && paymentFilter !== 'all') {
+            result = result.filter(p => p.payment_mode === paymentFilter);
+        }
+
+        return result;
+    }, [dischargedPatients, dischargeDateStart, dischargeDateEnd, paymentFilter]);
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-12 h-[60vh]">
@@ -689,8 +725,50 @@ const InPatientManagement = () => {
                 </TabsContent>
 
                 <TabsContent value="discharged">
+                    <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-muted/40 rounded-lg border items-end">
+                        <div className="space-y-2 flex-1 w-full">
+                            <Label>From Date</Label>
+                            <Input
+                                type="date"
+                                value={dischargeDateStart}
+                                onChange={(e) => setDischargeDateStart(e.target.value)}
+                                className="bg-background"
+                            />
+                        </div>
+                        <div className="space-y-2 flex-1 w-full">
+                            <Label>To Date</Label>
+                            <Input
+                                type="date"
+                                value={dischargeDateEnd}
+                                onChange={(e) => setDischargeDateEnd(e.target.value)}
+                                className="bg-background"
+                            />
+                        </div>
+                        <div className="space-y-2 flex-1 w-full min-w-[200px]">
+                            <Label>Payment Mode</Label>
+                            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                                <SelectTrigger className="bg-background">
+                                    <SelectValue placeholder="Filter by Payment" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Modes</SelectItem>
+                                    <SelectItem value="Cash">Cash</SelectItem>
+                                    <SelectItem value="Health Insurance">Health Insurance</SelectItem>
+                                    <SelectItem value="Govt Insurance">Govt Insurance</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button
+                            variant="secondary"
+                            onClick={() => { setDischargeDateStart(''); setDischargeDateEnd(''); setPaymentFilter('all'); }}
+                            className="mb-0.5 w-full md:w-auto"
+                        >
+                            Reset Filters
+                        </Button>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {dischargedPatients.length > 0 ? dischargedPatients.map(p => (
+                        {filteredDischargedPatients.length > 0 ? filteredDischargedPatients.map(p => (
                             <InPatientCard
                                 key={p.id}
                                 patient={p}
@@ -698,10 +776,10 @@ const InPatientManagement = () => {
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
                                 onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary, p.discharge_date || undefined)}
-                                onConsents={() => openConsentModal(p)} // Added Consents support
+                                onConsents={() => openConsentModal(p)}
                             />
                         )) : (
-                            <EmptyState icon={History} message="No discharge history found" />
+                            <EmptyState icon={History} message="No discharge history found for the selected period" />
                         )}
                     </div>
                 </TabsContent>
@@ -1914,6 +1992,16 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                     {patient.room_number && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                             <BedDouble className="w-3 h-3" /> {patient.room_number}
+                        </Badge>
+                    )}
+                    {patient.payment_mode && (
+                        <Badge variant="outline" className={cn(
+                            "flex items-center gap-1",
+                            patient.payment_mode === 'Cash' ? "bg-green-50 text-green-700 border-green-200" :
+                                patient.payment_mode === 'Health Insurance' ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                    "bg-orange-50 text-orange-700 border-orange-200"
+                        )}>
+                            <span className="text-[10px]">{patient.payment_mode}</span>
                         </Badge>
                     )}
                 </div>

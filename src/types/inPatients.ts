@@ -48,6 +48,11 @@ export interface InPatient {
     emergency_contact?: string;
     discharge_summary?: DischargeSummary | null;
     language?: string | null;
+    payment_mode?: string;
+    total_bill?: number;
+    consultant_cut?: number;
+    referred_by?: string;
+    referral_amount?: number;
     patient: {
         name: string;
         phone: string;
