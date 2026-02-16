@@ -41,6 +41,15 @@ export function cleanConsultationData(data: any): any {
     notes: removeBracketedText(med.notes),
   });
 
+  const referredToList = data.referred_to_list && Array.isArray(data.referred_to_list)
+    ? data.referred_to_list.map((s: string) => removeBracketedText(s)).filter((s: string) => s && s.trim().length > 0)
+    : [];
+
+  // Use the list to populate the string if the list has content, otherwise use the existing string (cleaned)
+  const referredToString = referredToList.length > 0
+    ? referredToList.map((s: string) => `• ${s}`).join('\n')
+    : removeBracketedText(data.referred_to);
+
   return {
     ...data,
     complaints: removeBracketedText(data.complaints),
@@ -49,9 +58,11 @@ export function cleanConsultationData(data: any): any {
     diagnosis: removeBracketedText(data.diagnosis),
     advice: removeBracketedText(data.advice),
     followup: removeBracketedText(data.followup),
-    medications: data.medications?.map(cleanMedication) || [],
+    medications: (data.medications?.map(cleanMedication) || []).filter((m: any) => m.name && m.name.trim().length > 0),
     procedure: removeBracketedText(data.procedure),
-    referred_to: removeBracketedText(data.referred_to),
+    referred_to: referredToString,
+    // maintain the list in cleaned data too, though print might not use it directly yet
+    referred_to_list: referredToList,
     weight: removeBracketedText(data.weight),
     bp: removeBracketedText(data.bp),
     temperature: removeBracketedText(data.temperature),

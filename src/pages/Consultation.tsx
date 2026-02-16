@@ -605,9 +605,15 @@ const ConsultationPage = () => {
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
 
     // Prune empty strings before comparing extraData to avoid false positives on initialized fields
-    // Actually, JSON.stringify is fine if we assume structure matches. 
-    // To be closer to previous logic:
-    const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
+    // Filter out empty medications before comparison
+    const pruneMeds = (data: any) => {
+      if (!data) return data;
+      const { medications, ...rest } = data;
+      const validMeds = (medications || []).filter((m: any) => m.name && m.name.trim().length > 0);
+      return { ...rest, medications: validMeds };
+    };
+
+    const extraDataChanged = JSON.stringify(pruneMeds(extraData)) !== JSON.stringify(pruneMeds(initialExtraData));
 
     // Check Status Change (if manually changed? mostly status is derived or set on print)
     // Actually status is usually changed by printing. 

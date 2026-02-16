@@ -28,6 +28,7 @@ interface SortableMedicationItemProps {
     medNotesRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
     language: string;
     initialMedications?: Medication[];
+    handleManualAdd?: () => void;
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -44,7 +45,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     medInstructionsRefs,
     medNotesRefs,
     language,
-    initialMedications
+    initialMedications,
+    handleManualAdd
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof Medication, value: any) => {
@@ -208,6 +210,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             return { ...prev, medications: newMeds };
                                         });
                                     }
+                                    if (handleManualAdd) handleManualAdd();
                                 }}
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                             />

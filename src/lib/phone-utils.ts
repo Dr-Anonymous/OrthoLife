@@ -8,14 +8,15 @@ export const sanitizePhoneNumber = (phone: string): string => {
     return phone.replace(/\D/g, '');
 };
 
+
 /**
- * Validates if a phone number is a valid 10-digit number after sanitization.
+ * Validates if a phone number is a valid number (10-15 digits) after sanitization.
  * @param phone The phone number string to validate.
  * @returns True if valid, false otherwise.
  */
 export const isValidPhoneNumber = (phone: string): boolean => {
     const sanitized = sanitizePhoneNumber(phone);
-    return sanitized.length === 10;
+    return sanitized.length >= 10 && sanitized.length <= 15;
 };
 
 /**
@@ -26,8 +27,23 @@ export const isValidPhoneNumber = (phone: string): boolean => {
  */
 export const formatPhoneNumber = (phone: string): string => {
     const sanitized = sanitizePhoneNumber(phone);
-    if (sanitized.length === 10) {
-        return sanitized; // Or apply formatting like `${sanitized.slice(0, 3)}-${sanitized.slice(3, 6)}-${sanitized.slice(6)}`;
+    if (sanitized.length >= 10) {
+        return sanitized;
     }
     return phone;
+};
+
+/**
+ * Formats a phone number for use in WhatsApp links.
+ * If 10 digits, assumes it's an Indian number and prefixes with 91.
+ * If > 10 digits, assumes it includes country code and returns as is (sanitized).
+ * @param phone The phone number string to format.
+ * @returns The phone number ready for WhatsApp URL.
+ */
+export const formatWhatsAppLink = (phone: string): string => {
+    const sanitized = sanitizePhoneNumber(phone);
+    if (sanitized.length === 10) {
+        return `91${sanitized}`;
+    }
+    return sanitized;
 };

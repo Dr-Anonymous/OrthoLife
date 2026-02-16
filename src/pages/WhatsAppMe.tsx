@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { sanitizePhoneNumber, isValidPhoneNumber, formatPhoneNumber, formatWhatsAppLink } from '@/lib/phone-utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, History, Search, MapPin } from 'lucide-react';
@@ -80,13 +81,7 @@ const WhatsAppMe = () => {
     localStorage.setItem('recentChats', JSON.stringify(updatedChats));
   };
 
-  const formatPhoneNumber = (input: string) => {
-    const digitsOnly = input.replace(/[^0-9]/g, '');
-    if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
-      return digitsOnly.slice(2);
-    }
-    return digitsOnly;
-  };
+
 
   useEffect(() => {
     setRecentChats(getRecentChats());
@@ -123,7 +118,7 @@ const WhatsAppMe = () => {
   }, []);
 
   const searchRecords = async () => {
-    if (phone.length === 10) {
+    if (isValidPhoneNumber(phone)) {
       setIsLoading(true);
       setPatientFolders([]);
       setCalendarEvents([]);
@@ -152,7 +147,7 @@ const WhatsAppMe = () => {
         setIsLoading(false);
       }
     } else {
-      showError('Please enter a valid 10-digit phone number.');
+      showError('Please enter a valid phone number (min 10 digits).');
     }
   };
 
@@ -186,12 +181,12 @@ const WhatsAppMe = () => {
     });
     setRecentChats(getRecentChats());
 
-    const formattedPhone = formatPhoneNumber(phone);
-    if (!formattedPhone) {
+    if (!isValidPhoneNumber(phone)) {
       showError('Please enter a valid phone number');
       return;
     }
 
+    const waLinkPhone = formatWhatsAppLink(phone);
     const message = getMessageForType(e);
 
     // Check if WhatsApp is installed
@@ -209,14 +204,19 @@ const WhatsAppMe = () => {
       // For WhatsApp, if message is empty (e.g. type 1), use %2F to just open chat
       const textParam = message ? encodeURIComponent(message) : "%2F";
       const finalUrl = (window.AndroidClipboard || window.Android)
-        ? `whatsapp://send?phone=91${formattedPhone}&text=${textParam}`
-        : `https://wa.me/91${formattedPhone}?text=${textParam}`;
+        ? `whatsapp://send?phone=${waLinkPhone}&text=${textParam}`
+        : `https://wa.me/${waLinkPhone}?text=${textParam}`;
       window.location.href = finalUrl;
     } else {
       // Send SMS
       // For SMS, if message is empty, we just open the SMS app for the number
       const encodedBody = encodeURIComponent(message);
-      window.location.href = `sms:${formattedPhone}?body=${encodedBody}`;
+      // For SMS, use sanitized phone number (with or without country code depending on user input)
+      // Usually SMS links work better with international format if needed, but let's stick to what we have
+      // If waLinkPhone has 91 prefix added by us, we might want to keep it or just use sanitized input
+      // The requirement was mainly for WhatsApp. SMS usually handles both.
+      // Let's use formatWhatsAppLink result which is sanitized + prefix if needed.
+      window.location.href = `sms:${waLinkPhone}?body=${encodedBody}`;
     }
   };
 
@@ -226,19 +226,20 @@ const WhatsAppMe = () => {
       return;
     }
 
-    const formattedPhone = formatPhoneNumber(phone);
-    if (!formattedPhone) {
+    if (!isValidPhoneNumber(phone)) {
       showError('Please enter a valid phone number');
       return;
     }
 
+    const waLinkPhone = formatWhatsAppLink(phone);
+
     let address;
     switch (e) {
       case 1:
-        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedPhone}` : `https://wa.me/917093551714?text=${formattedPhone}`;
+        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${waLinkPhone}` : `https://wa.me/917093551714?text=${waLinkPhone}`;
         break;
       case 2:
-        address = `sms:+919983849838?body=${formattedPhone}`;
+        address = `sms:+919983849838?body=${waLinkPhone}`;
         break;
       default:
         address = "%2F";
@@ -259,7 +260,7 @@ const WhatsAppMe = () => {
       } else {
         text = await navigator.clipboard.readText();
       }
-      const formattedNumber = formatPhoneNumber(text);
+      const formattedNumber = sanitizePhoneNumber(text);
       setDisplayName('');
       setPhone(formattedNumber);
       showSuccess('Phone number pasted from clipboard');
@@ -272,7 +273,7 @@ const WhatsAppMe = () => {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(formatPhoneNumber(e.target.value));
+    setPhone(sanitizePhoneNumber(e.target.value));
     setDisplayName('');
   };
 

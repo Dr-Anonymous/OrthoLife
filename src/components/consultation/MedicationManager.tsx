@@ -2,9 +2,7 @@ import React from 'react';
 import { DndContext, closestCenter, DragEndEvent, SensorDescriptor, SensorOptions } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Stethoscope, Plus } from 'lucide-react';
-import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { SortableMedicationItem } from '@/components/consultation/SortableMedicationItem';
 import { Medication } from '@/types/consultation';
 
@@ -146,6 +144,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 medInstructionsRefs={medInstructionsRefs}
                                 medNotesRefs={medNotesRefs}
                                 initialMedications={initialMedications}
+                                handleManualAdd={handleManualAdd}
                             />
                         ))}
                     </SortableContext>
