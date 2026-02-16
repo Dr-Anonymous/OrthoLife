@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 // Define types for our data
 export interface Category {
@@ -44,6 +45,36 @@ const BlogPage = () => {
   const [noResults, setNoResults] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+
+  useEffect(() => {
+    const canonicalPath = location.pathname.startsWith('/te/')
+      ? location.pathname.substring(3)
+      : location.pathname;
+    const isTeluguPage = i18n.language === 'te';
+
+    applySeo({
+      title: isTeluguPage
+        ? 'Orthopaedic Health Blog | Telugu Articles | OrthoLife'
+        : 'Orthopaedic Health Blog | Joint, Fracture & Sports Injury Articles | OrthoLife',
+      description: isTeluguPage
+        ? 'Read orthopaedic health articles in Telugu on joint pain, fractures, arthroscopy, and recovery care.'
+        : 'Read expert orthopaedic articles on joint replacement, fractures, arthroscopy, back pain, and recovery care from OrthoLife specialists.',
+      canonicalPath,
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: isTeluguPage ? 'Orthopaedic Health Blog (Telugu)' : 'Orthopaedic Health Blog',
+          url: `https://ortho.life${canonicalPath}`,
+          about: ['Orthopaedics', 'Joint Replacement', 'Fracture Care', 'Arthroscopy']
+        },
+        buildBreadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Blog', path: '/blog' }
+        ])
+      ]
+    });
+  }, [location.pathname, i18n.language]);
 
   useEffect(() => {
     trackEvent({
@@ -76,8 +107,6 @@ const BlogPage = () => {
   // Fetch posts
   useEffect(() => {
     const fetchPosts = async () => {
-      setLoading(true);
-
       setLoading(true);
 
       let query = supabase

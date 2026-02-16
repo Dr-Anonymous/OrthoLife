@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 interface Category {
   id: number;
@@ -25,7 +26,7 @@ interface FAQ {
 }
 
 const FAQPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -71,6 +72,36 @@ const FAQPage = () => {
     t(faq.question_key).toLowerCase().includes(searchQuery.toLowerCase()) ||
     t(faq.answer_key).toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    applySeo({
+      title: i18n.language === 'te'
+        ? 'Orthopaedic FAQs | Telugu Support | OrthoLife'
+        : 'Orthopaedic FAQs | Joint Pain, Fractures, Surgery Recovery | OrthoLife',
+      description: i18n.language === 'te'
+        ? 'Find common orthopaedic FAQs in Telugu for fracture treatment, arthroscopy, joint pain, and recovery support.'
+        : 'Find answers to common orthopaedic questions about fractures, joint pain, surgery, rehabilitation, and recovery at OrthoLife.',
+      canonicalPath: '/faqs',
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: faqs.slice(0, 25).map((faq) => ({
+            '@type': 'Question',
+            name: t(faq.question_key),
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: t(faq.answer_key)
+            }
+          }))
+        },
+        buildBreadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'FAQs', path: '/faqs' }
+        ])
+      ]
+    });
+  }, [faqs, i18n.language, t]);
 
   return (
     <div className="min-h-screen flex flex-col">

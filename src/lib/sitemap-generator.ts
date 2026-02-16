@@ -7,6 +7,9 @@ const BASE_URL = 'https://ortho.life';
 const staticRoutes = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
   { path: '/appointment', priority: '0.9', changefreq: 'weekly' },
+  { path: '/services/joint-replacement', priority: '0.9', changefreq: 'weekly' },
+  { path: '/services/arthroscopy', priority: '0.9', changefreq: 'weekly' },
+  { path: '/services/fracture-care', priority: '0.9', changefreq: 'weekly' },
   { path: '/pharmacy', priority: '0.8', changefreq: 'weekly' },
   { path: '/diagnostics', priority: '0.8', changefreq: 'weekly' },
   { path: '/blog', priority: '0.8', changefreq: 'daily' },
@@ -14,6 +17,7 @@ const staticRoutes = [
   { path: '/faqs', priority: '0.6', changefreq: 'monthly' },
   { path: '/resources', priority: '0.6', changefreq: 'monthly' },
   { path: '/legal', priority: '0.3', changefreq: 'yearly' },
+  { path: '/symptom-checker', priority: '0.6', changefreq: 'monthly' },
   { path: '/upload-prescription', priority: '0.7', changefreq: 'weekly' },
   { path: '/track-test-results', priority: '0.7', changefreq: 'weekly' },
 ];

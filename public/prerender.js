@@ -15,16 +15,18 @@ window.reactSnap = {
     include: [
       '/',
       '/appointment',
-      '/services', 
-      '/about',
-      '/contact',
       '/pharmacy',
       '/diagnostics',
       '/resources',
-      '/faq',
-      '/legal-policies',
+      '/faqs',
+      '/legal',
       '/blog',
+      '/te/blog',
       '/guides',
+      '/te/guides',
+      '/services/joint-replacement',
+      '/services/arthroscopy',
+      '/services/fracture-care',
       '/symptom-checker'
     ],
     

@@ -7,11 +7,12 @@ interface ServiceCardProps {
   icon: React.ReactNode;
   title: string;
   description: string;
+  link?: string;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ icon, title, description }) => {
-  return (
-    <Card className="border-none shadow-md hover:shadow-xl transition-shadow group">
+const ServiceCard: React.FC<ServiceCardProps> = ({ icon, title, description, link }) => {
+  const CardContentWrapper = (
+    <Card className={`border-none shadow-md hover:shadow-xl transition-shadow group ${link ? 'cursor-pointer' : ''}`}>
       <CardHeader className="pb-2">
         <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:bg-primary group-hover:text-white transition-colors">
           {icon}
@@ -23,39 +24,52 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ icon, title, description }) =
       </CardContent>
     </Card>
   );
+
+  if (link) {
+    return (
+      <a href={link} className="block h-full">
+        {CardContentWrapper}
+      </a>
+    );
+  }
+
+  return CardContentWrapper;
 };
 
 const Services = () => {
   const services = [
     {
       icon: <Bone size={24} />,
-      title: "Fracture Care",
-      description: "Surgical and non-surgical management of fractures of limbs, spine and pelvis."
+      title: "Fracture & Trauma Care",
+      description: "Expert management of complex trauma, limbs, spine, and pelvic fractures by the best orthopedic surgeon in Kakinada.",
+      link: "/services/fracture-care"
     },
     {
       icon: <Microscope size={24} />,
-      title: "Arthroscopy",
-      description: "Key hole surgeries for knee and shoulder ailments- ACL, PCL, meniscus, rotator cuff and bankarts."
+      title: "Arthroscopy & Sports Medicine",
+      description: "Advanced keyhole surgeries for knee and shoulder injuries (ACL, meniscus, rotator cuff) to get athletes back in the game.",
+      link: "/services/arthroscopy"
     },
     {
       icon: <PersonStanding size={24} />,
-      title: "Spine surgery",
-      description: "For sciatica/ disc problems and spine fractures."
+      title: "Spine Surgery",
+      description: "Specialized care for sciatica, disc prolapse, and spinal fractures with a focus on minimally invasive techniques."
     },
     {
       icon: <Syringe size={24} />,
-      title: "Joint preservation/replacement",
-      description: "PRP, viscosupplements and stem cell injections (orthobiologics) for early stage arthritis. Partial and total replacement of hip/knee joints."
+      title: "Joint Replacement",
+      description: "Total Knee & Hip Replacement using modern techniques for rapid recovery. Expert in complex revision arthroplasty.",
+      link: "/services/joint-replacement"
     },
     {
       icon: <Stethoscope size={24} />,
-      title: "Physician Consultation",
-      description: "Comprehensive health assessments and medical consultations for various health concerns."
+      title: "General Orthopedics",
+      description: "Comprehensive consultation for bone and joint pain, arthritis management, and osteoporosis care."
     },
     {
       icon: <Heart size={24} />,
-      title: "Chronic Pain Care",
-      description: "Non-surgical solutions for chronic pain, guided by advanced imaging for pinpoint accuracy and lasting relief."
+      title: "Chronic Pain Management",
+      description: "Non-surgical solutions for chronic back and joint pain, utilizing advanced imaging for precise, lasting relief."
     },
   ];
 
@@ -71,11 +85,12 @@ const Services = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service, index) => (
-            <ServiceCard 
-              key={index} 
-              icon={service.icon} 
-              title={service.title} 
-              description={service.description} 
+            <ServiceCard
+              key={index}
+              icon={service.icon}
+              title={service.title}
+              description={service.description}
+              link={service.link}
             />
           ))}
         </div>

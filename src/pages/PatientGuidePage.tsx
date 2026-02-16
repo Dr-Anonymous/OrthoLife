@@ -16,6 +16,7 @@ import { generatePdf } from '@/lib/pdfUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Guide } from './PatientGuidesPage'; // Re-using the interface
 import NextSteps from '@/components/NextSteps';
+import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 interface TranslatedGuide {
   title: string;
@@ -97,6 +98,52 @@ const PatientGuidePage = () => {
 
     fetchGuide();
   }, [guideId, i18n.language]);
+
+  useEffect(() => {
+    if (!guideId) return;
+    if (loading) return;
+
+    const canonicalPath = `/guides/${guideId}`;
+
+    if (!guide) {
+      applySeo({
+        title: 'Guide Not Found | OrthoLife',
+        description: 'The requested patient guide could not be found.',
+        canonicalPath,
+        noindex: true
+      });
+      return;
+    }
+
+    const title = translatedGuide?.title || guide.title;
+    const description = translatedGuide?.description || guide.description;
+
+    applySeo({
+      title: `${title} | OrthoLife Patient Guide`,
+      description,
+      canonicalPath,
+      image: guide.cover_image_url,
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'MedicalWebPage',
+          name: title,
+          description,
+          url: `https://ortho.life${canonicalPath}`,
+          about: guide.categories?.name || 'Orthopaedics',
+          publisher: {
+            '@type': 'Organization',
+            name: 'OrthoLife'
+          }
+        },
+        buildBreadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Guides', path: '/guides' },
+          { name: title, path: canonicalPath }
+        ])
+      ]
+    });
+  }, [guide, guideId, loading, translatedGuide]);
 
   const handleShare = async () => {
     let path = window.location.pathname;

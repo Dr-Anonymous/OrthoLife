@@ -5,16 +5,19 @@ module.exports = {
     include: [
       "/",
       "/appointment",
-      "/services",
-      "/about",
-      "/contact",
       "/pharmacy",
       "/diagnostics",
       "/resources",
-      "/faq",
-      "/legal-policies",
+      "/faqs",
+      "/legal",
       "/blog",
-      "/guides"
+      "/te/blog",
+      "/guides",
+      "/te/guides",
+      "/symptom-checker",
+      "/services/joint-replacement",
+      "/services/arthroscopy",
+      "/services/fracture-care"
     ],
     // Enable crawling to discover dynamic routes
     crawl: true,

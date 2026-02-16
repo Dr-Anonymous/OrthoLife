@@ -46,6 +46,9 @@ const PharmacyAuthGuard = lazy(() => import("./components/PharmacyAuthGuard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const InPatientManagement = lazy(() => import("./pages/InPatientManagement"));
 const PublicConsentVerification = lazy(() => import("./pages/PublicConsentVerification"));
+const JointReplacementPage = lazy(() => import("./pages/services/JointReplacementPage"));
+const ArthroscopyPage = lazy(() => import("./pages/services/ArthroscopyPage"));
+const FractureCarePage = lazy(() => import("./pages/services/FractureCarePage"));
 
 const queryClient = new QueryClient();
 
@@ -129,6 +132,11 @@ const App = () => {
                   {/* Diagnostics Routes */}
                   <Route path="/diagnostics" element={<DiagnosticsPage />} />
                   <Route path="/track-test-results" element={<TrackTestResultsPage />} />
+
+                  {/* Service Pages */}
+                  <Route path="/services/joint-replacement" element={<JointReplacementPage />} />
+                  <Route path="/services/arthroscopy" element={<ArthroscopyPage />} />
+                  <Route path="/services/fracture-care" element={<FractureCarePage />} />
 
                   {/* Learn Routes */}
                   <Route path="/blog" element={<BlogPage />} />

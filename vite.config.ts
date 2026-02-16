@@ -22,16 +22,19 @@ const { routes: discoveredRoutes, metadata } = getDiscoveredData();
 const staticRoutes = [
   '/',
   '/appointment',
-  '/services',
-  '/about',
-  '/contact',
   '/pharmacy',
   '/diagnostics',
   '/resources',
-  '/faq',
-  '/legal-policies',
+  '/faqs',
+  '/legal',
   '/blog',
-  '/guides'
+  '/te/blog',
+  '/guides',
+  '/te/guides',
+  '/symptom-checker',
+  '/services/joint-replacement',
+  '/services/arthroscopy',
+  '/services/fracture-care'
 ];
 
 // https://vitejs.dev/config/
@@ -44,7 +47,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
 
-    process.env.CI ? vitePrerender({
+    mode === 'production' ? vitePrerender({
       staticDir: path.join(__dirname, 'dist'),
       routes: [...staticRoutes, ...discoveredRoutes],
       postProcess(renderedRoute: any) {
@@ -68,6 +71,16 @@ export default defineConfig(({ mode }) => ({
 
         return renderedRoute;
       },
+      // Conditionally use local Chrome on macOS arm64 (Apple Silicon) to avoid
+      // "Unknown system error -86" (Bad CPU type) from bundled x86 Chromium.
+      // We skip this in CI (GitHub Actions) where standard Chromium works fine.
+      renderer: (process.platform === 'darwin' && process.arch === 'arm64' && !process.env.CI)
+        ? new vitePrerender.PuppeteerRenderer({
+          executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          maxConcurrentRoutes: 1,
+        })
+        : undefined
     }) : null,
     VitePWA({
       registerType: 'autoUpdate',

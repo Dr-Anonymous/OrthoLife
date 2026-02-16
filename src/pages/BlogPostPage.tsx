@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import NextSteps from '@/components/NextSteps';
+import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 interface Post {
   id: number;
@@ -24,6 +25,8 @@ interface Post {
   image_url: string;
   categories: { name: string };
   next_steps?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface TranslatedPost {
@@ -32,6 +35,19 @@ interface TranslatedPost {
   excerpt: string;
   next_steps?: string;
 }
+
+const stripHtml = (html: string, maxLength = 160) => {
+  const plainText = html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (plainText.length <= maxLength) {
+    return plainText;
+  }
+
+  return `${plainText.slice(0, maxLength - 1).trim()}...`;
+};
 
 const BlogPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -131,6 +147,65 @@ const BlogPostPage = () => {
 
     fetchPostAndTranslations();
   }, [postId, i18n.language]);
+
+  useEffect(() => {
+    if (!postId) return;
+    if (loading) return;
+
+    const canonicalPath = `/blog/${postId}`;
+
+    if (!post) {
+      applySeo({
+        title: 'Blog Post Not Found | OrthoLife',
+        description: 'The requested orthopaedic blog post could not be found.',
+        canonicalPath,
+        noindex: true
+      });
+      return;
+    }
+
+    const title = translatedPost?.title || post.title;
+    const descriptionSource = translatedPost?.excerpt || post.excerpt || post.content;
+    const description = stripHtml(descriptionSource);
+
+    applySeo({
+      title: `${title} | OrthoLife Blog`,
+      description,
+      canonicalPath,
+      ogType: 'article',
+      image: post.image_url,
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: title,
+          description,
+          image: post.image_url ? [post.image_url] : undefined,
+          datePublished: post.created_at,
+          dateModified: post.updated_at || post.created_at,
+          articleSection: post.categories?.name || 'Orthopaedics',
+          author: {
+            '@type': 'Person',
+            name: 'Dr. Samuel Manoj Cherukuri'
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: 'OrthoLife',
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://ortho.life/favicon/android-chrome-512x512.png'
+            }
+          },
+          mainEntityOfPage: `https://ortho.life${canonicalPath}`
+        },
+        buildBreadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Blog', path: '/blog' },
+          { name: title, path: canonicalPath }
+        ])
+      ]
+    });
+  }, [loading, post, postId, translatedPost]);
 
 
   return (

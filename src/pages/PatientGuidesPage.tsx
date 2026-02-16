@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { generatePdf } from '@/lib/pdfUtils';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { isTelugu } from '@/lib/languageUtils';
+import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 export interface GuideCategory {
   id: number;
@@ -53,6 +54,31 @@ const PatientGuidesPage = () => {
   const { toast } = useToast();
   const location = useLocation();
   const { user } = useAuth();
+
+  useEffect(() => {
+    const canonicalPath = location.pathname.startsWith('/te/')
+      ? location.pathname.substring(3)
+      : location.pathname;
+
+    applySeo({
+      title: 'Orthopaedic Patient Guides | Recovery Plans, Rehab, Exercise | OrthoLife',
+      description: 'Explore practical orthopaedic patient guides for post-surgery recovery, rehabilitation exercises, nutrition, and home care by OrthoLife.',
+      canonicalPath,
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'Orthopaedic Patient Guides',
+          url: `https://ortho.life${canonicalPath}`,
+          about: ['Orthopaedics', 'Rehabilitation', 'Patient Education']
+        },
+        buildBreadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Guides', path: '/guides' }
+        ])
+      ]
+    });
+  }, [location.pathname]);
 
   useEffect(() => {
     trackEvent({
