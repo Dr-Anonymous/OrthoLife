@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,12 +61,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [followup, setFollowup] = useState('');
   const [followupTe, setFollowupTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const debouncedAdvice = useDebounce(advice, 500);
-  const debouncedFollowup = useDebounce(followup, 500);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // ... (Translation effects remain same, skipping here for brevity in replace helper but assuming they exist below)
 
   const fetchKeywords = async () => {
     setIsLoading(true);
@@ -269,7 +263,12 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             </div>
             <div className="space-y-2">
               <Label htmlFor="advice-te">Advice (Telugu)</Label>
-              <Textarea id="advice-te" value={adviceTe} onChange={(e) => setAdviceTe(e.target.value)} placeholder="e.g., Drink plenty of fluids" disabled={isTranslating} />
+              <Textarea
+                id="advice-te"
+                value={adviceTe}
+                onChange={(e) => setAdviceTe(e.target.value)}
+                placeholder="e.g., Drink plenty of fluids"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="investigations">Investigations</Label>
@@ -281,7 +280,12 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             </div>
             <div className="space-y-2">
               <Label htmlFor="followup-te">Follow-up (Telugu)</Label>
-              <Textarea id="followup-te" value={followupTe} onChange={(e) => setFollowupTe(e.target.value)} placeholder="e.g., Review after 1 week" disabled={isTranslating} />
+              <Textarea
+                id="followup-te"
+                value={followupTe}
+                onChange={(e) => setFollowupTe(e.target.value)}
+                placeholder="e.g., Review after 1 week"
+              />
             </div>
             <Button onClick={handleSaveKeyword} size="sm">
               {editingKeyword ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}

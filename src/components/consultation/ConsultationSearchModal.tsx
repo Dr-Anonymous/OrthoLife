@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { calculateAge } from '@/lib/age';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -65,11 +65,25 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
     onClose();
   };
 
-  const highlightKeyword = (text: string) => {
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const highlightKeyword = (text: string): ReactNode => {
     const trimmed = keyword.trim();
     if (!trimmed || !text) return text;
-    const regex = new RegExp(`(${trimmed})`, 'gi');
-    return text.replace(regex, '<strong class="bg-yellow-200">$1</strong>');
+    const safeKeyword = escapeRegExp(trimmed);
+    const regex = new RegExp(`(${safeKeyword})`, 'gi');
+    const parts = text.split(regex);
+
+    return parts.map((part, index) => {
+      if (part.toLowerCase() === trimmed.toLowerCase()) {
+        return (
+          <mark key={index} className="bg-yellow-200 rounded-sm px-0.5">
+            {part}
+          </mark>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
   };
 
   return (

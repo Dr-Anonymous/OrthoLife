@@ -27,10 +27,10 @@ serve(async (req: any) => {
   }
 
   try {
-    const { date, patientId, action } = await req.json();
+    const { date, patientId, action, hospital } = await req.json();
 
     // MODE 1 & 2: Fetch Consultations (List History or Daily List)
-    const result = await fetchConsultations(date, patientId);
+    const result = await fetchConsultations(date, patientId, hospital);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
@@ -50,8 +50,9 @@ serve(async (req: any) => {
  * Fetches consultations based on date or patientId, and enriches them with:
  * - last_visit_date string
  * - autofilled consultation_data (if empty)
+ * - optional hospital scoping in date mode
  */
-async function fetchConsultations(date?: string, patientId?: string) {
+async function fetchConsultations(date?: string, patientId?: string, hospital?: string) {
   let query = supabase
     .from('consultations')
     .select(`
@@ -90,8 +91,14 @@ async function fetchConsultations(date?: string, patientId?: string) {
   const { data, error } = await query;
   if (error) throw error;
 
+  // Enforce hospital scoping on date-based list views.
+  // Keep legacy records with null location visible across hospitals, matching existing UI behavior.
+  const scopedData = (date && hospital)
+    ? data.filter((c: any) => !c.location || c.location.toLowerCase() === String(hospital).toLowerCase())
+    : data;
+
   // Post-process: Add last_visit_date string and Autofill data if needed
-  const consultations = await Promise.all(data.map(async (c: any) => {
+  const consultations = await Promise.all(scopedData.map(async (c: any) => {
     // 1. Fetch History relative to THIS consultation
     const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(c.patient.id, c.created_at);
 
@@ -124,6 +131,10 @@ async function fetchConsultations(date?: string, patientId?: string) {
 
 /**
  * Helper: Fetches the most recent completed consultation and discharge summary *strictly before* the reference date.
+ *
+ * Notes:
+ * - History is resolved against the full linked-patient cluster, not only the current patient row.
+ * - This allows merged/linked records to preserve continuity in "last visit" and autofill behavior.
  */
 async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
   // Support for Linked Patients: Fetch all IDs
@@ -187,6 +198,11 @@ function calculateLastVisitString(lastOpDate: Date | null, lastDischargeDate: Da
 
 /**
  * Helper: Generates autofill data from history.
+ *
+ * Precedence:
+ * 1) Most recent discharge summary (if newer than last OP visit)
+ * 2) Most recent consultation_data
+ * 3) null (no autofill)
  */
 function generateAutofillData(
   currentConsultation: any,

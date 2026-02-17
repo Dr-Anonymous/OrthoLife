@@ -39,7 +39,7 @@ export interface ConsultationData {
 
 interface ConsultationCardProps {
     data: ConsultationData;
-    highlightKeyword?: (text: string) => string;
+    highlightKeyword?: (text: string) => React.ReactNode;
 }
 
 const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyword }) => {
@@ -47,10 +47,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
 
     const renderText = (text: string) => {
         if (!text) return null;
-        if (highlightKeyword) {
-            return <span dangerouslySetInnerHTML={{ __html: highlightKeyword(text) }} />;
-        }
-        return text;
+        return highlightKeyword ? highlightKeyword(text) : text;
     };
 
     return (
@@ -157,11 +154,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                         <ul className="list-disc pl-5 text-sm text-muted-foreground">
                             {data.medications.map((med: any, index: number) => (
                                 <li key={index}>
-                                    {highlightKeyword ? (
-                                        <span dangerouslySetInnerHTML={{ __html: highlightKeyword(`${med.name}${med.duration ? ` - ${med.duration}` : ''} - ${med.dose || ''}`) }} />
-                                    ) : (
-                                        `${med.name}${med.duration ? ` - ${med.duration}` : ''} - ${med.dose || ''}`
-                                    )}
+                                    {renderText(`${med.name}${med.duration ? ` - ${med.duration}` : ''} - ${med.dose || ''}`)}
                                 </li>
                             ))}
                         </ul>

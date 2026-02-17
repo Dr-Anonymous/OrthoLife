@@ -199,7 +199,6 @@ const ConsultationPage = () => {
 
   // UI State
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [consultationLanguage, setConsultationLanguage] = useState<string>('te');
@@ -219,7 +218,6 @@ const ConsultationPage = () => {
   const [isReadyToPrint, setIsReadyToPrint] = useState(false);
   const [age, setAge] = useState<number | ''>('');
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
-  const patientSelectionCounter = useRef(0);
 
   const debouncedAdvice = useDebounce(extraData.advice, 500);
 
@@ -277,7 +275,7 @@ const ConsultationPage = () => {
   const [isFinancialExpanded, setIsFinancialExpanded] = useState(false);
 
   // Timer (Refactored)
-  const { timerSeconds, isTimerVisible, setIsTimerVisible, stopTimer, pauseTimer, isTimerPausedRef } = useConsultationTimer(selectedConsultation);
+  const { timerSeconds, isTimerVisible, setIsTimerVisible, stopTimer, isTimerPausedRef } = useConsultationTimer(selectedConsultation);
 
   // Date Pickers
   const [isPatientDatePickerOpen, setIsPatientDatePickerOpen] = useState(false);
@@ -333,7 +331,6 @@ const ConsultationPage = () => {
    * - Sets `lastVisitDate` for display.
    */
   const confirmSelection = useCallback(async (consultation: Consultation) => {
-    patientSelectionCounter.current += 1;
     setSelectedConsultation(consultation);
     const normalizedPatient = {
       ...consultation.patient,
@@ -585,25 +582,23 @@ const ConsultationPage = () => {
     }
   };
 
-  // Helper for robust patient comparison
-  // Moved outside or kept here, but effectively used for derived state too
+  // Keep patient comparison logic centralized so "dirty check" and "save path" stay consistent.
+  const arePatientsEqual = (p1: any, p2: any) => {
+    if (!p1 || !p2) return p1 === p2;
+    const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+    return (
+      normalize(p1.name) === normalize(p2.name) &&
+      normalize(p1.phone) === normalize(p2.phone) &&
+      normalize(p1.dob) === normalize(p2.dob) &&
+      normalize(p1.sex) === normalize(p2.sex) &&
+      normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
+      normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
+    );
+  };
 
   // Derived state to check for changes
   const hasChanges = useMemo(() => {
     if (!selectedConsultation || !editablePatientDetails || !initialPatientDetails) return false;
-
-    const arePatientsEqual = (p1: any, p2: any) => {
-      if (!p1 || !p2) return p1 === p2;
-      const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
-      return (
-        normalize(p1.name) === normalize(p2.name) &&
-        normalize(p1.phone) === normalize(p2.phone) &&
-        normalize(p1.dob) === normalize(p2.dob) &&
-        normalize(p1.sex) === normalize(p2.sex) &&
-        normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
-        normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
-      );
-    };
 
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
 
@@ -724,18 +719,6 @@ const ConsultationPage = () => {
       } else {
         try {
           // Re-evaluate patientDetailsChanged based on current state vs initial state
-          const arePatientsEqual = (p1: any, p2: any) => {
-            if (!p1 || !p2) return p1 === p2;
-            const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
-            return (
-              normalize(p1.name) === normalize(p2.name) &&
-              normalize(p1.phone) === normalize(p2.phone) &&
-              normalize(p1.dob) === normalize(p2.dob) &&
-              normalize(p1.sex) === normalize(p2.sex) &&
-              normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
-              normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
-            );
-          };
           const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
 
           if (patientDetailsChanged) {
@@ -1391,9 +1374,6 @@ const ConsultationPage = () => {
     };
   }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
 
-  const suggestedFindings = useMemo(() => [], []);
-
-
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
     if (saved) setIsReadyToPrint(true);
@@ -1785,10 +1765,38 @@ const ConsultationPage = () => {
       </div>
 
       {/* Hidden Print Components */}
-      < div style={{ position: 'absolute', left: '-9999px' }
-      }> <div ref={printRef}>{selectedConsultation && editablePatientDetails && <Prescription patient={editablePatientDetails} consultation={cleanConsultationData(extraData)} consultationDate={selectedDate || new Date()} age={age} language={consultationLanguage} logoUrl={selectedHospital.logoUrl} className="min-h-[297mm]" visitType={extraData.visit_type} forceDesktop={true} showDoctorProfile={showDoctorProfile} />}</div></div >
-      <div style={{ position: 'absolute', left: '-9999px' }}><div ref={certificatePrintRef}>{selectedConsultation && editablePatientDetails && certificateData && <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} />}</div></div>
-      <div style={{ position: 'absolute', left: '-9999px' }}><div ref={receiptPrintRef}>{selectedConsultation && editablePatientDetails && receiptData && <Receipt patient={editablePatientDetails} receiptData={receiptData} />}</div></div>
+      <div style={{ position: 'absolute', left: '-9999px' }}>
+        <div ref={printRef}>
+          {selectedConsultation && editablePatientDetails && (
+            <Prescription
+              patient={editablePatientDetails}
+              consultation={cleanConsultationData(extraData)}
+              consultationDate={selectedDate || new Date()}
+              age={age}
+              language={consultationLanguage}
+              logoUrl={selectedHospital.logoUrl}
+              className="min-h-[297mm]"
+              visitType={extraData.visit_type}
+              forceDesktop={true}
+              showDoctorProfile={showDoctorProfile}
+            />
+          )}
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: '-9999px' }}>
+        <div ref={certificatePrintRef}>
+          {selectedConsultation && editablePatientDetails && certificateData && (
+            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} />
+          )}
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: '-9999px' }}>
+        <div ref={receiptPrintRef}>
+          {selectedConsultation && editablePatientDetails && receiptData && (
+            <Receipt patient={editablePatientDetails} receiptData={receiptData} />
+          )}
+        </div>
+      </div>
 
       {/* Modals */}
       <SavedMedicationsModal isOpen={isMedicationsModalOpen} onClose={() => setIsMedicationsModalOpen(false)} onMedicationsUpdate={fetchSavedMedications} />

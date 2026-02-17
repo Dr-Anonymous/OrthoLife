@@ -158,7 +158,13 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     }
   };
 
-  // Instant Phone Search Effect
+  /**
+   * Instant Phone Search Strategy
+   * 1) Reuse in-memory cache while user types.
+   * 2) Fetch only when prefix meaningfully changes.
+   * 3) Filter locally for responsiveness, then show suggestions.
+   * This keeps search fast while avoiding unnecessary backend calls.
+   */
   useEffect(() => {
     // Only run if we have a phone number being typed
     const phone = sanitizePhoneNumber(formData.phone);
@@ -474,6 +480,10 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     };
 
     try {
+      // Save flow contract:
+      // - Offline: always write local patient + consultation record.
+      // - Online: try edge-function registration first.
+      // - If online network fails: fall back to same offline write path.
       if (!isOnline) {
         await saveOfflinePatient();
       } else {
