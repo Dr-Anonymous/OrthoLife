@@ -208,7 +208,7 @@ const ConsultationPage = () => {
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
     if (hospitals.length === 0) return { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14 } };
-    return hospitals.find(h => h.name === selectedLocation) || hospitals[0];
+    return hospitals.find(h => h.name.toLowerCase() === selectedLocation?.toLowerCase()) || hospitals[0];
   }, [hospitals, selectedLocation]);
 
   const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
@@ -1458,7 +1458,7 @@ const ConsultationPage = () => {
     return allConsultations.filter(c => {
       // If a hospital is selected, filter by it.
       // BUT, if the consultation has NO location (e.g. legacy or offline-synced), show it anywhere.
-      if (selectedHospital?.name && c.location && c.location !== selectedHospital.name) {
+      if (selectedHospital?.name && c.location && c.location.toLowerCase() !== selectedHospital.name.toLowerCase()) {
         return false;
       }
       return true;

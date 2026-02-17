@@ -40,7 +40,7 @@ async function getVisitType(supabaseClient: SupabaseClient, patientId: string | 
 
   if (!error && lastPaidConsultation) {
     // Rule 1: Different location = Paid
-    if (currentLocation && lastPaidConsultation.location && lastPaidConsultation.location !== currentLocation) {
+    if (currentLocation && lastPaidConsultation.location && lastPaidConsultation.location.toLowerCase() !== currentLocation.toLowerCase()) {
       return 'paid';
     }
 
@@ -172,7 +172,7 @@ serve(async (req: Request) => {
         .from('consultations')
         .select('id')
         .eq('patient_id', bestMatch.id)
-        .eq('location', location)
+        .ilike('location', location) // Case insensitive check
         .gte('created_at', todayStart.toISOString())
         .lte('created_at', todayEnd.toISOString());
 

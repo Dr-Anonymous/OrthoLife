@@ -197,7 +197,7 @@ const PatientRegistration = () => {
   }, [selectedDate]);
 
   const filteredConsultations = todaysConsultations.filter(
-    c => c.location === locationName
+    c => c.location?.toLowerCase() === locationName.toLowerCase()
   );
 
   return (

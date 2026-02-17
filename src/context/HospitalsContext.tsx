@@ -76,7 +76,7 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         fetchHospitals();
     }, []);
 
-    const getHospitalByName = (name: string) => hospitals.find(h => h.name === name);
+    const getHospitalByName = (name: string) => hospitals.find(h => h.name.toLowerCase() === name.toLowerCase());
 
     return (
         <HospitalsContext.Provider value={{ hospitals, isLoading, error, getHospitalByName }}>
