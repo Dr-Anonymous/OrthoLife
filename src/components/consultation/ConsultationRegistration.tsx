@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { cachePatients, searchLocalPatients } from '@/hooks/useOfflineSync';
@@ -88,6 +88,13 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
 
+  // New State for Instant Search Optimization
+  const [cachedPatients, setCachedPatients] = useState<Patient[]>([]);
+  const [lastFetchedPrefix, setLastFetchedPrefix] = useState<string>('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+  const justSelected = useRef(false);
+
 
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -141,6 +148,108 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     if (field === 'phone' || field === 'name') {
       setSearchResults([]);
       setSelectedPatientId('');
+      // Reset instant search state on manual edit (if user clears phone)
+      if (field === 'phone' && value.length < 3) {
+        setCachedPatients([]);
+        setLastFetchedPrefix('');
+        setShowSuggestions(false);
+      }
+    }
+  };
+
+  // Instant Phone Search Effect
+  useEffect(() => {
+    // Only run if we have a phone number being typed
+    const phone = sanitizePhoneNumber(formData.phone);
+
+    // If we just selected a patient, don't re-open suggestions
+    if (justSelected.current) {
+      justSelected.current = false;
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (!phone || phone.length < 3) {
+      setShowSuggestions(false);
+      return;
+    }
+
+    const fetchCandidates = async () => {
+      // 1. Local Cache Check (Duplicate Fetch Prevention)
+      // If we have a full number (10+ digits), check if we already found this patient in previous fetches (e.g. prefix search)
+      if (phone.length >= 10) {
+        const alreadyHasMatch = cachedPatients.some(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+        if (alreadyHasMatch) {
+          // Filter locally and show
+          const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+          setSearchResults(filtered);
+          setShowSuggestions(filtered.length > 0);
+          return;
+        }
+      }
+
+      // 2. Fetch from DB if needed
+      // Use last 8 digits for accuracy if phone >= 10, else prefix
+      const currentPrefix = phone.length >= 10 ? phone.slice(-8) : phone.slice(0, 8);
+
+      if (phone.length >= 8 && currentPrefix !== lastFetchedPrefix) {
+        try {
+          let patients: Patient[] = [];
+
+          if (isOnline) {
+            // Direct Supabase Query for max speed & control (limit 100)
+            const { data, error } = await supabase
+              .from('patients')
+              .select('*')
+              .ilike('phone', `%${currentPrefix}%`)
+              .limit(50); // Fetch enough to be useful but not overload
+
+            if (error) throw error;
+            patients = data as Patient[];
+          } else {
+            // Offline fallback
+            patients = await searchLocalPatients(currentPrefix, 'phone') as Patient[];
+          }
+
+          // Update Cache
+          if (patients.length > 0 || isOnline) { // Only update cache if we found something or confirmed empty from server
+            setCachedPatients(patients);
+            setLastFetchedPrefix(currentPrefix);
+          }
+
+          // Update UI with filtered results
+          const filtered = patients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+          setSearchResults(filtered);
+          setShowSuggestions(filtered.length > 0);
+
+        } catch (err) {
+          console.error("Instant search error:", err);
+        }
+      } else if (cachedPatients.length > 0) {
+        // Local filtering on existing cache (for 3-9 digits typing or continued typing without new fetch)
+        const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+        setSearchResults(filtered);
+        setShowSuggestions(filtered.length > 0);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchCandidates, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.phone, isOnline, lastFetchedPrefix, cachedPatients]);
+
+  const handleSuggestionKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || searchResults.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => (prev + 1) % searchResults.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => (prev - 1 + searchResults.length) % searchResults.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const selected = searchResults[activeSuggestionIndex];
+      if (selected) handleSelectPatient(selected.id.toString(), searchResults);
     }
   };
 
@@ -168,6 +277,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       const data = await searchLocalPatients(searchTerm, searchType) as Patient[];
       if (data && data.length > 0) {
         setSearchResults(data);
+        setShowSuggestions(true); // Show dropdown
         toast({
           title: 'Cached Patients Found',
           description: `Found ${data.length} patient(s) in local cache. Please select one.`,
@@ -194,6 +304,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
           if (data && data.length > 0) {
             setSearchResults(data);
+            setShowSuggestions(true); // Show dropdown
             cachePatients(data); // Cache successful results
             toast({
               title: 'Patients Found',
@@ -238,6 +349,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     setSelectedPatientId(patientId);
 
     if (selected) {
+      justSelected.current = true; // Prevent re-opening suggestions
       const { id, name, dob, sex, phone, drive_id, ...consultation_data } = selected;
       setFormData({
         id,
@@ -250,6 +362,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         consultation_data,
         isDobEstimated: selected.is_dob_estimated || false
       });
+
+      setShowSuggestions(false); // Explicitly hide suggestions
 
       toast({
         title: 'Patient Data Loaded',
@@ -452,13 +566,13 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   id="phone"
                   value={formData.phone}
                   onChange={e => handleInputChange('phone', e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('phone'); } }}
+                  onKeyDown={e => {
+                    if (showSuggestions) handleSuggestionKeyDown(e); // Allow navigation even from Phone input
+                  }}
                   className={cn("pl-10 pr-10", errors.phone && "border-destructive")}
                   placeholder="Enter 10-digit number"
                 />
-                <button type="button" onClick={() => handleSearch('phone')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
-                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
-                </button>
+
               </div>
               {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
             </div>
@@ -470,10 +584,45 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   id="name"
                   value={formData.name}
                   onChange={e => handleInputChange('name', e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); } }}
+                  onKeyDown={e => {
+                    if (showSuggestions) handleSuggestionKeyDown(e);
+                    else if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); }
+                  }}
                   className={cn("pl-10 pr-10", errors.name && "border-destructive")}
                   placeholder="Enter full name"
+                  autoComplete="off"
                 />
+
+                {/* Instant Search Suggestions (Under Name Field) */}
+                {showSuggestions && searchResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-md shadow-md max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50 border-b">
+                      Suggested Patients ({searchResults.length})
+                    </div>
+                    {searchResults.map((patient, index) => (
+                      <button
+                        key={patient.id}
+                        type="button"
+                        className={cn(
+                          "w-full text-left px-4 py-2 text-sm flex flex-col hover:bg-muted/50 transition-colors",
+                          index === activeSuggestionIndex && "bg-muted"
+                        )}
+                        onClick={() => {
+                          handleSelectPatient(patient.id.toString(), searchResults);
+                          setShowSuggestions(false);
+                        }}
+                        onMouseEnter={() => setActiveSuggestionIndex(index)}
+                      >
+                        <span className="font-medium text-foreground">{patient.name}</span>
+                        <span className="text-xs text-muted-foreground flex justify-between w-full">
+                          <span>{patient.sex} / {calculateAge(patient.dob ? new Date(patient.dob) : undefined)}Y</span>
+                          <span>{patient.phone}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
                 </button>
@@ -482,23 +631,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             </div>
           </div>
 
-          {searchResults.length > 0 && (
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-sm font-medium">Select Existing Patient</Label>
-              <Select value={selectedPatientId} onValueChange={handleSelectPatient}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a patient from search results..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {searchResults.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id.toString()}>
-                      {patient.name} - {patient.phone} {patient.secondary_phone ? `(Alt: ${patient.secondary_phone})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
