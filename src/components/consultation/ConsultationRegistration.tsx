@@ -92,6 +92,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const [cachedPatients, setCachedPatients] = useState<Patient[]>([]);
   const [lastFetchedPrefix, setLastFetchedPrefix] = useState<string>('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionSource, setSuggestionSource] = useState<'name' | 'phone'>('phone');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const justSelected = useRef(false);
 
@@ -221,6 +222,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           const filtered = patients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
           setSearchResults(filtered);
           setShowSuggestions(filtered.length > 0);
+          setSuggestionSource('phone');
+          setActiveSuggestionIndex(0);
 
         } catch (err) {
           console.error("Instant search error:", err);
@@ -230,6 +233,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
         setSearchResults(filtered);
         setShowSuggestions(filtered.length > 0);
+        setSuggestionSource('phone');
+        setActiveSuggestionIndex(0);
       }
     };
 
@@ -254,6 +259,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   };
 
   const handleSearch = async (searchType: 'name' | 'phone') => {
+    setSuggestionSource(searchType);
     let searchTerm = searchType === 'name' ? formData.name : formData.phone;
 
     if (searchType === 'phone') {
@@ -278,6 +284,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       if (data && data.length > 0) {
         setSearchResults(data);
         setShowSuggestions(true); // Show dropdown
+        setActiveSuggestionIndex(0);
         toast({
           title: 'Cached Patients Found',
           description: `Found ${data.length} patient(s) in local cache. Please select one.`,
@@ -305,6 +312,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           if (data && data.length > 0) {
             setSearchResults(data);
             setShowSuggestions(true); // Show dropdown
+            setActiveSuggestionIndex(0);
             cachePatients(data); // Cache successful results
             toast({
               title: 'Patients Found',
@@ -573,9 +581,23 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   placeholder="Enter 10-digit number"
                 />
 
+                {/* Instant Search Suggestions (Under Phone Field) */}
+                {showSuggestions && suggestionSource === 'phone' && searchResults.length > 0 && (
+                  <PatientSuggestionsList
+                    searchResults={searchResults}
+                    activeSuggestionIndex={activeSuggestionIndex}
+                    onSelect={(patient) => {
+                      handleSelectPatient(patient.id.toString(), searchResults);
+                      setShowSuggestions(false);
+                    }}
+                    setActiveSuggestionIndex={setActiveSuggestionIndex}
+                    calculateAge={calculateAge}
+                  />
+                )}
               </div>
               {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
             </div>
+            {/* Name Input Logic (existing but modified) */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
               <div className="relative">
@@ -594,33 +616,17 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                 />
 
                 {/* Instant Search Suggestions (Under Name Field) */}
-                {showSuggestions && searchResults.length > 0 && (
-                  <div className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-md shadow-md max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50 border-b">
-                      Suggested Patients ({searchResults.length})
-                    </div>
-                    {searchResults.map((patient, index) => (
-                      <button
-                        key={patient.id}
-                        type="button"
-                        className={cn(
-                          "w-full text-left px-4 py-2 text-sm flex flex-col hover:bg-muted/50 transition-colors",
-                          index === activeSuggestionIndex && "bg-muted"
-                        )}
-                        onClick={() => {
-                          handleSelectPatient(patient.id.toString(), searchResults);
-                          setShowSuggestions(false);
-                        }}
-                        onMouseEnter={() => setActiveSuggestionIndex(index)}
-                      >
-                        <span className="font-medium text-foreground">{patient.name}</span>
-                        <span className="text-xs text-muted-foreground flex justify-between w-full">
-                          <span>{patient.sex} / {calculateAge(patient.dob ? new Date(patient.dob) : undefined)}Y</span>
-                          <span>{patient.phone}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                {showSuggestions && suggestionSource === 'name' && searchResults.length > 0 && (
+                  <PatientSuggestionsList
+                    searchResults={searchResults}
+                    activeSuggestionIndex={activeSuggestionIndex}
+                    onSelect={(patient) => {
+                      handleSelectPatient(patient.id.toString(), searchResults);
+                      setShowSuggestions(false);
+                    }}
+                    setActiveSuggestionIndex={setActiveSuggestionIndex}
+                    calculateAge={calculateAge}
+                  />
                 )}
 
                 <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
@@ -718,6 +724,72 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         </div>
       </form>
     </>
+  );
+};
+
+interface PatientSuggestionsListProps {
+  searchResults: Patient[];
+  activeSuggestionIndex: number;
+  onSelect: (patient: Patient) => void;
+  setActiveSuggestionIndex: (index: number) => void;
+  calculateAge: (dob?: Date) => number | string;
+}
+
+const PatientSuggestionsList: React.FC<PatientSuggestionsListProps> = ({
+  searchResults,
+  activeSuggestionIndex,
+  onSelect,
+  setActiveSuggestionIndex,
+  calculateAge
+}) => {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logic
+  useEffect(() => {
+    if (activeSuggestionIndex >= 0 && listRef.current) {
+      // Find the active element by index (safest without relying on IDs which complicate key usage)
+      const activeElement = listRef.current.children[activeSuggestionIndex + 1] as HTMLElement; // +1 to skip header
+      if (activeElement) {
+        // Check if visible
+        const listRect = listRef.current.getBoundingClientRect();
+        const itemRect = activeElement.getBoundingClientRect();
+
+        // If item is above view
+        if (itemRect.top < listRect.top) {
+          listRef.current.scrollTop -= (listRect.top - itemRect.top);
+        }
+        // If item is below view
+        else if (itemRect.bottom > listRect.bottom) {
+          listRef.current.scrollTop += (itemRect.bottom - listRect.bottom);
+        }
+      }
+    }
+  }, [activeSuggestionIndex]);
+
+  return (
+    <div ref={listRef} className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-md shadow-md max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50 border-b sticky top-0 bg-background z-10">
+        Suggested Patients ({searchResults.length})
+      </div>
+      {searchResults.map((patient, index) => (
+        <button
+          key={patient.id}
+          type="button"
+          className={cn(
+            "w-full text-left px-4 py-2 text-sm flex flex-col hover:bg-muted/50 transition-colors",
+            index === activeSuggestionIndex && "bg-muted"
+          )}
+          onClick={() => onSelect(patient)}
+          onMouseEnter={() => setActiveSuggestionIndex(index)}
+        >
+          <span className="font-medium text-foreground">{patient.name}</span>
+          <span className="text-xs text-muted-foreground flex justify-between w-full">
+            <span>{patient.sex} / {calculateAge(patient.dob ? new Date(patient.dob) : undefined)}Y</span>
+            <span>{patient.phone}</span>
+          </span>
+        </button>
+      ))}
+    </div>
   );
 };
 

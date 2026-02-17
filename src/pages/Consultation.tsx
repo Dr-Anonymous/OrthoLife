@@ -483,7 +483,10 @@ const ConsultationPage = () => {
           if (found) {
             const consultationToSelect = { ...found };
             if (consultationData) {
-              consultationToSelect.consultation_data = consultationData;
+              consultationToSelect.consultation_data = {
+                ...(consultationToSelect.consultation_data || {}),
+                ...consultationData
+              };
             }
             if (languageOverride) {
               consultationToSelect.language = languageOverride;
