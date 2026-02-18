@@ -107,7 +107,7 @@ async function fetchConsultations(date?: string, patientId?: string, hospital?: 
 
     // 3. Autofill Logic (if data is missing/empty)
     let consultation_data = c.consultation_data;
-    if (!consultation_data && c.patient) {
+    if ((!consultation_data || (typeof consultation_data === 'object' && Object.keys(consultation_data).length === 0)) && c.patient) {
       consultation_data = generateAutofillData(c, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
     }
 

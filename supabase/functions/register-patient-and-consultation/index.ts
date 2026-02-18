@@ -249,7 +249,7 @@ serve(async (req: Request) => {
         patient_id: newPatient.id,
         status: 'pending',
         visit_type: 'paid',
-        consultation_data: {},
+        // consultation_data: {}, // Allow default NULL or explicitly set null
         location: location,
         referred_by: referred_by,
         language: language
