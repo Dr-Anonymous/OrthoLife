@@ -30,12 +30,12 @@
     "/guides/7",
     "/guides/12",
     "/guides/9",
-    "/guides/3",
     "/guides/10",
     "/guides/8",
     "/guides/14",
     "/guides/15",
     "/guides/6",
+    "/guides/3",
     "/te/guides/9",
     "/te/guides/5",
     "/te/guides/12",
@@ -46,10 +46,10 @@
     "/te/guides/11",
     "/te/guides/14",
     "/te/guides/8",
-    "/te/guides/3",
     "/te/guides/10",
     "/te/guides/15",
-    "/te/guides/2"
+    "/te/guides/2",
+    "/te/guides/3"
   ],
   "metadata": [
     {
@@ -203,11 +203,6 @@
       "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
     },
     {
-      "route": "/guides/3",
-      "title": "Back Strengthening Exercises: Do’s and Dont's",
-      "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts."
-    },
-    {
       "route": "/guides/10",
       "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
       "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy."
@@ -231,6 +226,11 @@
       "route": "/guides/6",
       "title": "Diabetic Diet Chart for Andhra Pradesh Patients",
       "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
+    },
+    {
+      "route": "/guides/3",
+      "title": "Back Strengthening Exercises: Do’s and Dont's",
+      "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts."
     },
     {
       "route": "/te/guides/9",
@@ -283,11 +283,6 @@
       "description": "అధిక రక్తపోటును నియంత్రించడానికి ఉత్తమ ఆహార పద్ధతులను కనుగొనండి. ఏ ఆహారాలు తినాలి మరియు ఏవి నివారించాలి, మరియు హృదయానికి ఆరోగ్యకరమైన ఆహారం మీ అధిక రక్తపోటును ఎలా మెరుగుపరుస్తుందో తెలుసుకోండి."
     },
     {
-      "route": "/te/guides/3",
-      "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
-      "description": "మీ వీపు కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన వీపు వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి."
-    },
-    {
       "route": "/te/guides/10",
       "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
       "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది."
@@ -301,6 +296,11 @@
       "route": "/te/guides/2",
       "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
       "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది."
+    },
+    {
+      "route": "/te/guides/3",
+      "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
+      "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి."
     }
   ]
 }
