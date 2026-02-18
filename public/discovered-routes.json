@@ -29,17 +29,17 @@
     "/guides/7",
     "/guides/12",
     "/guides/9",
-    "/guides/5",
     "/guides/10",
     "/guides/8",
+    "/guides/5",
     "/guides/14",
     "/guides/15",
     "/guides/6",
     "/guides/3",
     "/te/guides/9",
-    "/te/guides/5",
     "/te/guides/12",
     "/te/guides/1",
+    "/te/guides/5",
     "/te/guides/4",
     "/te/guides/7",
     "/te/guides/6",
@@ -198,11 +198,6 @@
       "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
     },
     {
-      "route": "/guides/5",
-      "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
-      "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
-    },
-    {
       "route": "/guides/10",
       "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
       "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy."
@@ -211,6 +206,11 @@
       "route": "/guides/8",
       "title": "Managing High Blood Pressure: Essential Diet for Hypertensive Patients",
       "description": "Discover the best dietary strategies to control high blood pressure. Learn about foods to eat and avoid, and how a heart-healthy diet can improve your hypertension."
+    },
+    {
+      "route": "/guides/5",
+      "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
+      "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
     },
     {
       "route": "/guides/14",
@@ -238,11 +238,6 @@
       "description": "థైరాయిడ్ పనితీరుకు మద్దతు ఇవ్వడానికి మరియు లక్షణాలను నిర్వహించడానికి హైపోథైరాయిడిజం రోగులకు ఉత్తమ ఆహారం గురించి తెలుసుకోండి. సహాయపడే ఆహారాలను మరియు జాగ్రత్తగా తీసుకోవలసిన వాటిని కనుగొనండి."
     },
     {
-      "route": "/te/guides/5",
-      "title": "మోకాలిని బలపరిచే వ్యాయామాలు: వివరణాత్మక సూచనలు",
-      "description": "ఈ సమగ్ర గైడ్‌తో మీ మోకాలి చుట్టూ ఉన్న కండరాలను (క్వాడ్స్, హామ్ స్ట్రింగ్స్, గ్లూట్స్, పిక్కలు) ఎలా బలోపేతం చేయాలో తెలుసుకోండి. ACL, PCL, మెనిస్కస్ చిరుగులు మరియు ఆర్థరైటిస్ వంటి నిర్దిష్ట మోకాలి పరిస్థితులకు ప్రభావవంతమైన వ్యాయామాలు మరియు సిఫార్సుల కోసం దశల వారీ సూచనలు తెలుసుకోండి."
-    },
-    {
       "route": "/te/guides/12",
       "title": "మెడ నొప్పి వ్యాయామాలు: ఉపశమనం కోసం ప్రభావవంతమైన మార్గదర్శిని",
       "description": "మెడ బిగుసుతనాన్ని తగ్గించడానికి, భంగిమను మెరుగుపరచడానికి మరియు మెడ కండరాలను బలోపేతం చేయడానికి సరళమైన మరియు ప్రభావవంతమైన మెడ వ్యాయామాలు ఇవి. దీర్ఘకాలిక మెడ నొప్పి ఉన్న రోగులు, డెస్క్ పనిచేసేవారు మరియు గాయం తర్వాత కోలుకునే వారి కోసం రూపొందించబడిన సురక్షితమైన కదలికలు."
@@ -251,6 +246,11 @@
       "route": "/te/guides/1",
       "title": "చదునైన పాదాల సంరక్షణ: ఆరోగ్యకరమైన పాదాలకు ప్రభావవంతమైన వ్యాయామాలు మరియు సూచనలు",
       "description": "ఫ్లాట్ ఫుట్ (చదునైన పాదాలు) అనేది నొప్పి, అలసట మరియు నడకలో ఇబ్బందిని కలిగించే ఒక సాధారణ పరిస్థితి. సరైన వ్యాయామాలు మరియు జీవనశైలి మీ పాదాలను బలోపేతం చేయడానికి, భంగిమను మెరుగుపరచడానికి మరియు అసౌకర్యాన్ని నియంత్రించడానికి సహాయపడుతుంది."
+    },
+    {
+      "route": "/te/guides/5",
+      "title": "మోకాలిని బలపరిచే వ్యాయామాలు: వివరణాత్మక సూచనలు",
+      "description": "ఈ సమగ్ర గైడ్‌తో మీ మోకాలి చుట్టూ ఉన్న కండరాలను (క్వాడ్స్, హామ్ స్ట్రింగ్స్, గ్లూట్స్, పిక్కలు) ఎలా బలోపేతం చేయాలో తెలుసుకోండి. ACL, PCL, మెనిస్కస్ చిరుగులు మరియు ఆర్థరైటిస్ వంటి నిర్దిష్ట మోకాలి పరిస్థితులకు ప్రభావవంతమైన వ్యాయామాలు మరియు సిఫార్సుల కోసం దశల వారీ సూచనలు తెలుసుకోండి."
     },
     {
       "route": "/te/guides/4",
