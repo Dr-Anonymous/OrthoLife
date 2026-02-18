@@ -22,7 +22,8 @@ import {
     BookOpen,
     AlertTriangle,
     Activity,
-    Trash2
+    Trash2,
+    Download
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -61,6 +62,12 @@ import { processTextShortcuts } from '@/lib/textShortcuts';
 import { useTranslation } from 'react-i18next';
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
 import { ConsentManagementModal } from '@/components/inpatient/ConsentManagementModal';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // --- Types ---
 
@@ -652,6 +659,86 @@ const InPatientManagement = () => {
         return result;
     }, [dischargedPatients, dischargeDateStart, dischargeDateEnd, paymentFilter]);
 
+    const handleExport = (exportFormat: 'excel' | 'text') => {
+        if (!filteredDischargedPatients.length) {
+            toast({ title: "No Data", description: "No records to export.", variant: "destructive" });
+            return;
+        }
+
+        const headers = ["Patient Name", "Admission Date", "Discharge Date", "Diagnosis", "Procedure", "Insurance Type"];
+
+        // Helper to escape CSV fields
+        const escapeCsv = (str: string | null | undefined) => {
+            if (!str) return '';
+            const stringValue = String(str);
+            if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+        };
+
+        // Helper for Text (Tab separated)
+        const checkTxt = (str: string | null | undefined) => {
+            if (!str) return '';
+            return String(str).replace(/\t/g, ' ').replace(/\n/g, ' '); // Remove tabs/newlines to avoid breaking format
+        }
+
+        const rows = filteredDischargedPatients.map(p => {
+            const name = p.patient?.name || 'Unknown';
+            const adminDate = p.admission_date ? format(new Date(p.admission_date), 'dd/MM/yyyy') : '-';
+            const dischDate = p.discharge_date ? format(new Date(p.discharge_date), 'dd/MM/yyyy') : '-';
+            const diag = p.diagnosis || '-';
+            const proc = p.procedure || '-';
+            const ins = p.payment_mode || 'Cash';
+
+            if (exportFormat === 'excel') {
+                return [
+                    escapeCsv(name),
+                    escapeCsv(adminDate),
+                    escapeCsv(dischDate),
+                    escapeCsv(diag),
+                    escapeCsv(proc),
+                    escapeCsv(ins)
+                ].join(',');
+            } else {
+                return [
+                    checkTxt(name),
+                    checkTxt(adminDate),
+                    checkTxt(dischDate),
+                    checkTxt(diag),
+                    checkTxt(proc),
+                    checkTxt(ins)
+                ].join('\t');
+            }
+        });
+
+        let content = '';
+        let filename = `discharge_data_${exportFormat === 'excel' ? 'xls' : 'txt'}_${format(new Date(), 'yyyy-MM-dd')}`;
+        let mimeType = '';
+
+        if (exportFormat === 'excel') {
+            // Add BOM for Excel UTF-8 compatibility
+            const bom = '\uFEFF';
+            content = bom + headers.join(',') + '\n' + rows.join('\n');
+            filename += '.csv';
+            mimeType = 'text/csv;charset=utf-8;';
+        } else {
+            content = headers.join('\t') + '\n' + rows.join('\n');
+            filename += '.txt';
+            mimeType = 'text/plain;charset=utf-8;';
+        }
+
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-12 h-[60vh]">
@@ -765,6 +852,22 @@ const InPatientManagement = () => {
                         >
                             Reset Filters
                         </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="mb-0.5 w-full md:w-auto gap-2">
+                                    <Download className="w-4 h-4" />
+                                    Export
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleExport('excel')}>
+                                    Export as Excel (CSV)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExport('text')}>
+                                    Export as Text (Tab Separated)
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
