@@ -22,9 +22,9 @@
     "/te/blog/11",
     "/te/blog/12",
     "/te/blog/9",
-    "/guides/1",
     "/guides/4",
     "/guides/2",
+    "/guides/1",
     "/guides/5",
     "/guides/11",
     "/guides/7",
@@ -38,8 +38,8 @@
     "/guides/6",
     "/te/guides/9",
     "/te/guides/5",
-    "/te/guides/1",
     "/te/guides/12",
+    "/te/guides/1",
     "/te/guides/4",
     "/te/guides/7",
     "/te/guides/6",
@@ -163,11 +163,6 @@
       "description": "మడమ నొప్పి అనేది పాదాల సమస్యలకు అత్యంత సాధారణ కారణాలలో ఒకటి. ప్లాంటార్ ఫాసిటిస్ అందుకు ప్రధాన కారణం. ఇది ఎందుకు జరుగుతుంది, ఎలా అనిపిస్తుంది మరియు దానిని నియంత్రించడానికి ఉత్తమ మార్గాలను తెలుసుకోండి."
     },
     {
-      "route": "/guides/1",
-      "title": "Flat Foot Care: Effective Exercises and Tips for Healthy Feet",
-      "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort."
-    },
-    {
       "route": "/guides/4",
       "title": "Plantar Fascia Exercises: Effective Stretches and Strengthening for Heel Pain Relief",
       "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence."
@@ -176,6 +171,11 @@
       "route": "/guides/2",
       "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
       "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health."
+    },
+    {
+      "route": "/guides/1",
+      "title": "Flat Foot Care: Effective Exercises and Tips for Healthy Feet",
+      "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort."
     },
     {
       "route": "/guides/5",
@@ -243,14 +243,14 @@
       "description": "ఈ సమగ్ర గైడ్‌తో మీ మోకాలి చుట్టూ ఉన్న కండరాలను (క్వాడ్స్, హామ్ స్ట్రింగ్స్, గ్లూట్స్, పిక్కలు) ఎలా బలోపేతం చేయాలో తెలుసుకోండి. ACL, PCL, మెనిస్కస్ చిరుగులు మరియు ఆర్థరైటిస్ వంటి నిర్దిష్ట మోకాలి పరిస్థితులకు ప్రభావవంతమైన వ్యాయామాలు మరియు సిఫార్సుల కోసం దశల వారీ సూచనలు తెలుసుకోండి."
     },
     {
-      "route": "/te/guides/1",
-      "title": "చదునైన పాదాల సంరక్షణ: ఆరోగ్యకరమైన పాదాలకు ప్రభావవంతమైన వ్యాయామాలు మరియు సూచనలు",
-      "description": "ఫ్లాట్ ఫుట్ (చదునైన పాదాలు) అనేది నొప్పి, అలసట మరియు నడకలో ఇబ్బందిని కలిగించే ఒక సాధారణ పరిస్థితి. సరైన వ్యాయామాలు మరియు జీవనశైలి మీ పాదాలను బలోపేతం చేయడానికి, భంగిమను మెరుగుపరచడానికి మరియు అసౌకర్యాన్ని నియంత్రించడానికి సహాయపడుతుంది."
-    },
-    {
       "route": "/te/guides/12",
       "title": "మెడ నొప్పి వ్యాయామాలు: ఉపశమనం కోసం ప్రభావవంతమైన మార్గదర్శిని",
       "description": "మెడ బిగుసుతనాన్ని తగ్గించడానికి, భంగిమను మెరుగుపరచడానికి మరియు మెడ కండరాలను బలోపేతం చేయడానికి సరళమైన మరియు ప్రభావవంతమైన మెడ వ్యాయామాలు ఇవి. దీర్ఘకాలిక మెడ నొప్పి ఉన్న రోగులు, డెస్క్ పనిచేసేవారు మరియు గాయం తర్వాత కోలుకునే వారి కోసం రూపొందించబడిన సురక్షితమైన కదలికలు."
+    },
+    {
+      "route": "/te/guides/1",
+      "title": "చదునైన పాదాల సంరక్షణ: ఆరోగ్యకరమైన పాదాలకు ప్రభావవంతమైన వ్యాయామాలు మరియు సూచనలు",
+      "description": "ఫ్లాట్ ఫుట్ (చదునైన పాదాలు) అనేది నొప్పి, అలసట మరియు నడకలో ఇబ్బందిని కలిగించే ఒక సాధారణ పరిస్థితి. సరైన వ్యాయామాలు మరియు జీవనశైలి మీ పాదాలను బలోపేతం చేయడానికి, భంగిమను మెరుగుపరచడానికి మరియు అసౌకర్యాన్ని నియంత్రించడానికి సహాయపడుతుంది."
     },
     {
       "route": "/te/guides/4",
