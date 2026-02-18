@@ -25,11 +25,11 @@
     "/guides/4",
     "/guides/1",
     "/guides/2",
-    "/guides/5",
     "/guides/11",
     "/guides/7",
     "/guides/12",
     "/guides/9",
+    "/guides/5",
     "/guides/10",
     "/guides/8",
     "/guides/14",
@@ -178,11 +178,6 @@
       "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health."
     },
     {
-      "route": "/guides/5",
-      "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
-      "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
-    },
-    {
       "route": "/guides/11",
       "title": "The ACL Rehab Journey: A Complete Post-Operative Protocol",
       "description": "This guide outlines a typical timeline and the goals, exercises, and milestones for each phase, from the day after surgery to a full year later."
@@ -201,6 +196,11 @@
       "route": "/guides/9",
       "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
       "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
+    },
+    {
+      "route": "/guides/5",
+      "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
+      "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
     },
     {
       "route": "/guides/10",
