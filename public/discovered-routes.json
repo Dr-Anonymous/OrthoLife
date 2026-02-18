@@ -23,8 +23,8 @@
     "/te/blog/12",
     "/te/blog/9",
     "/guides/4",
-    "/guides/2",
     "/guides/1",
+    "/guides/2",
     "/guides/5",
     "/guides/11",
     "/guides/7",
@@ -43,13 +43,13 @@
     "/te/guides/4",
     "/te/guides/7",
     "/te/guides/6",
-    "/te/guides/2",
     "/te/guides/11",
     "/te/guides/14",
     "/te/guides/8",
     "/te/guides/3",
     "/te/guides/10",
-    "/te/guides/15"
+    "/te/guides/15",
+    "/te/guides/2"
   ],
   "metadata": [
     {
@@ -168,14 +168,14 @@
       "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence."
     },
     {
-      "route": "/guides/2",
-      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
-      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health."
-    },
-    {
       "route": "/guides/1",
       "title": "Flat Foot Care: Effective Exercises and Tips for Healthy Feet",
       "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort."
+    },
+    {
+      "route": "/guides/2",
+      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
+      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health."
     },
     {
       "route": "/guides/5",
@@ -268,11 +268,6 @@
       "description": "ఆంధ్రప్రదేశ్లోని డయాబెటిస్ (షుగర్) రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి."
     },
     {
-      "route": "/te/guides/2",
-      "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
-      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది."
-    },
-    {
       "route": "/te/guides/11",
       "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
       "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది."
@@ -301,6 +296,11 @@
       "route": "/te/guides/15",
       "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
       "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం."
+    },
+    {
+      "route": "/te/guides/2",
+      "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
+      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది."
     }
   ]
 }
