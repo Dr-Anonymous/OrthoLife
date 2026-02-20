@@ -1,5 +1,5 @@
 import React from 'react';
-import { DndContext, closestCenter, DragEndEvent, SensorDescriptor, SensorOptions } from '@dnd-kit/core';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
 import { Stethoscope, Plus } from 'lucide-react';
@@ -66,7 +66,35 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     const prevMedicationsLength = React.useRef(medications.length);
     const shouldFocusNewMedication = React.useRef(false);
 
+    const medicationsRef = React.useRef(medications);
+    React.useEffect(() => {
+        medicationsRef.current = medications;
+    }, [medications]);
+
     const handleManualAdd = () => {
+        const currentMeds = medicationsRef.current;
+        const lastMed = currentMeds[currentMeds.length - 1];
+        const isLastEmpty = lastMed &&
+            !(lastMed.name || '').trim() &&
+            !(lastMed.dose || '').trim() &&
+            !(lastMed.frequency || '').trim() &&
+            !(lastMed.duration || '').trim() &&
+            !(lastMed.instructions || '').trim() &&
+            !(lastMed.notes || '').trim() &&
+            !lastMed.freqMorning &&
+            !lastMed.freqNoon &&
+            !lastMed.freqNight;
+
+        if (isLastEmpty) {
+            shouldFocusNewMedication.current = true;
+            setTimeout(() => {
+                if (medicationNameInputRef.current) {
+                    medicationNameInputRef.current.focus();
+                }
+            }, 10);
+            return;
+        }
+
         shouldFocusNewMedication.current = true;
         addMedication();
     };
@@ -104,7 +132,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [addMedication]); // handleManualAdd is stable if addMedication is stable or wrapped, but here it depends on addMedication which is fine.
+    }, [addMedication, handleManualAdd]);
 
     return (
         <div className="space-y-4">

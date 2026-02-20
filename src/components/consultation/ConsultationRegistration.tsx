@@ -587,6 +587,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   onKeyDown={e => {
                     if (showSuggestions) handleSuggestionKeyDown(e); // Allow navigation even from Phone input
                   }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className={cn("pl-10 pr-10", errors.phone && "border-destructive")}
                   placeholder="Enter 10-digit number"
                 />
@@ -620,6 +621,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                     if (showSuggestions) handleSuggestionKeyDown(e);
                     else if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); }
                   }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className={cn("pl-10 pr-10", errors.name && "border-destructive")}
                   placeholder="Enter full name"
                   autoComplete="off"
