@@ -23,33 +23,33 @@
     "/te/blog/12",
     "/te/blog/9",
     "/guides/1",
-    "/guides/4",
     "/guides/2",
-    "/guides/5",
+    "/guides/4",
     "/guides/11",
     "/guides/7",
     "/guides/12",
     "/guides/9",
-    "/guides/3",
     "/guides/10",
     "/guides/8",
+    "/guides/5",
+    "/guides/6",
     "/guides/14",
     "/guides/15",
-    "/guides/6",
+    "/guides/3",
     "/te/guides/9",
-    "/te/guides/5",
-    "/te/guides/1",
     "/te/guides/12",
-    "/te/guides/4",
+    "/te/guides/1",
+    "/te/guides/5",
     "/te/guides/7",
-    "/te/guides/6",
-    "/te/guides/2",
+    "/te/guides/4",
     "/te/guides/11",
+    "/te/guides/6",
     "/te/guides/14",
     "/te/guides/8",
-    "/te/guides/3",
     "/te/guides/10",
-    "/te/guides/15"
+    "/te/guides/15",
+    "/te/guides/2",
+    "/te/guides/3"
   ],
   "metadata": [
     {
@@ -168,19 +168,14 @@
       "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort."
     },
     {
-      "route": "/guides/4",
-      "title": "Plantar Fascia Exercises: Effective Stretches and Strengthening for Heel Pain Relief",
-      "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence."
-    },
-    {
       "route": "/guides/2",
       "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
       "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health."
     },
     {
-      "route": "/guides/5",
-      "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
-      "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
+      "route": "/guides/4",
+      "title": "Plantar Fascia Exercises: Effective Stretches and Strengthening for Heel Pain Relief",
+      "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence."
     },
     {
       "route": "/guides/11",
@@ -203,11 +198,6 @@
       "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
     },
     {
-      "route": "/guides/3",
-      "title": "Back Strengthening Exercises: Do’s and Dont's",
-      "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts."
-    },
-    {
       "route": "/guides/10",
       "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
       "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy."
@@ -216,6 +206,16 @@
       "route": "/guides/8",
       "title": "Managing High Blood Pressure: Essential Diet for Hypertensive Patients",
       "description": "Discover the best dietary strategies to control high blood pressure. Learn about foods to eat and avoid, and how a heart-healthy diet can improve your hypertension."
+    },
+    {
+      "route": "/guides/5",
+      "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
+      "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
+    },
+    {
+      "route": "/guides/6",
+      "title": "Diabetic Diet Chart for Andhra Pradesh Patients",
+      "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
     },
     {
       "route": "/guides/14",
@@ -228,9 +228,9 @@
       "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing."
     },
     {
-      "route": "/guides/6",
-      "title": "Diabetic Diet Chart for Andhra Pradesh Patients",
-      "description": "Discover a 7-day diabetic diet chart tailored for patients in Andhra Pradesh. This guide includes delicious, local recipes and essential tips to manage blood sugar and live a healthier life."
+      "route": "/guides/3",
+      "title": "Back Strengthening Exercises: Do’s and Dont's",
+      "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts."
     },
     {
       "route": "/te/guides/9",
@@ -238,9 +238,9 @@
       "description": "థైరాయిడ్ పనితీరుకు మద్దతు ఇవ్వడానికి మరియు లక్షణాలను నిర్వహించడానికి హైపోథైరాయిడిజం రోగులకు ఉత్తమ ఆహారం గురించి తెలుసుకోండి. సహాయపడే ఆహారాలను మరియు జాగ్రత్తగా తీసుకోవలసిన వాటిని కనుగొనండి."
     },
     {
-      "route": "/te/guides/5",
-      "title": "మోకాలిని బలపరిచే వ్యాయామాలు: వివరణాత్మక సూచనలు",
-      "description": "ఈ సమగ్ర గైడ్‌తో మీ మోకాలి చుట్టూ ఉన్న కండరాలను (క్వాడ్స్, హామ్ స్ట్రింగ్స్, గ్లూట్స్, పిక్కలు) ఎలా బలోపేతం చేయాలో తెలుసుకోండి. ACL, PCL, మెనిస్కస్ చిరుగులు మరియు ఆర్థరైటిస్ వంటి నిర్దిష్ట మోకాలి పరిస్థితులకు ప్రభావవంతమైన వ్యాయామాలు మరియు సిఫార్సుల కోసం దశల వారీ సూచనలు తెలుసుకోండి."
+      "route": "/te/guides/12",
+      "title": "మెడ నొప్పి వ్యాయామాలు: ఉపశమనం కోసం ప్రభావవంతమైన మార్గదర్శిని",
+      "description": "మెడ బిగుసుతనాన్ని తగ్గించడానికి, భంగిమను మెరుగుపరచడానికి మరియు మెడ కండరాలను బలోపేతం చేయడానికి సరళమైన మరియు ప్రభావవంతమైన మెడ వ్యాయామాలు ఇవి. దీర్ఘకాలిక మెడ నొప్పి ఉన్న రోగులు, డెస్క్ పనిచేసేవారు మరియు గాయం తర్వాత కోలుకునే వారి కోసం రూపొందించబడిన సురక్షితమైన కదలికలు."
     },
     {
       "route": "/te/guides/1",
@@ -248,14 +248,9 @@
       "description": "ఫ్లాట్ ఫుట్ (చదునైన పాదాలు) అనేది నొప్పి, అలసట మరియు నడకలో ఇబ్బందిని కలిగించే ఒక సాధారణ పరిస్థితి. సరైన వ్యాయామాలు మరియు జీవనశైలి మీ పాదాలను బలోపేతం చేయడానికి, భంగిమను మెరుగుపరచడానికి మరియు అసౌకర్యాన్ని నియంత్రించడానికి సహాయపడుతుంది."
     },
     {
-      "route": "/te/guides/12",
-      "title": "మెడ నొప్పి వ్యాయామాలు: ఉపశమనం కోసం ప్రభావవంతమైన మార్గదర్శిని",
-      "description": "మెడ బిగుసుతనాన్ని తగ్గించడానికి, భంగిమను మెరుగుపరచడానికి మరియు మెడ కండరాలను బలోపేతం చేయడానికి సరళమైన మరియు ప్రభావవంతమైన మెడ వ్యాయామాలు ఇవి. దీర్ఘకాలిక మెడ నొప్పి ఉన్న రోగులు, డెస్క్ పనిచేసేవారు మరియు గాయం తర్వాత కోలుకునే వారి కోసం రూపొందించబడిన సురక్షితమైన కదలికలు."
-    },
-    {
-      "route": "/te/guides/4",
-      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన నిత్యకృత్యాలు",
-      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి."
+      "route": "/te/guides/5",
+      "title": "మోకాలిని బలపరిచే వ్యాయామాలు: వివరణాత్మక సూచనలు",
+      "description": "ఈ సమగ్ర గైడ్‌తో మీ మోకాలి చుట్టూ ఉన్న కండరాలను (క్వాడ్స్, హామ్ స్ట్రింగ్స్, గ్లూట్స్, పిక్కలు) ఎలా బలోపేతం చేయాలో తెలుసుకోండి. ACL, PCL, మెనిస్కస్ చిరుగులు మరియు ఆర్థరైటిస్ వంటి నిర్దిష్ట మోకాలి పరిస్థితులకు ప్రభావవంతమైన వ్యాయామాలు మరియు సిఫార్సుల కోసం దశల వారీ సూచనలు తెలుసుకోండి."
     },
     {
       "route": "/te/guides/7",
@@ -263,19 +258,19 @@
       "description": "ఎముక విరగడం తాత్కాలిక సమస్యే, కానీ సరైన కాస్ట్ సంరక్షణ త్వరగా కోలుకోవడానికి చాలా అవసరం. ప్లాస్టర్ కాస్ట్‌తో జీవించడానికి ముఖ్యమైన చిట్కాలు, దానిని పొడిగా ఉంచుకోవడం, దురదను తగ్గించడం మరియు వైద్యుని సహాయం అవసరమైన ప్రమాద సంకేతాలను గుర్తించడం వంటి వాటి గురించి తెలుసుకోండి."
     },
     {
-      "route": "/te/guides/6",
-      "title": "ఆంధ్రప్రదేశ్ మధుమేహ రోగుల కోసం ఆహార పట్టిక",
-      "description": "ఆంధ్రప్రదేశ్లోని డయాబెటిస్ (షుగర్) రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి."
-    },
-    {
-      "route": "/te/guides/2",
-      "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
-      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది."
+      "route": "/te/guides/4",
+      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
+      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి."
     },
     {
       "route": "/te/guides/11",
       "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
       "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది."
+    },
+    {
+      "route": "/te/guides/6",
+      "title": "ఆంధ్రప్రదేశ్ మధుమేహ రోగుల కోసం ఆహార పట్టిక",
+      "description": "ఆంధ్రప్రదేశ్లోని డయాబెటిస్ (షుగర్) రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి."
     },
     {
       "route": "/te/guides/14",
@@ -288,11 +283,6 @@
       "description": "అధిక రక్తపోటును నియంత్రించడానికి ఉత్తమ ఆహార పద్ధతులను కనుగొనండి. ఏ ఆహారాలు తినాలి మరియు ఏవి నివారించాలి, మరియు హృదయానికి ఆరోగ్యకరమైన ఆహారం మీ అధిక రక్తపోటును ఎలా మెరుగుపరుస్తుందో తెలుసుకోండి."
     },
     {
-      "route": "/te/guides/3",
-      "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
-      "description": "మీ వీపు కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన వీపు వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి."
-    },
-    {
       "route": "/te/guides/10",
       "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
       "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది."
@@ -301,6 +291,16 @@
       "route": "/te/guides/15",
       "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
       "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం."
+    },
+    {
+      "route": "/te/guides/2",
+      "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
+      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది."
+    },
+    {
+      "route": "/te/guides/3",
+      "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
+      "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి."
     }
   ]
 }
