@@ -399,7 +399,6 @@ const ConsultationPage = () => {
     const lang = consultation.language || 'te';
     setInitialLanguage(lang);
     setConsultationLanguage(lang);
-    // i18n.changeLanguage(lang); // CAUTION: Do not change global language
 
 
     setIsProcedureExpanded(!!newExtraData.procedure);
@@ -1329,7 +1328,7 @@ const ConsultationPage = () => {
       medicationIds: new Set<number>()
     };
 
-    const inputText = `${extraData.complaints} ${extraData.diagnosis}`.toLowerCase();
+    const inputText = `${extraData.complaints} ${extraData.diagnosis} ${extraData.procedure}`.toLowerCase();
     const isTelugu = consultationLanguage === 'te';
 
     (autofillKeywords as AutofillProtocol[]).forEach(protocol => {
@@ -1372,7 +1371,7 @@ const ConsultationPage = () => {
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s)),
       suggestedMedications: finalMedications.filter(m => !currentlyAddedMedNames.has((m.name || '').toLowerCase()))
     };
-  }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
+  }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });

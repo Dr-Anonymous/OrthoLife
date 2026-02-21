@@ -1,6 +1,5 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { cleanAdviceLine } from '@/lib/utils';
 import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope } from 'lucide-react';
@@ -68,9 +67,41 @@ interface PrescriptionProps {
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
 export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true }, ref) => {
-  // Use getFixedT to translate without changing global state
-  const { i18n } = useTranslation();
-  const t = i18n.getFixedT(language);
+  const TRANSLATIONS = {
+    en: {
+      'prescription.advice': 'Advice',
+      'prescription.medication': 'Medication',
+      'prescription.med_name': 'Name',
+      'prescription.med_dose': 'Dose',
+      'prescription.med_frequency': 'Frequency',
+      'prescription.med_duration': 'Duration',
+      'prescription.med_instructions': 'Instructions',
+      'prescription.med_morning': 'Morning',
+      'prescription.med_noon': 'A.Noon',
+      'prescription.med_night': 'Night',
+      'prescription.followup': 'Follow-up',
+      'prescription.footer_text': 'Visit <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.'
+    },
+    te: {
+      'prescription.advice': 'సలహా',
+      'prescription.medication': 'మందులు',
+      'prescription.med_name': 'పేరు',
+      'prescription.med_dose': 'మోతాదు',
+      'prescription.med_frequency': 'తరచుదనం',
+      'prescription.med_duration': 'వ్యవధి',
+      'prescription.med_instructions': 'సూచనలు',
+      'prescription.med_morning': 'ఉదయం',
+      'prescription.med_noon': 'మధ్యాహ్నం',
+      'prescription.med_night': 'రాత్రి',
+      'prescription.followup': 'తదుపరి',
+      'prescription.footer_text': 'మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా చూడటానికి <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> సందర్శించండి.'
+    }
+  };
+
+  const t = (key: keyof typeof TRANSLATIONS.en) => {
+    const langObj = TRANSLATIONS[language as keyof typeof TRANSLATIONS] || TRANSLATIONS.en;
+    return langObj[key] || TRANSLATIONS.en[key] || key;
+  };
 
   const hasMedications = consultation.medications && consultation.medications.length > 0;
 

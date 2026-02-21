@@ -780,7 +780,7 @@ const PatientSuggestionsList: React.FC<PatientSuggestionsListProps> = ({
 
   return (
     <div ref={listRef} className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-md shadow-md max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
-      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50 border-b sticky top-0 bg-background z-10">
+      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted border-b sticky top-0 z-10">
         Suggested Patients ({searchResults.length})
       </div>
       {searchResults.map((patient, index) => (

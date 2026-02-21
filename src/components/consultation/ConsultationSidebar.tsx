@@ -139,7 +139,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
 
     React.useEffect(() => {
         setHighlightedIndex(-1);
-    }, [searchQuery]);
+
+        if (searchQuery.trim() !== '') {
+            if (filteredEvaluation.length > 0) setIsEvaluationCollapsed(false);
+            if (filteredCompleted.length > 0) setIsCompletedCollapsed(false);
+        }
+    }, [searchQuery, filteredEvaluation.length, filteredCompleted.length, setIsEvaluationCollapsed, setIsCompletedCollapsed]);
 
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

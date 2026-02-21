@@ -1267,7 +1267,7 @@ const EmptyState = ({ icon: Icon, message }: { icon: any, message: string }) => 
     </div>
 );
 
-const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
+const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: InPatient | null, onSubmit: (data: any) => void, isSaving: boolean, onCancel: () => void }) => {
     const [data, setData] = useState({
         diagnosis: patient?.diagnosis || '',
         procedure: patient?.procedure || '',
@@ -1279,6 +1279,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
         referred_by: patient?.referred_by || '',
         referral_amount: patient?.referral_amount || '',
         emergency_contact: patient?.emergency_contact || '',
+        payment_mode: patient?.payment_mode || 'Cash',
     });
 
     if (!patient) return null;
@@ -1312,8 +1313,8 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: any) => {
                 <div className="space-y-2">
                     <Label>Payment Mode</Label>
                     <Select
-                        value={(data as any).payment_mode || 'Cash'}
-                        onValueChange={(value) => setData({ ...data, payment_mode: value } as any)}
+                        value={data.payment_mode || 'Cash'}
+                        onValueChange={(value) => setData({ ...data, payment_mode: value })}
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Select mode" />
