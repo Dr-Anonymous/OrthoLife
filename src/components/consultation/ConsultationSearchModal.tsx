@@ -33,7 +33,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
       return;
     }
 
-    const sanitizedPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+    const sanitizedPhone = phone ? phone.replace(/\D/g, '') : '';
 
     setIsLoading(true);
     const { data, error } = await supabase.functions.invoke('search-consultations', {

@@ -238,6 +238,7 @@ const ConsultationPage = () => {
   const medDurationRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const medInstructionsRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const activeConsultationIdRef = useRef<string | null>(null);
 
 
   // Keyword Modal Prefill
@@ -331,6 +332,7 @@ const ConsultationPage = () => {
    * - Sets `lastVisitDate` for display.
    */
   const confirmSelection = useCallback(async (consultation: Consultation) => {
+    activeConsultationIdRef.current = consultation.id;
     setSelectedConsultation(consultation);
     const normalizedPatient = {
       ...consultation.patient,
@@ -410,7 +412,28 @@ const ConsultationPage = () => {
     // 1. Optimized Path: Check if the backend already provided `last_visit_date` (Existing Consultations).
     // 2. Fallback Path: If not (New Consultations), explicitly fetch it from the backend using the 'last_visit' action.
     if (consultation.patient.id && !String(consultation.patient.id).startsWith('offline-')) {
-      setLastVisitDate(consultation.last_visit_date || 'First Consultation');
+      if (consultation.last_visit_date !== undefined) {
+        setLastVisitDate(consultation.last_visit_date || 'First Consultation');
+      } else {
+        setLastVisitDate('Loading...');
+        const targetConsultationId = consultation.id;
+        // Fallback: fetch the complete history to extract the correct last_visit_date for this specific consultation
+        supabase.functions.invoke('get-consultations', {
+          body: { patientId: consultation.patient.id }
+        }).then(({ data, error }) => {
+          if (activeConsultationIdRef.current !== targetConsultationId) return;
+          if (!error && data?.consultations) {
+            const matched = data.consultations.find((c: any) => c.id === consultation.id);
+            setLastVisitDate(matched?.last_visit_date || 'First Consultation');
+          } else {
+            setLastVisitDate('First Consultation');
+          }
+        }).catch(() => {
+          if (activeConsultationIdRef.current === targetConsultationId) {
+            setLastVisitDate('First Consultation');
+          }
+        });
+      }
     } else {
       setLastVisitDate(null);
     }
@@ -892,7 +915,6 @@ const ConsultationPage = () => {
   }, [selectedHospital, isGpsEnabled, isAutoSendEnabled]);
 
   const handleSelectConsultation = async (consultation: Consultation) => {
-    // If passing from fetch logic, we might need to skip unsaved check or handle it
     // If passing from fetch logic, we might need to skip unsaved check or handle it
     if (hasChanges) {
       setPendingSelection(consultation);
@@ -1811,8 +1833,8 @@ const ConsultationPage = () => {
         onSelectConsultation={(consultation) => {
           const consultationDate = new Date(consultation.created_at);
           setSelectedDate(consultationDate);
-          // Pass consultation_data explicitly if needed or rely on fetch
-          fetchConsultations(consultationDate, consultation.patient.id, consultation.consultation_data);
+          // Directly load the consultation. This handles location updates and UI rendering.
+          handleSelectConsultation(consultation);
           setIsHistoryModalOpen(false);
           setHistoryPatientId(null);
         }}
@@ -1928,7 +1950,8 @@ const ConsultationPage = () => {
         onSelectConsultation={(consultation) => {
           const consultationDate = new Date(consultation.created_at);
           setSelectedDate(consultationDate);
-          fetchConsultations(consultationDate, consultation.patient.id, consultation.consultation_data);
+          // Directly load the consultation. This handles location updates and UI rendering.
+          handleSelectConsultation(consultation);
           setIsSearchModalOpen(false);
         }}
       />

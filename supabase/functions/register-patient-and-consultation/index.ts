@@ -93,16 +93,30 @@ serve(async (req: Request) => {
     const { id, name, dob, sex, phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days } = await req.json();
     const freeDuration = free_visit_duration_days ? Number(free_visit_duration_days) : 14;
 
-    // Sanitize phone to last 10 digits
+    // Sanitize phone and support matching both full international form and legacy last-10 form.
     const sanitizedPhone = sanitizePhoneNumber(phone);
+    const legacyPhone = sanitizedPhone.length > 10 ? sanitizedPhone.slice(-10) : sanitizedPhone;
+    const phoneCandidates = Array.from(new Set([sanitizedPhone, legacyPhone]));
 
-    // Check for existing patients with the same phone number
-    const { data: existingPatients, error: patientError } = await supabase
-      .from('patients')
-      .select('id, name, dob, sex, phone, drive_id')
-      .eq('phone', sanitizedPhone);
+    // Check for existing patients with the same phone number in both primary and secondary fields.
+    const [{ data: phoneMatches, error: phoneError }, { data: secondaryMatches, error: secondaryError }] = await Promise.all([
+      supabase
+        .from('patients')
+        .select('id, name, dob, sex, phone, drive_id')
+        .in('phone', phoneCandidates),
+      supabase
+        .from('patients')
+        .select('id, name, dob, sex, phone, drive_id')
+        .in('secondary_phone', phoneCandidates),
+    ]);
 
-    if (patientError) throw patientError;
+    if (phoneError) throw phoneError;
+    if (secondaryError) throw secondaryError;
+    const existingPatients = Array.from(
+      new Map(
+        [...(phoneMatches || []), ...(secondaryMatches || [])].map((patient) => [patient.id, patient])
+      ).values()
+    );
 
     // Helper function to calculate Levenshtein distance
     const levenshteinDistance = (a: string, b: string): number => {

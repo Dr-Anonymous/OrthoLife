@@ -138,13 +138,17 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     const visibleConsultations = [...filteredPending, ...filteredEvaluation, ...filteredCompleted];
 
     React.useEffect(() => {
-        setHighlightedIndex(-1);
+        if (searchQuery.trim() !== '' && visibleConsultations.length === 1) {
+            setHighlightedIndex(0);
+        } else {
+            setHighlightedIndex(-1);
+        }
 
         if (searchQuery.trim() !== '') {
             if (filteredEvaluation.length > 0) setIsEvaluationCollapsed(false);
             if (filteredCompleted.length > 0) setIsCompletedCollapsed(false);
         }
-    }, [searchQuery, filteredEvaluation.length, filteredCompleted.length, setIsEvaluationCollapsed, setIsCompletedCollapsed]);
+    }, [searchQuery, filteredEvaluation.length, filteredCompleted.length, visibleConsultations.length, setIsEvaluationCollapsed, setIsCompletedCollapsed]);
 
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -171,6 +175,11 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
             e.preventDefault();
             if (highlightedIndex >= 0 && highlightedIndex < visibleConsultations.length) {
                 const selected = visibleConsultations[highlightedIndex];
+                onSelectConsultation(selected);
+                setSearchQuery('');
+                setHighlightedIndex(-1);
+            } else if (visibleConsultations.length === 1) {
+                const selected = visibleConsultations[0];
                 onSelectConsultation(selected);
                 setSearchQuery('');
                 setHighlightedIndex(-1);

@@ -53,7 +53,7 @@ const WhatsAppMe = () => {
   const [nameFromUrl, setNameFromUrl] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [patientFolders, setPatientFolders] = useState<PatientFolder[]>([]);
-  const [prescription, setPrescription] = useState<any>(null);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
@@ -122,7 +122,7 @@ const WhatsAppMe = () => {
       setIsLoading(true);
       setPatientFolders([]);
       setCalendarEvents([]);
-      setPrescription(null);
+      setPrescriptions([]);
       try {
         const [patientResult, eventResult] = await Promise.all([
           supabase.functions.invoke('search-patients', {
@@ -136,9 +136,13 @@ const WhatsAppMe = () => {
         if (patientResult.error) throw patientResult.error;
         if (eventResult.error) throw eventResult.error;
 
-        if (patientResult.data && patientResult.data.length > 0) {
-          setPrescription(patientResult.data[0]);
-        }
+        const sortedPatients = (patientResult.data || []).sort((a: any, b: any) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+
+        setPrescriptions(sortedPatients);
         setCalendarEvents(eventResult.data.calendarEvents || []);
       } catch (error) {
         console.error('Error searching records:', error);
@@ -314,6 +318,12 @@ const WhatsAppMe = () => {
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={displayName || phone}
               onChange={handlePhoneChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  searchRecords();
+                }
+              }}
               placeholder="Enter phone number"
             />
             <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
@@ -343,8 +353,8 @@ const WhatsAppMe = () => {
         {isLoading && <p>Loading...</p>}
 
         <div className="flex overflow-x-auto space-x-4 py-2">
-          {prescription && (
-            <Card className="min-w-[300px] max-w-[85vw] flex-shrink-0">
+          {prescriptions.map((prescription, idx) => (
+            <Card key={prescription.id || idx} className="min-w-[300px] max-w-[85vw] flex-shrink-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clipboard className="w-4 h-4" /> Prescription Details
@@ -371,7 +381,7 @@ const WhatsAppMe = () => {
                 <ConsultationCard data={prescription} />
               </CardContent>
             </Card>
-          )}
+          ))}
 
           {calendarEvents.map(event => (
             <Card key={event.start} className="min-w-[300px] flex-shrink-0">
