@@ -36,6 +36,7 @@
     "/guides/14",
     "/guides/15",
     "/guides/3",
+    "/guides/16",
     "/te/guides/9",
     "/te/guides/12",
     "/te/guides/1",
@@ -49,7 +50,8 @@
     "/te/guides/10",
     "/te/guides/15",
     "/te/guides/2",
-    "/te/guides/3"
+    "/te/guides/3",
+    "/te/guides/16"
   ],
   "metadata": [
     {
@@ -233,6 +235,11 @@
       "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts."
     },
     {
+      "route": "/guides/16",
+      "title": "Post-Injection Care: A Guide to Recovery After Joint Injections",
+      "description": "Whether you've received a Steroid, PRP, or Viscosupplementation injection, proper aftercare is essential. Learn the do’s and don’ts to maximize relief and ensure a smooth recovery."
+    },
+    {
       "route": "/te/guides/9",
       "title": "హైపోథైరాయిడిజం ఆహారం: సరైన థైరాయిడ్ ఆరోగ్యం కోసం మీ శరీరానికి ఇంధనం",
       "description": "థైరాయిడ్ పనితీరుకు మద్దతు ఇవ్వడానికి మరియు లక్షణాలను నిర్వహించడానికి హైపోథైరాయిడిజం రోగులకు ఉత్తమ ఆహారం గురించి తెలుసుకోండి. సహాయపడే ఆహారాలను మరియు జాగ్రత్తగా తీసుకోవలసిన వాటిని కనుగొనండి."
@@ -301,6 +308,11 @@
       "route": "/te/guides/3",
       "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
       "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి."
+    },
+    {
+      "route": "/te/guides/16",
+      "title": "జాయింట్ ఇంజెక్షన్ తర్వాత తీసుకోవలసిన జాగ్రత్తలు: రోగుల కోసం మార్గదర్శకాలు",
+      "description": "మీరు స్టెరాయిడ్, PRP లేదా జెల్ ఇంజెక్షన్ తీసుకున్నారా? త్వరగా కోలుకోవడానికి మరియు ఇంజెక్షన్ పూర్తి ఫలితం పొందడానికి ఈ ముఖ్యమైన సూచనలను పాటించండి."
     }
   ]
 }
