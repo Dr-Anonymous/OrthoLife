@@ -9,6 +9,7 @@ import { Plus, Trash2, Loader2, Search, Link as LinkIcon, ArrowRight, ArrowLeft 
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
 
 interface FamilyMemberManagerProps {
     currentPatientId: string;
@@ -114,9 +115,37 @@ export const FamilyMemberManager: React.FC<FamilyMemberManagerProps> = ({ curren
         if (!selectedRelatedPatient || !selectedType) return;
 
         try {
+            // Ensure the related patient exists in our SQL database. 
+            // Patients from 'gdrive' source are legacy records not yet in the SQL table.
+            if (selectedRelatedPatient.source === 'gdrive') {
+                // Sanitize DOB for DB (date type expects YYYY-MM-DD)
+                let formattedDob = null;
+                if (selectedRelatedPatient.dob) {
+                    try {
+                        const d = new Date(selectedRelatedPatient.dob);
+                        if (!isNaN(d.getTime())) {
+                            formattedDob = format(d, 'yyyy-MM-dd');
+                        }
+                    } catch (e) {
+                        console.error("Invalid DOB from Drive:", selectedRelatedPatient.dob);
+                    }
+                }
+
+                const { error: patientError } = await supabase.from('patients').upsert({
+                    id: String(selectedRelatedPatient.id),
+                    name: selectedRelatedPatient.name,
+                    dob: formattedDob,
+                    sex: selectedRelatedPatient.sex,
+                    phone: selectedRelatedPatient.phone,
+                    drive_id: selectedRelatedPatient.drive_id,
+                    is_dob_estimated: false
+                });
+                if (patientError) throw patientError;
+            }
+
             const { error } = await supabase.from('patient_relationships').insert({
                 patient_id: currentPatientId,
-                related_patient_id: selectedRelatedPatient.id,
+                related_patient_id: String(selectedRelatedPatient.id),
                 relationship_type: selectedType
             });
 
