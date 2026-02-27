@@ -159,6 +159,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
         };
 
         window.addEventListener('keydown', handleKeyDown);
+
+        // Focus search bar on mount
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+        }, 100);
+
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
