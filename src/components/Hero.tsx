@@ -8,7 +8,7 @@ const Hero = () => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col md:flex-row items-center">
           <div className="w-full md:w-1/2 mb-10 md:mb-0">
-            <div className="max-w-xl space-y-6 animate-fade-in" style={{animationDelay: '0.1s'}}>
+            <div className="max-w-xl space-y-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-gray-900 leading-tight">
                 Specialized Care For Your <span className="text-primary">Orthopaedic</span> Needs
               </h1>
@@ -16,10 +16,10 @@ const Hero = () => {
                 OrthoLife offers expert orthopaedic care for all conditions from fractures and sports injuries to spine, joint, and orthobiologic treatments. Get <i>Back to health</i>, doing what you love—stronger, faster, pain-free.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white" onClick={(e) => {e.preventDefault();window.location.href='/appointment';}}>
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white" onClick={(e) => { e.preventDefault(); window.location.href = '/appointment'; }}>
                   Book an Appointment
                 </Button>
-                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10" onClick={(e) => {e.preventDefault();window.location.href='#services';}}>
+                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10" onClick={(e) => { e.preventDefault(); window.location.href = '#services'; }}>
                   Our Services
                 </Button>
               </div>
@@ -39,14 +39,14 @@ const Hero = () => {
               </div>
             </div>
           </div>
-          <div className="w-full md:w-1/2 animate-fade-in" style={{animationDelay: '0.3s'}}>
+          <div className="w-full md:w-1/2 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="relative">
               <div className="absolute -top-6 -left-6 w-24 h-24 bg-secondary/20 rounded-full"></div>
               <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-primary/10 rounded-full"></div>
               <div className="relative rounded-lg overflow-hidden shadow-xl">
-                <img 
-                  src="https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/landing%20pics/cover.jpeg" 
-                  alt="Medical professional with patient" 
+                <img
+                  src="https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/landing%20pics/cover.jpeg"
+                  alt="Medical professional with patient"
                   className="w-full h-auto object-cover aspect-[4/3]"
                   loading="lazy"
                 />
