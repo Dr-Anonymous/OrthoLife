@@ -28,10 +28,10 @@
     "/guides/11",
     "/guides/7",
     "/guides/12",
-    "/guides/9",
     "/guides/8",
     "/guides/10",
     "/guides/5",
+    "/guides/9",
     "/guides/6",
     "/guides/14",
     "/guides/15",
@@ -195,11 +195,6 @@
       "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery."
     },
     {
-      "route": "/guides/9",
-      "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
-      "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
-    },
-    {
       "route": "/guides/8",
       "title": "Managing High Blood Pressure: Essential Diet for Hypertensive Patients",
       "description": "Discover the best dietary strategies to control high blood pressure. Learn about foods to eat and avoid, and how a heart-healthy diet can improve your hypertension."
@@ -213,6 +208,11 @@
       "route": "/guides/5",
       "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
       "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis."
+    },
+    {
+      "route": "/guides/9",
+      "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
+      "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution."
     },
     {
       "route": "/guides/6",
