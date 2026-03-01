@@ -64,20 +64,29 @@ const PatientGuidePage = () => {
       setTranslatedGuide(null); // Reset on language or guide change
 
       try {
-        const { data: guideData, error: guideError } = await supabase
+        const isNumericId = /^\d+$/.test(guideId);
+
+        // Define the query depending on if guideId is a numeric ID or a slug
+        let query = supabase
           .from('guides')
           .select('*, categories(name)')
-          .eq('id', guideId)
-          .single();
+
+        if (isNumericId) {
+          query = query.eq('id', parseInt(guideId));
+        } else {
+          query = query.eq('slug', guideId);
+        }
+
+        const { data: guideData, error: guideError } = await query.single();
 
         if (guideError) throw guideError;
         setGuide(guideData);
 
-        if (i18n.language !== 'en') {
+        if (i18n.language !== 'en' && guideData) {
           const { data: translationData, error: translationError } = await supabase
             .from('guide_translations')
             .select('*')
-            .eq('guide_id', guideId)
+            .eq('guide_id', guideData.id)
             .eq('language', i18n.language)
             .single();
 
@@ -103,17 +112,17 @@ const PatientGuidePage = () => {
     if (!guideId) return;
     if (loading) return;
 
-    const canonicalPath = `/guides/${guideId}`;
-
     if (!guide) {
       applySeo({
         title: 'Guide Not Found | OrthoLife',
         description: 'The requested patient guide could not be found.',
-        canonicalPath,
+        canonicalPath: `/guides/${guideId}`,
         noindex: true
       });
       return;
     }
+
+    const canonicalPath = `/guides/${guide.slug || guide.id}`;
 
     const title = translatedGuide?.title || guide.title;
     const description = translatedGuide?.description || guide.description;

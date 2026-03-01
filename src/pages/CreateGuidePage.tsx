@@ -64,6 +64,7 @@ const CreateGuidePage = () => {
           guide_id: newGuide.id,
           language: lang,
           title: translations[lang].title,
+          slug: translations[lang].slug,
           description: translations[lang].description,
           content: translations[lang].content,
           next_steps: translations[lang].next_steps,
@@ -82,7 +83,7 @@ const CreateGuidePage = () => {
         description: "Your new patient guide has been successfully created.",
       });
 
-      navigate(`/guides/${newGuide.id}`);
+      navigate(`/guides/${newGuide.slug || newGuide.id}`);
 
     } catch (error) {
       console.error('Error creating guide:', error);

@@ -5,12 +5,12 @@ const path = require('path');
 // Script to discover dynamic routes for pre-rendering
 const discoverDynamicRoutes = async () => {
   console.log('🔍 Discovering dynamic routes for pre-rendering...');
-  
+
   try {
     // Initialize Supabase client with environment variables
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
-    
+
     if (!supabaseUrl || !supabaseKey) {
       console.warn('⚠️  Supabase credentials not found, skipping dynamic route discovery');
       return [];
@@ -18,28 +18,58 @@ const discoverDynamicRoutes = async () => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const dynamicRoutes = [];
+    const metadata = [];
 
     // Fetch blog posts
     try {
-      const { data: posts } = await supabase.from('posts').select('id');
+      const { data: posts } = await supabase.from('posts').select('id, title, excerpt');
       if (posts) {
         posts.forEach(post => {
-          dynamicRoutes.push(`/blog/${post.id}`);
+          const route = `/blog/${post.id}`;
+          dynamicRoutes.push(route);
+          metadata.push({ route, title: post.title, description: post.excerpt });
         });
         console.log(`📝 Found ${posts.length} blog posts`);
+      }
+
+      const { data: translatedPosts } = await supabase.from('post_translations').select('post_id, title, excerpt').eq('language', 'te');
+      if (translatedPosts) {
+        translatedPosts.forEach(post => {
+          const route = `/te/blog/${post.post_id}`;
+          dynamicRoutes.push(route);
+          metadata.push({ route, title: post.title, description: post.excerpt });
+        });
+        console.log(`📝 Found ${translatedPosts.length} translated blog posts`);
       }
     } catch (error) {
       console.warn('Could not fetch blog posts:', error.message);
     }
 
-    // Fetch guides
     try {
-      const { data: guides } = await supabase.from('guides').select('id');
+      const { data: guides } = await supabase.from('guides').select('id, slug, title, description');
       if (guides) {
         guides.forEach(guide => {
-          dynamicRoutes.push(`/guides/${guide.id}`);
+          const identifier = guide.slug || guide.id;
+          const route = `/guides/${identifier}`;
+          dynamicRoutes.push(route);
+          metadata.push({ route, title: guide.title, description: guide.description });
         });
         console.log(`📚 Found ${guides.length} guides`);
+      }
+
+      const { data: translatedGuides } = await supabase.from('guide_translations').select('guide_id, title, description').eq('language', 'te');
+      if (translatedGuides && guides) {
+        // Need to match translation to guide to get the slug
+        translatedGuides.forEach(translation => {
+          const parentGuide = guides.find(g => g.id === translation.guide_id);
+          if (parentGuide) {
+            const identifier = parentGuide.slug || parentGuide.id;
+            const route = `/te/guides/${identifier}`;
+            dynamicRoutes.push(route);
+            metadata.push({ route, title: translation.title, description: translation.description });
+          }
+        });
+        console.log(`📚 Found ${translatedGuides.length} translated guides`);
       }
     } catch (error) {
       console.warn('Could not fetch guides:', error.message);
@@ -47,14 +77,14 @@ const discoverDynamicRoutes = async () => {
 
     // Write discovered routes to a file for react-snap
     const routesFile = path.join(__dirname, '../public/discovered-routes.json');
-    fs.writeFileSync(routesFile, JSON.stringify(dynamicRoutes, null, 2));
-    
-    console.log(`✅ Discovered ${dynamicRoutes.length} dynamic routes`);
-    return dynamicRoutes;
-    
+    fs.writeFileSync(routesFile, JSON.stringify({ routes: dynamicRoutes, metadata }, null, 2));
+
+    console.log(`✅ Discovered ${dynamicRoutes.length} dynamic routes with metadata`);
+    return { routes: dynamicRoutes, metadata };
+
   } catch (error) {
     console.warn('❌ Error discovering dynamic routes:', error.message);
-    return [];
+    return { routes: [], metadata: [] };
   }
 };
 

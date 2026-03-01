@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const guideFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
+  slug: z.string().optional(),
   description: z.string().min(1, "Description is required"),
   content: z.string().min(1, "Content is required"),
   cover_image_url: z.string().url("Please enter a valid URL"),
@@ -34,8 +35,9 @@ const guideFormSchema = z.object({
 export type GuideFormValues = z.infer<typeof guideFormSchema>;
 
 export interface TranslationValues {
-  [lang:string]: {
+  [lang: string]: {
     title?: string;
+    slug?: string;
     description?: string;
     content?: string;
     next_steps?: string;
@@ -79,7 +81,7 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
     }
   }, [initialData, translations, form]);
 
-  const handleTranslationChange = (lang: string, field: 'title' | 'description' | 'content' | 'next_steps', value: string) => {
+  const handleTranslationChange = (lang: string, field: 'title' | 'slug' | 'description' | 'content' | 'next_steps', value: string) => {
     setTranslationValues(prev => ({
       ...prev,
       [lang]: {
@@ -106,6 +108,19 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
                   <FormLabel>Title</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter guide title" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="slug"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL Slug (Optional, auto-generated if empty)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. effective-knee-exercises" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -177,6 +192,16 @@ const GuidePostForm: React.FC<GuidePostFormProps> = ({ initialData, translations
                   placeholder="Enter Telugu title"
                   value={translationValues.te?.title || ''}
                   onChange={(e) => handleTranslationChange('te', 'title', e.target.value)}
+                />
+              </FormControl>
+            </FormItem>
+            <FormItem>
+              <FormLabel>Translated URL Slug (Optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g. effective-knee-exercises-te"
+                  value={translationValues.te?.slug || ''}
+                  onChange={(e) => handleTranslationChange('te', 'slug', e.target.value)}
                 />
               </FormControl>
             </FormItem>

@@ -25,6 +25,7 @@ export interface GuideCategory {
 
 export interface Guide {
   id: number;
+  slug: string;
   title: string;
   description: string;
   category_id: number;
@@ -121,7 +122,8 @@ const PatientGuidesPage = () => {
   const handleShare = async (guide: Guide) => {
     const lang = i18n.language;
     const langPrefix = lang === 'en' ? '' : `/${lang}`;
-    const shareUrl = `${window.location.origin}${langPrefix}/guides/${guide.id}`;
+    const urlSegment = guide.slug || guide.id.toString();
+    const shareUrl = `${window.location.origin}${langPrefix}/guides/${urlSegment}`;
     const translatedGuide = getTranslatedGuide(guide, i18n.language);
 
     const shareData = {
@@ -418,7 +420,7 @@ const PatientGuidesPage = () => {
             {/* Featured Guide & Grid */}
             {guidesToDisplay.length > 0 && (
               <>
-                <Link to={`/guides/${guidesToDisplay[0].id}`} className="group block">
+                <Link to={`/guides/${guidesToDisplay[0].slug || guidesToDisplay[0].id}`} className="group block">
                   <Card className="mb-8 overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 hover:shadow-lg transition-shadow">
                     <div className="md:flex">
                       <div className="md:w-1/3">
@@ -454,7 +456,7 @@ const PatientGuidesPage = () => {
                         </div>
                         <div className="flex gap-2 mt-auto">
                           <Button asChild className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Link to={`/guides/${guidesToDisplay[0].id}`}>
+                            <Link to={`/guides/${guidesToDisplay[0].slug || guidesToDisplay[0].id}`}>
                               <Eye size={16} className="md:mr-2" />
                               <span className="hidden md:inline">{t('guides.readOnline')}</span>
                             </Link>
@@ -474,7 +476,7 @@ const PatientGuidesPage = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {guidesToDisplay.slice(1).map((guide) => (
-                    <Link to={`/guides/${guide.id}`} key={guide.id} className="group">
+                    <Link to={`/guides/${guide.slug || guide.id}`} key={guide.id} className="group">
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
                           <img
@@ -510,7 +512,7 @@ const PatientGuidesPage = () => {
                           </div>
                           <div className="flex gap-2 mt-auto">
                             <Button asChild size="sm" className="flex-1" onClick={(e) => e.stopPropagation()}>
-                              <Link to={`/guides/${guide.id}`} className="w-full justify-center">
+                              <Link to={`/guides/${guide.slug || guide.id}`} className="w-full justify-center">
                                 <Eye size={14} className="md:mr-1" />
                                 <span className="hidden md:inline">{t('guides.read')}</span>
                               </Link>

@@ -23,6 +23,7 @@ import { Trash2 } from "lucide-react"
 interface TranslationValues {
   [lang: string]: {
     title?: string;
+    slug?: string;
     description?: string;
     content?: string;
     next_steps?: string;
@@ -37,6 +38,7 @@ const EditGuidePage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [initialData, setInitialData] = useState<Partial<GuideFormValues> | null>(null);
   const [translations, setTranslations] = useState<TranslationValues | null>(null);
+  const [numericGuideId, setNumericGuideId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,18 +47,29 @@ const EditGuidePage = () => {
       setLoading(true);
       try {
         // Fetch main guide data
-        const { data: guideData, error: guideError } = await supabase
+        const isNumericId = /^\\d+$/.test(guideId);
+        let query = supabase
           .from('guides')
           .select('*, categories(name)')
-          .eq('id', guideId)
-          .single();
+
+        if (isNumericId) {
+          query = query.eq('id', parseInt(guideId));
+        } else {
+          query = query.eq('slug', guideId);
+        }
+
+        const { data: guideData, error: guideError } = await query.single();
         if (guideError) throw guideError;
+
+        // Ensure we use the numeric ID for translations and updates if guideId was a slug
+        const fetchedNumericId = guideData.id;
+        setNumericGuideId(fetchedNumericId);
 
         // Fetch translations
         const { data: translationData, error: translationError } = await supabase
           .from('guide_translations')
           .select('*')
-          .eq('guide_id', guideId);
+          .eq('guide_id', fetchedNumericId);
         if (translationError) throw translationError;
 
         const initialFormValues: Partial<GuideFormValues> = {
@@ -69,6 +82,7 @@ const EditGuidePage = () => {
         const initialTranslations = translationData.reduce((acc, t) => {
           acc[t.language] = {
             title: t.title,
+            slug: t.slug,
             description: t.description,
             content: t.content,
             next_steps: t.next_steps || ''
@@ -105,14 +119,15 @@ const EditGuidePage = () => {
       const { error: updateError } = await supabase
         .from('guides')
         .update({ ...guideData, category_id: categoryId, last_updated: new Date().toISOString() })
-        .eq('id', guideId);
+        .eq('id', numericGuideId || guideId);
       if (updateError) throw updateError;
 
       // Upsert translations
       const translationUpserts = Object.keys(newTranslations).map(lang => ({
-        guide_id: guideId,
+        guide_id: numericGuideId || parseInt(guideId), // Fallback to parsed parameter if ID wasn't stored
         language: lang,
         title: newTranslations[lang].title,
+        slug: newTranslations[lang].slug,
         description: newTranslations[lang].description,
         content: newTranslations[lang].content,
         next_steps: newTranslations[lang].next_steps,
@@ -125,11 +140,17 @@ const EditGuidePage = () => {
         if (translationError) throw translationError;
       }
 
+      const { data: updatedGuide } = await supabase
+        .from('guides')
+        .select('slug')
+        .eq('id', numericGuideId || guideId)
+        .single();
+
       toast({
         title: "Guide updated!",
         description: "The patient guide has been successfully updated.",
       });
-      navigate(`/guides/${guideId}`);
+      navigate(`/guides/${updatedGuide?.slug || guideId}`);
 
     } catch (error) {
       console.error('Error updating guide:', error);
@@ -144,13 +165,13 @@ const EditGuidePage = () => {
   };
 
   const handleDelete = async () => {
-    if (!guideId) return;
+    if (!numericGuideId && !guideId) return;
     setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('guides')
         .delete()
-        .eq('id', guideId);
+        .eq('id', numericGuideId || guideId);
 
       if (error) throw error;
 

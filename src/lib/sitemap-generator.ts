@@ -24,9 +24,9 @@ const staticRoutes = [
 
 export const generateSitemap = () => {
   console.log('Generating sitemap...');
-  
+
   const currentDate = new Date().toISOString();
-  
+
   // Load discovered routes if they exist
   let dynamicRoutes: string[] = [];
   try {
@@ -34,7 +34,14 @@ export const generateSitemap = () => {
     if (fs.existsSync(discoveredRoutesPath)) {
       const discoveredData = fs.readFileSync(discoveredRoutesPath, 'utf8');
       const discoveredJson = JSON.parse(discoveredData);
-      dynamicRoutes = discoveredJson.routes;
+
+      // Handle both old array format and new object ({ routes, metadata }) format
+      if (Array.isArray(discoveredJson)) {
+        dynamicRoutes = discoveredJson;
+      } else if (discoveredJson.routes && Array.isArray(discoveredJson.routes)) {
+        dynamicRoutes = discoveredJson.routes;
+      }
+
       console.log(`Found ${dynamicRoutes.length} dynamic routes`);
     }
   } catch (error) {
@@ -53,8 +60,8 @@ ${staticRoutes.map(route => `  <url>
 ${dynamicRoutes.map(route => `  <url>
     <loc>${BASE_URL}${route}</loc>
     <lastmod>${currentDate}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <changefreq>${route.includes('/guides/') ? 'monthly' : 'weekly'}</changefreq>
+    <priority>${route.includes('/guides/') ? '0.8' : '0.7'}</priority>
   </url>`).join('\n')}
 </urlset>`;
 
