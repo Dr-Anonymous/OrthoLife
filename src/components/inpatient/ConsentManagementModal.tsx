@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, FileText, CheckCircle2, Clock, Eye, Printer } from 'lucide-react';
+import { Plus, FileText, CheckCircle2, Clock, Eye, Printer, Trash2 } from 'lucide-react';
 import { InPatient, SurgicalConsent } from '@/types/inPatients';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,6 +89,30 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
         return createMutation.mutateAsync({ data, shouldClose });
     };
 
+    const deleteMutation = useMutation({
+        mutationFn: async (consentId: string) => {
+            const { error } = await supabase
+                .from('surgical_consents')
+                .delete()
+                .eq('id', consentId);
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['surgical-consents'] });
+            toast.success("Consent deleted successfully");
+        },
+        onError: (err: any) => {
+            toast.error(err.message);
+        }
+    });
+
+    const handleDelete = (consent: SurgicalConsent) => {
+        if (window.confirm(`Are you sure you want to delete the consent for "${consent.procedure_name}"?`)) {
+            deleteMutation.mutate(consent.id);
+        }
+    };
+
     const handleView = (consent: SurgicalConsent) => {
         setSelectedConsent(consent);
         setViewMode('view');
@@ -167,6 +191,12 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
                                                 {consent.consent_status === 'signed' && (
                                                     <Button variant="outline" size="sm" className="flex-1 md:flex-none" onClick={() => handlePrint(consent)}>
                                                         <Printer className="w-4 h-4 mr-2" /> Print
+                                                    </Button>
+                                                )}
+
+                                                {consent.consent_status === 'pending' && (
+                                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-white hover:bg-destructive" onClick={() => handleDelete(consent)}>
+                                                        <Trash2 className="w-4 h-4" />
                                                     </Button>
                                                 )}
                                             </div>

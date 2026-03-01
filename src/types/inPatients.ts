@@ -76,6 +76,8 @@ export interface SurgicalConsent {
     doctor_signature?: string;
     witness_signature?: string;
     selfie_url?: string;
+    guardian_name?: string;
+    is_minor?: boolean;
     consent_status: 'pending' | 'signed';
     consent_language?: string;
     created_at: string;

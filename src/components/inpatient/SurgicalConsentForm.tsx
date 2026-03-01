@@ -11,8 +11,12 @@ import {
     Eraser,
     Lock,
     AlertTriangle,
-    Send
+    Send,
+    Calendar
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { supabase } from '@/integrations/supabase/client';
@@ -69,8 +73,33 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         consent_language: initialData?.consent_language || lang,
         signed_at: initialData?.signed_at,
         patient_signature: initialData?.patient_signature,
-        selfie_url: initialData?.selfie_url
+        selfie_url: initialData?.selfie_url,
+        guardian_name: initialData?.guardian_name || '',
+        is_minor: initialData?.is_minor || false
     });
+
+    // Age calculation
+    const calculatePatientAge = (dob: string | null): number => {
+        if (!dob) return 0;
+        const dobDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - dobDate.getFullYear();
+        const m = today.getMonth() - dobDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const patientAge = calculatePatientAge(patient.patient.dob);
+    const isMinor = patientAge > 0 && patientAge < 18;
+
+    // Set is_minor in formData if it changes
+    useEffect(() => {
+        if (isMinor !== formData.is_minor) {
+            setFormData(prev => ({ ...prev, is_minor: isMinor }));
+        }
+    }, [isMinor]);
 
     // Signature Refs
     const patientSigRef = useRef<SignatureCanvas>(null);
@@ -93,6 +122,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     // Template State
     const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
     const [templateName, setTemplateName] = useState('');
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     // Fetch Templates
     const { data: templates } = useQuery({
@@ -143,7 +173,6 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         if (template) {
             setFormData(prev => ({
                 ...prev,
-                procedure_name: template.procedure_name || prev.procedure_name,
                 risks_general: template.risks_general,
                 risks_anesthesia: template.risks_anesthesia,
                 risks_procedure: template.risks_procedure
@@ -169,6 +198,8 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 patient_signature: initialData.patient_signature || prev.patient_signature,
                 selfie_url: initialData.selfie_url || prev.selfie_url,
                 signed_at: initialData.signed_at || prev.signed_at,
+                guardian_name: initialData.guardian_name || prev.guardian_name,
+                is_minor: initialData.is_minor !== undefined ? initialData.is_minor : (patientAge > 0 && patientAge < 18),
             }));
 
             // Also update selfie state if present
@@ -474,7 +505,13 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
                     <div className="text-center border-b pb-4">
                         <h2 className="text-2xl font-bold">Consent Form</h2>
-                        <p className="text-muted-foreground">for {formData.procedure_name} on {formData.surgery_date ? format(new Date(formData.surgery_date), 'dd MMM yyyy') : ''}</p>
+                        <p className="text-muted-foreground">
+                            for {formData.procedure_name} on {formData.surgery_date ? format(new Date(formData.surgery_date), 'dd MMM yyyy') : ''}
+                        </p>
+                        <p className="text-sm font-medium">
+                            Patient: {patient.patient.name} ({patientAge} years)
+                            {formData.is_minor && <span className="text-orange-600 ml-2">(Minor - Guardian Consent)</span>}
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -501,14 +538,15 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                     <div className="flex flex-col sm:flex-row gap-6 items-center justify-center border-t pt-6">
                         {formData.patient_signature && (
                             <div className="text-center w-full sm:w-auto">
-                                <p className="font-semibold mb-2">Patient Signature</p>
-                                <img src={formData.patient_signature} alt="Patient Sig" className="border rounded h-auto max-h-32 max-w-full mx-auto" />
+                                <p className="font-semibold mb-1">{formData.is_minor ? 'Guardian Signature' : 'Patient Signature'}</p>
+                                {formData.is_minor && <p className="text-xs text-muted-foreground mb-1">Signed by: {formData.guardian_name}</p>}
+                                <img src={formData.patient_signature} alt="Signature" className="border rounded h-auto max-h-32 max-w-full mx-auto" />
                             </div>
                         )}
                         {formData.selfie_url && (
                             <div className="text-center w-full sm:w-auto">
-                                <p className="font-semibold mb-2">Patient Verification</p>
-                                <img src={formData.selfie_url} alt="Selfie" className="border rounded h-auto max-h-32 max-w-full object-cover mx-auto" />
+                                <p className="font-semibold mb-1">{formData.is_minor ? 'Guardian & Patient Photo' : 'Patient Verification'}</p>
+                                <img src={formData.selfie_url} alt="Verification Photo" className="border rounded h-auto max-h-32 max-w-full object-cover mx-auto" />
                             </div>
                         )}
                     </div>
@@ -552,11 +590,33 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                         </div>
                         <div className="space-y-2">
                             <Label>Date of Surgery</Label>
-                            <Input
-                                type="date"
-                                value={formData.surgery_date}
-                                onChange={e => setFormData({ ...formData, surgery_date: e.target.value })}
-                            />
+                            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !formData.surgery_date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {formData.surgery_date ? format(new Date(formData.surgery_date), "dd MMM yyyy") : <span>Pick surgery date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <CalendarUI
+                                        mode="single"
+                                        selected={formData.surgery_date ? new Date(formData.surgery_date) : undefined}
+                                        onSelect={(date) => {
+                                            if (date) {
+                                                setFormData({ ...formData, surgery_date: format(date, "yyyy-MM-dd") });
+                                            }
+                                            setIsDatePickerOpen(false);
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div className="space-y-2">
                             <Label>Patient Phone (for OTP)</Label>
@@ -565,6 +625,15 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                 onChange={e => setFormData({ ...formData, patient_phone: e.target.value })}
                             />
                         </div>
+                        {isMinor && (
+                            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-orange-800 text-sm flex items-center gap-3">
+                                <AlertTriangle className="w-5 h-5 shrink-0" />
+                                <div>
+                                    <p className="font-bold">Patient is a minor ({patientAge} years)</p>
+                                    <p>Consent must be provided by a legal guardian.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -622,6 +691,21 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
                 {step === 3 && (
                     <div className="space-y-6">
+                        {isMinor && (
+                            <Card className="border-orange-200 bg-orange-50/30">
+                                <CardContent className="pt-6 space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Guardian Name</Label>
+                                        <Input
+                                            placeholder="Full name of guardian..."
+                                            value={formData.guardian_name || ''}
+                                            onChange={e => setFormData({ ...formData, guardian_name: e.target.value })}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         <div className="bg-muted/30 p-4 rounded-lg border">
                             <h3 className="font-semibold mb-2">Acknowledgement</h3>
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -631,7 +715,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
                         {/* Selfie Section */}
                         <div className="space-y-2">
-                            <Label>1. Patient Identification (Selfie)</Label>
+                            <Label>{isMinor ? '1. Guardian & Patient Photo Verification' : '1. Patient Identification (Selfie)'}</Label>
                             <div className="flex flex-col items-center gap-4 p-4 border rounded-lg bg-card">
                                 {selfieImage ? (
                                     <div className="relative w-full flex justify-center">
@@ -642,23 +726,27 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                     <>
                                         {isCameraOpen ? (
                                             <div className="relative w-full flex justify-center">
-                                                <video ref={videoRef} autoPlay className="w-full max-w-[300px] aspect-[4/3] object-cover rounded-md bg-black" />
+                                                <video ref={videoRef} autoPlay playsInline className="w-full max-w-[300px] aspect-[4/3] object-cover rounded-md bg-black" />
                                                 <canvas ref={canvasRef} width="300" height="225" className="hidden" />
                                                 <Button size="sm" className="absolute bottom-4 left-1/2 -translate-x-1/2" onClick={captureSelfie}>Capture</Button>
                                             </div>
                                         ) : (
                                             <div className="text-center py-8">
-                                                <Button variant="outline" onClick={startCamera}><Camera className="mr-2 h-4 w-4" /> Start Camera</Button>
+                                                <Button variant="outline" onClick={startCamera}>
+                                                    <Camera className="mr-2 h-4 w-4" />
+                                                    {isMinor ? 'Open Camera (Joint Photo)' : 'Start Camera'}
+                                                </Button>
                                             </div>
                                         )}
                                     </>
                                 )}
                             </div>
+                            {isMinor && <p className="text-xs text-muted-foreground italic">Please take a photo containing both the patient and the guardian.</p>}
                         </div>
 
                         {/* Signature Section */}
                         <div className="space-y-2">
-                            <Label>2. Patient Signature</Label>
+                            <Label>{isMinor ? '2. Guardian Signature' : '2. Patient Signature'}</Label>
                             <div className="border rounded-md bg-white touch-none" style={{ height: 200 }}>
                                 <SignatureCanvas
                                     ref={patientSigRef}

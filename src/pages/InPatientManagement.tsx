@@ -92,6 +92,10 @@ const InPatientManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [dischargeDateStart, setDischargeDateStart] = useState<string>('');
     const [dischargeDateEnd, setDischargeDateEnd] = useState<string>('');
+    const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
+    const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
+    const [isAdmissionDatePickerOpen, setIsAdmissionDatePickerOpen] = useState(false);
+    const [isProcedureDatePickerOpen, setIsProcedureDatePickerOpen] = useState(false);
     const [paymentFilter, setPaymentFilter] = useState<string>('all');
     const { i18n } = useTranslation();
 
@@ -435,7 +439,7 @@ const InPatientManagement = () => {
         const link = `https://ortho.life/d/${patient.patient.phone}`;
 
         const message = isTelugu
-            ? `ప్రియమైన ${patient.patient.name},\nమీ డిశ్చార్జ్ ప్రక్రియ ప్రారంభమైంది. మీ డిశ్చార్జ్ సారాంశాన్ని ఇక్కడ డౌన్‌లోడ్ చేసుకోవచ్చు:\n\n${link}`
+            ? `🙏 నమస్కారం ${patient.patient.name} గారు,\nమీ డిశ్చార్జ్ ప్రక్రియ ప్రారంభమైంది. మీ డిశ్చార్జ్ సారాంశాన్ని ఇక్కడ డౌన్‌లోడ్ చేసుకోవచ్చు:\n\n${link}`
             : `Dear ${patient.patient.name},\nYour discharge process has started. You can view/download your discharge summary here:\n\n${link}`;
 
         try {
@@ -815,21 +819,59 @@ const InPatientManagement = () => {
                     <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-muted/40 rounded-lg border items-end">
                         <div className="space-y-2 flex-1 w-full">
                             <Label>From Date</Label>
-                            <Input
-                                type="date"
-                                value={dischargeDateStart}
-                                onChange={(e) => setDischargeDateStart(e.target.value)}
-                                className="bg-background"
-                            />
+                            <Popover open={isStartDatePickerOpen} onOpenChange={setIsStartDatePickerOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-background",
+                                            !dischargeDateStart && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {dischargeDateStart ? format(new Date(dischargeDateStart), "dd MMM yyyy") : <span>Pick date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <CalendarUI
+                                        mode="single"
+                                        selected={dischargeDateStart ? new Date(dischargeDateStart) : undefined}
+                                        onSelect={(date) => {
+                                            setDischargeDateStart(date ? format(date, "yyyy-MM-dd") : "");
+                                            setIsStartDatePickerOpen(false);
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div className="space-y-2 flex-1 w-full">
                             <Label>To Date</Label>
-                            <Input
-                                type="date"
-                                value={dischargeDateEnd}
-                                onChange={(e) => setDischargeDateEnd(e.target.value)}
-                                className="bg-background"
-                            />
+                            <Popover open={isEndDatePickerOpen} onOpenChange={setIsEndDatePickerOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-background",
+                                            !dischargeDateEnd && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {dischargeDateEnd ? format(new Date(dischargeDateEnd), "dd MMM yyyy") : <span>Pick date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <CalendarUI
+                                        mode="single"
+                                        selected={dischargeDateEnd ? new Date(dischargeDateEnd) : undefined}
+                                        onSelect={(date) => {
+                                            setDischargeDateEnd(date ? format(date, "yyyy-MM-dd") : "");
+                                            setIsEndDatePickerOpen(false);
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div className="space-y-2 flex-1 w-full min-w-[200px]">
                             <Label>Payment Mode</Label>
@@ -966,11 +1008,31 @@ const InPatientManagement = () => {
 
                         <div className="space-y-2">
                             <Label>Admission Date</Label>
-                            <Input
-                                type="date"
-                                value={admissionData.admission_date}
-                                onChange={(e) => setAdmissionData({ ...admissionData, admission_date: e.target.value })}
-                            />
+                            <Popover open={isAdmissionDatePickerOpen} onOpenChange={setIsAdmissionDatePickerOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !admissionData.admission_date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {admissionData.admission_date ? format(new Date(admissionData.admission_date), "dd MMM yyyy") : <span>Pick date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <CalendarUI
+                                        mode="single"
+                                        selected={admissionData.admission_date ? new Date(admissionData.admission_date) : undefined}
+                                        onSelect={(date) => {
+                                            setAdmissionData({ ...admissionData, admission_date: date ? format(date, "yyyy-MM-dd") : "" });
+                                            setIsAdmissionDatePickerOpen(false);
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
 
                         <div className="space-y-2">
@@ -1004,11 +1066,31 @@ const InPatientManagement = () => {
 
                         <div className="space-y-2">
                             <Label>Procedure Date (Optional)</Label>
-                            <Input
-                                type="date"
-                                value={admissionData.procedure_date}
-                                onChange={(e) => setAdmissionData({ ...admissionData, procedure_date: e.target.value })}
-                            />
+                            <Popover open={isProcedureDatePickerOpen} onOpenChange={setIsProcedureDatePickerOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !admissionData.procedure_date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {admissionData.procedure_date ? format(new Date(admissionData.procedure_date), "dd MMM yyyy") : <span>Pick date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <CalendarUI
+                                        mode="single"
+                                        selected={admissionData.procedure_date ? new Date(admissionData.procedure_date) : undefined}
+                                        onSelect={(date) => {
+                                            setAdmissionData({ ...admissionData, procedure_date: date ? format(date, "yyyy-MM-dd") : "" });
+                                            setIsProcedureDatePickerOpen(false);
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
 
                         <div className="space-y-2">
@@ -1282,6 +1364,9 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
         payment_mode: patient?.payment_mode || 'Cash',
     });
 
+    const [isAdmissionOpen, setIsAdmissionOpen] = useState(false);
+    const [isProcedureOpen, setIsProcedureOpen] = useState(false);
+
     if (!patient) return null;
 
     return (
@@ -1289,7 +1374,31 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
             <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Admission Date</Label>
-                    <Input type="date" value={data.admission_date} onChange={e => setData({ ...data, admission_date: e.target.value })} />
+                    <Popover open={isAdmissionOpen} onOpenChange={setIsAdmissionOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !data.admission_date && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {data.admission_date ? format(new Date(data.admission_date), "dd MMM yyyy") : <span>Pick date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarUI
+                                mode="single"
+                                selected={data.admission_date ? new Date(data.admission_date) : undefined}
+                                onSelect={(date) => {
+                                    setData({ ...data, admission_date: date ? format(date, "yyyy-MM-dd") : "" });
+                                    setIsAdmissionOpen(false);
+                                }}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </div>
                 <div className="space-y-2">
                     <Label>Room / Bed</Label>
@@ -1306,7 +1415,31 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
             </div>
             <div className="space-y-2">
                 <Label>Procedure Date</Label>
-                <Input type="date" value={data.procedure_date} onChange={e => setData({ ...data, procedure_date: e.target.value })} />
+                <Popover open={isProcedureOpen} onOpenChange={setIsProcedureOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !data.procedure_date && "text-muted-foreground"
+                            )}
+                        >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {data.procedure_date ? format(new Date(data.procedure_date), "dd MMM yyyy") : <span>Pick date</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarUI
+                            mode="single"
+                            selected={data.procedure_date ? new Date(data.procedure_date) : undefined}
+                            onSelect={(date) => {
+                                setData({ ...data, procedure_date: date ? format(date, "yyyy-MM-dd") : "" });
+                                setIsProcedureOpen(false);
+                            }}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
             </div>
 
             <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 border-t pt-4">
@@ -1422,6 +1555,11 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     // State for Suture Removal Date
     const [sutureDate, setSutureDate] = useState<Date | undefined>();
     const [isSutureDatePickerOpen, setIsSutureDatePickerOpen] = useState(false);
+    const [isDischargeDatePickerOpen, setIsDischargeDatePickerOpen] = useState(false);
+    const [isReviewDatePickerOpen, setIsReviewDatePickerOpen] = useState(false);
+    const [isDobPickerOpen, setIsDobPickerOpen] = useState(false);
+    const [isAdmissionDatePickerOpen, setIsAdmissionDatePickerOpen] = useState(false);
+    const [isProcedureDatePickerOpen, setIsProcedureDatePickerOpen] = useState(false);
 
     // -- Medication Manager Refs --
     const medicationNameInputRef = useRef<HTMLInputElement>(null);
@@ -1762,7 +1900,34 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                             value={snapshot.age}
                                             onChange={handleAgeChange}
                                         />
-                                        <Input type="date" value={snapshot.dob} onChange={handleDobChange} />
+                                        <Popover open={isDobPickerOpen} onOpenChange={setIsDobPickerOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "flex-1 justify-start text-left font-normal",
+                                                        !snapshot.dob && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <Calendar className="mr-2 h-4 w-4" />
+                                                    {snapshot.dob ? format(new Date(snapshot.dob), "dd MMM yyyy") : <span>Pick DOB</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <CalendarUI
+                                                    mode="single"
+                                                    selected={snapshot.dob ? new Date(snapshot.dob) : undefined}
+                                                    onSelect={(date) => {
+                                                        if (date) {
+                                                            const formatted = format(date, "yyyy-MM-dd");
+                                                            setSnapshot(prev => ({ ...prev, dob: formatted, age: calculateAge(date) }));
+                                                        }
+                                                        setIsDobPickerOpen(false);
+                                                    }}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -1793,11 +1958,63 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Admission Date</Label>
-                                    <Input type="date" value={course.admission_date} onChange={e => setCourse({ ...course, admission_date: e.target.value })} />
+                                    <Popover open={isAdmissionDatePickerOpen} onOpenChange={setIsAdmissionDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !course.admission_date && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                {course.admission_date ? format(new Date(course.admission_date), "dd MMM yyyy") : <span>Pick date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <CalendarUI
+                                                mode="single"
+                                                selected={course.admission_date ? new Date(course.admission_date) : undefined}
+                                                onSelect={(date) => {
+                                                    if (date) {
+                                                        setCourse({ ...course, admission_date: format(date, "yyyy-MM-dd") });
+                                                    }
+                                                    setIsAdmissionDatePickerOpen(false);
+                                                }}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Procedure Date</Label>
-                                    <Input type="date" value={course.procedure_date} onChange={e => setCourse({ ...course, procedure_date: e.target.value })} />
+                                    <Popover open={isProcedureDatePickerOpen} onOpenChange={setIsProcedureDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !course.procedure_date && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                {course.procedure_date ? format(new Date(course.procedure_date), "dd MMM yyyy") : <span>Pick date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <CalendarUI
+                                                mode="single"
+                                                selected={course.procedure_date ? new Date(course.procedure_date) : undefined}
+                                                onSelect={(date) => {
+                                                    if (date) {
+                                                        setCourse({ ...course, procedure_date: format(date, "yyyy-MM-dd") });
+                                                    }
+                                                    setIsProcedureDatePickerOpen(false);
+                                                }}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                                 <div className="space-y-2 col-span-1 lg:col-span-2">
                                     <Label>Operation Notes / Intro</Label>
@@ -1821,7 +2038,33 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Discharge Date</Label>
-                                    <Input type="date" value={dischargeDate} onChange={e => setDischargeDate(e.target.value)} />
+                                    <Popover open={isDischargeDatePickerOpen} onOpenChange={setIsDischargeDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !dischargeDate && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                {dischargeDate ? format(new Date(dischargeDate), "dd MMM yyyy") : <span>Pick date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <CalendarUI
+                                                mode="single"
+                                                selected={dischargeDate ? new Date(dischargeDate) : undefined}
+                                                onSelect={(date) => {
+                                                    if (date) {
+                                                        setDischargeDate(format(date, "yyyy-MM-dd"));
+                                                    }
+                                                    setIsDischargeDatePickerOpen(false);
+                                                }}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                             </div>
 
@@ -1956,7 +2199,33 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Review Date</Label>
-                                    <Input type="date" value={discharge.review_date} onChange={e => setDischarge({ ...discharge, review_date: e.target.value })} />
+                                    <Popover open={isReviewDatePickerOpen} onOpenChange={setIsReviewDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !discharge.review_date && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4" />
+                                                {discharge.review_date ? format(new Date(discharge.review_date), "dd MMM yyyy") : <span>Pick date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <CalendarUI
+                                                mode="single"
+                                                selected={discharge.review_date ? new Date(discharge.review_date) : undefined}
+                                                onSelect={(date) => {
+                                                    if (date) {
+                                                        setDischarge({ ...discharge, review_date: format(date, "yyyy-MM-dd") });
+                                                    }
+                                                    setIsReviewDatePickerOpen(false);
+                                                }}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
 
                                 <div className="space-y-4 border p-4 rounded-md bg-yellow-50 border-yellow-200">

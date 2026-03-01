@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { auth } from '@/integrations/firebase/client';
+import { AlertTriangle } from 'lucide-react';
 
 interface PublicConsentData {
     id: string;
@@ -26,6 +27,9 @@ interface PublicConsentData {
     patient_signature?: string;
     signed_at?: string;
     selfie_url?: string;
+    patient_dob?: string;
+    is_minor?: boolean;
+    guardian_name?: string;
 }
 
 const UI_TEXT = {
@@ -55,7 +59,15 @@ const UI_TEXT = {
         signedTitle: "Consent Signed",
         signedDesc: "Your consent has been securely recorded.",
         closeWindow: "You can close this window.",
-        footer: "Protected by OrthoLife Secure System"
+        footer: "Protected by OrthoLife Secure System",
+        minorWarning: "Patient is under 18 years. Guardian's consent and verification are required.",
+        guardianInfo: "Guardian Details",
+        guardianName: "Guardian Name",
+        guardianSelfieTitle: "1. Guardian & Patient Photo Verification",
+        guardianSelfieDesc: "Please take a clear photo of the Guardian and the Patient together.",
+        guardianSignatureTitle: "2. Guardian Signature",
+        guardianSignatureDesc: "Guardian must sign below to confirm legal consent for the minor.",
+        patientAge: "Age"
     },
     te: {
         title: "శస్త్రచికిత్స సమ్మతి పత్రం",
@@ -83,7 +95,15 @@ const UI_TEXT = {
         signedTitle: "అంగీకారం పూర్తయింది",
         signedDesc: "మీ అంగీకారం సురక్షితంగా నమోదు చేయబడింది.",
         closeWindow: "మీరు ఈ విండోను మూసివేయవచ్చు.",
-        footer: "Protected by OrthoLife Secure System"
+        footer: "Protected by OrthoLife Secure System",
+        minorWarning: "రోగి వయస్సు 18 సంవత్సరాల కంటే తక్కువ. సంరక్షకుడి సమ్మతి మరియు నిర్ధారణ అవసరం.",
+        guardianInfo: "సంరక్షకుడి వివరాలు",
+        guardianName: "సంరక్షకుడి పేరు",
+        guardianSelfieTitle: "1. సంరక్షకుడు మరియు రోగి ఫోటో నిర్ధారణ",
+        guardianSelfieDesc: "దయచేసి సంరక్షకుడు మరియు రోగి కలిసి ఉన్న స్పష్టమైన ఫోటోను తీసుకోండి.",
+        guardianSignatureTitle: "2. సంరక్షకుడి సంతకం",
+        guardianSignatureDesc: "మైనర్ కోసం చట్టపరమైన సమ్మతిని నిర్ధారించడానికి సంరక్షకుడు తప్పనిసరిగా క్రింద సంతకం చేయాలి.",
+        patientAge: "వయస్సు"
     }
 };
 
@@ -115,6 +135,23 @@ const PublicConsentVerification = () => {
 
     // Local signature state for persistence
     const [capturedSignature, setCapturedSignature] = useState<string | null>(null);
+    const [guardianName, setGuardianName] = useState('');
+
+    // Age calculation
+    const calculatePatientAge = (dob: string | undefined): number => {
+        if (!dob) return 0;
+        const dobDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - dobDate.getFullYear();
+        const m = today.getMonth() - dobDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const patientAge = consentData?.patient_dob ? calculatePatientAge(consentData.patient_dob) : 0;
+    const isMinor = patientAge > 0 && patientAge < 18;
 
     const handleSignatureEnd = () => {
         if (patientSigRef.current && !patientSigRef.current.isEmpty()) {
@@ -239,8 +276,12 @@ const PublicConsentVerification = () => {
             document.getElementById('signature-section')?.scrollIntoView({ behavior: 'smooth' });
             return;
         }
+        if (isMinor && !guardianName.trim()) {
+            toast.error("Please enter Guardian Name.");
+            return;
+        }
         if (!selfieImage) {
-            toast.error("Please take a verification selfie.");
+            toast.error(isMinor ? "Please take a verification selfie of Guardian and Patient." : "Please take a verification selfie.");
             document.getElementById('selfie-section')?.scrollIntoView({ behavior: 'smooth' });
             return;
         }
@@ -316,7 +357,9 @@ const PublicConsentVerification = () => {
                 p_consent_id: consentData.id,
                 p_patient_signature: finalSigUrl,
                 p_selfie_url: finalSelfieUrl,
-                p_otp: 'VERIFIED_BY_FIREBASE' // Backend just logs usage, validation done here
+                p_otp: 'VERIFIED_BY_FIREBASE',
+                p_guardian_name: isMinor ? guardianName : null,
+                p_is_minor: isMinor
             });
 
             if (error) throw error;
@@ -364,22 +407,35 @@ const PublicConsentVerification = () => {
                         <CardTitle className="text-lg">{t.patientInfo}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-2">
-                                <Label className="text-muted-foreground text-xs uppercase tracking-wide flex items-center gap-1.5"><Syringe size={14} className="text-primary" /> {t.procedureName}</Label>
-                                <p className="font-semibold text-xl text-primary pl-5">{consentData.procedure_name}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                            <div>
+                                <Label className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wide flex items-center gap-1.5 mb-1"><Syringe size={14} className="text-primary" /> {t.procedureName}</Label>
+                                <p className="font-bold text-base sm:text-lg text-primary">{consentData.procedure_name}</p>
                             </div>
                             <div>
-                                <Label className="text-muted-foreground text-xs uppercase tracking-wide">{t.patientName}</Label>
-                                <p className="font-semibold text-lg">{consentData.patient_name}</p>
-                            </div>
-                            <div>
-                                <Label className="text-muted-foreground text-xs uppercase tracking-wide">{t.surgeryDate}</Label>
-                                <p className="font-semibold text-lg">
+                                <Label className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wide mb-1">{t.surgeryDate}</Label>
+                                <p className="font-semibold text-base sm:text-lg">
                                     {consentData.surgery_date ? format(new Date(consentData.surgery_date), 'dd MMM yyyy') : t.dateNotSet}
                                 </p>
                             </div>
+                            <div>
+                                <Label className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wide mb-1">{t.patientName}</Label>
+                                <p className="font-semibold text-base sm:text-lg">{consentData.patient_name}</p>
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wide mb-1">{t.patientAge}</Label>
+                                <p className="font-semibold text-base sm:text-lg">{patientAge || '-'}</p>
+                            </div>
                         </div>
+
+                        {isMinor && (
+                            <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg text-orange-800 text-sm flex items-center gap-3">
+                                <AlertTriangle className="w-5 h-5 shrink-0" />
+                                <div>
+                                    <p className="font-bold">{t.minorWarning}</p>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -404,19 +460,41 @@ const PublicConsentVerification = () => {
                 <div className="pt-8 border-t mt-8">
                     <h3 className="font-semibold text-lg px-2 mb-4">{t.verificationTitle}</h3>
 
+                    {isMinor && !isSigned && (
+                        <Card className="mb-6 shadow-sm border-orange-100">
+                            <CardHeader className="bg-orange-50/50">
+                                <CardTitle className="text-base text-orange-900">{t.guardianInfo}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <div className="space-y-2">
+                                    <Label>{t.guardianName}</Label>
+                                    <Input
+                                        placeholder="Enter full name..."
+                                        value={guardianName}
+                                        onChange={e => setGuardianName(e.target.value)}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     <Card className="shadow-md border-slate-200">
                         <CardContent className="pt-6 space-y-8">
 
                             {/* Selfie */}
                             <div id="selfie-section" className="space-y-3">
-                                <Label className="text-base">{t.selfieTitle}</Label>
+                                <Label className="text-base">
+                                    {isMinor ? t.guardianSelfieTitle : t.selfieTitle}
+                                </Label>
                                 {isSigned && consentData.selfie_url ? (
                                     <div className="flex flex-col items-center gap-4 p-4 border rounded-xl bg-slate-50">
                                         <img src={consentData.selfie_url} alt="Selfie" className="w-[300px] h-[225px] object-cover rounded-md shadow-sm" />
                                     </div>
                                 ) : (
                                     <>
-                                        <p className="text-sm text-muted-foreground">{t.selfieDesc}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {isMinor ? t.guardianSelfieDesc : t.selfieDesc}
+                                        </p>
                                         <div className="flex flex-col items-center gap-4 p-4 border-2 border-dashed rounded-xl bg-slate-50">
                                             {selfieImage ? (
                                                 <div className="relative">
@@ -447,14 +525,23 @@ const PublicConsentVerification = () => {
 
                             {/* Signature */}
                             <div id="signature-section" className="space-y-3">
-                                <Label className="text-base">{t.signatureTitle}</Label>
+                                <Label className="text-base">
+                                    {isMinor ? t.guardianSignatureTitle : t.signatureTitle}
+                                </Label>
                                 {isSigned && consentData.patient_signature ? (
                                     <div className="border-2 border-slate-200 rounded-lg bg-white p-4">
-                                        <img src={consentData.patient_signature} alt="Patient Signature" className="max-h-32 mx-auto" />
+                                        {consentData.is_minor && (
+                                            <div className="mb-2 text-xs text-muted-foreground uppercase tracking-widest text-center font-bold">
+                                                Signed by Guardian: {consentData.guardian_name}
+                                            </div>
+                                        )}
+                                        <img src={consentData.patient_signature} alt="Signature" className="max-h-32 mx-auto" />
                                     </div>
                                 ) : (
                                     <>
-                                        <p className="text-sm text-muted-foreground">{t.signatureDesc}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {isMinor ? t.guardianSignatureDesc : t.signatureDesc}
+                                        </p>
                                         <div className="border-2 border-slate-200 rounded-lg bg-white touch-none shadow-inner" style={{ height: 180 }}>
                                             <SignatureCanvas
                                                 ref={patientSigRef}

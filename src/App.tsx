@@ -49,6 +49,7 @@ const PublicConsentVerification = lazy(() => import("./pages/PublicConsentVerifi
 const JointReplacementPage = lazy(() => import("./pages/services/JointReplacementPage"));
 const ArthroscopyPage = lazy(() => import("./pages/services/ArthroscopyPage"));
 const FractureCarePage = lazy(() => import("./pages/services/FractureCarePage"));
+const SocialMediaManager = lazy(() => import("./pages/SocialMediaManager"));
 
 const queryClient = new QueryClient();
 
@@ -167,6 +168,7 @@ const App = () => {
                   <Route path="/d/:patientPhone" element={<DischargeSummaryDownload />} />
                   <Route path="/d" element={<DischargeSummaryDownload />} />
                   <Route path="/consent-verify/:id" element={<PublicConsentVerification />} />
+                  <Route path="/smm" element={<SocialMediaManager />} />
 
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
