@@ -23,6 +23,7 @@ import { Trash2 } from "lucide-react"
 interface TranslationValues {
   [lang: string]: {
     title?: string;
+    slug?: string;
     excerpt?: string;
     content?: string;
     next_steps?: string;
@@ -38,6 +39,7 @@ const EditPostPage = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [numericPostId, setNumericPostId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchPostAndTranslations = async () => {
@@ -45,15 +47,25 @@ const EditPostPage = () => {
       setLoading(true);
       try {
         // Fetch original post
-        const { data: postData, error: postError } = await supabase
+        const isNumericId = /^\\d+$/.test(postId);
+        let query = supabase
           .from('posts')
           .select('*, categories(name)')
-          .eq('id', postId)
-          .single();
+
+        if (isNumericId) {
+          query = query.eq('id', parseInt(postId));
+        } else {
+          query = query.eq('slug', postId);
+        }
+
+        const { data: postData, error: postError } = await query.single();
 
         if (postError) throw postError;
-        
+
         if (postData) {
+          const fetchedNumericId = postData.id;
+          setNumericPostId(fetchedNumericId);
+
           const { categories, ...rest } = postData;
           setInitialData({
             ...rest,
@@ -65,7 +77,7 @@ const EditPostPage = () => {
           const { data: translationData, error: translationError } = await supabase
             .from('post_translations')
             .select('*')
-            .eq('post_id', postId);
+            .eq('post_id', fetchedNumericId);
 
           if (translationError) throw translationError;
 
@@ -73,6 +85,7 @@ const EditPostPage = () => {
           for (const trans of translationData) {
             newTranslations[trans.language] = {
               title: trans.title,
+              slug: trans.slug,
               excerpt: trans.excerpt,
               content: trans.content,
               next_steps: trans.next_steps || '',
@@ -81,8 +94,8 @@ const EditPostPage = () => {
           setTranslations(newTranslations);
 
         } else {
-            toast({ title: "Error", description: "Post not found.", variant: "destructive" });
-            navigate('/blog');
+          toast({ title: "Error", description: "Post not found.", variant: "destructive" });
+          navigate('/blog');
         }
       } catch (error) {
         console.error('Error fetching post data:', error);
@@ -95,7 +108,7 @@ const EditPostPage = () => {
     fetchPostAndTranslations();
   }, [postId, navigate, toast]);
 
-  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
+  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; slug?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
     setIsSubmitting(true);
     try {
       // 1. Update the main post
@@ -118,7 +131,7 @@ const EditPostPage = () => {
       const { error: postUpdateError } = await supabase
         .from('posts')
         .update(postToUpdate)
-        .eq('id', postId);
+        .eq('id', numericPostId || postId);
       if (postUpdateError) throw postUpdateError;
 
       // 2. Upsert translations into the new table
@@ -127,9 +140,10 @@ const EditPostPage = () => {
         // Ensure that we only upsert if there is some translated content
         if (translations[lang].title || translations[lang].excerpt || translations[lang].content || translations[lang].next_steps) {
           translationUpserts.push({
-            post_id: postId,
+            post_id: numericPostId || parseInt(postId),
             language: lang,
             title: translations[lang].title,
+            slug: translations[lang].slug,
             excerpt: translations[lang].excerpt,
             content: translations[lang].content,
             next_steps: translations[lang].next_steps,
@@ -144,12 +158,18 @@ const EditPostPage = () => {
         if (translationError) throw translationError;
       }
 
+      const { data: updatedPost } = await supabase
+        .from('posts')
+        .select('slug')
+        .eq('id', numericPostId || postId)
+        .single();
+
       toast({
         title: "Post and translations updated!",
         description: "Your blog post has been successfully updated.",
       });
 
-      navigate(`/blog/${postId}`);
+      navigate(`/blog/${updatedPost?.slug || postId}`);
 
     } catch (error) {
       console.error('Error updating post:', error);
@@ -164,13 +184,13 @@ const EditPostPage = () => {
   };
 
   const handleDelete = async () => {
-    if (!postId) return;
+    if (!numericPostId && !postId) return;
     setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', postId);
+        .eq('id', numericPostId || postId);
 
       if (error) throw error;
 
@@ -255,7 +275,7 @@ const EditPostPage = () => {
                 isSubmitting={isSubmitting}
               />
             ) : (
-                <p>Post data could not be loaded.</p>
+              <p>Post data could not be loaded.</p>
             )}
           </div>
         </div>

@@ -11,7 +11,7 @@ const CreatePostPage = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
+  const handleSubmit = async (values: PostFormValues, translations: { [lang: string]: { title?: string; slug?: string; excerpt?: string; content?: string; next_steps?: string; } }) => {
     setIsSubmitting(true);
     try {
       const { category_name, ...postData } = values;
@@ -26,7 +26,7 @@ const CreatePostPage = () => {
       if (categoryError && categoryError.code !== 'PGRST116') { // PGRST116: no rows found
         throw categoryError;
       }
-      
+
       let categoryId: number;
       if (category) {
         categoryId = category.id;
@@ -37,7 +37,7 @@ const CreatePostPage = () => {
           .insert({ name: category_name })
           .select('id')
           .single();
-        
+
         if (newCategoryError) throw newCategoryError;
         categoryId = newCategory.id;
       }
@@ -63,6 +63,7 @@ const CreatePostPage = () => {
           post_id: newPost.id,
           language: lang,
           title: translations[lang].title,
+          slug: translations[lang].slug,
           excerpt: translations[lang].excerpt,
           content: translations[lang].content,
           next_steps: translations[lang].next_steps,
@@ -81,7 +82,7 @@ const CreatePostPage = () => {
         description: "Your new blog post has been successfully created.",
       });
 
-      navigate(`/blog/${newPost.id}`);
+      navigate(`/blog/${newPost.slug || newPost.id}`);
 
     } catch (error) {
       console.error('Error creating post:', error);

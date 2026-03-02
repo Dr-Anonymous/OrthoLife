@@ -18,6 +18,7 @@ import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 interface Post {
   id: number;
+  slug?: string;
   title: string;
   content: string;
   excerpt?: string;
@@ -113,20 +114,28 @@ const BlogPostPage = () => {
       setTranslatedPost(null); // Reset translations when post or language changes
 
       try {
-        const { data: postData, error: postError } = await supabase
+        const isNumericId = /^\\d+$/.test(postId);
+        let query = supabase
           .from('posts')
           .select('*, categories(name)')
-          .eq('id', postId)
-          .single();
 
+        if (isNumericId) {
+          query = query.eq('id', parseInt(postId));
+        } else {
+          query = query.eq('slug', postId);
+        }
+
+        const { data: postData, error: postError } = await query.single();
         if (postError) throw postError;
         setPost(postData);
+
+        const numericPostId = postData.id;
 
         if (i18n.language !== 'en') {
           const { data: translationData, error: translationError } = await supabase
             .from('post_translations')
             .select('*')
-            .eq('post_id', postId)
+            .eq('post_id', numericPostId)
             .eq('language', i18n.language)
             .single();
 
@@ -152,7 +161,8 @@ const BlogPostPage = () => {
     if (!postId) return;
     if (loading) return;
 
-    const canonicalPath = `/blog/${postId}`;
+    const identifier = post?.slug || postId;
+    const canonicalPath = `/blog/${identifier}`;
 
     if (!post) {
       applySeo({

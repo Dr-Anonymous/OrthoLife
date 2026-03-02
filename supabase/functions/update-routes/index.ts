@@ -70,36 +70,46 @@ serve(async (req) => {
     const metadata = [];
 
     // Fetch posts, guides, and translations
-    const { data: posts, error: postsError } = await supabase.from('posts').select('id, title, excerpt, content');
+    const { data: posts, error: postsError } = await supabase.from('posts').select('id, slug, title, excerpt, content');
     if (postsError) throw postsError;
     posts.forEach(post => {
-      const route = `/blog/${post.id}`;
+      const identifier = post.slug || post.id;
+      const route = `/blog/${identifier}`;
       allRoutes.push(route);
       metadata.push({ route, title: post.title, description: post.excerpt });
     });
 
-    const { data: translatedPosts, error: translatedPostsError } = await supabase.from('post_translations').select('post_id, title, excerpt, content').eq('language', 'te');
+    const { data: translatedPosts, error: translatedPostsError } = await supabase.from('post_translations').select('post_id, slug, title, excerpt, content').eq('language', 'te');
     if (translatedPostsError) throw translatedPostsError;
-    translatedPosts.forEach(post => {
-      const route = `/te/blog/${post.post_id}`;
-      allRoutes.push(route);
-      metadata.push({ route, title: post.title, description: post.excerpt });
+    translatedPosts.forEach(translation => {
+      const parentPost = posts.find(p => p.id === translation.post_id);
+      if (parentPost) {
+        const identifier = parentPost.slug || parentPost.id;
+        const route = `/te/blog/${identifier}`;
+        allRoutes.push(route);
+        metadata.push({ route, title: translation.title, description: translation.excerpt });
+      }
     });
 
-    const { data: guides, error: guidesError } = await supabase.from('guides').select('id, title, description, content');
+    const { data: guides, error: guidesError } = await supabase.from('guides').select('id, slug, title, description, content');
     if (guidesError) throw guidesError;
     guides.forEach(guide => {
-      const route = `/guides/${guide.id}`;
+      const identifier = guide.slug || guide.id;
+      const route = `/guides/${identifier}`;
       allRoutes.push(route);
       metadata.push({ route, title: guide.title, description: guide.description });
     });
 
-    const { data: translatedGuides, error: translatedGuidesError } = await supabase.from('guide_translations').select('guide_id, title, description, content').eq('language', 'te');
+    const { data: translatedGuides, error: translatedGuidesError } = await supabase.from('guide_translations').select('guide_id, slug, title, description, content').eq('language', 'te');
     if (translatedGuidesError) throw translatedGuidesError;
-    translatedGuides.forEach(guide => {
-      const route = `/te/guides/${guide.guide_id}`;
-      allRoutes.push(route);
-      metadata.push({ route, title: guide.title, description: guide.description });
+    translatedGuides.forEach(translation => {
+      const parentGuide = guides.find(g => g.id === translation.guide_id);
+      if (parentGuide) {
+        const identifier = parentGuide.slug || parentGuide.id;
+        const route = `/te/guides/${identifier}`;
+        allRoutes.push(route);
+        metadata.push({ route, title: translation.title, description: translation.description });
+      }
     });
 
     const routesData = {

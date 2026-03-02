@@ -25,6 +25,7 @@ export interface Category {
 
 export interface Post {
   id: number;
+  slug?: string;
   title: string;
   excerpt: string;
   read_time_minutes: number;
@@ -311,7 +312,7 @@ const BlogPage = () => {
               <>
                 {/* Featured Post */}
                 {featuredPost && (
-                  <Link to={`/blog/${featuredPost.id}`} className="group block">
+                  <Link to={`/blog/${featuredPost.slug || featuredPost.id}`} className="group block">
                     <Card className="mb-8 overflow-hidden hover:shadow-lg transition-shadow">
                       <div className="md:flex">
                         <div className="md:w-1/2">
@@ -347,7 +348,7 @@ const BlogPage = () => {
                 {/* Blog Posts Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {otherPosts.map((post) => (
-                    <Link to={`/blog/${post.id}`} key={post.id}>
+                    <Link to={`/blog/${post.slug || post.id}`} key={post.id}>
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
                           <img
