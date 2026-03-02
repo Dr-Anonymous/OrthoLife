@@ -4,8 +4,8 @@
     "/blog/1",
     "/blog/2",
     "/blog/3",
-    "/blog/7",
     "/blog/9",
+    "/blog/7",
     "/blog/5",
     "/blog/12",
     "/blog/8",
@@ -14,10 +14,10 @@
     "/te/blog/7",
     "/te/blog/2",
     "/te/blog/4",
+    "/te/blog/10",
     "/te/blog/3",
     "/te/blog/5",
     "/te/blog/1",
-    "/te/blog/10",
     "/te/blog/8",
     "/te/blog/11",
     "/te/blog/12",
@@ -75,14 +75,14 @@
       "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing."
     },
     {
-      "route": "/blog/7",
-      "title": "Knee Replacement Surgery: Recovery, Benefits & What to Expect",
-      "description": "Struggling with constant knee pain? Knee replacement surgery can restore mobility, ease discomfort, and help you get back to an active lifestyle. Learn when it’s needed, how recovery works, and what results to expect."
-    },
-    {
       "route": "/blog/9",
       "title": "Understanding Heel Pain: Causes and Focus on Plantar Fasciitis",
       "description": "Heel pain is one of the most common foot complaints, and plantar fasciitis is often the leading cause. Learn why it happens, how it feels, and the best ways to manage it."
+    },
+    {
+      "route": "/blog/7",
+      "title": "Knee Replacement Surgery: Recovery, Benefits & What to Expect",
+      "description": "Struggling with constant knee pain? Knee replacement surgery can restore mobility, ease discomfort, and help you get back to an active lifestyle. Learn when it’s needed, how recovery works, and what results to expect."
     },
     {
       "route": "/blog/5",
@@ -125,6 +125,11 @@
       "description": "దీర్ఘకాలిక కీళ్ల నొప్పులు మరియు వాపులను తగ్గించడంలో సహాయపడే సహజ పద్ధతులు మరియు జీవనశైలి మార్పులను కనుగొనండి."
     },
     {
+      "route": "/te/blog/10",
+      "title": "ACL చిరుగు: కారణాలు, చికిత్స & కోలుకోవడం",
+      "description": "ACL చిరుగు మీ చురుకైన జీవనశైలిని పక్కకు నెట్టవచ్చు - కానీ సరైన చికిత్సతో, ఆటలోకి తిరిగి రావడం సాధ్యమవుతుంది. ACL చిరుగు కారణమేమిటి, వాటికి ఎలా చికిత్స చేస్తారు మరియు కోలుకోవడం నిజంగా ఎలా ఉంటుందో తెలుసుకోండి."
+    },
+    {
       "route": "/te/blog/3",
       "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
       "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం."
@@ -138,11 +143,6 @@
       "route": "/te/blog/1",
       "title": "ఆరోగ్యకరమైన ఎముకలను నిర్వహించడానికి 5 ముఖ్యమైన చిట్కాలు",
       "description": "బలమైన ఎముకలు స్మార్ట్ అలవాట్లతో ప్రారంభమవుతాయి. పోషకాలు అధికంగా ఉండే ఆహారం మరియు బరువు మోసే వ్యాయామాల నుండి జీవనశైలి మార్పులు మరియు శాశ్వత లాభాల వరకు 5 ముఖ్యమైన చిట్కాలను అన్వేషించండి."
-    },
-    {
-      "route": "/te/blog/10",
-      "title": "ACL చిరుగు: కారణాలు, చికిత్స & కోలుకోవడం",
-      "description": "ACL చిరుగు మీ చురుకైన జీవనశైలిని పక్కకు నెట్టవచ్చు - కానీ సరైన చికిత్సతో, ఆటలోకి తిరిగి రావడం సాధ్యమవుతుంది. ACL చిరుగు కారణమేమిటి, వాటికి ఎలా చికిత్స చేస్తారు మరియు కోలుకోవడం నిజంగా ఎలా ఉంటుందో తెలుసుకోండి."
     },
     {
       "route": "/te/blog/8",
