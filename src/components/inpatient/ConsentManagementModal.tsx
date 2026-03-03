@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, FileText, CheckCircle2, Clock, Eye, Printer, Trash2 } from 'lucide-react';
+import { Plus, FileText, CheckCircle2, Clock, Eye, Printer, Trash2, ArrowLeft } from 'lucide-react';
 import { InPatient, SurgicalConsent } from '@/types/inPatients';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -128,20 +128,20 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="w-[95vw] max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-4 md:p-6">
-                <DialogHeader>
-                    <div className="flex justify-between items-center pr-8">
+                <DialogHeader className="flex-row items-center justify-between pr-8">
+                    <div className="flex items-center gap-4">
                         <div>
                             <DialogTitle>Surgical Consents</DialogTitle>
                             <DialogDescription>
                                 Manage consents for {patient?.patient.name}
                             </DialogDescription>
                         </div>
-                        {viewMode === 'list' && (
-                            <Button size="sm" onClick={() => setViewMode('create')}>
-                                <Plus className="mr-2 h-4 w-4" /> New Consent
-                            </Button>
-                        )}
                     </div>
+                    {viewMode === 'list' && (
+                        <Button size="icon" variant="ghost" onClick={() => setViewMode('create')} title="New Consent">
+                            <Plus className="h-5 w-5 text-primary" />
+                        </Button>
+                    )}
                 </DialogHeader>
 
                 <div className="flex-1 overflow-hidden mt-4">

@@ -223,7 +223,8 @@ const InPatientManagement = () => {
                 .from('in_patients')
                 .select(`
           *,
-          patient:patients(name, phone, dob, sex, drive_id)
+          patient:patients(name, phone, dob, sex, drive_id),
+          surgical_consents(id)
         `)
                 .order('admission_date', { ascending: false });
 
@@ -921,7 +922,7 @@ const InPatientManagement = () => {
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
                                 onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary, p.discharge_date || undefined)}
-                                onConsents={() => openConsentModal(p)}
+                                onConsents={(p.surgical_consents && p.surgical_consents.length > 0) ? () => openConsentModal(p) : undefined}
                             />
                         )) : (
                             <EmptyState icon={History} message="No discharge history found for the selected period" />

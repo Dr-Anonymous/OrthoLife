@@ -12,7 +12,8 @@ import {
     Lock,
     AlertTriangle,
     Send,
-    Calendar
+    Calendar,
+    ArrowLeft
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
@@ -427,8 +428,8 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 const isTelugu = formData.consent_language === 'te';
 
                 const message = isTelugu
-                    ? `నమస్కారం ${patient.patient.name} గారు,\nదయచేసి ${formData.procedure_name} కోసం మీ సమ్మతి పత్రాన్ని ఈ లింక్ ద్వారా సమీక్షించి సంతకం చేయండి:\n${link}`
-                    : `Hello ${patient.patient.name},\nPlease review and sign your consent for ${formData.procedure_name} here:\n${link}`;
+                    ? `🙏 నమస్కారం ${patient.patient.name} గారు,\nదయచేసి ${formData.procedure_name} కోసం మీ సమ్మతి పత్రాన్ని ఈ లింక్ ద్వారా సమీక్షించి సంతకం చేయండి:\n${link}`
+                    : `👋 Hello ${patient.patient.name},\nPlease review and sign your consent for ${formData.procedure_name} here:\n${link}`;
 
                 try {
                     const { error } = await supabase.functions.invoke('send-whatsapp', {
@@ -554,8 +555,11 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                         Signed on: {new Date(formData.signed_at || '').toLocaleString()}
                     </div>
                 </div>
-                <div className="p-4 border-t bg-background">
-                    <Button onClick={onCancel} className="w-full sm:w-auto float-right">Close</Button>
+                <div className="p-4 border-t bg-background flex justify-start">
+                    <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back
+                    </Button>
                 </div>
             </div>
         )

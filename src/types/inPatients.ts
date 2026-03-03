@@ -60,6 +60,7 @@ export interface InPatient {
         sex: string | null;
         drive_id?: string | null;
     };
+    surgical_consents?: { id: string }[];
 }
 
 export interface SurgicalConsent {
