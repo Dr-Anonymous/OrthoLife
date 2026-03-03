@@ -22,13 +22,13 @@ const discoverDynamicRoutes = async () => {
 
     // Fetch blog posts
     try {
-      const { data: posts } = await supabase.from('posts').select('id, slug, title, excerpt');
+      const { data: posts } = await supabase.from('posts').select('id, slug, title, excerpt, image_url');
       if (posts) {
         posts.forEach(post => {
           const identifier = post.slug || post.id;
           const route = `/blog/${identifier}`;
           dynamicRoutes.push(route);
-          metadata.push({ route, title: post.title, description: post.excerpt });
+          metadata.push({ route, title: post.title, description: post.excerpt, image: post.image_url });
         });
         console.log(`📝 Found ${posts.length} blog posts`);
       }
@@ -38,10 +38,10 @@ const discoverDynamicRoutes = async () => {
         translatedPosts.forEach(translation => {
           const parentPost = posts.find(p => p.id === translation.post_id);
           if (parentPost) {
-            const identifier = parentPost.slug || parentPost.id;
+            const identifier = translation.slug || parentPost.slug || parentPost.id;
             const route = `/te/blog/${identifier}`;
             dynamicRoutes.push(route);
-            metadata.push({ route, title: translation.title, description: translation.excerpt });
+            metadata.push({ route, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
           }
         });
         console.log(`📝 Found ${translatedPosts.length} translated blog posts`);
@@ -51,27 +51,27 @@ const discoverDynamicRoutes = async () => {
     }
 
     try {
-      const { data: guides } = await supabase.from('guides').select('id, slug, title, description');
+      const { data: guides } = await supabase.from('guides').select('id, slug, title, description, cover_image_url');
       if (guides) {
         guides.forEach(guide => {
           const identifier = guide.slug || guide.id;
           const route = `/guides/${identifier}`;
           dynamicRoutes.push(route);
-          metadata.push({ route, title: guide.title, description: guide.description });
+          metadata.push({ route, title: guide.title, description: guide.description, image: guide.cover_image_url });
         });
         console.log(`📚 Found ${guides.length} guides`);
       }
 
-      const { data: translatedGuides } = await supabase.from('guide_translations').select('guide_id, title, description').eq('language', 'te');
+      const { data: translatedGuides } = await supabase.from('guide_translations').select('guide_id, title, description, slug').eq('language', 'te');
       if (translatedGuides && guides) {
         // Need to match translation to guide to get the slug
         translatedGuides.forEach(translation => {
           const parentGuide = guides.find(g => g.id === translation.guide_id);
           if (parentGuide) {
-            const identifier = parentGuide.slug || parentGuide.id;
+            const identifier = translation.slug || parentGuide.slug || parentGuide.id;
             const route = `/te/guides/${identifier}`;
             dynamicRoutes.push(route);
-            metadata.push({ route, title: translation.title, description: translation.description });
+            metadata.push({ route, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
           }
         });
         console.log(`📚 Found ${translatedGuides.length} translated guides`);

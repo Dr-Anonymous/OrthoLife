@@ -57,7 +57,9 @@ export default defineConfig(({ mode }) => ({
             .replace(/<title>.*<\/title>/, `<title>${routeMetadata.title}</title>`)
             .replace(/<meta name="description" content=".*"\s*\/?>/, `<meta name="description" content="${routeMetadata.description}" />`)
             .replace(/<meta property="og:title" content=".*"\s*\/?>/, `<meta property="og:title" content="${routeMetadata.title}" />`)
-            .replace(/<meta property="og:description" content=".*"\s*\/?>/, `<meta property="og:description" content="${routeMetadata.description}" />`);
+            .replace(/<meta property="og:description" content=".*"\s*\/?>/, `<meta property="og:description" content="${routeMetadata.description}" />`)
+            .replace(/<meta property="og:image" content=".*"\s*\/?>/, `<meta property="og:image" content="${routeMetadata.image}" />`)
+            .replace(/<meta name="twitter:image" content=".*"\s*\/?>/, `<meta name="twitter:image" content="${routeMetadata.image}" />`);
         }
 
         const canonicalRoute = renderedRoute.originalRoute.startsWith('/te/')
