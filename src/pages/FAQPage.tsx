@@ -8,7 +8,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Search, HelpCircle, Phone, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
@@ -113,12 +112,11 @@ const FAQPage = () => {
             <div className="text-center mb-12">
               <div className="flex justify-center items-center gap-4 mb-4">
                 <h1 className="text-4xl font-heading font-bold text-primary">
-                  {t('learn.faqs.title', 'Frequently Asked Questions')}
+                  {t('faq.title', 'Frequently Asked Questions')}
                 </h1>
-                <LanguageSwitcher />
               </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t('learn.faqs.subtitle', 'Quick answers to common health questions')}
+                {t('faq.subtitle', 'Quick answers to common health questions')}
               </p>
             </div>
 

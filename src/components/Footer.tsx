@@ -1,8 +1,9 @@
-
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Phone, MapPin, Mail, CheckCircle } from "lucide-react";
 
 const Footer = () => {
+  const { t } = useTranslation();
   return (
     <footer className="bg-card text-foreground pt-16 pb-8">
       <div className="container mx-auto px-4 md:px-6">
@@ -35,57 +36,57 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
+            <h3 className="font-semibold text-lg mb-4">{t('footer.quick-links')}</h3>
             <ul className="space-y-3">
               <li>
-                <a href="/#home" className="hover:text-primary transition-colors">Home</a>
+                <a href="/#home" className="hover:text-primary transition-colors">{t('nav.home')}</a>
               </li>
               <li>
-                <a href="/#about" className="hover:text-primary transition-colors">About Us</a>
+                <a href="/#about" className="hover:text-primary transition-colors">{t('footer.about-us')}</a>
               </li>
               <li>
-                <a href="/#services" className="hover:text-primary transition-colors">Services</a>
+                <a href="/#services" className="hover:text-primary transition-colors">{t('nav.services')}</a>
               </li>
               <li>
-                <a href="/#contact" className="hover:text-primary transition-colors">Contact</a>
+                <a href="/#contact" className="hover:text-primary transition-colors">{t('nav.contact')}</a>
               </li>
               <li>
-                <a href="/legal" className="hover:text-primary transition-colors">Terms & Conditions</a>
+                <a href="/legal" className="hover:text-primary transition-colors">{t('footer.terms-conditions')}</a>
               </li>
               <li>
-                <a href="/legal" className="hover:text-primary transition-colors">Cancellation & Refund</a>
+                <a href="/legal" className="hover:text-primary transition-colors">{t('footer.cancellation-refund')}</a>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-4">Our Services</h3>
+            <h3 className="font-semibold text-lg mb-4">{t('footer.our-services')}</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>Fracture Care</span>
+                <span>{t('footer.fracture-care')}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>Arthroscopy</span>
+                <span>{t('footer.arthroscopy')}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>Joint Replacement</span>
+                <span>{t('footer.joint-replacement')}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>Physician Consultation</span>
+                <span>{t('footer.physician-consultation')}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-secondary" />
-                <span>Spine Surgery</span>
+                <span>{t('footer.spine-surgery')}</span>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-4">Contact Info</h3>
+            <h3 className="font-semibold text-lg mb-4">{t('footer.contact-info')}</h3>
             <ul className="space-y-4">
               <li onClick={(e) => { e.preventDefault(); window.location.href = 'tel:+919983849838'; }} className="flex items-center gap-3">
                 <Phone size={18} className="text-secondary" />
@@ -105,7 +106,7 @@ const Footer = () => {
 
         <div className="border-t border-border pt-8">
           <p className="text-center text-muted-foreground">
-            &copy; {new Date().getFullYear()} OrthoLife Clinic. All rights reserved. | <a href="https://ortho.life" className="hover:text-primary">ortho.life</a>
+            &copy; {new Date().getFullYear()} OrthoLife Clinic. {t('footer.rights-reserved')} | <a href="https://ortho.life" className="hover:text-primary">ortho.life</a>
           </p>
         </div>
       </div>

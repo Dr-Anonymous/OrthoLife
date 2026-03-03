@@ -12,7 +12,6 @@ import { Clock, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
@@ -206,12 +205,11 @@ const BlogPage = () => {
             <div className="text-center mb-12">
               <div className="flex justify-center items-center gap-4 mb-4">
                 <h1 className="text-4xl font-heading font-bold text-primary">
-                  {t('learn.blog.title', 'Health Blog')}
+                  {t('blog.title', 'Health Blog')}
                 </h1>
-                <LanguageSwitcher />
               </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t('learn.blog.subtitle', 'Latest health tips and medical insights')}
+                {t('blog.subtitle', 'Latest health tips and medical insights')}
               </p>
             </div>
 

@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import {
   Dialog,
   DialogContent,
@@ -62,19 +61,18 @@ const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInst
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <div className="flex justify-center items-center gap-4 mb-4">
                 <h1 className="text-4xl font-heading font-bold text-primary">
-                  {t('learn.resources.title', 'Health Resources')}
+                  {t('resources.title', 'Health Resources')}
                 </h1>
-                <LanguageSwitcher />
               </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t('learn.resources.subtitle', 'Useful tools and resources for your health journey')}
+                {t('resources.subtitle', 'Useful tools and resources for your health journey')}
               </p>
             </div>
 
@@ -216,7 +214,7 @@ const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInst
                           </div>
                           <p className="text-sm text-muted-foreground">{t(resource.descriptionKey)}</p>
                         </div>
-                        <Button onClick={(e) => {e.preventDefault();window.location.href=resource.url;}} variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
+                        <Button onClick={(e) => { e.preventDefault(); window.location.href = resource.url; }} variant="outline" className="ml-4 group-hover:bg-primary/10 transition-colors">
                           {t('resources.external.visit')}
                           <ExternalLink size={16} className="ml-2" />
                         </Button>
@@ -260,7 +258,7 @@ const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInst
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

@@ -11,7 +11,6 @@ import { Calendar, User, Clock, Share2, ArrowLeft, BookOpen, Download } from 'lu
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { generatePdf } from '@/lib/pdfUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Guide } from './PatientGuidesPage'; // Re-using the interface
@@ -215,7 +214,6 @@ const PatientGuidePage = () => {
                 <header className="mb-8">
                   <div className="flex justify-between items-center mb-4">
                     <Badge>{guide.categories.name}</Badge>
-                    <LanguageSwitcher />
                   </div>
                   <h1 className="text-4xl font-heading font-bold text-primary mb-4">
                     {translatedGuide?.title || guide.title}
@@ -223,7 +221,7 @@ const PatientGuidePage = () => {
                   <div className="flex items-center text-muted-foreground flex-wrap">
                     <div className="flex items-center mr-6 mb-2">
                       <BookOpen size={16} className="mr-2" />
-                      <span>{guide.pages} pages</span>
+                      <span>{guide.pages} {t('guides.pages')}</span>
                     </div>
                     <div className="flex items-center mr-6 mb-2">
                       <Clock size={16} className="mr-2" />
@@ -236,21 +234,21 @@ const PatientGuidePage = () => {
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || (guide as any).content }} />
 
-                <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps} />
+                <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps || t('forms.defaultNextSteps')} />
 
                 <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
                   <div className="container mx-auto flex items-center gap-4">
                     <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
                       <Link to="/guides" className="flex items-center justify-center">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        <span className="hidden md:inline">Back to Guides</span>
-                        <span className="md:hidden">Back</span>
+                        <span className="hidden md:inline">{t('guides.back')}</span>
+                        <span className="md:hidden">{t('common.back')}</span>
                       </Link>
                     </Button>
                     <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
                       <Share2 className="h-4 w-4 mr-2" />
-                      <span className="hidden md:inline">Share Guide</span>
-                      <span className="md:hidden">Share</span>
+                      <span className="hidden md:inline">{t('guides.share')}</span>
+                      <span className="md:hidden">{t('common.share')}</span>
                     </Button>
                     <Button variant="outline" className="flex-1 flex items-center shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20" onClick={handleDownloadPdf} disabled={isDownloading}>
                       {isDownloading ? (

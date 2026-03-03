@@ -14,18 +14,38 @@ export const LanguageSwitcher = () => {
     const currentPath = location.pathname;
     const lowerPath = currentPath.toLowerCase();
 
+    // Skip switching logic for non-public paths
     if (lowerPath.includes('/op') || lowerPath.includes('/ip') || lowerPath.includes('/my')) {
       return;
     }
-    let newPath;
+
+    let newPath = '';
+    const searchParams = new URLSearchParams(location.search);
 
     if (lng === 'te') {
+      // Only use prefix-based routing for content-heavy sections like blog and guides
       if (!lowerPath.startsWith('/te')) {
-        newPath = `/te${currentPath}`;
+        if (lowerPath.startsWith('/blog') || lowerPath.startsWith('/guides')) {
+          newPath = `/te${currentPath}`;
+          // Also set the lang param just in case
+          searchParams.set('lang', 'te');
+          newPath += `?${searchParams.toString()}`;
+        } else {
+          // For all other pages (homepage, etc), use query parameter
+          searchParams.set('lang', 'te');
+          newPath = `${currentPath}?${searchParams.toString()}`;
+        }
       }
     } else { // lng === 'en'
+      // Handle prefix-based Telugu URLs
       if (lowerPath.startsWith('/te')) {
-        newPath = currentPath.substring(3);
+        newPath = currentPath.substring(3); // Remove /te
+      }
+
+      // Remove lang parameter if switching back to English
+      if (searchParams.has('lang')) {
+        searchParams.delete('lang');
+        newPath = (newPath || currentPath) + (searchParams.toString() ? `?${searchParams.toString()}` : '');
       }
     }
 

@@ -14,7 +14,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePdf } from '@/lib/pdfUtils';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { isTelugu } from '@/lib/languageUtils';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
@@ -303,12 +302,11 @@ const PatientGuidesPage = () => {
             <div className="text-center mb-12">
               <div className="flex justify-center items-center gap-4 mb-4">
                 <h1 className="text-4xl font-heading font-bold text-primary">
-                  {t('learn.guides.title', 'Health Guides')}
+                  {t('guides.title', 'Health Guides')}
                 </h1>
-                <LanguageSwitcher />
               </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t('learn.guides.subtitle', 'Comprehensive guides for better health management')}
+                {t('guides.subtitle', 'Comprehensive guides for better health management')}
               </p>
             </div>
 

@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import NextSteps from '@/components/NextSteps';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
@@ -52,7 +51,7 @@ const stripHtml = (html: string, maxLength = 160) => {
 
 const BlogPostPage = () => {
   const { postId } = useParams<{ postId: string }>();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [post, setPost] = useState<Post | null>(null);
   const [translatedPost, setTranslatedPost] = useState<TranslatedPost | null>(null);
   const [loading, setLoading] = useState(true);
@@ -245,7 +244,6 @@ const BlogPostPage = () => {
                 <header className="mb-8">
                   <div className="flex justify-between items-center mb-4">
                     <Badge>{post.categories.name}</Badge>
-                    <LanguageSwitcher />
                   </div>
                   <h1 className="text-4xl font-heading font-bold text-primary mb-4">
                     {translatedPost?.title || post.title}
@@ -253,7 +251,7 @@ const BlogPostPage = () => {
                   <div className="flex items-center text-muted-foreground flex-wrap">
                     <div className="flex items-center mb-2">
                       <Clock size={16} className="mr-2" />
-                      <span>{post.read_time_minutes} min read</span>
+                      <span>{post.read_time_minutes} {t('blog.minutesRead')}</span>
                     </div>
                   </div>
                 </header>
@@ -262,21 +260,21 @@ const BlogPostPage = () => {
 
                 <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedPost?.content || post.content }} />
 
-                <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps} />
+                <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps || t('forms.defaultNextSteps')} />
 
                 <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
                   <div className="container mx-auto flex items-center gap-4">
                     <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
                       <Link to="/blog" className="flex items-center justify-center">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        <span className="hidden md:inline">Back to Blog</span>
-                        <span className="md:hidden">Back</span>
+                        <span className="hidden md:inline">{t('blog.back')}</span>
+                        <span className="md:hidden">{t('common.back')}</span>
                       </Link>
                     </Button>
                     <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
                       <Share2 className="mr-2 h-4 w-4" />
-                      <span className="hidden md:inline">Share Article</span>
-                      <span className="md:hidden">Share</span>
+                      <span className="hidden md:inline">{t('blog.share')}</span>
+                      <span className="md:hidden">{t('common.share')}</span>
                     </Button>
                   </div>
                 </div>

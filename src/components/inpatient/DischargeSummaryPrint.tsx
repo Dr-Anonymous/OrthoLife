@@ -1,9 +1,8 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { InPatient, DischargeData, CourseDetails } from '@/types/inPatients';
-import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, FileText, User, AlertTriangle, ClipboardList, Activity } from 'lucide-react';
+import { DischargeData, CourseDetails } from '@/types/inPatients';
+import { Clock, Calendar, Pill, Sun, CloudSun, Moon, AlertTriangle, ClipboardList, Activity } from 'lucide-react';
 import { DAMA_TEXT } from '@/utils/dischargeConstants';
 
 interface DischargeSummaryPrintProps {
@@ -35,11 +34,55 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     forceDesktop,
     dischargeDate
 }, ref) => {
-    const { t, i18n } = useTranslation();
+    const TRANSLATIONS: any = {
+        en: {
+            'discharge.diagnosis': 'Diagnosis',
+            'discharge.procedure': 'Procedure Performed',
+            'discharge.operation_notes': 'Operation Notes',
+            'discharge.clinical_notes': 'Clinical Course / Notes',
+            'discharge.post_op_care': 'Post-Op Care & Advice',
+            'discharge.wound_care': 'Wound Care Instructions',
+            'discharge.activity': 'Activity & Physiotherapy',
+            'discharge.emergency_red_flags': 'Emergency Red Flags',
+            'discharge.review_date': 'Review Date',
+            'prescription.medication': 'Medications at Discharge',
+            'prescription.med_name': 'Name',
+            'prescription.med_dose': 'Dose',
+            'prescription.med_frequency': 'Frequency',
+            'prescription.med_morning': 'Morning',
+            'prescription.med_noon': 'A.Noon',
+            'prescription.med_night': 'Night',
+            'prescription.med_duration': 'Duration',
+            'prescription.med_instructions': 'Instructions',
+            'prescription.footer_text': 'Visit <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.'
+        },
+        te: {
+            'discharge.diagnosis': 'రోగ నిర్ధారణ',
+            'discharge.procedure': 'చేసిన శస్త్రచికిత్స',
+            'discharge.operation_notes': 'ఆపరేషన్ గమనికలు',
+            'discharge.clinical_notes': 'క్లినికల్ కోర్సు / గమనికలు',
+            'discharge.post_op_care': 'శస్త్రచికిత్స అనంతర జాగ్రత్తలు & సలహాలు',
+            'discharge.wound_care': 'గాయం జాగ్రత్తలు',
+            'discharge.activity': 'శారీరక కదలికలు',
+            'discharge.emergency_red_flags': 'జాగ్రత్తలు / ప్రమాద సంకేతాలు',
+            'discharge.review_date': 'తదుపరి సందర్శన తేదీ',
+            'prescription.medication': 'డిశ్చార్జ్ సమయంలో మందులు',
+            'prescription.med_name': 'పేరు',
+            'prescription.med_dose': 'మోతాదు',
+            'prescription.med_frequency': 'తరచుదనం',
+            'prescription.med_morning': 'ఉదయం',
+            'prescription.med_noon': 'మధ్యాహ్నం',
+            'prescription.med_night': 'రాత్రి',
+            'prescription.med_duration': 'వ్యవధి',
+            'prescription.med_instructions': 'సూచనలు',
+            'prescription.footer_text': 'మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా చూడటానికి <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> సందర్శించండి.'
+        }
+    };
 
-    React.useEffect(() => {
-        i18n.changeLanguage(language);
-    }, [language, i18n]);
+    const t = (key: string, defaultValue?: string) => {
+        const langObj = TRANSLATIONS[language] || TRANSLATIONS.en;
+        return langObj[key] || defaultValue || key;
+    };
 
     const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
@@ -109,13 +152,13 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                 <section className="grid grid-cols-1 gap-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                     {courseDetails.diagnosis && (
                                         <div>
-                                            <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis</h3>
+                                            <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.diagnosis')}</h3>
                                             <p className="whitespace-pre-wrap text-sm">{courseDetails.diagnosis}</p>
                                         </div>
                                     )}
                                     {courseDetails.procedure && (
                                         <div>
-                                            <h3 className="font-heading font-semibold text-primary mb-1">Procedure Performed</h3>
+                                            <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.procedure')}</h3>
                                             <p className="whitespace-pre-wrap text-sm">
                                                 {courseDetails.procedure}
                                                 {courseDetails.procedure_date && (
@@ -129,7 +172,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                 {/* Operation Notes */}
                                 {courseDetails.operation_notes && (
                                     <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                        <h3 className="font-heading font-semibold text-primary mb-1">Operation Notes</h3>
+                                        <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.operation_notes')}</h3>
                                         <p className="whitespace-pre-wrap text-sm">{courseDetails.operation_notes}</p>
                                     </section>
                                 )}
@@ -137,7 +180,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                 {/* Clinical Notes (Course in Hospital) */}
                                 {dischargeData.clinical_notes && (
                                     <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                        <h3 className="font-heading font-semibold text-primary mb-1">Clinical Course / Notes</h3>
+                                        <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.clinical_notes')}</h3>
                                         <p className="whitespace-pre-wrap text-sm">{dischargeData.clinical_notes}</p>
                                     </section>
                                 )}
@@ -230,7 +273,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                         {/* Post-Op Care */}
                                         {dischargeData.post_op_care && (
                                             <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                                <h3 className="font-heading font-semibold text-primary mb-1">Post-Op Care & Advice</h3>
+                                                <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.post_op_care')}</h3>
                                                 <p className="whitespace-pre-wrap text-sm">{dischargeData.post_op_care}</p>
                                             </div>
                                         )}
@@ -240,7 +283,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                             <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                                 <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
                                                     <ClipboardList className="h-4 w-4" />
-                                                    {language === 'te' ? 'గాయం జాగ్రత్తలు' : 'Wound Care Instructions'}
+                                                    {t('discharge.wound_care')}
                                                 </h3>
                                                 <p className="whitespace-pre-wrap text-sm">{dischargeData.wound_care}</p>
                                             </div>
@@ -251,7 +294,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                             <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                                 <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
                                                     <Activity className="h-4 w-4" />
-                                                    {language === 'te' ? 'శారీరక కదలికలు' : 'Activity & Physiotherapy'}
+                                                    {t('discharge.activity')}
                                                 </h3>
                                                 <p className="whitespace-pre-wrap text-sm">{dischargeData.activity}</p>
                                             </div>
@@ -262,7 +305,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                             <div className="border border-red-500 bg-red-50 p-4 rounded-md print:border-black print:bg-transparent break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                                 <h3 className="font-heading font-semibold text-red-700 flex items-center gap-2 mb-2 print:text-black">
                                                     <AlertTriangle className="h-5 w-5 text-red-600 print:text-black" />
-                                                    {language === 'te' ? 'జాగ్రత్తలు / ప్రమాద సంకేతాలు' : 'Emergency Red Flags'}
+                                                    {t('discharge.emergency_red_flags')}
                                                 </h3>
                                                 <p className="whitespace-pre-wrap text-sm">{dischargeData.red_flags}</p>
                                             </div>
@@ -275,7 +318,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     <section className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                         <h3 className="font-heading font-semibold text-primary flex items-center gap-2">
                                             <Calendar className="h-5 w-5" />
-                                            {language === 'te' ? 'తదుపరి సందర్శన తేదీ' : 'Review Date'}
+                                            {t('discharge.review_date')}
                                         </h3>
                                         <p className="text-sm font-medium ml-7">{format(new Date(dischargeData.review_date), 'dd MMM yyyy')}</p>
                                     </section>

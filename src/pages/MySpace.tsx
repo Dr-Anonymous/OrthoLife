@@ -8,7 +8,6 @@ import PageLoader from '@/components/PageLoader';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import LanguagePreferenceModal from '@/components/LanguagePreferenceModal';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import AppointmentsCard from '@/components/AppointmentsCard';
 import PrescriptionsCard from '@/components/PrescriptionsCard';
 
@@ -128,7 +127,6 @@ const MySpace = () => {
             </div>
             <div className="flex flex-col items-end gap-2 mt-4 sm:mt-0">
               <div className="flex items-center gap-4">
-                <LanguageSwitcher />
                 {patientList.length > 1 && (
                   <Button onClick={() => setIsPatientSelectionModalOpen(true)} variant="outline">
                     {t('mySpace.switchPatient')}

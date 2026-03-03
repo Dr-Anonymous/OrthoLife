@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Phone, Menu, X, MessageCircle, ChevronDown, User, LogOut } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -6,6 +7,7 @@ import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMe
 import { cn } from '@/lib/utils';
 import Logo from './Logo';
 import { useAuth } from '@/hooks/useAuth';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,6 +15,7 @@ const Header = () => {
   const [searchParams] = useSearchParams();
   const lang = searchParams.get('lang');
   const { user, signOut } = useAuth();
+  const { t } = useTranslation();
 
   const withLang = (path: string) => {
     return lang ? `${path}?lang=${lang}` : path;
@@ -46,7 +49,7 @@ const Header = () => {
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
                     <a href="/#home" className="font-medium hover:text-primary transition-colors px-3 py-2">
-                      Home
+                      {t('nav.home')}
                     </a>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
@@ -54,7 +57,7 @@ const Header = () => {
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
                     <a href="/#services" className="font-medium hover:text-primary transition-colors px-3 py-2">
-                      Services
+                      {t('nav.services')}
                     </a>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
@@ -62,13 +65,13 @@ const Header = () => {
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
                     <a href="/#about" className="font-medium hover:text-primary transition-colors px-3 py-2">
-                      About
+                      {t('nav.about')}
                     </a>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="font-medium">Pharmacy</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="font-medium">{t('nav.pharmacy')}</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid w-[400px] gap-3 p-4 bg-popover">
                       <NavigationMenuLink asChild>
@@ -78,9 +81,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Order Medicines</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.order-medicines')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Browse and order medicines online with home delivery
+                            {t('pharmacy.orderDescription')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -91,9 +94,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Upload Prescription</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.upload-prescription')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Upload your prescription for quick medicine ordering
+                            {t('pharmacy.uploadDescription')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -102,7 +105,7 @@ const Header = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="font-medium">Diagnostics</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="font-medium">{t('nav.diagnostics')}</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid w-[400px] gap-3 p-4 bg-popover">
                       <NavigationMenuLink asChild>
@@ -112,9 +115,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Book Lab Tests</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.book-lab-tests')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Book diagnostic tests with home sample collection
+                            {t('diagnostics.bookDescription')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -125,9 +128,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Track Test Results</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.track-test-results')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Check the status and download your test results
+                            {t('diagnostics.trackDescription')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -136,11 +139,11 @@ const Header = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="font-medium">Learn</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="font-medium">{t('nav.learn')}</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid w-[500px] grid-cols-2 gap-3 p-4 bg-popover">
                       <div className="col-span-2 mb-2 flex items-center justify-between">
-                        <span className="text-sm font-medium">Health Education</span>
+                        <span className="text-sm font-medium">{t('nav.health-education')}</span>
                       </div>
                       <NavigationMenuLink asChild>
                         <Link
@@ -149,9 +152,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Blog</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.blog')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Latest health tips and medical insights
+                            {t('blog.subtitle')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -162,9 +165,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Health Guides</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.patient-guides')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Comprehensive guides for health management
+                            {t('guides.subtitle')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -175,9 +178,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">FAQs</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.faqs')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Quick answers to common health questions
+                            {t('faq.subtitle')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -188,9 +191,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Resources</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.resources')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Useful tools and resources for your health
+                            {t('resources.subtitle')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -201,9 +204,9 @@ const Header = () => {
                             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           )}
                         >
-                          <div className="text-sm font-medium leading-none">Symptom Checker</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.symptom-checker')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            AI-powered preliminary symptom analysis
+                            {t('symptomChecker.subtitle')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -214,7 +217,7 @@ const Header = () => {
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
                     <a href="/#contact" className="font-medium hover:text-primary transition-colors px-3 py-2">
-                      Contact
+                      {t('nav.contact')}
                     </a>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
@@ -229,20 +232,23 @@ const Header = () => {
             <Button onClick={(e) => { e.preventDefault(); window.location.href = 'https://wa.me/919983849838?text=Hi.%20I%27d%20like%20to%20book%20an%20appointment%20today'; }} className="bg-primary hover:bg-primary/90 transition-colors">
               <MessageCircle />
             </Button>
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
 
             {/* User Menu */}
             {user ? (
               <Link to="/my">
                 <Button variant="ghost" className="hidden md:flex items-center gap-2">
                   <User size={16} />
-                  <span>My Space</span>
+                  <span>{t('nav.my-space')}</span>
                 </Button>
               </Link>
             ) : (
               <Link to="/auth">
                 <Button variant="ghost" className="hidden md:flex items-center gap-2">
                   <User size={16} />
-                  <span>Login</span>
+                  <span>{t('nav.login')}</span>
                 </Button>
               </Link>
             )}
@@ -264,51 +270,54 @@ const Header = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-popover border-t shadow-lg">
           <nav className="container mx-auto px-4 py-4 space-y-4">
-            <a href="/#home" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</a>
-            <a href="/#services" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
-            <a href="/#about" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>About</a>
+            <div className="flex justify-center sm:hidden pb-2 border-b">
+              <LanguageSwitcher />
+            </div>
+            <a href="/#home" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.home')}</a>
+            <a href="/#services" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.services')}</a>
+            <a href="/#about" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.about')}</a>
 
             {/* Pharmacy Dropdown */}
             <div className="space-y-2">
-              <span className="block font-medium text-primary">Pharmacy</span>
-              <Link to={withLang("/pharmacy")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Order Medicines</Link>
-              <Link to={withLang("/upload-prescription")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Upload Prescription</Link>
+              <span className="block font-medium text-primary">{t('nav.pharmacy')}</span>
+              <Link to={withLang("/pharmacy")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.order-medicines')}</Link>
+              <Link to={withLang("/upload-prescription")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.upload-prescription')}</Link>
             </div>
 
             {/* Diagnostics Dropdown */}
             <div className="space-y-2">
-              <span className="block font-medium text-primary">Diagnostics</span>
-              <Link to={withLang("/diagnostics")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Book Lab Tests</Link>
-              <Link to={withLang("/track-test-results")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Track Test Results</Link>
+              <span className="block font-medium text-primary">{t('nav.diagnostics')}</span>
+              <Link to={withLang("/diagnostics")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.book-lab-tests')}</Link>
+              <Link to={withLang("/track-test-results")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.track-test-results')}</Link>
             </div>
 
             {/* Learn Dropdown */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="block font-medium text-primary">Learn</span>
+                <span className="block font-medium text-primary">{t('nav.learn')}</span>
               </div>
-              <Link to={withLang("/blog")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link>
-              <Link to={withLang("/guides")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Health Guides</Link>
-              <Link to={withLang("/faqs")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>FAQs</Link>
-              <Link to={withLang("/resources")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Resources</Link>
-              <Link to={withLang("/symptom-checker")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Symptom Checker</Link>
+              <Link to={withLang("/blog")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.blog')}</Link>
+              <Link to={withLang("/guides")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.patient-guides')}</Link>
+              <Link to={withLang("/faqs")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.faqs')}</Link>
+              <Link to={withLang("/resources")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.resources')}</Link>
+              <Link to={withLang("/symptom-checker")} className="block pl-4 text-sm hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.symptom-checker')}</Link>
             </div>
 
-            <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
+            <a href="/#contact" className="block font-medium hover:text-primary transition-colors" onClick={() => setIsMobileMenuOpen(false)}>{t('nav.contact')}</a>
 
             {/* Mobile Login/Logout */}
             {user ? (
               <Link to="/my">
                 <Button onClick={() => setIsMobileMenuOpen(false)} variant="outline" className="w-full flex items-center justify-center gap-2">
                   <User size={16} />
-                  <span>My Space</span>
+                  <span>{t('nav.my-space')}</span>
                 </Button>
               </Link>
             ) : (
               <Link to="/auth">
                 <Button onClick={() => setIsMobileMenuOpen(false)} variant="outline" className="w-full flex items-center justify-center gap-2">
                   <User size={16} />
-                  <span>Login</span>
+                  <span>{t('nav.login')}</span>
                 </Button>
               </Link>
             )}

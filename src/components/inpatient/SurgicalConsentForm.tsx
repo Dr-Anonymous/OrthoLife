@@ -152,7 +152,6 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 .insert({
                     name: templateName,
                     language: formData.consent_language || 'en',
-                    procedure_name: formData.procedure_name,
                     risks_general: formData.risks_general,
                     risks_anesthesia: formData.risks_anesthesia,
                     risks_procedure: formData.risks_procedure
