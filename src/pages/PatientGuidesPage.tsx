@@ -444,11 +444,11 @@ const PatientGuidesPage = () => {
                           <div className="flex items-center text-sm text-muted-foreground mb-6 space-x-4">
                             <div className="flex items-center">
                               <BookOpen size={16} className="mr-1" />
-                              <span>{guidesToDisplay[0].pages} pages</span>
+                              <span>{guidesToDisplay[0].pages} {t('guides.pages')}</span>
                             </div>
                             <div className="flex items-center">
                               <Clock size={16} className="mr-1" />
-                              <span>{guidesToDisplay[0].estimated_time}</span>
+                              <span>{guidesToDisplay[0].estimated_time.split(' ')[0]} {t('blog.minutesRead')}</span>
                             </div>
                           </div>
                         </div>
@@ -500,11 +500,11 @@ const PatientGuidesPage = () => {
                             <div className="flex items-center space-x-3">
                               <span className="flex items-center">
                                 <BookOpen size={14} className="mr-1" />
-                                {guide.pages}p
+                                {guide.pages}{t('guides.pages').charAt(0)}
                               </span>
                               <span className="flex items-center">
                                 <Clock size={14} className="mr-1" />
-                                {guide.estimated_time.split(' ')[0]}m
+                                {guide.estimated_time.split(' ')[0]}{t('blog.minutesRead').charAt(0)}
                               </span>
                             </div>
                           </div>

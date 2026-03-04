@@ -331,7 +331,7 @@ const BlogPage = () => {
                           </p>
                           <div className="flex items-center text-sm text-muted-foreground mb-4 flex-wrap">
                             <Clock size={16} className="mr-1" />
-                            <span>{featuredPost.read_time_minutes} min read</span>
+                            <span>{featuredPost.read_time_minutes} {t('blog.minutesRead')}</span>
                           </div>
                           <Button className="w-fit pointer-events-none">
                             Read More
@@ -359,7 +359,7 @@ const BlogPage = () => {
                         <CardHeader>
                           <div className="flex items-center justify-between mb-2">
                             <Badge variant="secondary">{post.categories.name}</Badge>
-                            <span className="text-xs text-muted-foreground">{post.read_time_minutes} min read</span>
+                            <span className="text-xs text-muted-foreground">{post.read_time_minutes} {t('blog.minutesRead')}</span>
                           </div>
                           <CardTitle className="text-lg leading-tight">
                             {getTranslatedPost(post, i18n.language).title}

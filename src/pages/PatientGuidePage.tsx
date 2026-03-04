@@ -225,7 +225,7 @@ const PatientGuidePage = () => {
                     </div>
                     <div className="flex items-center mr-6 mb-2">
                       <Clock size={16} className="mr-2" />
-                      <span>{guide.estimated_time}</span>
+                      <span>{guide.estimated_time.split(' ')[0]} {t('blog.minutesRead')}</span>
                     </div>
                   </div>
                 </header>
