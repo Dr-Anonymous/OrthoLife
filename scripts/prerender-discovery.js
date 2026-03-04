@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 // Script to discover dynamic routes for pre-rendering
 const discoverDynamicRoutes = async () => {
@@ -9,11 +10,15 @@ const discoverDynamicRoutes = async () => {
   try {
     // Initialize Supabase client with environment variables
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.warn('⚠️  Supabase credentials not found, skipping dynamic route discovery');
-      return [];
+      console.log('Environment variables found:', {
+        url: !!supabaseUrl,
+        key: !!supabaseKey
+      });
+      return { routes: [], metadata: [] };
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -38,13 +43,25 @@ const discoverDynamicRoutes = async () => {
         translatedPosts.forEach(translation => {
           const parentPost = posts.find(p => p.id === translation.post_id);
           if (parentPost) {
+            // Main translation route (uses Telugu slug if available)
             const identifier = translation.slug || parentPost.slug || parentPost.id;
             const route = `/te/blog/${identifier}`;
-            dynamicRoutes.push(route);
-            metadata.push({ route, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+            if (!dynamicRoutes.includes(route)) {
+              dynamicRoutes.push(route);
+              metadata.push({ route, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+            }
+
+            // Also add the English slug version with /te/ prefix for compatibility/deep-links
+            if (parentPost.slug && identifier !== parentPost.slug) {
+              const engRoute = `/te/blog/${parentPost.slug}`;
+              if (!dynamicRoutes.includes(engRoute)) {
+                dynamicRoutes.push(engRoute);
+                metadata.push({ route: engRoute, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+              }
+            }
           }
         });
-        console.log(`📝 Found ${translatedPosts.length} translated blog posts`);
+        console.log(`📝 Found ${translatedPosts.length} translated blog posts and added metadata for English slug variants`);
       }
     } catch (error) {
       console.warn('Could not fetch blog posts:', error.message);
@@ -68,13 +85,25 @@ const discoverDynamicRoutes = async () => {
         translatedGuides.forEach(translation => {
           const parentGuide = guides.find(g => g.id === translation.guide_id);
           if (parentGuide) {
+            // Main translation route (uses Telugu slug if available)
             const identifier = translation.slug || parentGuide.slug || parentGuide.id;
             const route = `/te/guides/${identifier}`;
-            dynamicRoutes.push(route);
-            metadata.push({ route, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+            if (!dynamicRoutes.includes(route)) {
+              dynamicRoutes.push(route);
+              metadata.push({ route, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+            }
+
+            // Also add the English slug version with /te/ prefix
+            if (parentGuide.slug && identifier !== parentGuide.slug) {
+              const engRoute = `/te/guides/${parentGuide.slug}`;
+              if (!dynamicRoutes.includes(engRoute)) {
+                dynamicRoutes.push(engRoute);
+                metadata.push({ route: engRoute, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+              }
+            }
           }
         });
-        console.log(`📚 Found ${translatedGuides.length} translated guides`);
+        console.log(`📚 Found ${translatedGuides.length} translated guides and added metadata for English slug variants`);
       }
     } catch (error) {
       console.warn('Could not fetch guides:', error.message);

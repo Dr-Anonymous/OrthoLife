@@ -22,6 +22,19 @@ const staticRoutes = [
   { path: '/track-test-results', priority: '0.7', changefreq: 'weekly' },
 ];
 
+const escapeXml = (unsafe: string) => {
+  return unsafe.replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+};
+
 export const generateSitemap = () => {
   console.log('Generating sitemap...');
 
@@ -52,13 +65,13 @@ export const generateSitemap = () => {
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticRoutes.map(route => `  <url>
-    <loc>${BASE_URL}${route.path}</loc>
+    <loc>${escapeXml(`${BASE_URL}${route.path}`)}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>${route.changefreq}</changefreq>
     <priority>${route.priority}</priority>
   </url>`).join('\n')}
 ${dynamicRoutes.map(route => `  <url>
-    <loc>${BASE_URL}${route}</loc>
+    <loc>${escapeXml(`${BASE_URL}${route}`)}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>${route.includes('/guides/') ? 'monthly' : 'weekly'}</changefreq>
     <priority>${route.includes('/guides/') ? '0.8' : '0.7'}</priority>
