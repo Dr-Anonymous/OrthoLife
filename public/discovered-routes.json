@@ -73,8 +73,6 @@
     "/guides/5",
     "/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
     "/guides/9",
-    "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
-    "/guides/2",
     "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
     "/guides/4",
     "/guides/back-strengthening-exercises-do-s-and-dont-s",
@@ -83,6 +81,8 @@
     "/guides/16",
     "/guides/post-operative-diet-your-guide-to-healing-after-surgery",
     "/guides/10",
+    "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
+    "/guides/2",
     "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
     "/guides/14",
     "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
@@ -571,18 +571,6 @@
       "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     },
     {
-      "route": "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
-      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
-      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
-      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
-    },
-    {
-      "route": "/guides/2",
-      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
-      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
-      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
-    },
-    {
       "route": "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
       "title": "Plantar Fascia Exercises: Effective Stretches and Strengthening for Heel Pain Relief",
       "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence.",
@@ -629,6 +617,18 @@
       "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
       "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy.",
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
+    },
+    {
+      "route": "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
+      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
+      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right diet (low purine) can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
+      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+    },
+    {
+      "route": "/guides/2",
+      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
+      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right diet (low purine) can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
+      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
     },
     {
       "route": "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
@@ -735,19 +735,19 @@
     {
       "route": "/te/guides/గౌట్-రోగులకు-ఉత్తమ-ఆహారం-తినవలసినవి-మరియు-తినకూడనివి",
       "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
-      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
+      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం (తక్కువ ప్యూరిన్) లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
       "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
     },
     {
       "route": "/te/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
       "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
-      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
+      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం (తక్కువ ప్యూరిన్) లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
       "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
     },
     {
       "route": "/te/guides/2",
       "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
-      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
+      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం (తక్కువ ప్యూరిన్) లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
       "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
     },
     {
