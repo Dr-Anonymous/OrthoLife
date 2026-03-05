@@ -3,81 +3,55 @@
     "/blog/managing-chronic-joint-pain-naturally",
     "/blog/5-essential-tips-for-maintaining-healthy-bones",
     "/blog/understanding-osteoporosis-prevention-and-treatment",
-    "/blog/post-surgery-recovery-what-to-expect",
     "/blog/understanding-heel-pain-causes-and-focus-on-plantar-fasciitis",
-    "/blog/knee-replacement-surgery-recovery-benefits-what-to-expect",
     "/blog/the-role-of-physical-therapy-in-recovery",
     "/blog/beat-backache-causes-prevention-treatments-for-back-pain",
     "/blog/hip-replacement-surgery-recovery-benefits-patient-guide",
     "/blog/acl-tear-understanding-causes-treatment-recovery",
+    "/blog/knee-replacement-surgery-recovery-benefits-what-to-expect",
+    "/blog/post-surgery-recovery-what-to-expect",
     "/blog/understanding-meniscus-injuries-causes-symptoms-and-treatment",
-    "/te/blog/మోకాలి-మార్పిడి-శస్త్రచికిత్స:-కోలుకోవడం,-ప్రయోజనాలు-&-ఏమి-ఆశించాలి",
-    "/te/blog/knee-replacement-surgery-recovery-benefits-what-to-expect",
-    "/te/blog/బోలు-ఎముకల-వ్యాధిని-అర్థం-చేసుకోవడం:-నివారణ-మరియు-చికిత్స",
-    "/te/blog/understanding-osteoporosis-prevention-and-treatment",
-    "/te/blog/దీర్ఘకాలిక-కీళ్ల-నొప్పులను-సహజంగా-నిర్వహించడం",
-    "/te/blog/managing-chronic-joint-pain-naturally",
-    "/te/blog/acl",
-    "/te/blog/acl-tear-understanding-causes-treatment-recovery",
-    "/te/blog/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం:-ఏమి-ఆశించాలి",
-    "/te/blog/post-surgery-recovery-what-to-expect",
+    "/te/blog/మోకాలి-మార్పిడి-శస్త్రచికిత్స-కోలుకోవడం-ప్రయోజనాలు-ఏమి-ఆశించాలి",
+    "/te/blog/acl-చిరుగు-కారణాలు-చికిత్స-కోలుకోవడం",
+    "/te/blog/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
     "/te/blog/రికవరీలో-ఫిజికల్-థెరపీ-పాత్ర",
-    "/te/blog/the-role-of-physical-therapy-in-recovery",
-    "/te/blog/5",
-    "/te/blog/5-essential-tips-for-maintaining-healthy-bones",
-    "/te/blog/తుంటి-మార్పిడి-శస్త్రచికిత్స:-కోలుకోవడం,-ప్రయోజనాలు-&-సూచనలు",
-    "/te/blog/hip-replacement-surgery-recovery-benefits-patient-guide",
-    "/te/blog/మెనిస్కస్-గాయాలను-అర్థం-చేసుకోవడం:-కారణాలు,-లక్షణాలు-మరియు-చికిత్స",
-    "/te/blog/understanding-meniscus-injuries-causes-symptoms-and-treatment",
-    "/te/blog/నడుము-నొప్పిని-జెయించండి:-నడుము-నొప్పికి-గల-కారణాలు,-నివారణ-మరియు-చికిత్సలు",
-    "/te/blog/beat-backache-causes-prevention-treatments-for-back-pain",
-    "/te/blog/మడమ-నొప్పిని-అర్థం-చేసుకోవడం:-కారణాలు-మరియు-ప్లాంటార్-ఫాసిటిస్-పై-దృష్టి",
-    "/te/blog/understanding-heel-pain-causes-and-focus-on-plantar-fasciitis",
+    "/te/blog/ఆరోగ్యకరమైన-ఎముకలను-నిర్వహించడానికి-5-ముఖ్యమైన-చిట్కాలు",
+    "/te/blog/తుంటి-మార్పిడి-శస్త్రచికిత్స-కోలుకోవడం-ప్రయోజనాలు-సూచనలు",
+    "/te/blog/బోలు-ఎముకల-వ్యాధిని-అర్థం-చేసుకోవడం-నివారణ-మరియు-చికిత్స",
+    "/te/blog/దీర్ఘకాలిక-కీళ్ల-నొప్పులను-సహజంగా-నిర్వహించడం",
+    "/te/blog/మెనిస్కస్-గాయాలను-అర్థం-చేసుకోవడం-కారణాలు-లక్షణాలు-మరియు-చికిత్స",
+    "/te/blog/నడుము-నొప్పిని-జెయించండి-నడుము-నొప్పికి-గల-కారణాలు-నివారణ-మరియు-చికిత్సలు",
+    "/te/blog/మడమ-నొప్పిని-అర్థం-చేసుకోవడం-కారణాలు-మరియు-ప్లాంటార్-ఫాసిటిస్-పై-దృష్టి",
     "/guides/flat-foot-care-effective-exercises-and-tips-for-healthy-feet",
-    "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
-    "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
     "/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
     "/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
     "/guides/neck-pain-exercises-effective-stretches-and-strengthening-for-relief",
     "/guides/diabetic-diet-chart-for-andhra-pradesh-patients",
-    "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
     "/guides/post-surgery-recovery-what-to-expect",
     "/guides/managing-high-blood-pressure-essential-diet-for-hypertensive-patients",
     "/guides/knee-strengthening-exercises-a-detailed-patient-guide",
     "/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
+    "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
+    "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
+    "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
     "/guides/back-strengthening-exercises-do-s-and-dont-s",
     "/guides/post-injection-care-a-guide-to-recovery-after-joint-injections",
     "/guides/post-operative-diet-your-guide-to-healing-after-surgery",
-    "/te/guides/ప్లాస్టర్-కాస్ట్‌తో-జీవించడం:-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
-    "/te/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
-    "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు:-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
-    "/te/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
-    "/te/guides/మెనిస్కస్-సర్జరీ-తర్వాత-పునరావాసం:-వ్యాయామాలు-&-పునరుద్ధరణ-కాలక్రమం",
-    "/te/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
-    "/te/guides/హైపోథైరాయిడిజం-ఆహారం:-సరైన-థైరాయిడ్-ఆరోగ్యం-కోసం-మీ-శరీరానికి-ఇంధనం",
-    "/te/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
-    "/te/guides/గౌట్-రోగులకు-ఉత్తమ-ఆహారం:-తినవలసినవి-మరియు-తినకూడనివి",
-    "/te/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
-    "/te/guides/జాయింట్-ఇంజెక్షన్-తర్వాత-తీసుకోవలసిన-జాగ్రత్తలు:-రోగుల-కోసం-మార్గదర్శకాలు",
-    "/te/guides/post-injection-care-a-guide-to-recovery-after-joint-injections",
-    "/te/guides/మెడ-నొప్పి-వ్యాయామాలు:-ఉపశమనం-కోసం-ప్రభావవంతమైన-మార్గదర్శిని",
-    "/te/guides/neck-pain-exercises-effective-stretches-and-strengthening-for-relief",
-    "/te/guides/చదునైన-పాదాల-సంరక్షణ:-ఆరోగ్యకరమైన-పాదాలకు-ప్రభావవంతమైన-వ్యాయామాలు-మరియు-సూచనలు",
-    "/te/guides/flat-foot-care-effective-exercises-and-tips-for-healthy-feet",
-    "/te/guides/మోకాలిని-బలపరిచే-వ్యాయామాలు:-వివరణాత్మక-సూచనలు",
-    "/te/guides/knee-strengthening-exercises-a-detailed-patient-guide",
+    "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
+    "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
+    "/te/guides/జాయింట్-ఇంజెక్షన్-తర్వాత-తీసుకోవలసిన-జాగ్రత్తలు-రోగుల-కోసం-మార్గదర్శకాలు",
+    "/te/guides/చదునైన-పాదాల-సంరక్షణ-ఆరోగ్యకరమైన-పాదాలకు-ప్రభావవంతమైన-వ్యాయామాలు-మరియు-సూచనలు",
+    "/te/guides/హైపోథైరాయిడిజం-ఆహారం-సరైన-థైరాయిడ్-ఆరోగ్యం-కోసం-మీ-శరీరానికి-ఇంధనం",
+    "/te/guides/గౌట్-రోగులకు-ఉత్తమ-ఆహారం-తినవలసినవి-మరియు-తినకూడనివి",
+    "/te/guides/మెడ-నొప్పి-వ్యాయామాలు-ఉపశమనం-కోసం-ప్రభావవంతమైన-మార్గదర్శిని",
+    "/te/guides/మెనిస్కస్-సర్జరీ-తర్వాత-పునరావాసం-వ్యాయామాలు-పునరుద్ధరణ-కాలక్రమం",
+    "/te/guides/మోకాలిని-బలపరిచే-వ్యాయామాలు-వివరణాత్మక-సూచనలు",
     "/te/guides/ఆంధ్రప్రదేశ్-మధుమేహ-రోగుల-కోసం-ఆహార-పట్టిక",
-    "/te/guides/diabetic-diet-chart-for-andhra-pradesh-patients",
     "/te/guides/acl-పునరావాస-ప్రయాణం-శస్త్రచికిత్స-అనంతర-ప్రోటోకాల్",
-    "/te/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
-    "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం:-ఏమి-ఆశించాలి",
-    "/te/guides/post-surgery-recovery-what-to-expect",
-    "/te/guides/అధిక-రక్తపోటును-నియంత్రించడం:-అధిక-రక్తపోటు-ఉన్నవారికి-అవసరమైన-ఆహారం",
-    "/te/guides/managing-high-blood-pressure-essential-diet-for-hypertensive-patients",
-    "/te/guides/వెన్ను-బలపరిచే-వ్యాయామాలు:-చేయవలసినవి-&-చేయకూడనివి",
-    "/te/guides/back-strengthening-exercises-do-s-and-dont-s",
-    "/te/guides/శస్త్రచికిత్స-అనంతర-ఆహారం:-శస్త్రచికిత్స-తర్వాత-కోలుకోవడానికి-మీ-మార్గదర్శిని",
-    "/te/guides/post-operative-diet-your-guide-to-healing-after-surgery"
+    "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
+    "/te/guides/అధిక-రక్తపోటును-నియంత్రించడం-అధిక-రక్తపోటు-ఉన్నవారికి-అవసరమైన-ఆహారం",
+    "/te/guides/వెన్ను-బలపరిచే-వ్యాయామాలు-చేయవలసినవి-చేయకూడనివి",
+    "/te/guides/శస్త్రచికిత్స-అనంతర-ఆహారం-శస్త్రచికిత్స-తర్వాత-కోలుకోవడానికి-మీ-మార్గదర్శిని"
   ],
   "metadata": [
     {
@@ -99,22 +73,10 @@
       "image": "https://images.unsplash.com/photo-1486218119243-13883505764c?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=jenny-hill-mQVWb7kUoOE-unsplash.jpg"
     },
     {
-      "route": "/blog/post-surgery-recovery-what-to-expect",
-      "title": "Post-Surgery Recovery: What to Expect",
-      "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing.",
-      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
-    },
-    {
       "route": "/blog/understanding-heel-pain-causes-and-focus-on-plantar-fasciitis",
       "title": "Understanding Heel Pain: Causes and Focus on Plantar Fasciitis",
       "description": "Heel pain is one of the most common foot complaints, and plantar fasciitis is often the leading cause. Learn why it happens, how it feels, and the best ways to manage it.",
       "image": "https://images.pexels.com/photos/6944940/pexels-photo-6944940.jpeg?cs=srgb&dl=pexels-mikhail-nilov-6944940.jpg&fm=jpg&w=640&h=960&_gl=1*1slik1e*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTIxOTEkajYwJGwwJGgw"
-    },
-    {
-      "route": "/blog/knee-replacement-surgery-recovery-benefits-what-to-expect",
-      "title": "Knee Replacement Surgery: Recovery, Benefits & What to Expect",
-      "description": "Struggling with constant knee pain? Knee replacement surgery can restore mobility, ease discomfort, and help you get back to an active lifestyle. Learn when it’s needed, how recovery works, and what results to expect.",
-      "image": "https://images.pexels.com/photos/7298659/pexels-photo-7298659.jpeg?cs=srgb&dl=pexels-kindelmedia-7298659.jpg&fm=jpg&w=640&h=1136&_gl=1*14gqow7*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTU0MDM5NzIkbzEkZzEkdDE3NTU0MDQwNDkkajUwJGwwJGgw"
     },
     {
       "route": "/blog/the-role-of-physical-therapy-in-recovery",
@@ -141,67 +103,37 @@
       "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
     },
     {
+      "route": "/blog/knee-replacement-surgery-recovery-benefits-what-to-expect",
+      "title": "Knee Replacement Surgery: Recovery, Benefits & What to Expect",
+      "description": "Struggling with constant knee pain? Knee replacement surgery can restore mobility, ease discomfort, and help you get back to an active lifestyle. Learn when it’s needed, how recovery works, and what results to expect.",
+      "image": "https://images.pexels.com/photos/7298659/pexels-photo-7298659.jpeg?cs=srgb&dl=pexels-kindelmedia-7298659.jpg&fm=jpg&w=640&h=1136&_gl=1*14gqow7*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTU0MDM5NzIkbzEkZzEkdDE3NTU0MDQwNDkkajUwJGwwJGgw"
+    },
+    {
+      "route": "/blog/post-surgery-recovery-what-to-expect",
+      "title": "Post-Surgery Recovery: What to Expect",
+      "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing.",
+      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
+    },
+    {
       "route": "/blog/understanding-meniscus-injuries-causes-symptoms-and-treatment",
       "title": "Understanding Meniscus Injuries: Causes, Symptoms, and Treatment",
       "description": "Meniscus injuries are among the most common knee problems, often caused by twisting movements or sports-related activities. Learn about the causes, symptoms, and treatment options to ensure proper healing and prevent long-term complications.",
       "image": "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
     },
     {
-      "route": "/te/blog/మోకాలి-మార్పిడి-శస్త్రచికిత్స:-కోలుకోవడం,-ప్రయోజనాలు-&-ఏమి-ఆశించాలి",
+      "route": "/te/blog/మోకాలి-మార్పిడి-శస్త్రచికిత్స-కోలుకోవడం-ప్రయోజనాలు-ఏమి-ఆశించాలి",
       "title": "మోకాలి మార్పిడి శస్త్రచికిత్స: కోలుకోవడం, ప్రయోజనాలు & ఏమి ఆశించాలి",
       "description": "నిరంతరం మోకాలి నొప్పితో ఇబ్బంది పడుతున్నారా? మోకాలి మార్పిడి శస్త్రచికిత్స కదలికను పునరుద్ధరించగలదు, అసౌకర్యాన్ని తగ్గించగలదు మరియు చురుకైన జీవనశైలికి తిరిగి రావడానికి మీకు సహాయపడుతుంది. ఇది ఎప్పుడు అవసరమో, కోలుకోవడం ఎలా పనిచేస్తుందో మరియు ఎలాంటి ఫలితాలను ఆశించాలో తెలుసుకోండి.",
       "image": "https://images.pexels.com/photos/7298659/pexels-photo-7298659.jpeg?cs=srgb&dl=pexels-kindelmedia-7298659.jpg&fm=jpg&w=640&h=1136&_gl=1*14gqow7*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTU0MDM5NzIkbzEkZzEkdDE3NTU0MDQwNDkkajUwJGwwJGgw"
     },
     {
-      "route": "/te/blog/knee-replacement-surgery-recovery-benefits-what-to-expect",
-      "title": "మోకాలి మార్పిడి శస్త్రచికిత్స: కోలుకోవడం, ప్రయోజనాలు & ఏమి ఆశించాలి",
-      "description": "నిరంతరం మోకాలి నొప్పితో ఇబ్బంది పడుతున్నారా? మోకాలి మార్పిడి శస్త్రచికిత్స కదలికను పునరుద్ధరించగలదు, అసౌకర్యాన్ని తగ్గించగలదు మరియు చురుకైన జీవనశైలికి తిరిగి రావడానికి మీకు సహాయపడుతుంది. ఇది ఎప్పుడు అవసరమో, కోలుకోవడం ఎలా పనిచేస్తుందో మరియు ఎలాంటి ఫలితాలను ఆశించాలో తెలుసుకోండి.",
-      "image": "https://images.pexels.com/photos/7298659/pexels-photo-7298659.jpeg?cs=srgb&dl=pexels-kindelmedia-7298659.jpg&fm=jpg&w=640&h=1136&_gl=1*14gqow7*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTU0MDM5NzIkbzEkZzEkdDE3NTU0MDQwNDkkajUwJGwwJGgw"
-    },
-    {
-      "route": "/te/blog/బోలు-ఎముకల-వ్యాధిని-అర్థం-చేసుకోవడం:-నివారణ-మరియు-చికిత్స",
-      "title": "బోలు ఎముకల వ్యాధిని అర్థం చేసుకోవడం: నివారణ మరియు చికిత్స",
-      "description": "బోలు ఎముకల వ్యాధి, దాని ప్రమాద కారకాలు మరియు ఆధునిక చికిత్సా విధానాలను అర్థం చేసుకోవడానికి ఒక సమగ్ర మార్గదర్శి.",
-      "image": "https://images.unsplash.com/photo-1486218119243-13883505764c?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=jenny-hill-mQVWb7kUoOE-unsplash.jpg"
-    },
-    {
-      "route": "/te/blog/understanding-osteoporosis-prevention-and-treatment",
-      "title": "బోలు ఎముకల వ్యాధిని అర్థం చేసుకోవడం: నివారణ మరియు చికిత్స",
-      "description": "బోలు ఎముకల వ్యాధి, దాని ప్రమాద కారకాలు మరియు ఆధునిక చికిత్సా విధానాలను అర్థం చేసుకోవడానికి ఒక సమగ్ర మార్గదర్శి.",
-      "image": "https://images.unsplash.com/photo-1486218119243-13883505764c?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=jenny-hill-mQVWb7kUoOE-unsplash.jpg"
-    },
-    {
-      "route": "/te/blog/దీర్ఘకాలిక-కీళ్ల-నొప్పులను-సహజంగా-నిర్వహించడం",
-      "title": "దీర్ఘకాలిక కీళ్ల నొప్పులను సహజంగా నిర్వహించడం",
-      "description": "దీర్ఘకాలిక కీళ్ల నొప్పులు మరియు వాపులను తగ్గించడంలో సహాయపడే సహజ పద్ధతులు మరియు జీవనశైలి మార్పులను కనుగొనండి.",
-      "image": "https://images.unsplash.com/photo-1658526784596-16cf7558df29?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=a-m-d-oKTxb1ICo-unsplash.jpg"
-    },
-    {
-      "route": "/te/blog/managing-chronic-joint-pain-naturally",
-      "title": "దీర్ఘకాలిక కీళ్ల నొప్పులను సహజంగా నిర్వహించడం",
-      "description": "దీర్ఘకాలిక కీళ్ల నొప్పులు మరియు వాపులను తగ్గించడంలో సహాయపడే సహజ పద్ధతులు మరియు జీవనశైలి మార్పులను కనుగొనండి.",
-      "image": "https://images.unsplash.com/photo-1658526784596-16cf7558df29?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=a-m-d-oKTxb1ICo-unsplash.jpg"
-    },
-    {
-      "route": "/te/blog/acl",
+      "route": "/te/blog/acl-చిరుగు-కారణాలు-చికిత్స-కోలుకోవడం",
       "title": "ACL చిరుగు: కారణాలు, చికిత్స & కోలుకోవడం",
       "description": "ACL చిరుగు మీ చురుకైన జీవనశైలిని పక్కకు నెట్టవచ్చు - కానీ సరైన చికిత్సతో, ఆటలోకి తిరిగి రావడం సాధ్యమవుతుంది. ACL చిరుగు కారణమేమిటి, వాటికి ఎలా చికిత్స చేస్తారు మరియు కోలుకోవడం నిజంగా ఎలా ఉంటుందో తెలుసుకోండి.",
       "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
     },
     {
-      "route": "/te/blog/acl-tear-understanding-causes-treatment-recovery",
-      "title": "ACL చిరుగు: కారణాలు, చికిత్స & కోలుకోవడం",
-      "description": "ACL చిరుగు మీ చురుకైన జీవనశైలిని పక్కకు నెట్టవచ్చు - కానీ సరైన చికిత్సతో, ఆటలోకి తిరిగి రావడం సాధ్యమవుతుంది. ACL చిరుగు కారణమేమిటి, వాటికి ఎలా చికిత్స చేస్తారు మరియు కోలుకోవడం నిజంగా ఎలా ఉంటుందో తెలుసుకోండి.",
-      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
-    },
-    {
-      "route": "/te/blog/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం:-ఏమి-ఆశించాలి",
-      "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
-      "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం.",
-      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
-    },
-    {
-      "route": "/te/blog/post-surgery-recovery-what-to-expect",
+      "route": "/te/blog/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
       "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
       "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం.",
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
@@ -213,67 +145,43 @@
       "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=300&fit=crop"
     },
     {
-      "route": "/te/blog/the-role-of-physical-therapy-in-recovery",
-      "title": "రికవరీలో ఫిజికల్ థెరపీ పాత్ర",
-      "description": "ఫిజికల్ థెరపీ వైద్యంను ఎలా వేగవంతం చేస్తుందో మరియు భవిష్యత్తులో గాయాలను ఎలా నివారిస్తుందో అర్థం చేసుకోవడం.",
-      "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=300&fit=crop"
-    },
-    {
-      "route": "/te/blog/5",
+      "route": "/te/blog/ఆరోగ్యకరమైన-ఎముకలను-నిర్వహించడానికి-5-ముఖ్యమైన-చిట్కాలు",
       "title": "ఆరోగ్యకరమైన ఎముకలను నిర్వహించడానికి 5 ముఖ్యమైన చిట్కాలు",
       "description": "బలమైన ఎముకలు స్మార్ట్ అలవాట్లతో ప్రారంభమవుతాయి. పోషకాలు అధికంగా ఉండే ఆహారం మరియు బరువు మోసే వ్యాయామాల నుండి జీవనశైలి మార్పులు మరియు శాశ్వత లాభాల వరకు 5 ముఖ్యమైన చిట్కాలను అన్వేషించండి.",
       "image": "https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=ben-white-lVCHfXn3VME-unsplash.jpg"
     },
     {
-      "route": "/te/blog/5-essential-tips-for-maintaining-healthy-bones",
-      "title": "ఆరోగ్యకరమైన ఎముకలను నిర్వహించడానికి 5 ముఖ్యమైన చిట్కాలు",
-      "description": "బలమైన ఎముకలు స్మార్ట్ అలవాట్లతో ప్రారంభమవుతాయి. పోషకాలు అధికంగా ఉండే ఆహారం మరియు బరువు మోసే వ్యాయామాల నుండి జీవనశైలి మార్పులు మరియు శాశ్వత లాభాల వరకు 5 ముఖ్యమైన చిట్కాలను అన్వేషించండి.",
-      "image": "https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=ben-white-lVCHfXn3VME-unsplash.jpg"
-    },
-    {
-      "route": "/te/blog/తుంటి-మార్పిడి-శస్త్రచికిత్స:-కోలుకోవడం,-ప్రయోజనాలు-&-సూచనలు",
+      "route": "/te/blog/తుంటి-మార్పిడి-శస్త్రచికిత్స-కోలుకోవడం-ప్రయోజనాలు-సూచనలు",
       "title": "తుంటి మార్పిడి శస్త్రచికిత్స: కోలుకోవడం, ప్రయోజనాలు & సూచనలు",
       "description": "తుంటి నొప్పి మీరు వేసే ప్రతి అడుగును పరిమితం చేస్తుంది. తుంటి మార్పిడి శస్త్రచికిత్స నొప్పి నుండి ఉపశమనం పొందడానికి మరియు కదలికను మెరుగుపరచడానికి నిరూపితమైన మార్గం. ఇది ఎప్పుడు సిఫార్సు చేయబడుతుందో, ఆ ప్రక్రియ ఎలా చేస్తారో మరియు కోలుకున్న తర్వాత మీ స్వాతంత్ర్యాన్ని ఎలా తిరిగి పొందగలరో తెలుసుకోండి.",
       "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
     },
     {
-      "route": "/te/blog/hip-replacement-surgery-recovery-benefits-patient-guide",
-      "title": "తుంటి మార్పిడి శస్త్రచికిత్స: కోలుకోవడం, ప్రయోజనాలు & సూచనలు",
-      "description": "తుంటి నొప్పి మీరు వేసే ప్రతి అడుగును పరిమితం చేస్తుంది. తుంటి మార్పిడి శస్త్రచికిత్స నొప్పి నుండి ఉపశమనం పొందడానికి మరియు కదలికను మెరుగుపరచడానికి నిరూపితమైన మార్గం. ఇది ఎప్పుడు సిఫార్సు చేయబడుతుందో, ఆ ప్రక్రియ ఎలా చేస్తారో మరియు కోలుకున్న తర్వాత మీ స్వాతంత్ర్యాన్ని ఎలా తిరిగి పొందగలరో తెలుసుకోండి.",
-      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
+      "route": "/te/blog/బోలు-ఎముకల-వ్యాధిని-అర్థం-చేసుకోవడం-నివారణ-మరియు-చికిత్స",
+      "title": "బోలు ఎముకల వ్యాధిని అర్థం చేసుకోవడం: నివారణ మరియు చికిత్స",
+      "description": "బోలు ఎముకల వ్యాధి, దాని ప్రమాద కారకాలు మరియు ఆధునిక చికిత్సా విధానాలను అర్థం చేసుకోవడానికి ఒక సమగ్ర మార్గదర్శి.",
+      "image": "https://images.unsplash.com/photo-1486218119243-13883505764c?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=jenny-hill-mQVWb7kUoOE-unsplash.jpg"
     },
     {
-      "route": "/te/blog/మెనిస్కస్-గాయాలను-అర్థం-చేసుకోవడం:-కారణాలు,-లక్షణాలు-మరియు-చికిత్స",
+      "route": "/te/blog/దీర్ఘకాలిక-కీళ్ల-నొప్పులను-సహజంగా-నిర్వహించడం",
+      "title": "దీర్ఘకాలిక కీళ్ల నొప్పులను సహజంగా నిర్వహించడం",
+      "description": "దీర్ఘకాలిక కీళ్ల నొప్పులు మరియు వాపులను తగ్గించడంలో సహాయపడే సహజ పద్ధతులు మరియు జీవనశైలి మార్పులను కనుగొనండి.",
+      "image": "https://images.unsplash.com/photo-1658526784596-16cf7558df29?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=a-m-d-oKTxb1ICo-unsplash.jpg"
+    },
+    {
+      "route": "/te/blog/మెనిస్కస్-గాయాలను-అర్థం-చేసుకోవడం-కారణాలు-లక్షణాలు-మరియు-చికిత్స",
       "title": "మెనిస్కస్ గాయాలను అర్థం చేసుకోవడం: కారణాలు, లక్షణాలు మరియు చికిత్స",
       "description": "మెనిస్కస్ (నెలవంక) గాయాలు అత్యంత సాధారణ మోకాలి సమస్యలలో ఒకటి, తరచుగా మెలితిప్పిన కదలికలు లేదా క్రీడలకు సంబంధించిన కార్యకలాపాల వల్ల సంభవిస్తాయి. సరైన వైద్యం నిర్ధారించడానికి మరియు దీర్ఘకాలిక సమస్యలను నివారించడానికి కారణాలు, లక్షణాలు మరియు చికిత్స ఎంపికల గురించి తెలుసుకోండి.",
       "image": "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
     },
     {
-      "route": "/te/blog/understanding-meniscus-injuries-causes-symptoms-and-treatment",
-      "title": "మెనిస్కస్ గాయాలను అర్థం చేసుకోవడం: కారణాలు, లక్షణాలు మరియు చికిత్స",
-      "description": "మెనిస్కస్ (నెలవంక) గాయాలు అత్యంత సాధారణ మోకాలి సమస్యలలో ఒకటి, తరచుగా మెలితిప్పిన కదలికలు లేదా క్రీడలకు సంబంధించిన కార్యకలాపాల వల్ల సంభవిస్తాయి. సరైన వైద్యం నిర్ధారించడానికి మరియు దీర్ఘకాలిక సమస్యలను నివారించడానికి కారణాలు, లక్షణాలు మరియు చికిత్స ఎంపికల గురించి తెలుసుకోండి.",
-      "image": "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
-    },
-    {
-      "route": "/te/blog/నడుము-నొప్పిని-జెయించండి:-నడుము-నొప్పికి-గల-కారణాలు,-నివారణ-మరియు-చికిత్సలు",
+      "route": "/te/blog/నడుము-నొప్పిని-జెయించండి-నడుము-నొప్పికి-గల-కారణాలు-నివారణ-మరియు-చికిత్సలు",
       "title": "నడుము నొప్పిని జెయించండి: నడుము నొప్పికి గల కారణాలు, నివారణ మరియు చికిత్సలు",
       "description": "నడుము నొప్పి ఒక సాధారణ సమస్య, కానీ అది మీ జీవితాన్ని నియంత్రించకూడదు. కండరాల బెణుకు నుండి డిస్క్ సమస్యల వరకు నడుము నొప్పికి ప్రధాన కారణాల గురించి తెలుసుకోండి. అలాగే, మిమ్మల్ని మళ్లీ చురుకుగా మార్చడానికి సహాయపడే సమర్థవంతమైన నివారణ వ్యూహాలు మరియు చికిత్స ఎంపికలను కనుగొనండి.",
       "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
-      "route": "/te/blog/beat-backache-causes-prevention-treatments-for-back-pain",
-      "title": "నడుము నొప్పిని జెయించండి: నడుము నొప్పికి గల కారణాలు, నివారణ మరియు చికిత్సలు",
-      "description": "నడుము నొప్పి ఒక సాధారణ సమస్య, కానీ అది మీ జీవితాన్ని నియంత్రించకూడదు. కండరాల బెణుకు నుండి డిస్క్ సమస్యల వరకు నడుము నొప్పికి ప్రధాన కారణాల గురించి తెలుసుకోండి. అలాగే, మిమ్మల్ని మళ్లీ చురుకుగా మార్చడానికి సహాయపడే సమర్థవంతమైన నివారణ వ్యూహాలు మరియు చికిత్స ఎంపికలను కనుగొనండి.",
-      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
-    },
-    {
-      "route": "/te/blog/మడమ-నొప్పిని-అర్థం-చేసుకోవడం:-కారణాలు-మరియు-ప్లాంటార్-ఫాసిటిస్-పై-దృష్టి",
-      "title": "మడమ నొప్పిని అర్థం చేసుకోవడం: కారణాలు మరియు ప్లాంటార్ ఫాసిటిస్ పై దృష్టి",
-      "description": "మడమ నొప్పి అనేది పాదాల సమస్యలకు అత్యంత సాధారణ కారణాలలో ఒకటి. ప్లాంటార్ ఫాసిటిస్ అందుకు ప్రధాన కారణం. ఇది ఎందుకు జరుగుతుంది, ఎలా అనిపిస్తుంది మరియు దానిని నియంత్రించడానికి ఉత్తమ మార్గాలను తెలుసుకోండి.",
-      "image": "https://images.pexels.com/photos/6944940/pexels-photo-6944940.jpeg?cs=srgb&dl=pexels-mikhail-nilov-6944940.jpg&fm=jpg&w=640&h=960&_gl=1*1slik1e*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTIxOTEkajYwJGwwJGgw"
-    },
-    {
-      "route": "/te/blog/understanding-heel-pain-causes-and-focus-on-plantar-fasciitis",
+      "route": "/te/blog/మడమ-నొప్పిని-అర్థం-చేసుకోవడం-కారణాలు-మరియు-ప్లాంటార్-ఫాసిటిస్-పై-దృష్టి",
       "title": "మడమ నొప్పిని అర్థం చేసుకోవడం: కారణాలు మరియు ప్లాంటార్ ఫాసిటిస్ పై దృష్టి",
       "description": "మడమ నొప్పి అనేది పాదాల సమస్యలకు అత్యంత సాధారణ కారణాలలో ఒకటి. ప్లాంటార్ ఫాసిటిస్ అందుకు ప్రధాన కారణం. ఇది ఎందుకు జరుగుతుంది, ఎలా అనిపిస్తుంది మరియు దానిని నియంత్రించడానికి ఉత్తమ మార్గాలను తెలుసుకోండి.",
       "image": "https://images.pexels.com/photos/6944940/pexels-photo-6944940.jpeg?cs=srgb&dl=pexels-mikhail-nilov-6944940.jpg&fm=jpg&w=640&h=960&_gl=1*1slik1e*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTIxOTEkajYwJGwwJGgw"
@@ -283,18 +191,6 @@
       "title": "Flat Foot Care: Effective Exercises and Tips for Healthy Feet",
       "description": "Flat foot (fallen arches) is a common condition that can cause pain, fatigue, and difficulty with walking. The right exercises and lifestyle care can help strengthen your feet, improve posture, and prevent discomfort.",
       "image": "https://images.unsplash.com/photo-1468616047823-d688c44bf6dd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=danie-franco-jyyNiSEcCl4-unsplash.jpg"
-    },
-    {
-      "route": "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
-      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
-      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
-      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
-    },
-    {
-      "route": "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
-      "title": "Plantar Fascia Exercises: Effective Stretches and Strengthening for Heel Pain Relief",
-      "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence.",
-      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
     },
     {
       "route": "/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
@@ -321,12 +217,6 @@
       "image": "https://images.pexels.com/photos/6941101/pexels-photo-6941101.jpeg?cs=srgb&dl=pexels-n-voitkevich-6941101.jpg&fm=jpg&w=640&h=427&_gl=1*1gahef3*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTcxNzEzNTgkbzkkZzEkdDE3NTcxNzE0MDAkajE4JGwwJGgw"
     },
     {
-      "route": "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
-      "title": "Post-Meniscus Surgery Rehab: Exercises & Recovery Timeline",
-      "description": "A comprehensive guide to meniscus repair rehabilitation, including a week-by-week timeline and step-by-step instructions for post-op exercises to help you recover and get back on your feet.",
-      "image": "https://images.pexels.com/photos/29558666/pexels-photo-29558666.jpeg?cs=srgb&dl=pexels-anhleephoto-29558666.jpg&fm=jpg&w=640&h=426&_gl=1*rkv0d9*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTczOTc5NTUkbzEwJGcxJHQxNzU3Mzk4MDQ4JGozMCRsMCRoMA.."
-    },
-    {
       "route": "/guides/post-surgery-recovery-what-to-expect",
       "title": "Post-Surgery Recovery: What to Expect",
       "description": "Essential information about the recovery process after orthopedic surgery and how to optimize healing.",
@@ -351,6 +241,24 @@
       "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     },
     {
+      "route": "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
+      "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
+      "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right (low purine) diet can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
+      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+    },
+    {
+      "route": "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
+      "title": "Plantar Fascia Exercises: Effective Stretches and Strengthening for Heel Pain Relief",
+      "description": "Simple daily stretches and strengthening exercises can significantly reduce heel pain caused by plantar fasciitis. Learn easy home exercises to heal your plantar fascia and prevent recurrence.",
+      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
+    },
+    {
+      "route": "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
+      "title": "Post-Meniscus Surgery Rehab: Exercises & Recovery Timeline",
+      "description": "A comprehensive guide to meniscus repair rehabilitation, including a week-by-week timeline and step-by-step instructions for post-op exercises to help you recover and get back on your feet.",
+      "image": "https://images.pexels.com/photos/29558666/pexels-photo-29558666.jpeg?cs=srgb&dl=pexels-anhleephoto-29558666.jpg&fm=jpg&w=640&h=426&_gl=1*rkv0d9*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTczOTc5NTUkbzEwJGcxJHQxNzU3Mzk4MDQ4JGozMCRsMCRoMA.."
+    },
+    {
       "route": "/guides/back-strengthening-exercises-do-s-and-dont-s",
       "title": "Back Strengthening Exercises: Do’s and Dont's",
       "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts.",
@@ -369,109 +277,55 @@
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
     },
     {
-      "route": "/te/guides/ప్లాస్టర్-కాస్ట్‌తో-జీవించడం:-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
+      "route": "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
       "title": "ప్లాస్టర్ కాస్ట్‌తో జీవించడం: ముఖ్యమైన జాగ్రత్తలు మరియు చిట్కాలు",
       "description": "ఎముక విరగడం తాత్కాలిక సమస్యే, కానీ సరైన కాస్ట్ సంరక్షణ త్వరగా కోలుకోవడానికి చాలా అవసరం. ప్లాస్టర్ కాస్ట్‌తో జీవించడానికి ముఖ్యమైన చిట్కాలు, దానిని పొడిగా ఉంచుకోవడం, దురదను తగ్గించడం మరియు వైద్యుని సహాయం అవసరమైన ప్రమాద సంకేతాలను గుర్తించడం వంటి వాటి గురించి తెలుసుకోండి.",
       "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
     },
     {
-      "route": "/te/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
-      "title": "ప్లాస్టర్ కాస్ట్‌తో జీవించడం: ముఖ్యమైన జాగ్రత్తలు మరియు చిట్కాలు",
-      "description": "ఎముక విరగడం తాత్కాలిక సమస్యే, కానీ సరైన కాస్ట్ సంరక్షణ త్వరగా కోలుకోవడానికి చాలా అవసరం. ప్లాస్టర్ కాస్ట్‌తో జీవించడానికి ముఖ్యమైన చిట్కాలు, దానిని పొడిగా ఉంచుకోవడం, దురదను తగ్గించడం మరియు వైద్యుని సహాయం అవసరమైన ప్రమాద సంకేతాలను గుర్తించడం వంటి వాటి గురించి తెలుసుకోండి.",
-      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
-    },
-    {
-      "route": "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు:-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
+      "route": "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
       "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
       "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
       "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
     },
     {
-      "route": "/te/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
-      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
-      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
-      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
-    },
-    {
-      "route": "/te/guides/మెనిస్కస్-సర్జరీ-తర్వాత-పునరావాసం:-వ్యాయామాలు-&-పునరుద్ధరణ-కాలక్రమం",
-      "title": "మెనిస్కస్ సర్జరీ తర్వాత పునరావాసం: వ్యాయామాలు & పునరుద్ధరణ కాలక్రమం",
-      "description": "మెనిస్కస్ రిపేర్ పునరావాసానికి ఒక సమగ్ర మార్గదర్శిని, ఇందులో మీరు కోలుకోవడానికి మరియు తిరిగి మీ కాళ్లపై నిలబడటానికి సహాయపడే శస్త్రచికిత్స అనంతర వ్యాయామాలకు వారం వారీ కాలక్రమం మరియు దశల వారీ సూచనలు ఉన్నాయి.",
-      "image": "https://images.pexels.com/photos/29558666/pexels-photo-29558666.jpeg?cs=srgb&dl=pexels-anhleephoto-29558666.jpg&fm=jpg&w=640&h=426&_gl=1*rkv0d9*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTczOTc5NTUkbzEwJGcxJHQxNzU3Mzk4MDQ4JGozMCRsMCRoMA.."
-    },
-    {
-      "route": "/te/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
-      "title": "మెనిస్కస్ సర్జరీ తర్వాత పునరావాసం: వ్యాయామాలు & పునరుద్ధరణ కాలక్రమం",
-      "description": "మెనిస్కస్ రిపేర్ పునరావాసానికి ఒక సమగ్ర మార్గదర్శిని, ఇందులో మీరు కోలుకోవడానికి మరియు తిరిగి మీ కాళ్లపై నిలబడటానికి సహాయపడే శస్త్రచికిత్స అనంతర వ్యాయామాలకు వారం వారీ కాలక్రమం మరియు దశల వారీ సూచనలు ఉన్నాయి.",
-      "image": "https://images.pexels.com/photos/29558666/pexels-photo-29558666.jpeg?cs=srgb&dl=pexels-anhleephoto-29558666.jpg&fm=jpg&w=640&h=426&_gl=1*rkv0d9*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTczOTc5NTUkbzEwJGcxJHQxNzU3Mzk4MDQ4JGozMCRsMCRoMA.."
-    },
-    {
-      "route": "/te/guides/హైపోథైరాయిడిజం-ఆహారం:-సరైన-థైరాయిడ్-ఆరోగ్యం-కోసం-మీ-శరీరానికి-ఇంధనం",
-      "title": "హైపోథైరాయిడిజం ఆహారం: సరైన థైరాయిడ్ ఆరోగ్యం కోసం మీ శరీరానికి ఇంధనం",
-      "description": "థైరాయిడ్ పనితీరుకు మద్దతు ఇవ్వడానికి మరియు లక్షణాలను నిర్వహించడానికి హైపోథైరాయిడిజం రోగులకు ఉత్తమ ఆహారం గురించి తెలుసుకోండి. సహాయపడే ఆహారాలను మరియు జాగ్రత్తగా తీసుకోవలసిన వాటిని కనుగొనండి.",
-      "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-    },
-    {
-      "route": "/te/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
-      "title": "హైపోథైరాయిడిజం ఆహారం: సరైన థైరాయిడ్ ఆరోగ్యం కోసం మీ శరీరానికి ఇంధనం",
-      "description": "థైరాయిడ్ పనితీరుకు మద్దతు ఇవ్వడానికి మరియు లక్షణాలను నిర్వహించడానికి హైపోథైరాయిడిజం రోగులకు ఉత్తమ ఆహారం గురించి తెలుసుకోండి. సహాయపడే ఆహారాలను మరియు జాగ్రత్తగా తీసుకోవలసిన వాటిని కనుగొనండి.",
-      "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-    },
-    {
-      "route": "/te/guides/గౌట్-రోగులకు-ఉత్తమ-ఆహారం:-తినవలసినవి-మరియు-తినకూడనివి",
-      "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
-      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
-      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
-    },
-    {
-      "route": "/te/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
-      "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
-      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
-      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
-    },
-    {
-      "route": "/te/guides/జాయింట్-ఇంజెక్షన్-తర్వాత-తీసుకోవలసిన-జాగ్రత్తలు:-రోగుల-కోసం-మార్గదర్శకాలు",
+      "route": "/te/guides/జాయింట్-ఇంజెక్షన్-తర్వాత-తీసుకోవలసిన-జాగ్రత్తలు-రోగుల-కోసం-మార్గదర్శకాలు",
       "title": "జాయింట్ ఇంజెక్షన్ తర్వాత తీసుకోవలసిన జాగ్రత్తలు: రోగుల కోసం మార్గదర్శకాలు",
       "description": "మీరు స్టెరాయిడ్, PRP లేదా జెల్ ఇంజెక్షన్ తీసుకున్నారా? త్వరగా కోలుకోవడానికి మరియు ఇంజెక్షన్ పూర్తి ఫలితం పొందడానికి ఈ ముఖ్యమైన సూచనలను పాటించండి.",
       "image": "https://images.pexels.com/photos/5234476/pexels-photo-5234476.jpeg"
     },
     {
-      "route": "/te/guides/post-injection-care-a-guide-to-recovery-after-joint-injections",
-      "title": "జాయింట్ ఇంజెక్షన్ తర్వాత తీసుకోవలసిన జాగ్రత్తలు: రోగుల కోసం మార్గదర్శకాలు",
-      "description": "మీరు స్టెరాయిడ్, PRP లేదా జెల్ ఇంజెక్షన్ తీసుకున్నారా? త్వరగా కోలుకోవడానికి మరియు ఇంజెక్షన్ పూర్తి ఫలితం పొందడానికి ఈ ముఖ్యమైన సూచనలను పాటించండి.",
-      "image": "https://images.pexels.com/photos/5234476/pexels-photo-5234476.jpeg"
-    },
-    {
-      "route": "/te/guides/మెడ-నొప్పి-వ్యాయామాలు:-ఉపశమనం-కోసం-ప్రభావవంతమైన-మార్గదర్శిని",
-      "title": "మెడ నొప్పి వ్యాయామాలు: ఉపశమనం కోసం ప్రభావవంతమైన మార్గదర్శిని",
-      "description": "మెడ బిగుసుతనాన్ని తగ్గించడానికి, భంగిమను మెరుగుపరచడానికి మరియు మెడ కండరాలను బలోపేతం చేయడానికి సరళమైన మరియు ప్రభావవంతమైన మెడ వ్యాయామాలు ఇవి. దీర్ఘకాలిక మెడ నొప్పి ఉన్న రోగులు, డెస్క్ పనిచేసేవారు మరియు గాయం తర్వాత కోలుకునే వారి కోసం రూపొందించబడిన సురక్షితమైన కదలికలు.",
-      "image": "https://images.pexels.com/photos/4506108/pexels-photo-4506108.jpeg?cs=srgb&dl=pexels-karolina-grabowska-4506108.jpg&fm=jpg&w=640&h=960&_gl=1*1l7b9ve*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5OTcxMDYkbzgkZzEkdDE3NTY5OTcxNTckajkkbDAkaDA."
-    },
-    {
-      "route": "/te/guides/neck-pain-exercises-effective-stretches-and-strengthening-for-relief",
-      "title": "మెడ నొప్పి వ్యాయామాలు: ఉపశమనం కోసం ప్రభావవంతమైన మార్గదర్శిని",
-      "description": "మెడ బిగుసుతనాన్ని తగ్గించడానికి, భంగిమను మెరుగుపరచడానికి మరియు మెడ కండరాలను బలోపేతం చేయడానికి సరళమైన మరియు ప్రభావవంతమైన మెడ వ్యాయామాలు ఇవి. దీర్ఘకాలిక మెడ నొప్పి ఉన్న రోగులు, డెస్క్ పనిచేసేవారు మరియు గాయం తర్వాత కోలుకునే వారి కోసం రూపొందించబడిన సురక్షితమైన కదలికలు.",
-      "image": "https://images.pexels.com/photos/4506108/pexels-photo-4506108.jpeg?cs=srgb&dl=pexels-karolina-grabowska-4506108.jpg&fm=jpg&w=640&h=960&_gl=1*1l7b9ve*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5OTcxMDYkbzgkZzEkdDE3NTY5OTcxNTckajkkbDAkaDA."
-    },
-    {
-      "route": "/te/guides/చదునైన-పాదాల-సంరక్షణ:-ఆరోగ్యకరమైన-పాదాలకు-ప్రభావవంతమైన-వ్యాయామాలు-మరియు-సూచనలు",
+      "route": "/te/guides/చదునైన-పాదాల-సంరక్షణ-ఆరోగ్యకరమైన-పాదాలకు-ప్రభావవంతమైన-వ్యాయామాలు-మరియు-సూచనలు",
       "title": "చదునైన పాదాల సంరక్షణ: ఆరోగ్యకరమైన పాదాలకు ప్రభావవంతమైన వ్యాయామాలు మరియు సూచనలు",
       "description": "ఫ్లాట్ ఫుట్ (చదునైన పాదాలు) అనేది నొప్పి, అలసట మరియు నడకలో ఇబ్బందిని కలిగించే ఒక సాధారణ పరిస్థితి. సరైన వ్యాయామాలు మరియు జీవనశైలి మీ పాదాలను బలోపేతం చేయడానికి, భంగిమను మెరుగుపరచడానికి మరియు అసౌకర్యాన్ని నియంత్రించడానికి సహాయపడుతుంది.",
       "image": "https://images.unsplash.com/photo-1468616047823-d688c44bf6dd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=danie-franco-jyyNiSEcCl4-unsplash.jpg"
     },
     {
-      "route": "/te/guides/flat-foot-care-effective-exercises-and-tips-for-healthy-feet",
-      "title": "చదునైన పాదాల సంరక్షణ: ఆరోగ్యకరమైన పాదాలకు ప్రభావవంతమైన వ్యాయామాలు మరియు సూచనలు",
-      "description": "ఫ్లాట్ ఫుట్ (చదునైన పాదాలు) అనేది నొప్పి, అలసట మరియు నడకలో ఇబ్బందిని కలిగించే ఒక సాధారణ పరిస్థితి. సరైన వ్యాయామాలు మరియు జీవనశైలి మీ పాదాలను బలోపేతం చేయడానికి, భంగిమను మెరుగుపరచడానికి మరియు అసౌకర్యాన్ని నియంత్రించడానికి సహాయపడుతుంది.",
-      "image": "https://images.unsplash.com/photo-1468616047823-d688c44bf6dd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=danie-franco-jyyNiSEcCl4-unsplash.jpg"
+      "route": "/te/guides/హైపోథైరాయిడిజం-ఆహారం-సరైన-థైరాయిడ్-ఆరోగ్యం-కోసం-మీ-శరీరానికి-ఇంధనం",
+      "title": "హైపోథైరాయిడిజం ఆహారం: సరైన థైరాయిడ్ ఆరోగ్యం కోసం మీ శరీరానికి ఇంధనం",
+      "description": "థైరాయిడ్ పనితీరుకు మద్దతు ఇవ్వడానికి మరియు లక్షణాలను నిర్వహించడానికి హైపోథైరాయిడిజం రోగులకు ఉత్తమ ఆహారం గురించి తెలుసుకోండి. సహాయపడే ఆహారాలను మరియు జాగ్రత్తగా తీసుకోవలసిన వాటిని కనుగొనండి.",
+      "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     },
     {
-      "route": "/te/guides/మోకాలిని-బలపరిచే-వ్యాయామాలు:-వివరణాత్మక-సూచనలు",
-      "title": "మోకాలిని బలపరిచే వ్యాయామాలు: వివరణాత్మక సూచనలు",
-      "description": "ఈ సమగ్ర గైడ్‌తో మీ మోకాలి చుట్టూ ఉన్న కండరాలను (క్వాడ్స్, హామ్ స్ట్రింగ్స్, గ్లూట్స్, పిక్కలు) ఎలా బలోపేతం చేయాలో తెలుసుకోండి. ACL, PCL, మెనిస్కస్ చిరుగులు మరియు ఆర్థరైటిస్ వంటి నిర్దిష్ట మోకాలి పరిస్థితులకు ప్రభావవంతమైన వ్యాయామాలు మరియు సిఫార్సుల కోసం దశల వారీ సూచనలు తెలుసుకోండి.",
-      "image": "https://images.pexels.com/photos/7894601/pexels-photo-7894601.jpeg?cs=srgb&dl=pexels-mart-production-7894601.jpg&fm=jpg&w=640&h=960&_gl=1*322bzb*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY0Nzk4NTgkbzQkZzEkdDE3NTY0Nzk4NzgkajQwJGwwJGgw"
+      "route": "/te/guides/గౌట్-రోగులకు-ఉత్తమ-ఆహారం-తినవలసినవి-మరియు-తినకూడనివి",
+      "title": "గౌట్ రోగులకు ఉత్తమ ఆహారం: తినవలసినవి మరియు తినకూడనివి",
+      "description": "గౌట్ అనేది శరీరంలో యూరిక్ యాసిడ్ అధికంగా ఉండటం వల్ల కలిగే బాధాకరమైన ఆర్థరైటిస్. సరైన ఆహారం లక్షణాలు తగ్గించడానికి, యూరిక్ యాసిడ్ స్థాయిలను నియంత్రణకి మరియు మొత్తం కీళ్ల ఆరోగ్యాన్ని మెరుగుపరచడంలో సహాయపడుతుంది.",
+      "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
     },
     {
-      "route": "/te/guides/knee-strengthening-exercises-a-detailed-patient-guide",
+      "route": "/te/guides/మెడ-నొప్పి-వ్యాయామాలు-ఉపశమనం-కోసం-ప్రభావవంతమైన-మార్గదర్శిని",
+      "title": "మెడ నొప్పి వ్యాయామాలు: ఉపశమనం కోసం ప్రభావవంతమైన మార్గదర్శిని",
+      "description": "మెడ బిగుసుతనాన్ని తగ్గించడానికి, భంగిమను మెరుగుపరచడానికి మరియు మెడ కండరాలను బలోపేతం చేయడానికి సరళమైన మరియు ప్రభావవంతమైన మెడ వ్యాయామాలు ఇవి. దీర్ఘకాలిక మెడ నొప్పి ఉన్న రోగులు, డెస్క్ పనిచేసేవారు మరియు గాయం తర్వాత కోలుకునే వారి కోసం రూపొందించబడిన సురక్షితమైన కదలికలు.",
+      "image": "https://images.pexels.com/photos/4506108/pexels-photo-4506108.jpeg?cs=srgb&dl=pexels-karolina-grabowska-4506108.jpg&fm=jpg&w=640&h=960&_gl=1*1l7b9ve*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5OTcxMDYkbzgkZzEkdDE3NTY5OTcxNTckajkkbDAkaDA."
+    },
+    {
+      "route": "/te/guides/మెనిస్కస్-సర్జరీ-తర్వాత-పునరావాసం-వ్యాయామాలు-పునరుద్ధరణ-కాలక్రమం",
+      "title": "మెనిస్కస్ సర్జరీ తర్వాత పునరావాసం: వ్యాయామాలు & పునరుద్ధరణ కాలక్రమం",
+      "description": "మెనిస్కస్ రిపేర్ పునరావాసానికి ఒక సమగ్ర మార్గదర్శిని, ఇందులో మీరు కోలుకోవడానికి మరియు తిరిగి మీ కాళ్లపై నిలబడటానికి సహాయపడే శస్త్రచికిత్స అనంతర వ్యాయామాలకు వారం వారీ కాలక్రమం మరియు దశల వారీ సూచనలు ఉన్నాయి.",
+      "image": "https://images.pexels.com/photos/29558666/pexels-photo-29558666.jpeg?cs=srgb&dl=pexels-anhleephoto-29558666.jpg&fm=jpg&w=640&h=426&_gl=1*rkv0d9*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTczOTc5NTUkbzEwJGcxJHQxNzU3Mzk4MDQ4JGozMCRsMCRoMA.."
+    },
+    {
+      "route": "/te/guides/మోకాలిని-బలపరిచే-వ్యాయామాలు-వివరణాత్మక-సూచనలు",
       "title": "మోకాలిని బలపరిచే వ్యాయామాలు: వివరణాత్మక సూచనలు",
       "description": "ఈ సమగ్ర గైడ్‌తో మీ మోకాలి చుట్టూ ఉన్న కండరాలను (క్వాడ్స్, హామ్ స్ట్రింగ్స్, గ్లూట్స్, పిక్కలు) ఎలా బలోపేతం చేయాలో తెలుసుకోండి. ACL, PCL, మెనిస్కస్ చిరుగులు మరియు ఆర్థరైటిస్ వంటి నిర్దిష్ట మోకాలి పరిస్థితులకు ప్రభావవంతమైన వ్యాయామాలు మరియు సిఫార్సుల కోసం దశల వారీ సూచనలు తెలుసుకోండి.",
       "image": "https://images.pexels.com/photos/7894601/pexels-photo-7894601.jpeg?cs=srgb&dl=pexels-mart-production-7894601.jpg&fm=jpg&w=640&h=960&_gl=1*322bzb*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY0Nzk4NTgkbzQkZzEkdDE3NTY0Nzk4NzgkajQwJGwwJGgw"
@@ -483,67 +337,31 @@
       "image": "https://images.pexels.com/photos/6941101/pexels-photo-6941101.jpeg?cs=srgb&dl=pexels-n-voitkevich-6941101.jpg&fm=jpg&w=640&h=427&_gl=1*1gahef3*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTcxNzEzNTgkbzkkZzEkdDE3NTcxNzE0MDAkajE4JGwwJGgw"
     },
     {
-      "route": "/te/guides/diabetic-diet-chart-for-andhra-pradesh-patients",
-      "title": "ఆంధ్రప్రదేశ్ మధుమేహ రోగుల కోసం ఆహార పట్టిక",
-      "description": "ఆంధ్రప్రదేశ్లోని డయాబెటిస్ (షుగర్) రోగుల కోసం రూపొందించిన 7 రోజుల డయాబెటిక్ డైట్ చార్ట్ను కనుగొనండి. ఈ గైడ్లో రుచికరమైన, స్థానిక వంటకాలు మరియు రక్తంలో చక్కెరను నియంత్రించడానికి అవసరమైన చిట్కాలు ఉన్నాయి.",
-      "image": "https://images.pexels.com/photos/6941101/pexels-photo-6941101.jpeg?cs=srgb&dl=pexels-n-voitkevich-6941101.jpg&fm=jpg&w=640&h=427&_gl=1*1gahef3*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTcxNzEzNTgkbzkkZzEkdDE3NTcxNzE0MDAkajE4JGwwJGgw"
-    },
-    {
       "route": "/te/guides/acl-పునరావాస-ప్రయాణం-శస్త్రచికిత్స-అనంతర-ప్రోటోకాల్",
       "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
       "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
       "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
     },
     {
-      "route": "/te/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
-      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
-      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
-      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
-    },
-    {
-      "route": "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం:-ఏమి-ఆశించాలి",
+      "route": "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
       "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
       "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం.",
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
     },
     {
-      "route": "/te/guides/post-surgery-recovery-what-to-expect",
-      "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
-      "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం.",
-      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
-    },
-    {
-      "route": "/te/guides/అధిక-రక్తపోటును-నియంత్రించడం:-అధిక-రక్తపోటు-ఉన్నవారికి-అవసరమైన-ఆహారం",
+      "route": "/te/guides/అధిక-రక్తపోటును-నియంత్రించడం-అధిక-రక్తపోటు-ఉన్నవారికి-అవసరమైన-ఆహారం",
       "title": "అధిక రక్తపోటును నియంత్రించడం: అధిక రక్తపోటు ఉన్నవారికి అవసరమైన ఆహారం",
       "description": "అధిక రక్తపోటును నియంత్రించడానికి ఉత్తమ ఆహార పద్ధతులను కనుగొనండి. ఏ ఆహారాలు తినాలి మరియు ఏవి నివారించాలి, మరియు హృదయానికి ఆరోగ్యకరమైన ఆహారం మీ అధిక రక్తపోటును ఎలా మెరుగుపరుస్తుందో తెలుసుకోండి.",
       "image": "https://images.pexels.com/photos/7108344/pexels-photo-7108344.jpeg?cs=srgb&dl=pexels-pavel-danilyuk-7108344.jpg&fm=jpg&w=640&h=427&_gl=1*em2zng*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5MjA3NTYkbzckZzEkdDE3NTY5MjA3ODIkajM0JGwwJGgw"
     },
     {
-      "route": "/te/guides/managing-high-blood-pressure-essential-diet-for-hypertensive-patients",
-      "title": "అధిక రక్తపోటును నియంత్రించడం: అధిక రక్తపోటు ఉన్నవారికి అవసరమైన ఆహారం",
-      "description": "అధిక రక్తపోటును నియంత్రించడానికి ఉత్తమ ఆహార పద్ధతులను కనుగొనండి. ఏ ఆహారాలు తినాలి మరియు ఏవి నివారించాలి, మరియు హృదయానికి ఆరోగ్యకరమైన ఆహారం మీ అధిక రక్తపోటును ఎలా మెరుగుపరుస్తుందో తెలుసుకోండి.",
-      "image": "https://images.pexels.com/photos/7108344/pexels-photo-7108344.jpeg?cs=srgb&dl=pexels-pavel-danilyuk-7108344.jpg&fm=jpg&w=640&h=427&_gl=1*em2zng*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5MjA3NTYkbzckZzEkdDE3NTY5MjA3ODIkajM0JGwwJGgw"
-    },
-    {
-      "route": "/te/guides/వెన్ను-బలపరిచే-వ్యాయామాలు:-చేయవలసినవి-&-చేయకూడనివి",
+      "route": "/te/guides/వెన్ను-బలపరిచే-వ్యాయామాలు-చేయవలసినవి-చేయకూడనివి",
       "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
       "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి.",
       "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
-      "route": "/te/guides/back-strengthening-exercises-do-s-and-dont-s",
-      "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
-      "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి.",
-      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
-    },
-    {
-      "route": "/te/guides/శస్త్రచికిత్స-అనంతర-ఆహారం:-శస్త్రచికిత్స-తర్వాత-కోలుకోవడానికి-మీ-మార్గదర్శిని",
-      "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
-      "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది.",
-      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
-    },
-    {
-      "route": "/te/guides/post-operative-diet-your-guide-to-healing-after-surgery",
+      "route": "/te/guides/శస్త్రచికిత్స-అనంతర-ఆహారం-శస్త్రచికిత్స-తర్వాత-కోలుకోవడానికి-మీ-మార్గదర్శిని",
       "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
       "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది.",
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
