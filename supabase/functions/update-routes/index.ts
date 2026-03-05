@@ -73,10 +73,20 @@ serve(async (req) => {
     const { data: posts, error: postsError } = await supabase.from('posts').select('id, slug, title, excerpt, content, image_url');
     if (postsError) throw postsError;
     posts.forEach(post => {
+      // 1. Add SEO slug route
       const identifier = post.slug || post.id;
       const route = `/blog/${identifier}`;
       allRoutes.push(route);
       metadata.push({ route, title: post.title, description: post.excerpt, image: post.image_url });
+
+      // 2. Add short ID route if slug exists
+      if (post.slug) {
+        const shortRoute = `/blog/${post.id}`;
+        if (!allRoutes.includes(shortRoute)) {
+          allRoutes.push(shortRoute);
+          metadata.push({ route: shortRoute, title: post.title, description: post.excerpt, image: post.image_url });
+        }
+      }
     });
 
     const { data: translatedPosts, error: translatedPostsError } = await supabase.from('post_translations').select('post_id, slug, title, excerpt, content').eq('language', 'te');
@@ -84,20 +94,49 @@ serve(async (req) => {
     translatedPosts.forEach(translation => {
       const parentPost = posts.find(p => p.id === translation.post_id);
       if (parentPost) {
+        // Main translation route (uses Telugu slug if available)
         const identifier = translation.slug || parentPost.slug || parentPost.id;
         const route = `/te/blog/${identifier}`;
-        allRoutes.push(route);
-        metadata.push({ route: route, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+        if (!allRoutes.includes(route)) {
+          allRoutes.push(route);
+          metadata.push({ route: route, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+        }
+
+        // Also add the English slug version with /te/ prefix
+        if (parentPost.slug && identifier !== parentPost.slug) {
+          const engRoute = `/te/blog/${parentPost.slug}`;
+          if (!allRoutes.includes(engRoute)) {
+            allRoutes.push(engRoute);
+            metadata.push({ route: engRoute, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+          }
+        }
+
+        // 3. Add short ID route for Telugu
+        const shortTeRoute = `/te/blog/${parentPost.id}`;
+        if (!allRoutes.includes(shortTeRoute)) {
+          allRoutes.push(shortTeRoute);
+          metadata.push({ route: shortTeRoute, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+        }
       }
     });
 
     const { data: guides, error: guidesError } = await supabase.from('guides').select('id, slug, title, description, content, cover_image_url');
     if (guidesError) throw guidesError;
     guides.forEach(guide => {
+      // 1. Add SEO slug route
       const identifier = guide.slug || guide.id;
       const route = `/guides/${identifier}`;
       allRoutes.push(route);
       metadata.push({ route, title: guide.title, description: guide.description, image: guide.cover_image_url });
+
+      // 2. Add short ID route if slug exists
+      if (guide.slug) {
+        const shortRoute = `/guides/${guide.id}`;
+        if (!allRoutes.includes(shortRoute)) {
+          allRoutes.push(shortRoute);
+          metadata.push({ route: shortRoute, title: guide.title, description: guide.description, image: guide.cover_image_url });
+        }
+      }
     });
 
     const { data: translatedGuides, error: translatedGuidesError } = await supabase.from('guide_translations').select('guide_id, slug, title, description, content').eq('language', 'te');
@@ -105,10 +144,29 @@ serve(async (req) => {
     translatedGuides.forEach(translation => {
       const parentGuide = guides.find(g => g.id === translation.guide_id);
       if (parentGuide) {
+        // Main translation route (uses Telugu slug if available)
         const identifier = translation.slug || parentGuide.slug || parentGuide.id;
         const route = `/te/guides/${identifier}`;
-        allRoutes.push(route);
-        metadata.push({ route: route, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+        if (!allRoutes.includes(route)) {
+          allRoutes.push(route);
+          metadata.push({ route: route, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+        }
+
+        // Also add the English slug version with /te/ prefix
+        if (parentGuide.slug && identifier !== parentGuide.slug) {
+          const engRoute = `/te/guides/${parentGuide.slug}`;
+          if (!allRoutes.includes(engRoute)) {
+            allRoutes.push(engRoute);
+            metadata.push({ route: engRoute, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+          }
+        }
+
+        // 3. Add short ID route for Telugu
+        const shortTeRoute = `/te/guides/${parentGuide.id}`;
+        if (!allRoutes.includes(shortTeRoute)) {
+          allRoutes.push(shortTeRoute);
+          metadata.push({ route: shortTeRoute, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+        }
       }
     });
 

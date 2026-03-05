@@ -218,12 +218,23 @@ function generateAutofillData(
       const course = summary.course_details || {};
       const discharge = summary.discharge_data || {};
 
-      // Calculate post-op days
+      // Calculate post-op days (POD 0 = day of procedure, POD 1 = day after procedure)
       let complaintsText = '';
       if (lastDischarge.procedure_date) {
-        const diffTime = Math.abs(new Date().getTime() - new Date(lastDischarge.procedure_date).getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        complaintsText = `${diffDays} days post-operative case.`;
+        const today = new Date();
+        const procDate = new Date(lastDischarge.procedure_date);
+        // Normalize both to start of day to get accurate day difference
+        today.setHours(0, 0, 0, 0);
+        procDate.setHours(0, 0, 0, 0);
+
+        const diffTime = today.getTime() - procDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+          complaintsText = `Post-operative case (POD 0).`;
+        } else {
+          complaintsText = `${diffDays} day${diffDays === 1 ? '' : 's'} post-operative case.`;
+        }
       }
 
       return {

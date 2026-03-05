@@ -50,9 +50,9 @@ export const generateSitemap = () => {
 
       // Handle both old array format and new object ({ routes, metadata }) format
       if (Array.isArray(discoveredJson)) {
-        dynamicRoutes = discoveredJson;
+        dynamicRoutes = discoveredJson.filter(route => !/(\/blog\/|\/guides\/)\d+$/.test(route) && !/\/te\/(blog|guides)\/\d+$/.test(route));
       } else if (discoveredJson.routes && Array.isArray(discoveredJson.routes)) {
-        dynamicRoutes = discoveredJson.routes;
+        dynamicRoutes = discoveredJson.routes.filter(route => !/(\/blog\/|\/guides\/)\d+$/.test(route) && !/\/te\/(blog|guides)\/\d+$/.test(route));
       }
 
       console.log(`Found ${dynamicRoutes.length} dynamic routes`);

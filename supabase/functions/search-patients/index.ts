@@ -23,7 +23,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.4';
 import { corsHeaders } from '../_shared/cors.ts';
 import { searchPhoneNumberInDrive } from "../_shared/google-drive.ts";
-import { sanitizePhoneNumber } from "../_shared/phone-utils.ts";
+import { sanitizePhoneNumber, getSearchablePhone } from "../_shared/phone-utils.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -59,6 +59,7 @@ serve(async (req) => {
     // First, attempt to find the patient in our primary database.
     let dbData;
     let dbError;
+    let sanitizedPhone = '';
 
     if (searchType === 'name') {
       const { data, error } = await supabase.rpc('search_patients_normalized', {
@@ -70,7 +71,7 @@ serve(async (req) => {
       let query = supabase.from('patients').select('*');
       // searchType === 'phone'
       // Sanitize phone number to the last 10 digits for consistent searching.
-      const sanitizedPhone = sanitizePhoneNumber(searchTerm);
+      sanitizedPhone = getSearchablePhone(searchTerm);
       // Search both phone and secondary_phone using OR syntax
       query = query.or(`phone.ilike.%${sanitizedPhone}%,secondary_phone.ilike.%${sanitizedPhone}%`);
 
@@ -114,7 +115,7 @@ serve(async (req) => {
     // If the database search yields no results and the search was by phone,
     // trigger the fallback to search legacy records in Google Drive.
     if (searchType === 'phone') {
-      const drivePatients = await searchPhoneNumberInDrive(searchTerm);
+      const drivePatients = await searchPhoneNumberInDrive(sanitizedPhone);
       // Add the 'source' field to identify these as legacy records.
       const patientsWithSource = drivePatients.map(p => ({ ...p, source: 'gdrive' }));
       return new Response(JSON.stringify(patientsWithSource), {

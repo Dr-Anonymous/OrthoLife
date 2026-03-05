@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { sanitizePhoneNumber, isValidPhoneNumber, formatPhoneNumber, formatWhatsAppLink } from '@/lib/phone-utils';
+import { sanitizePhoneNumber, isValidPhoneNumber, formatPhoneNumber, formatWhatsAppLink, getSearchablePhone } from '@/lib/phone-utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Phone, MessageSquare, Home, Building, FlaskConical, User, Users, Clipboard, Link, Calendar, History, Search, MapPin } from 'lucide-react';
@@ -124,12 +124,13 @@ const WhatsAppMe = () => {
       setCalendarEvents([]);
       setPrescriptions([]);
       try {
+        const searchablePhone = getSearchablePhone(phone);
         const [patientResult, eventResult] = await Promise.all([
           supabase.functions.invoke('search-patients', {
-            body: { searchTerm: phone, searchType: 'phone' },
+            body: { searchTerm: searchablePhone, searchType: 'phone' },
           }),
           supabase.functions.invoke('search-calendar-events', {
-            body: { phoneNumber: phone },
+            body: { phoneNumber: searchablePhone },
           }),
         ]);
 

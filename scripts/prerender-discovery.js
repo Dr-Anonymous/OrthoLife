@@ -30,10 +30,20 @@ const discoverDynamicRoutes = async () => {
       const { data: posts } = await supabase.from('posts').select('id, slug, title, excerpt, image_url');
       if (posts) {
         posts.forEach(post => {
+          // 1. Add SEO slug route
           const identifier = post.slug || post.id;
           const route = `/blog/${identifier}`;
           dynamicRoutes.push(route);
           metadata.push({ route, title: post.title, description: post.excerpt, image: post.image_url });
+
+          // 2. Add short ID route if slug exists (to avoid duplicate if id is the identifier)
+          if (post.slug) {
+            const shortRoute = `/blog/${post.id}`;
+            if (!dynamicRoutes.includes(shortRoute)) {
+              dynamicRoutes.push(shortRoute);
+              metadata.push({ route: shortRoute, title: post.title, description: post.excerpt, image: post.image_url });
+            }
+          }
         });
         console.log(`📝 Found ${posts.length} blog posts`);
       }
@@ -59,6 +69,13 @@ const discoverDynamicRoutes = async () => {
                 metadata.push({ route: engRoute, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
               }
             }
+
+            // 3. Add short ID route for Telugu
+            const shortTeRoute = `/te/blog/${parentPost.id}`;
+            if (!dynamicRoutes.includes(shortTeRoute)) {
+              dynamicRoutes.push(shortTeRoute);
+              metadata.push({ route: shortTeRoute, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+            }
           }
         });
         console.log(`📝 Found ${translatedPosts.length} translated blog posts and added metadata for English slug variants`);
@@ -71,10 +88,20 @@ const discoverDynamicRoutes = async () => {
       const { data: guides } = await supabase.from('guides').select('id, slug, title, description, cover_image_url');
       if (guides) {
         guides.forEach(guide => {
+          // 1. Add SEO slug route
           const identifier = guide.slug || guide.id;
           const route = `/guides/${identifier}`;
           dynamicRoutes.push(route);
           metadata.push({ route, title: guide.title, description: guide.description, image: guide.cover_image_url });
+
+          // 2. Add short ID route if slug exists
+          if (guide.slug) {
+            const shortRoute = `/guides/${guide.id}`;
+            if (!dynamicRoutes.includes(shortRoute)) {
+              dynamicRoutes.push(shortRoute);
+              metadata.push({ route: shortRoute, title: guide.title, description: guide.description, image: guide.cover_image_url });
+            }
+          }
         });
         console.log(`📚 Found ${guides.length} guides`);
       }
@@ -100,6 +127,13 @@ const discoverDynamicRoutes = async () => {
                 dynamicRoutes.push(engRoute);
                 metadata.push({ route: engRoute, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
               }
+            }
+
+            // 3. Add short ID route for Telugu
+            const shortTeRoute = `/te/guides/${parentGuide.id}`;
+            if (!dynamicRoutes.includes(shortTeRoute)) {
+              dynamicRoutes.push(shortTeRoute);
+              metadata.push({ route: shortTeRoute, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
             }
           }
         });
