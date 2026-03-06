@@ -47,6 +47,8 @@ import { getMatchingGuides } from '@/lib/guideMatching';
 import { Guide } from '@/types/consultation';
 import { useConsultationTimer } from '@/hooks/useConsultationTimer';
 import { generateCompletionMessage as generateCompletionMessageUtil } from '@/lib/consultation-utils';
+import { requestOfflineSyncNow } from '@/lib/offline-sync-events';
+import { OfflineConsultationBundle } from '@/types/offline-sync';
 
 
 /**
@@ -582,27 +584,6 @@ const ConsultationPage = () => {
     return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage);
   };
 
-  const sendConsultationCompletionNotification = async (patient: any, guidesMatched: any[], isAuto: boolean = true) => {
-    if (isAuto && !isAutoSendEnabled) {
-      console.log('Auto-notification disabled, skipping.');
-      return;
-    }
-
-    try {
-      // Logic: If manually edited, use that message. Else, generate fresh one (which respects current language).
-      const message = isMessageManuallyEdited ? completionMessage : generateCompletionMessage(patient, guidesMatched);
-
-      // Use send-whatsapp function directly
-      const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: { number: patient.phone, message: message },
-      });
-      if (error) throw error;
-      console.log('Notification sent');
-    } catch (err) {
-      console.error('Failed to send WhatsApp notification:', err);
-      // Optional: Toast error
-    }
-  };
 
   // Keep patient comparison logic centralized so "dirty check" and "save path" stay consistent.
   const arePatientsEqual = (p1: any, p2: any) => {
@@ -663,16 +644,12 @@ const ConsultationPage = () => {
   const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
 
-    // Re-using logic from hasChanges essentially, but we need variables for saving condition
     const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
-
     let newStatus = selectedConsultation.status;
     if (options.markAsCompleted) {
       newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
     }
     const statusChanged = newStatus !== selectedConsultation.status;
-
-    // Use the derived check + status check
     const shouldSave = hasChanges || statusChanged;
 
     if (!shouldSave) {
@@ -682,164 +659,76 @@ const ConsultationPage = () => {
 
     setIsSaving(true);
     try {
-      // Exclude migrated fields from consultation_data to avoid duplication
-      // We must explicitly destructure them out in case they exist in extraData from legacy JSON
       const { visit_type, location, language, ...restExtraData } = extraData as any;
 
-      // Helper to clean medication object
       const cleanMedicationForSave = (med: any) => {
         const cleaned = { ...med };
-
-        // 1. Remove snake_case duplicates from saved_medications join
         delete cleaned.freq_morning;
         delete cleaned.freq_noon;
         delete cleaned.freq_night;
         delete cleaned.created_at;
         delete cleaned.updated_at;
-
-        // 2. Prune false values to save space
         if (!cleaned.freqMorning) delete cleaned.freqMorning;
         if (!cleaned.freqNoon) delete cleaned.freqNoon;
         if (!cleaned.freqNight) delete cleaned.freqNight;
-
         return cleaned;
       };
 
-      // Extract Top-level columns from extraData
       const {
         procedure_fee,
         procedure_consultant_cut,
         referred_by,
         referral_amount,
-        referred_to, // Extract legacy if present
-        referred_to_list, // Extract new list
+        referred_to,
+        referred_to_list,
         ...jsonExtraData
       } = restExtraData;
 
       const dataToSave = pruneEmptyFields({
         ...jsonExtraData,
-        // Join list to string for legacy/reporting compatibility
         referred_to: referred_to_list && referred_to_list.length > 0 ? referred_to_list.join(', ') : '',
         referred_to_list: referred_to_list || [],
         medications: (restExtraData.medications || []).map(cleanMedicationForSave)
       });
 
-      const saveToOfflineStore = async () => {
-        const offlineData = {
-          patientDetails: editablePatientDetails,
-          extraData: dataToSave,
-          status: newStatus,
-          timestamp: new Date().toISOString(),
-          language: consultationLanguage,
-        };
-        await offlineStore.setItem(selectedConsultation.id, offlineData);
-        toast({ title: 'Saved Locally', description: 'Changes will sync when online.' });
+      // 1. Build Standardized Payload (v2)
+      const offlineBundle: OfflineConsultationBundle = {
+        schemaVersion: 2,
+        timestamp: new Date().toISOString(),
+        patientDetails: {
+          ...editablePatientDetails,
+          secondary_phone: editablePatientDetails.secondary_phone,
+          is_dob_estimated: editablePatientDetails.is_dob_estimated
+        },
+        extraData: dataToSave,
+        status: newStatus as any,
+        language: consultationLanguage,
+        visit_type: extraData.visit_type,
+        location: selectedHospital.name,
+        duration: timerSeconds,
+        procedure_fee: procedure_fee ? Number(procedure_fee) : null,
+        procedure_consultant_cut: procedure_consultant_cut ? Number(procedure_consultant_cut) : null,
+        referred_by: referred_by || null,
+        referral_amount: referral_amount ? Number(referral_amount) : null,
       };
 
-      if (!isOnline) {
-        await saveToOfflineStore();
-      } else {
-        try {
-          // Re-evaluate patientDetailsChanged based on current state vs initial state
-          const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
+      // 2. PRIMARY WRITE: IndexedDB (offlineStore)
+      await offlineStore.setItem(selectedConsultation.id, offlineBundle);
 
-          if (patientDetailsChanged) {
-            const { error: patientUpdateError } = await supabase
-              .from('patients')
-              .update({
-                name: editablePatientDetails.name,
-                dob: editablePatientDetails.dob,
-                sex: editablePatientDetails.sex,
-                phone: editablePatientDetails.phone,
-                is_dob_estimated: editablePatientDetails.is_dob_estimated,
-                secondary_phone: editablePatientDetails.secondary_phone,
-              })
-              .eq('id', editablePatientDetails.id);
-            if (patientUpdateError) throw new Error(`Failed to update patient details: ${patientUpdateError.message}`);
-          }
-
-          const consultationUpdatePayload: {
-            consultation_data?: any, status?: string, visit_type?: string, location?: string, language?: string, duration?: number,
-            procedure_fee?: number | null, procedure_consultant_cut?: number | null, referred_by?: string | null, referral_amount?: number | null
-          } = {};
-
-          // Re-evaluate locationChanged and languageChanged based on current state vs initial state
-          const locationChanged = selectedHospital.name !== initialLocation;
-          const languageChanged = consultationLanguage !== initialLanguage;
-          const extraDataChanged = JSON.stringify(extraData) !== JSON.stringify(initialExtraData);
-
-
-          if (extraDataChanged || locationChanged || languageChanged) {
-            consultationUpdatePayload.consultation_data = dataToSave;
-            consultationUpdatePayload.visit_type = extraData.visit_type;
-            consultationUpdatePayload.location = selectedHospital.name;
-            consultationUpdatePayload.language = consultationLanguage;
-
-            // New Columns
-            consultationUpdatePayload.procedure_fee = procedure_fee ? Number(procedure_fee) : null;
-            consultationUpdatePayload.procedure_consultant_cut = procedure_consultant_cut ? Number(procedure_consultant_cut) : null;
-            consultationUpdatePayload.referred_by = referred_by || null;
-            consultationUpdatePayload.referral_amount = referral_amount ? Number(referral_amount) : null;
-          }
-          if (statusChanged) {
-            consultationUpdatePayload.status = newStatus;
-            if (newStatus === 'completed') {
-              stopTimer();
-              isTimerPausedRef.current = true;
-            }
-          }
-
-          // Always save duration
-          consultationUpdatePayload.duration = timerSeconds;
-
-          if (Object.keys(consultationUpdatePayload).length > 0) {
-            const { error: updateError } = await supabase
-              .from('consultations')
-              .update(consultationUpdatePayload)
-              .eq('id', selectedConsultation.id);
-            if (updateError) throw new Error(`Failed to save consultation data: ${updateError.message}`);
-          }
-
-          if (statusChanged && newStatus === 'completed' && selectedConsultation.status !== 'completed') {
-            sendConsultationCompletionNotification(editablePatientDetails, matchedGuides);
-          }
-
-          await offlineStore.removeItem(selectedConsultation.id);
-          // setPendingSyncIds handled globally
-          if (!options.skipToast) toast({ title: 'Success', description: 'Your changes have been saved.' });
-        } catch (onlineError: any) {
-          console.error("Online save failed:", onlineError);
-          const isNetworkError =
-            onlineError.message?.includes('Failed to send a request') ||
-            onlineError.message?.includes('Failed to fetch') ||
-            onlineError.message?.includes('NetworkError') ||
-            onlineError.name === 'TypeError'; // fetch often throws TypeError on network fail
-
-          if (isNetworkError) {
-            console.log("Network error detected during save, falling back to offline store.");
-            await saveToOfflineStore();
-            return true;
-          } else {
-            throw onlineError; // Re-throw logic errors
-          }
-        }
-      }
-
-      const updatedConsultation = {
+      // 3. INTERNAL STATE UPDATE (Reflect changes immediately)
+      const updatedConsultation: Consultation = {
         ...selectedConsultation,
         patient: { ...editablePatientDetails },
-        consultation_data: { ...extraData, language: consultationLanguage },
+        consultation_data: dataToSave,
         visit_type: extraData.visit_type,
         location: selectedHospital.name,
         language: consultationLanguage,
-        status: newStatus as 'pending' | 'completed' | 'under_evaluation',
+        status: newStatus as any,
         duration: timerSeconds,
-
-        // Update top-level fields to ensure local state reflects changes without reload
-        procedure_fee: extraData.procedure_fee ? Number(extraData.procedure_fee) : null,
-        procedure_consultant_cut: extraData.procedure_consultant_cut ? Number(extraData.procedure_consultant_cut) : null,
-        referred_by: extraData.referred_by || null,
-        referral_amount: extraData.referral_amount ? Number(extraData.referral_amount) : null,
+        procedure_fee: procedure_fee ? Number(procedure_fee) : null,
+        procedure_consultant_cut: procedure_consultant_cut ? Number(procedure_consultant_cut) : null,
+        referred_by: referred_by || null,
+        referral_amount: referral_amount ? Number(referral_amount) : null,
       };
 
       setSelectedConsultation(updatedConsultation);
@@ -853,20 +742,35 @@ const ConsultationPage = () => {
       );
       setAllConsultations(updatedAllConsultations);
 
-      // Auto-Refresh Logic: Trigger background refresh every 5 completions
+      // 4. SIDE EFFECTS (Decoupled from cloud)
       if (statusChanged && newStatus === 'completed') {
+        stopTimer();
+        isTimerPausedRef.current = true;
+
+        // Auto-Refresh Logic: Trigger background refresh every 5 completions
         const nextCount = completedCount + 1;
         setCompletedCount(nextCount);
         if (nextCount > 0 && nextCount % 5 === 0) {
-          console.log(`Auto-refreshing list (Completion #${nextCount})`);
           fetchConsultations().catch(console.error);
         }
       }
 
+      // 5. TRIGGER BACKGROUND SYNC
+      if (isOnline) {
+        requestOfflineSyncNow();
+      }
+
+      if (!options.skipToast) {
+        toast({
+          title: 'Saved locally',
+          description: isOnline ? 'Syncing to cloud in background...' : 'Will sync when network is back.'
+        });
+      }
+
       return true;
-    } catch (err) {
-      console.error(err);
-      toast({ variant: "destructive", title: "Error", description: "Failed to save. Please try again." });
+    } catch (err: any) {
+      console.error('Local save failed:', err);
+      toast({ variant: "destructive", title: "Save Error", description: "Failed to save locally. Please check storage." });
       return false;
     } finally {
       setIsSaving(false);

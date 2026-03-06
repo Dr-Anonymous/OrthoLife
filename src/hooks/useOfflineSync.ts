@@ -4,10 +4,29 @@ import { offlineStore } from '@/lib/local-storage';
 import { generateCompletionMessage } from '@/lib/consultation-utils';
 import { getMatchingGuides } from '@/lib/guideMatching';
 import { Guide } from '@/types/consultation';
+import { SYNC_NOW_EVENT } from '@/lib/offline-sync-events';
+import { OfflineConsultationBundle } from '@/types/offline-sync';
 
 interface UseOfflineSyncProps {
     isOnline: boolean;
 }
+
+type OfflinePatientDetails = {
+    id: string;
+    name: string;
+    dob: string;
+    sex: string | null;
+    phone: string;
+    secondary_phone?: string;
+    is_dob_estimated?: boolean;
+};
+
+type OfflineConsultationRecord = Partial<OfflineConsultationBundle> & {
+    patientDetails: OfflinePatientDetails;
+    extraData?: Record<string, unknown>;
+    status?: OfflineConsultationBundle['status'];
+    timestamp?: string;
+};
 
 export const cachePatients = async (patients: any[]) => {
     const currentCache = (await offlineStore.getItem('patientCache') as any[]) || [];
@@ -63,6 +82,36 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [guides, setGuides] = useState<Guide[]>([]);
 
+    const buildPatientUpdatePayload = (patientDetails: OfflinePatientDetails) => {
+        const patientUpdate: Record<string, unknown> = {
+            name: patientDetails.name,
+            dob: patientDetails.dob,
+            sex: patientDetails.sex,
+            phone: patientDetails.phone
+        };
+        if (patientDetails.secondary_phone !== undefined) patientUpdate.secondary_phone = patientDetails.secondary_phone;
+        if (patientDetails.is_dob_estimated !== undefined) patientUpdate.is_dob_estimated = patientDetails.is_dob_estimated;
+        return patientUpdate;
+    };
+
+    const buildConsultationUpdatePayload = (
+        bundle: Partial<OfflineConsultationBundle> & { extraData: Record<string, unknown>, status: OfflineConsultationBundle['status'] }
+    ) => {
+        const consultationUpdate: Record<string, unknown> = {
+            consultation_data: bundle.extraData,
+            status: bundle.status
+        };
+        if (bundle.visit_type !== undefined) consultationUpdate.visit_type = bundle.visit_type;
+        if (bundle.location !== undefined) consultationUpdate.location = bundle.location;
+        if (bundle.language !== undefined) consultationUpdate.language = bundle.language;
+        if (bundle.duration !== undefined) consultationUpdate.duration = bundle.duration;
+        if (bundle.procedure_fee !== undefined) consultationUpdate.procedure_fee = bundle.procedure_fee;
+        if (bundle.procedure_consultant_cut !== undefined) consultationUpdate.procedure_consultant_cut = bundle.procedure_consultant_cut;
+        if (bundle.referred_by !== undefined) consultationUpdate.referred_by = bundle.referred_by;
+        if (bundle.referral_amount !== undefined) consultationUpdate.referral_amount = bundle.referral_amount;
+        return consultationUpdate;
+    };
+
     // Fetch guides once for notification matching
     useEffect(() => {
         const fetchGuides = async () => {
@@ -102,6 +151,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
             if (conflictData || patientConflictData) return;
             if (isSyncing) return;
 
+            console.log("Starting syncOfflineData pass...");
             setIsSyncing(true);
             try {
                 const keys = await offlineStore.keys();
@@ -126,9 +176,6 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
 
                                 // Delegate deduplication to backend to match strict online behavior
                                 // The backend function 'register-patient-and-consultation' handles similarity checks
-                                let createdConsultationId: string;
-                                let createdPatientId: string;
-
                                 const { id: _offlineId, ...patientDataToRegister } = offlineData.patient;
 
                                 // Pass location from offlineData.consultation (fallback to patient data if structure varies)
@@ -148,8 +195,8 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                     continue;
                                 }
 
-                                createdConsultationId = data.consultation?.id;
-                                createdPatientId = data.consultation?.patient_id;
+                                const createdConsultationId = data.consultation?.id;
+                                const createdPatientId = data.consultation?.patient_id;
 
                                 if (!createdConsultationId) {
                                     throw new Error("Invalid response format from register-patient-and-consultation");
@@ -192,9 +239,9 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                             console.log("Found linked offline item, re-keying:", otherKey, "to", createdConsultationId);
 
                                             // Update IDs inside the item
-                                            if (otherItem.patientDetails) otherItem.patientDetails.id = createdPatientId;
+                                            if (otherItem.patientDetails && createdPatientId) otherItem.patientDetails.id = createdPatientId;
                                             // We don't explicitly store patient_id in the item root usually, but if we did:
-                                            if (otherItem.patient_id) otherItem.patient_id = createdPatientId;
+                                            if (otherItem.patient_id && createdPatientId) otherItem.patient_id = createdPatientId;
 
                                             // Update timestamp to now so it beats the server's creation time (avoiding conflict modal)
                                             otherItem.timestamp = new Date().toISOString();
@@ -272,18 +319,31 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                 return;
                             } else {
                                 // Sync local to server
-                                const { patientDetails, extraData, status } = offlineData;
-                                await supabase.from('patients').update({
-                                    name: patientDetails.name, dob: patientDetails.dob, sex: patientDetails.sex, phone: patientDetails.phone
-                                }).eq('id', patientDetails.id);
+                                const syncBundle = offlineData as OfflineConsultationRecord;
+                                if (!syncBundle.patientDetails?.id) {
+                                    throw new Error('Offline sync payload missing patientDetails.id');
+                                }
 
-                                await supabase.from('consultations').update({
-                                    consultation_data: extraData,
-                                    status: status
-                                }).eq('id', key);
+                                const patientUpdate = buildPatientUpdatePayload(syncBundle.patientDetails);
+                                const { error: patientUpdateError } = await supabase
+                                    .from('patients')
+                                    .update(patientUpdate)
+                                    .eq('id', syncBundle.patientDetails.id);
+                                if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
 
-                                if (status === 'completed' && serverConsultation.status !== 'completed') {
-                                    await sendNotification(patientDetails, extraData, offlineData.language || 'te');
+                                const consultationUpdate = buildConsultationUpdatePayload({
+                                    ...syncBundle,
+                                    extraData: syncBundle.extraData || {},
+                                    status: syncBundle.status || 'pending'
+                                });
+                                const { error: consultationUpdateError } = await supabase
+                                    .from('consultations')
+                                    .update(consultationUpdate)
+                                    .eq('id', key);
+                                if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
+
+                                if (syncBundle.status === 'completed' && serverConsultation.status !== 'completed') {
+                                    await sendNotification(syncBundle.patientDetails, syncBundle.extraData || {}, syncBundle.language || offlineData.language || 'te');
                                 }
 
                                 await offlineStore.removeItem(key);
@@ -304,8 +364,19 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
         };
 
         const interval = setInterval(syncOfflineData, 10000);
+
+        // Immediate Trigger Listener
+        if (typeof window !== 'undefined') {
+            window.addEventListener(SYNC_NOW_EVENT, syncOfflineData);
+        }
+
         syncOfflineData();
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener(SYNC_NOW_EVENT, syncOfflineData);
+            }
+        };
     }, [isOnline, conflictData, patientConflictData, isSyncing, guides]);
 
     // Conflict Resolvers
@@ -316,16 +387,25 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
         if (resolution === 'server') {
             await offlineStore.removeItem(consultationId);
         } else { // local
-            const { patientDetails, extraData, status } = local;
+            const localBundle = local as OfflineConsultationRecord;
+            if (!localBundle.patientDetails?.id) {
+                throw new Error('Conflict payload missing patientDetails.id');
+            }
+            const patientUpdatePayload = buildPatientUpdatePayload(localBundle.patientDetails);
             const { error: patientUpdateError } = await supabase
                 .from('patients')
-                .update({ name: patientDetails.name, dob: patientDetails.dob, sex: patientDetails.sex, phone: patientDetails.phone })
-                .eq('id', patientDetails.id);
+                .update(patientUpdatePayload)
+                .eq('id', localBundle.patientDetails.id);
             if (patientUpdateError) throw new Error(`Patient sync failed: ${patientUpdateError.message}`);
 
+            const consultationUpdatePayload = buildConsultationUpdatePayload({
+                ...localBundle,
+                extraData: localBundle.extraData || {},
+                status: localBundle.status || 'pending'
+            });
             const { error: consultationUpdateError } = await supabase
                 .from('consultations')
-                .update({ consultation_data: extraData, status: status })
+                .update(consultationUpdatePayload)
                 .eq('id', consultationId);
             if (consultationUpdateError) throw new Error(`Consultation sync failed: ${consultationUpdateError.message}`);
 
@@ -350,14 +430,24 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
             patientIdToUse = resolution.mergeWith;
         }
 
-        const offlineConsultationData = (await offlineStore.getItem(consultationId) as any).consultation;
+        const offlineBundle = await offlineStore.getItem(consultationId) as OfflineConsultationRecord | null;
+        if (!offlineBundle) {
+            console.warn('Missing offline bundle during patient conflict resolution:', consultationId);
+            setPendingSyncIds(prev => prev.filter(id => id !== consultationId));
+            setPatientConflictData(null);
+            return;
+        }
+        const consultationInsertPayload = buildConsultationUpdatePayload({
+            ...offlineBundle,
+            extraData: offlineBundle.extraData || { medications: [] },
+            status: 'pending' // Insert new patient-linked consultations as pending
+        });
 
         const { error: consultationError } = await supabase
             .from('consultations')
             .insert({
+                ...consultationInsertPayload,
                 patient_id: patientIdToUse,
-                consultation_data: offlineConsultationData?.consultation_data || {},
-                status: 'pending'
             });
 
         if (consultationError) throw new Error(consultationError.message);

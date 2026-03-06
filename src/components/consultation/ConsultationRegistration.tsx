@@ -586,6 +586,10 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   onChange={e => handleInputChange('phone', e.target.value)}
                   onKeyDown={e => {
                     if (showSuggestions) handleSuggestionKeyDown(e); // Allow navigation even from Phone input
+                    else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearch('phone');
+                    }
                   }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className={cn("pl-10 pr-10", errors.phone && "border-destructive")}
