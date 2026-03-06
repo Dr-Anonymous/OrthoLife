@@ -4,10 +4,9 @@ import { trackEvent } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, Clock, Share2, ArrowLeft, BookOpen, Download } from 'lucide-react';
+import { Clock, Share2, ArrowLeft, BookOpen, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,8 @@ import { generatePdf } from '@/lib/pdfUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Guide } from './PatientGuidesPage'; // Re-using the interface
 import NextSteps from '@/components/NextSteps';
+import { TableOfContents } from '@/components/TableOfContents';
+import { generateTocAndInjectIds, TocItem } from '@/utils/toc';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 interface TranslatedGuide {
@@ -31,6 +32,8 @@ const PatientGuidePage = () => {
   const [translatedGuide, setTranslatedGuide] = useState<TranslatedGuide | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [processedContent, setProcessedContent] = useState<string>('');
+  const [tocItems, setTocItems] = useState<TocItem[]>([]);
   const { toast } = useToast();
   const location = useLocation();
   const { user } = useAuth();
@@ -50,25 +53,36 @@ const PatientGuidePage = () => {
   const handleDownloadPdf = async () => {
     if (!guide) return;
     setIsDownloading(true);
-    const contentToSave = translatedGuide?.content || (guide as any).content;
-    const titleToSave = translatedGuide?.title || guide.title;
-    await generatePdf(contentToSave, titleToSave);
-    setIsDownloading(false);
+    try {
+      const title = translatedGuide?.title || guide.title;
+      await generatePdf(processedContent, title);
+      toast({
+        title: "Success",
+        description: "Guide downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download guide",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   useEffect(() => {
     const fetchGuide = async () => {
       if (!guideId) return;
       setLoading(true);
-      setTranslatedGuide(null); // Reset on language or guide change
+      setTranslatedGuide(null);
 
       try {
         const isNumericId = /^\d+$/.test(guideId);
-
-        // Define the query depending on if guideId is a numeric ID or a slug
         let query = supabase
           .from('guides')
-          .select('*, categories(name)')
+          .select('*, categories(name)');
 
         if (isNumericId) {
           query = query.eq('id', parseInt(guideId));
@@ -76,13 +90,15 @@ const PatientGuidePage = () => {
           query = query.eq('slug', guideId);
         }
 
-        const { data: guideData, error: guideError } = await query.single();
-
+        const { data, error: guideError } = await query.single();
         if (guideError) throw guideError;
-        setGuide(guideData);
 
-        if (i18n.language !== 'en' && guideData) {
-          const { data: translationData, error: translationError } = await supabase
+        const guideData = data as unknown as Guide;
+        setGuide(guideData);
+        let translationData: TranslatedGuide | null = null;
+
+        if (i18n.language !== 'en') {
+          const { data: tgData, error: translationError } = await supabase
             .from('guide_translations')
             .select('*')
             .eq('guide_id', guideData.id)
@@ -92,13 +108,26 @@ const PatientGuidePage = () => {
           if (translationError && translationError.code !== 'PGRST116') {
             throw translationError;
           }
-          if (translationData) {
-            setTranslatedGuide(translationData);
+          if (tgData) {
+            translationData = tgData;
+            setTranslatedGuide(tgData);
           }
         }
+
+        // Process TOC early so there's no layout flashing
+        const activeContent = (i18n.language !== 'en' && translationData)
+          ? translationData.content
+          : (guideData as any).content;
+
+        const { processedHtml, tocItems: generatedToc } = generateTocAndInjectIds(activeContent);
+        setProcessedContent(processedHtml);
+        setTocItems(generatedToc);
+
       } catch (error) {
         console.error('Error fetching guide:', error);
         setGuide(null);
+        setProcessedContent('');
+        setTocItems([]);
       } finally {
         setLoading(false);
       }
@@ -121,7 +150,8 @@ const PatientGuidePage = () => {
       return;
     }
 
-    const canonicalPath = `/guides/${guide.slug || guide.id}`;
+    const identifier = guide.slug || guide.id.toString();
+    const canonicalPath = `/guides/${identifier}`;
 
     const title = translatedGuide?.title || guide.title;
     const description = translatedGuide?.description || guide.description;
@@ -138,11 +168,6 @@ const PatientGuidePage = () => {
           name: title,
           description,
           url: `https://ortho.life${canonicalPath}`,
-          about: guide.categories?.name || 'Orthopaedics',
-          publisher: {
-            '@type': 'Organization',
-            name: 'OrthoLife'
-          }
         },
         buildBreadcrumbJsonLd([
           { name: 'Home', path: '/' },
@@ -163,8 +188,8 @@ const PatientGuidePage = () => {
     const shareUrl = `${window.location.origin}${path}`;
 
     const shareData = {
-      title: translatedGuide?.title || guide.title,
-      text: translatedGuide?.title || guide.title,
+      title: translatedGuide?.title || guide?.title || '',
+      text: translatedGuide?.title || guide?.title || '',
       url: shareUrl,
     };
     try {
@@ -187,14 +212,13 @@ const PatientGuidePage = () => {
     }
   };
 
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {loading && (
               <div>
                 <Skeleton className="h-10 w-3/4 mb-4" />
@@ -210,60 +234,83 @@ const PatientGuidePage = () => {
             )}
 
             {!loading && guide && (
-              <article className="pb-24">
-                <header className="mb-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <Badge>{guide.categories.name}</Badge>
-                  </div>
-                  <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                    {translatedGuide?.title || guide.title}
-                  </h1>
-                  <div className="flex items-center text-muted-foreground flex-wrap">
-                    <div className="flex items-center mr-6 mb-2">
-                      <BookOpen size={16} className="mr-2" />
-                      <span>{guide.pages} {t('guides.pages')}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+                {/* Main Content */}
+                <article className="pb-24 min-w-0">
+                  <header className="mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                      <Badge>{guide.categories.name}</Badge>
                     </div>
-                    <div className="flex items-center mr-6 mb-2">
-                      <Clock size={16} className="mr-2" />
-                      <span>{guide.estimated_time.split(' ')[0]} {t('blog.minutesRead')}</span>
+                    <h1 className="text-4xl font-heading font-bold text-primary mb-4">
+                      {translatedGuide?.title || guide.title}
+                    </h1>
+                    <div className="flex items-center text-muted-foreground flex-wrap">
+                      <div className="flex items-center mr-6 mb-2">
+                        <BookOpen size={16} className="mr-2" />
+                        <span>{guide.pages} {t('guides.pages')}</span>
+                      </div>
+                      <div className="flex items-center mr-6 mb-2">
+                        <Clock size={16} className="mr-2" />
+                        <span>{guide.estimated_time.split(' ')[0]} {t('blog.minutesRead')}</span>
+                      </div>
                     </div>
+                  </header>
+
+                  <img src={guide.cover_image_url} alt={translatedGuide?.title || guide.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+
+                  {/* Always show TOC on mobile before the content if there are items */}
+                  {tocItems.length > 0 && (
+                    <div className="lg:hidden mb-8 bg-background p-6 rounded-lg shadow-sm border border-border">
+                      <TableOfContents items={tocItems} />
+                    </div>
+                  )}
+
+                  <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: processedContent }} />
+
+                  <div className="mt-8">
+                    <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps || t('forms.defaultNextSteps')} />
                   </div>
-                </header>
+                </article>
 
-                <img src={guide.cover_image_url} alt={translatedGuide?.title || guide.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+                {/* Sidebar Details (Desktop) */}
+                <aside className="hidden lg:block space-y-6">
+                  {tocItems.length > 0 && (
+                    <div className="sticky top-28 bg-background p-6 rounded-lg shadow-sm border border-border">
+                      <TableOfContents items={tocItems} />
+                    </div>
+                  )}
+                </aside>
+              </div>
+            )}
 
-                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedGuide?.content || (guide as any).content }} />
-
-                <NextSteps nextStepsContent={translatedGuide?.next_steps || guide.next_steps || t('forms.defaultNextSteps')} />
-
-                <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
-                  <div className="container mx-auto flex items-center gap-4">
-                    <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
-                      <Link to="/guides" className="flex items-center justify-center">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        <span className="hidden md:inline">{t('guides.back')}</span>
-                        <span className="md:hidden">{t('common.back')}</span>
-                      </Link>
-                    </Button>
-                    <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
-                      <Share2 className="h-4 w-4 mr-2" />
-                      <span className="hidden md:inline">{t('guides.share')}</span>
-                      <span className="md:hidden">{t('common.share')}</span>
-                    </Button>
-                    <Button variant="outline" className="flex-1 flex items-center shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20" onClick={handleDownloadPdf} disabled={isDownloading}>
-                      {isDownloading ? (
-                        'Downloading...'
-                      ) : (
-                        <>
-                          <Download size={16} className="mr-2" />
-                          <span className="hidden md:inline">{t('guides.downloadPdf', 'Download PDF')}</span>
-                          <span className="md:hidden">PDF</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
+            {!loading && guide && (
+              <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
+                <div className="container mx-auto flex items-center gap-4">
+                  <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
+                    <Link to="/guides" className="flex items-center justify-center">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      <span className="hidden md:inline">{t('guides.back')}</span>
+                      <span className="md:hidden">{t('common.back')}</span>
+                    </Link>
+                  </Button>
+                  <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
+                    <Share2 className="h-4 w-4 mr-2" />
+                    <span className="hidden md:inline">{t('guides.share')}</span>
+                    <span className="md:hidden">{t('common.share')}</span>
+                  </Button>
+                  <Button variant="outline" className="flex-1 flex items-center shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20" onClick={handleDownloadPdf} disabled={isDownloading}>
+                    {isDownloading ? (
+                      'Downloading...'
+                    ) : (
+                      <>
+                        <Download size={16} className="mr-2" />
+                        <span className="hidden md:inline">{t('guides.downloadPdf', 'Download PDF')}</span>
+                        <span className="md:hidden">PDF</span>
+                      </>
+                    )}
+                  </Button>
                 </div>
-              </article>
+              </div>
             )}
 
             {!loading && !guide && (

@@ -653,7 +653,6 @@ const ConsultationPage = () => {
     const shouldSave = hasChanges || statusChanged;
 
     if (!shouldSave) {
-      if (!options.skipToast) toast({ title: 'No Changes', description: 'No new changes to save.' });
       return true;
     }
 
@@ -755,16 +754,8 @@ const ConsultationPage = () => {
         }
       }
 
-      // 5. TRIGGER BACKGROUND SYNC
       if (isOnline) {
         requestOfflineSyncNow();
-      }
-
-      if (!options.skipToast) {
-        toast({
-          title: 'Saved locally',
-          description: isOnline ? 'Syncing to cloud in background...' : 'Will sync when network is back.'
-        });
       }
 
       return true;

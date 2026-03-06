@@ -4,15 +4,16 @@ import { trackEvent } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Share2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Share2, Clock, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import NextSteps from '@/components/NextSteps';
+import { TableOfContents } from '@/components/TableOfContents';
+import { generateTocAndInjectIds, TocItem } from '@/utils/toc';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
 
 interface Post {
@@ -55,6 +56,8 @@ const BlogPostPage = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [translatedPost, setTranslatedPost] = useState<TranslatedPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [processedContent, setProcessedContent] = useState<string>('');
+  const [tocItems, setTocItems] = useState<TocItem[]>([]);
   const { toast } = useToast();
   const location = useLocation();
   const { user } = useAuth();
@@ -81,8 +84,8 @@ const BlogPostPage = () => {
     const shareUrl = `${window.location.origin}${path}`;
 
     const shareData = {
-      title: translatedPost?.title || post.title,
-      text: translatedPost?.title || post.title,
+      title: translatedPost?.title || post?.title || '',
+      text: translatedPost?.title || post?.title || '',
       url: shareUrl,
     };
     try {
@@ -113,7 +116,7 @@ const BlogPostPage = () => {
       setTranslatedPost(null); // Reset translations when post or language changes
 
       try {
-        const isNumericId = /^\\d+$/.test(postId);
+        const isNumericId = /^\d+$/.test(postId);
         let query = supabase
           .from('posts')
           .select('*, categories(name)')
@@ -129,9 +132,10 @@ const BlogPostPage = () => {
         setPost(postData);
 
         const numericPostId = postData.id;
+        let translationData = null;
 
         if (i18n.language !== 'en') {
-          const { data: translationData, error: translationError } = await supabase
+          const { data, error: translationError } = await supabase
             .from('post_translations')
             .select('*')
             .eq('post_id', numericPostId)
@@ -141,13 +145,26 @@ const BlogPostPage = () => {
           if (translationError && translationError.code !== 'PGRST116') {
             throw translationError;
           }
-          if (translationData) {
-            setTranslatedPost(translationData);
+          if (data) {
+            translationData = data;
+            setTranslatedPost(data);
           }
         }
+
+        // Process TOC early so there's no layout flashing
+        const activeContent = (i18n.language !== 'en' && translationData)
+          ? translationData.content
+          : postData.content;
+
+        const { processedHtml, tocItems: generatedToc } = generateTocAndInjectIds(activeContent);
+        setProcessedContent(processedHtml);
+        setTocItems(generatedToc);
+
       } catch (error) {
         console.error('Error fetching post data:', error);
         setPost(null);
+        setProcessedContent('');
+        setTocItems([]);
       } finally {
         setLoading(false);
       }
@@ -223,7 +240,7 @@ const BlogPostPage = () => {
 
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {loading && (
               <div>
                 <Skeleton className="h-10 w-3/4 mb-4" />
@@ -240,45 +257,68 @@ const BlogPostPage = () => {
             )}
 
             {!loading && post && (
-              <article className="pb-24">
-                <header className="mb-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <Badge>{post.categories.name}</Badge>
-                  </div>
-                  <h1 className="text-4xl font-heading font-bold text-primary mb-4">
-                    {translatedPost?.title || post.title}
-                  </h1>
-                  <div className="flex items-center text-muted-foreground flex-wrap">
-                    <div className="flex items-center mb-2">
-                      <Clock size={16} className="mr-2" />
-                      <span>{post.read_time_minutes} {t('blog.minutesRead')}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+                {/* Main Content */}
+                <article className="pb-24 min-w-0">
+                  <header className="mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                      <Badge>{post.categories.name}</Badge>
                     </div>
+                    <h1 className="text-4xl font-heading font-bold text-primary mb-4">
+                      {translatedPost?.title || post.title}
+                    </h1>
+                    <div className="flex items-center text-muted-foreground flex-wrap">
+                      <div className="flex items-center mb-2">
+                        <Clock size={16} className="mr-2" />
+                        <span>{post.read_time_minutes} {t('blog.minutesRead')}</span>
+                      </div>
+                    </div>
+                  </header>
+
+                  <img src={post.image_url} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+
+                  {/* Always show TOC on mobile before the content if there are items */}
+                  {tocItems.length > 0 && (
+                    <div className="lg:hidden mb-8 bg-background p-6 rounded-lg shadow-sm border border-border">
+                      <TableOfContents items={tocItems} />
+                    </div>
+                  )}
+
+                  <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: processedContent }} />
+
+                  <div className="mt-8">
+                    <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps || t('forms.defaultNextSteps')} />
                   </div>
-                </header>
+                </article>
 
-                <img src={post.image_url} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+                {/* Sidebar Details (Desktop) */}
+                {tocItems.length > 0 && (
+                  <aside className="hidden lg:block">
+                    <div className="sticky top-28 bg-background p-6 rounded-lg shadow-sm border border-border">
+                      <TableOfContents items={tocItems} />
+                    </div>
+                  </aside>
+                )}
+              </div>
+            )}
 
-                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: translatedPost?.content || post.content }} />
-
-                <NextSteps nextStepsContent={translatedPost?.next_steps || post.next_steps || t('forms.defaultNextSteps')} />
-
-                <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
-                  <div className="container mx-auto flex items-center gap-4">
-                    <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
-                      <Link to="/blog" className="flex items-center justify-center">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        <span className="hidden md:inline">{t('blog.back')}</span>
-                        <span className="md:hidden">{t('common.back')}</span>
-                      </Link>
-                    </Button>
-                    <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
-                      <Share2 className="mr-2 h-4 w-4" />
-                      <span className="hidden md:inline">{t('blog.share')}</span>
-                      <span className="md:hidden">{t('common.share')}</span>
-                    </Button>
-                  </div>
+            {!loading && post && (
+              <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
+                <div className="container mx-auto flex items-center gap-4">
+                  <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
+                    <Link to="/blog" className="flex items-center justify-center">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      <span className="hidden md:inline">{t('blog.back')}</span>
+                      <span className="md:hidden">{t('common.back')}</span>
+                    </Link>
+                  </Button>
+                  <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
+                    <Share2 className="mr-2 h-4 w-4" />
+                    <span className="hidden md:inline">{t('blog.share')}</span>
+                    <span className="md:hidden">{t('common.share')}</span>
+                  </Button>
                 </div>
-              </article>
+              </div>
             )}
 
             {!loading && !post && (
