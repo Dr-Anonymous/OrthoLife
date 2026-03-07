@@ -217,7 +217,6 @@ const ConsultationPage = () => {
     return stored !== null ? JSON.parse(stored) : true;
   });
 
-  const [isReadyToPrint, setIsReadyToPrint] = useState(false);
   const [age, setAge] = useState<number | ''>('');
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -963,10 +962,12 @@ const ConsultationPage = () => {
       let processedValue = value;
       let newCursor = cursorPosition || value.length;
 
-      // Special Duration Shortcuts for Complaints
+      // Special Duration Shortcuts for Complaints/Advice
       if (field === 'complaints' || field === 'advice') {
-        const durationRegex = /(\d+)([dwmy])\./i;
-        const match = value.match(durationRegex);
+        const textBeforeCursor = value.substring(0, newCursor);
+        const durationRegex = /(\d+)([dwmy])\.\s$/i;
+        const match = textBeforeCursor.match(durationRegex);
+
         if (match) {
           const shortcut = match[0];
           const count = parseInt(match[1], 10);
@@ -981,11 +982,13 @@ const ConsultationPage = () => {
           }
 
           if (unitText) {
-            const expandedText = `${count} ${unitText}`;
-            const shortcutIndex = value.indexOf(shortcut);
+            const expandedText = `${count} ${unitText} `;
+            const shortcutIndex = textBeforeCursor.lastIndexOf(shortcut);
             if (shortcutIndex !== -1) {
-              processedValue = value.replace(shortcut, expandedText);
-              newCursor = shortcutIndex + expandedText.length;
+              const textBefore = value.substring(0, shortcutIndex);
+              const textAfter = value.substring(newCursor);
+              processedValue = textBefore + expandedText + textAfter;
+              newCursor = textBefore.length + expandedText.length;
 
               setExtraData(prev => ({ ...prev, [field]: processedValue }));
               setTimeout(() => {
@@ -998,20 +1001,12 @@ const ConsultationPage = () => {
             }
           }
         } else {
-          // Unit-only shortcuts (e.g. "y." -> "years")
-          // Must be preceded by space or start of string to avoid false positives (e.g. inside words)
-          const unitOnlyRegex = /(?:^|\s)([dwmy])\./i;
-          const unitMatch = value.match(unitOnlyRegex);
+          // Unit-only shortcuts (e.g. "y. " -> "years ")
+          const unitOnlyRegex = /(?:^|\s)([dwmy])\.\s$/i;
+          const unitMatch = textBeforeCursor.match(unitOnlyRegex);
 
           if (unitMatch) {
-            const fullShortcut = unitMatch[0]; // Includes preceding space if matched
-            // If matched with space, unit char is group 1. If start of string (empty group 1 from `(?:^|\s)`?), actually group 1 is capturing.
-            // `(?:^|\s)` is non-capturing group for OR logic but we want to capture it? No, `(?:...)` is non-capturing.
-            // Wait, previous thought process: `/(^|\s)([dwmy])\./` captures group 1
-            // Here I used `/(?:^|\s)([dwmy])\./`.
-            // So group 1 is the unit char.
-            // But fullShortcut ensures we replace correctly (including space if present).
-
+            const fullShortcut = unitMatch[0];
             const unitChar = unitMatch[1].toLowerCase();
             let unitText = '';
 
@@ -1023,23 +1018,15 @@ const ConsultationPage = () => {
             }
 
             if (unitText) {
-              // If fullShortcut was " y.", we want to replace " y." with " years".
-              // If fullShortcut was "y.", we want to replace "y." with "years".
-              // Logic: fullShortcut contains the space if it existed.
-              // But we want to REPLACE the unit with word, keeping the space.
-              // " y." -> " years"
-              // "y." -> "years"
-
-              // We can just construct replacement string based on fullShortcut.
-              // If fullShortcut starts with space, use space + unitText.
-              // Else use unitText.
               const prefix = fullShortcut.match(/^\s/) ? ' ' : '';
-              const expandedText = `${prefix}${unitText}`;
+              const expandedText = `${prefix}${unitText} `;
 
-              const shortcutIndex = value.indexOf(fullShortcut);
+              const shortcutIndex = textBeforeCursor.lastIndexOf(fullShortcut);
               if (shortcutIndex !== -1) {
-                processedValue = value.replace(fullShortcut, expandedText);
-                newCursor = shortcutIndex + expandedText.length;
+                const textBefore = value.substring(0, shortcutIndex);
+                const textAfter = value.substring(newCursor);
+                processedValue = textBefore + expandedText + textAfter;
+                newCursor = textBefore.length + expandedText.length;
 
                 setExtraData(prev => ({ ...prev, [field]: processedValue }));
                 setTimeout(() => {
@@ -1057,8 +1044,9 @@ const ConsultationPage = () => {
 
       // Special Followup Shortcuts (Restored)
       if (field === 'followup') {
-        const shortcutRegex = /(\d+)([dwmy])\./i;
-        const match = value.match(shortcutRegex);
+        const textBeforeCursor = value.substring(0, newCursor);
+        const shortcutRegex = /(\d+)([dwmy])\.\s$/i;
+        const match = textBeforeCursor.match(shortcutRegex);
         if (match) {
           const shortcut = match[0];
           const count = parseInt(match[1], 10);
@@ -1072,11 +1060,13 @@ const ConsultationPage = () => {
           }
           if (unitKey) {
             const unitText = t(unitKey, { lng: consultationLanguage });
-            const expandedText = t('followup_message_structure', { count, unit: unitText, lng: consultationLanguage });
-            const shortcutIndex = value.indexOf(shortcut);
+            const expandedText = t('followup_message_structure', { count, unit: unitText, lng: consultationLanguage }) + ' ';
+            const shortcutIndex = textBeforeCursor.lastIndexOf(shortcut);
             if (shortcutIndex !== -1) {
-              processedValue = value.replace(shortcut, expandedText);
-              newCursor = shortcutIndex + expandedText.length;
+              const textBefore = value.substring(0, shortcutIndex);
+              const textAfter = value.substring(newCursor);
+              processedValue = textBefore + expandedText + textAfter;
+              newCursor = textBefore.length + expandedText.length;
 
               setExtraData(prev => ({ ...prev, [field]: processedValue }));
               setTimeout(() => {
@@ -1292,7 +1282,7 @@ const ConsultationPage = () => {
 
   const handleSaveAndPrint = async () => {
     const saved = await saveChanges({ markAsCompleted: true });
-    if (saved) setIsReadyToPrint(true);
+    if (saved) handlePrint();
   };
 
 
@@ -1367,13 +1357,8 @@ const ConsultationPage = () => {
   const pendingConsultations = filteredConsultations.filter(c => c.status === 'pending');
   const evaluationConsultations = filteredConsultations.filter(c => c.status === 'under_evaluation');
   const completedConsultations = filteredConsultations.filter(c => c.status === 'completed');
-  const handleAfterPrint = useCallback(() => {
-    setIsReadyToPrint(false);
-  }, []);
-
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    onAfterPrint: handleAfterPrint,
   });
 
   const handleAfterPrintCertificate = useCallback(() => {
@@ -1393,16 +1378,6 @@ const ConsultationPage = () => {
     contentRef: receiptPrintRef,
     onAfterPrint: handleAfterPrintReceipt,
   });
-
-  useEffect(() => {
-    if (isReadyToPrint && printRef.current) {
-      // Small delay to ensure DOM is ready
-      const timer = setTimeout(() => {
-        handlePrint();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isReadyToPrint, handlePrint]);
 
 
 

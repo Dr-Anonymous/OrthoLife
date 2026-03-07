@@ -95,6 +95,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const [suggestionSource, setSuggestionSource] = useState<'name' | 'phone'>('phone');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const justSelected = useRef(false);
+  const lastSearch = useRef({ term: '', type: '' as 'name' | 'phone' | '' });
 
 
 
@@ -280,6 +281,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       return;
     }
 
+    lastSearch.current = { term: searchTerm, type: searchType };
     setIsSearching(true);
     setSearchResults([]);
     setSelectedPatientId('');
@@ -585,10 +587,20 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   value={formData.phone}
                   onChange={e => handleInputChange('phone', e.target.value)}
                   onKeyDown={e => {
-                    if (showSuggestions) handleSuggestionKeyDown(e); // Allow navigation even from Phone input
+                    if (showSuggestions) handleSuggestionKeyDown(e);
                     else if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleSearch('phone');
+                      if (isSearching) return;
+
+                      const sanitizedPhone = sanitizePhoneNumber(formData.phone);
+                      const isSameAsLastSearch = lastSearch.current.type === 'phone' && lastSearch.current.term === sanitizedPhone;
+
+                      // If a patient is selected (autofilled), or if we already searched this phone and found no one, register.
+                      if (formData.id || (isSameAsLastSearch && searchResults.length === 0)) {
+                        submitForm(e as any);
+                      } else {
+                        handleSearch('phone');
+                      }
                     }
                   }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -623,7 +635,18 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   onChange={e => handleInputChange('name', e.target.value)}
                   onKeyDown={e => {
                     if (showSuggestions) handleSuggestionKeyDown(e);
-                    else if (e.key === 'Enter') { e.preventDefault(); handleSearch('name'); }
+                    else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (isSearching) return;
+
+                      const isSameAsLastSearch = lastSearch.current.type === 'name' && lastSearch.current.term === formData.name;
+
+                      if (formData.id || (isSameAsLastSearch && searchResults.length === 0)) {
+                        submitForm(e as any);
+                      } else {
+                        handleSearch('name');
+                      }
+                    }
                   }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className={cn("pl-10 pr-10", errors.name && "border-destructive")}

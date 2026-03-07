@@ -69,20 +69,6 @@ export const GlobalSyncManager = () => {
         );
     }
 
-    if (pendingSyncIds.length > 0) {
-        return (
-            <>
-                {content}
-                <div className="fixed bottom-4 right-4 z-50">
-                    <Badge variant="secondary" className="flex gap-2 items-center py-2 px-3 shadow-lg bg-blue-100 text-blue-800 border-blue-200">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Syncing {pendingSyncIds.length} item(s)...</span>
-                    </Badge>
-                </div>
-            </>
-        );
-    }
-
-    // Return content (modals) even if no badge
+    // Always render content (modals)
     return content;
 };
