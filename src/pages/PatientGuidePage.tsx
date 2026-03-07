@@ -284,31 +284,40 @@ const PatientGuidePage = () => {
             )}
 
             {!loading && guide && (
-              <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
-                <div className="container mx-auto flex items-center gap-4">
-                  <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
-                    <Link to="/guides" className="flex items-center justify-center">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      <span className="hidden md:inline">{t('guides.back')}</span>
-                      <span className="md:hidden">{t('common.back')}</span>
-                    </Link>
-                  </Button>
-                  <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
-                    <Share2 className="h-4 w-4 mr-2" />
-                    <span className="hidden md:inline">{t('guides.share')}</span>
-                    <span className="md:hidden">{t('common.share')}</span>
-                  </Button>
-                  <Button variant="outline" className="flex-1 flex items-center shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20" onClick={handleDownloadPdf} disabled={isDownloading}>
-                    {isDownloading ? (
-                      'Downloading...'
-                    ) : (
-                      <>
-                        <Download size={16} className="mr-2" />
-                        <span className="hidden md:inline">{t('guides.downloadPdf', 'Download PDF')}</span>
-                        <span className="md:hidden">PDF</span>
-                      </>
-                    )}
-                  </Button>
+              <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none">
+                <div className="container mx-auto px-4">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+                      <div className="flex justify-center pointer-events-none">
+                        <div className="flex items-center gap-2 md:gap-4 pointer-events-auto w-full max-w-md md:max-w-lg lg:max-w-xl">
+                          <Button asChild variant="outline" className="flex-1 shadow-lg bg-background hover:bg-accent border-primary/20">
+                            <Link to="/guides" className="flex items-center justify-center">
+                              <ArrowLeft className="h-4 w-4 mr-2" />
+                              <span className="hidden md:inline">{t('guides.back')}</span>
+                              <span className="md:hidden">{t('common.back')}</span>
+                            </Link>
+                          </Button>
+                          <Button onClick={handleShare} className="flex-1 shadow-lg">
+                            <Share2 className="h-4 w-4 mr-2" />
+                            <span className="hidden md:inline">{t('guides.share')}</span>
+                            <span className="md:hidden">{t('common.share')}</span>
+                          </Button>
+                          <Button variant="outline" className="flex-1 flex items-center shadow-lg bg-background hover:bg-accent border-primary/20" onClick={handleDownloadPdf} disabled={isDownloading}>
+                            {isDownloading ? (
+                              '...'
+                            ) : (
+                              <>
+                                <Download size={16} className="mr-2" />
+                                <span className="hidden md:inline">{t('guides.downloadPdf', 'Download PDF')}</span>
+                                <span className="md:hidden">PDF</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="hidden lg:block pointer-events-none"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

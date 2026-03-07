@@ -303,20 +303,29 @@ const BlogPostPage = () => {
             )}
 
             {!loading && post && (
-              <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none px-4">
-                <div className="container mx-auto flex items-center gap-4">
-                  <Button asChild variant="outline" className="flex-1 shadow-lg pointer-events-auto bg-background hover:bg-accent border-primary/20">
-                    <Link to="/blog" className="flex items-center justify-center">
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      <span className="hidden md:inline">{t('blog.back')}</span>
-                      <span className="md:hidden">{t('common.back')}</span>
-                    </Link>
-                  </Button>
-                  <Button onClick={handleShare} className="flex-1 shadow-lg pointer-events-auto">
-                    <Share2 className="mr-2 h-4 w-4" />
-                    <span className="hidden md:inline">{t('blog.share')}</span>
-                    <span className="md:hidden">{t('common.share')}</span>
-                  </Button>
+              <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none">
+                <div className="container mx-auto px-4">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+                      <div className="flex justify-center pointer-events-none">
+                        <div className="flex items-center gap-2 md:gap-4 pointer-events-auto w-full max-w-md md:max-w-lg">
+                          <Button asChild variant="outline" className="flex-1 shadow-lg bg-background hover:bg-accent border-primary/20">
+                            <Link to="/blog" className="flex items-center justify-center">
+                              <ArrowLeft className="mr-2 h-4 w-4" />
+                              <span className="hidden md:inline">{t('blog.back')}</span>
+                              <span className="md:hidden">{t('common.back')}</span>
+                            </Link>
+                          </Button>
+                          <Button onClick={handleShare} className="flex-1 shadow-lg">
+                            <Share2 className="mr-2 h-4 w-4" />
+                            <span className="hidden md:inline">{t('blog.share')}</span>
+                            <span className="md:hidden">{t('common.share')}</span>
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="hidden lg:block pointer-events-none"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

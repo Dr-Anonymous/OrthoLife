@@ -79,7 +79,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
     const [pendingSyncIds, setPendingSyncIds] = useState<string[]>([]);
     const [conflictData, setConflictData] = useState<{ local: any, server: any, consultationId: string } | null>(null);
     const [patientConflictData, setPatientConflictData] = useState<{ consultationId: string, offlinePatient: any, conflictingPatients: any[] } | null>(null);
-    const [isSyncing, setIsSyncing] = useState(false);
+    const isSyncingRef = useRef(false);
     const [guides, setGuides] = useState<Guide[]>([]);
 
     const buildPatientUpdatePayload = (patientDetails: OfflinePatientDetails) => {
@@ -149,10 +149,10 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
         const syncOfflineData = async () => {
             if (!isOnline) return;
             if (conflictData || patientConflictData) return;
-            if (isSyncing) return;
+            if (isSyncingRef.current) return;
 
             console.log("Starting syncOfflineData pass...");
-            setIsSyncing(true);
+            isSyncingRef.current = true;
             try {
                 const keys = await offlineStore.keys();
                 if (keys.length > 0) {
@@ -315,7 +315,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
 
                             if (serverTimestamp > localTimestamp) {
                                 setConflictData({ local: offlineData, server: serverConsultation, consultationId: key });
-                                setIsSyncing(false); // Release lock if waiting for user
+                                isSyncingRef.current = false; // Release lock if waiting for user
                                 return;
                             } else {
                                 // Sync local to server
@@ -333,7 +333,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
 
                                 const consultationUpdate = buildConsultationUpdatePayload({
                                     ...syncBundle,
-                                    extraData: syncBundle.extraData || {},
+                                    extraData: syncBundle.extraData || ({} as any),
                                     status: syncBundle.status || 'pending'
                                 });
                                 const { error: consultationUpdateError } = await supabase
@@ -359,7 +359,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                     }
                 }
             } finally {
-                setIsSyncing(false);
+                isSyncingRef.current = false;
             }
         };
 
@@ -377,7 +377,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                 window.removeEventListener(SYNC_NOW_EVENT, syncOfflineData);
             }
         };
-    }, [isOnline, conflictData, patientConflictData, isSyncing, guides]);
+    }, [isOnline, conflictData, patientConflictData, guides]);
 
     // Conflict Resolvers
     const resolveConflict = async (resolution: 'local' | 'server') => {
@@ -400,7 +400,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
 
             const consultationUpdatePayload = buildConsultationUpdatePayload({
                 ...localBundle,
-                extraData: localBundle.extraData || {},
+                extraData: localBundle.extraData || ({} as any),
                 status: localBundle.status || 'pending'
             });
             const { error: consultationUpdateError } = await supabase
