@@ -100,6 +100,9 @@ const FAQPage = () => {
         ])
       ]
     });
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('data-prerender-ready', 'true');
+    }
   }, [faqs, i18n.language, t]);
 
   return (

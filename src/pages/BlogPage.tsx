@@ -59,13 +59,14 @@ const BlogPage = () => {
       description: isTeluguPage
         ? 'Read orthopaedic health articles in Telugu on joint pain, fractures, arthroscopy, and recovery care.'
         : 'Read expert orthopaedic articles on joint replacement, fractures, arthroscopy, back pain, and recovery care from OrthoLife specialists.',
-      canonicalPath,
+      canonicalPath: isTeluguPage ? '/te/blog' : '/blog',
+      ogType: 'website',
       jsonLd: [
         {
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
           name: isTeluguPage ? 'Orthopaedic Health Blog (Telugu)' : 'Orthopaedic Health Blog',
-          url: `https://ortho.life${canonicalPath}`,
+          url: `https://ortho.life${isTeluguPage ? '/te/blog' : '/blog'}`,
           about: ['Orthopaedics', 'Joint Replacement', 'Fracture Care', 'Arthroscopy']
         },
         buildBreadcrumbJsonLd([
@@ -74,6 +75,10 @@ const BlogPage = () => {
         ])
       ]
     });
+
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('data-prerender-ready', 'true');
+    }
   }, [location.pathname, i18n.language]);
 
   useEffect(() => {

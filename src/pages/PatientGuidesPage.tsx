@@ -78,6 +78,9 @@ const PatientGuidesPage = () => {
         ])
       ]
     });
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('data-prerender-ready', 'true');
+    }
   }, [location.pathname]);
 
   useEffect(() => {

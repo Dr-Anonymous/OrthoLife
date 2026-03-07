@@ -76,7 +76,9 @@ import { GlobalSyncManager } from "./components/GlobalSyncManager";
 const App = () => {
   const { installPrompt, handleInstallClick } = usePWAInstall();
 
-  // Mark page as ready for pre-rendering after components load
+  // Removing automatic pre-render ready signal to allow individual pages 
+  // to signal when they are truly ready with their meta tags.
+  /*
   useEffect(() => {
     const timer = setTimeout(() => {
       if (typeof document !== 'undefined') {
@@ -85,6 +87,7 @@ const App = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, []);
+  */
 
   return (
     <QueryClientProvider client={queryClient}>

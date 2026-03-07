@@ -72,7 +72,12 @@ export const applySeo = (config: SeoConfig) => {
 
   const canonicalPath = normalizePath(config.canonicalPath);
   const canonicalUrl = config.canonicalUrl || `${SITE_URL}${canonicalPath}`;
-  const image = config.image || DEFAULT_IMAGE;
+
+  // Ensure image is absolute
+  let image = config.image || DEFAULT_IMAGE;
+  if (image.startsWith('/')) {
+    image = `${SITE_URL}${image}`;
+  }
 
   document.title = config.title;
 
@@ -80,18 +85,36 @@ export const applySeo = (config: SeoConfig) => {
   upsertMetaTag('keywords', config.keywords || 'orthopaedic clinic, orthopaedic surgeon, joint replacement, fracture care, arthroscopy');
   upsertMetaTag('robots', config.noindex ? 'noindex, nofollow' : 'index, follow');
 
+  // Open Graph / Facebook
   upsertMetaTag('og:title', config.title, true);
   upsertMetaTag('og:description', config.description, true);
   upsertMetaTag('og:type', config.ogType || 'website', true);
   upsertMetaTag('og:url', canonicalUrl, true);
   upsertMetaTag('og:image', image, true);
+  upsertMetaTag('og:image:alt', config.title, true);
+  upsertMetaTag('og:site_name', 'OrthoLife', true);
+  upsertMetaTag('og:locale', 'en_US', true);
 
+  // Recommended for Facebook to show image on first share
+  upsertMetaTag('og:image:width', '1200', true);
+  upsertMetaTag('og:image:height', '630', true);
+
+  // Twitter
+  upsertMetaTag('twitter:card', 'summary_large_image');
   upsertMetaTag('twitter:title', config.title);
   upsertMetaTag('twitter:description', config.description);
   upsertMetaTag('twitter:image', image);
+  upsertMetaTag('twitter:image:alt', config.title);
+  upsertMetaTag('twitter:url', canonicalUrl);
 
   setCanonical(canonicalUrl);
   setJsonLd(config.jsonLd);
+
+  // Signal pre-renderer that metadata is ready
+  if (typeof document !== 'undefined') {
+    document.body.setAttribute('data-seo-ready', 'true');
+    document.dispatchEvent(new Event('data-prerender-ready'));
+  }
 };
 
 export const buildBreadcrumbJsonLd = (items: Array<{ name: string; path: string }>) => ({

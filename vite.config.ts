@@ -18,7 +18,7 @@ const getDiscoveredData = () => {
 }
 
 const { routes: discoveredRoutes, metadata } = getDiscoveredData();
-
+const debugRoutes = ['/', '/blog/1'];
 const staticRoutes = [
   '/',
   '/appointment',
@@ -52,35 +52,76 @@ export default defineConfig(({ mode }) => ({
       routes: [...staticRoutes, ...discoveredRoutes],
       postProcess(renderedRoute: any) {
         const routeMetadata = metadata.find((meta: any) => meta.route === renderedRoute.originalRoute);
+
+        let html = renderedRoute.html;
+
         if (routeMetadata) {
-          renderedRoute.html = renderedRoute.html
-            .replace(/<title>.*<\/title>/, `<title>${routeMetadata.title}</title>`)
-            .replace(/<meta name="description" content=".*"\s*\/?>/, `<meta name="description" content="${routeMetadata.description}" />`)
-            .replace(/<meta property="og:title" content=".*"\s*\/?>/, `<meta property="og:title" content="${routeMetadata.title}" />`)
-            .replace(/<meta property="og:description" content=".*"\s*\/?>/, `<meta property="og:description" content="${routeMetadata.description}" />`)
-            .replace(/<meta property="og:image" content=".*"\s*\/?>/, `<meta property="og:image" content="${routeMetadata.image}" />`)
-            .replace(/<meta name="twitter:image" content=".*"\s*\/?>/, `<meta name="twitter:image" content="${routeMetadata.image}" />`);
+          const { title, description, image } = routeMetadata;
+          const absoluteUrl = `https://ortho.life${renderedRoute.originalRoute}`;
+
+          // Helper to upsert meta tags
+          const upsertMeta = (propertyName: string, value: string, isProperty = true) => {
+            const attr = isProperty ? 'property' : 'name';
+            const regex = new RegExp(`<meta\\s+${attr}="${propertyName}"\\s+content="[^"]*"\\s*\/?>`, 'i');
+            const newTag = `<meta ${attr}="${propertyName}" content="${value}" />`;
+
+            if (regex.test(html)) {
+              html = html.replace(regex, newTag);
+            } else {
+              html = html.replace('</head>', `  ${newTag}\n</head>`);
+            }
+          };
+
+          // Update standard tags
+          html = html.replace(/<title>.*<\/title>/i, `<title>${title} | OrthoLife</title>`);
+          upsertMeta('description', description, false);
+
+          // Update Open Graph tags
+          upsertMeta('og:title', title);
+          upsertMeta('og:description', description);
+          upsertMeta('og:image', image);
+          upsertMeta('og:image:alt', title);
+          upsertMeta('og:url', absoluteUrl);
+          upsertMeta('og:type', renderedRoute.originalRoute.includes('/blog/') || renderedRoute.originalRoute.includes('/guides/') ? 'article' : 'website');
+          upsertMeta('og:site_name', 'OrthoLife');
+          upsertMeta('og:locale', 'en_US');
+          upsertMeta('og:image:width', '1200');
+          upsertMeta('og:image:height', '630');
+
+          // Update Twitter tags
+          upsertMeta('twitter:card', 'summary_large_image', false);
+          upsertMeta('twitter:title', title, false);
+          upsertMeta('twitter:description', description, false);
+          upsertMeta('twitter:image', image, false);
+          upsertMeta('twitter:image:alt', title, false);
+          upsertMeta('twitter:url', absoluteUrl, false);
         }
 
         const canonicalRoute = renderedRoute.originalRoute.startsWith('/te/')
           ? renderedRoute.originalRoute.substring(3)
           : renderedRoute.originalRoute;
 
-        renderedRoute.html = renderedRoute.html.replace(
-          /<link rel="canonical" href=".*"\s*\/?>/,
-          `<link rel="canonical" href="https://ortho.life${canonicalRoute}" />`
-        );
+        const canonicalUrl = `https://ortho.life${canonicalRoute}`;
 
+        if (/<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i.test(html)) {
+          html = html.replace(
+            /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i,
+            `<link rel="canonical" href="${canonicalUrl}" />`
+          );
+        } else {
+          html = html.replace('</head>', `  <link rel="canonical" href="${canonicalUrl}" />\n</head>`);
+        }
+
+        renderedRoute.html = html;
         return renderedRoute;
       },
-      // Conditionally use local Chrome on macOS arm64 (Apple Silicon) to avoid
-      // "Unknown system error -86" (Bad CPU type) from bundled x86 Chromium.
-      // We skip this in CI (GitHub Actions) where standard Chromium works fine.
-      renderer: (process.platform === 'darwin' && process.arch === 'arm64' && !process.env.CI)
+      // Use Puppeteer for pre-rendering
+      renderer: (!process.env.CI)
         ? new vitePrerender.PuppeteerRenderer({
-          executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
           args: ['--no-sandbox', '--disable-setuid-sandbox'],
-          maxConcurrentRoutes: 1,
+          maxConcurrentRoutes: 5,
+          renderAfterTime: 5000,
+          renderAfterDocumentEvent: 'data-prerender-ready'
         })
         : undefined
     }) : null,

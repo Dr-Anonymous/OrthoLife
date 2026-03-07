@@ -231,6 +231,11 @@ const BlogPostPage = () => {
         ])
       ]
     });
+
+    // Signal pre-renderer that metadata is ready
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('data-prerender-ready', 'true');
+    }
   }, [loading, post, postId, translatedPost]);
 
 

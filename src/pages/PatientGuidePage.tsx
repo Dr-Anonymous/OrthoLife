@@ -176,6 +176,11 @@ const PatientGuidePage = () => {
         ])
       ]
     });
+
+    // Signal pre-renderer that metadata is ready
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('data-prerender-ready', 'true');
+    }
   }, [guide, guideId, loading, translatedGuide]);
 
   const handleShare = async () => {

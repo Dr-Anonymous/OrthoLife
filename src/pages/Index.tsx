@@ -18,6 +18,7 @@ const Index = () => {
       description: 'OrthoLife offers expert orthopaedic care in Kakinada for joint replacement, arthroscopy, fracture and trauma care, spine problems, and sports injuries.',
       canonicalPath: '/'
     });
+    document.body.setAttribute('data-prerender-ready', 'true');
   }, []);
 
   useEffect(() => {

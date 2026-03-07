@@ -25,6 +25,13 @@ const discoverDynamicRoutes = async () => {
     const dynamicRoutes = [];
     const metadata = [];
 
+    const normalizeImageUrl = (url) => {
+      if (!url) return 'https://ortho.life/favicon/android-chrome-512x512.png';
+      if (url.startsWith('http')) return url;
+      if (url.startsWith('/')) return `https://ortho.life${url}`;
+      return `https://ortho.life/${url}`;
+    };
+
     // Fetch blog posts
     try {
       const { data: posts } = await supabase.from('posts').select('id, slug, title, excerpt, image_url');
@@ -34,14 +41,14 @@ const discoverDynamicRoutes = async () => {
           const identifier = post.slug || post.id;
           const route = `/blog/${identifier}`;
           dynamicRoutes.push(route);
-          metadata.push({ route, title: post.title, description: post.excerpt, image: post.image_url });
+          metadata.push({ route, title: post.title, description: post.excerpt, image: normalizeImageUrl(post.image_url) });
 
           // 2. Add short ID route if slug exists (to avoid duplicate if id is the identifier)
           if (post.slug) {
             const shortRoute = `/blog/${post.id}`;
             if (!dynamicRoutes.includes(shortRoute)) {
               dynamicRoutes.push(shortRoute);
-              metadata.push({ route: shortRoute, title: post.title, description: post.excerpt, image: post.image_url });
+              metadata.push({ route: shortRoute, title: post.title, description: post.excerpt, image: normalizeImageUrl(post.image_url) });
             }
           }
         });
@@ -58,7 +65,7 @@ const discoverDynamicRoutes = async () => {
             const route = `/te/blog/${identifier}`;
             if (!dynamicRoutes.includes(route)) {
               dynamicRoutes.push(route);
-              metadata.push({ route, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+              metadata.push({ route, title: translation.title, description: translation.excerpt, image: normalizeImageUrl(parentPost.image_url) });
             }
 
             // Also add the English slug version with /te/ prefix for compatibility/deep-links
@@ -66,7 +73,7 @@ const discoverDynamicRoutes = async () => {
               const engRoute = `/te/blog/${parentPost.slug}`;
               if (!dynamicRoutes.includes(engRoute)) {
                 dynamicRoutes.push(engRoute);
-                metadata.push({ route: engRoute, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+                metadata.push({ route: engRoute, title: translation.title, description: translation.excerpt, image: normalizeImageUrl(parentPost.image_url) });
               }
             }
 
@@ -74,7 +81,7 @@ const discoverDynamicRoutes = async () => {
             const shortTeRoute = `/te/blog/${parentPost.id}`;
             if (!dynamicRoutes.includes(shortTeRoute)) {
               dynamicRoutes.push(shortTeRoute);
-              metadata.push({ route: shortTeRoute, title: translation.title, description: translation.excerpt, image: parentPost.image_url });
+              metadata.push({ route: shortTeRoute, title: translation.title, description: translation.excerpt, image: normalizeImageUrl(parentPost.image_url) });
             }
           }
         });
@@ -92,14 +99,14 @@ const discoverDynamicRoutes = async () => {
           const identifier = guide.slug || guide.id;
           const route = `/guides/${identifier}`;
           dynamicRoutes.push(route);
-          metadata.push({ route, title: guide.title, description: guide.description, image: guide.cover_image_url });
+          metadata.push({ route, title: guide.title, description: guide.description, image: normalizeImageUrl(guide.cover_image_url) });
 
           // 2. Add short ID route if slug exists
           if (guide.slug) {
             const shortRoute = `/guides/${guide.id}`;
             if (!dynamicRoutes.includes(shortRoute)) {
               dynamicRoutes.push(shortRoute);
-              metadata.push({ route: shortRoute, title: guide.title, description: guide.description, image: guide.cover_image_url });
+              metadata.push({ route: shortRoute, title: guide.title, description: guide.description, image: normalizeImageUrl(guide.cover_image_url) });
             }
           }
         });
@@ -117,7 +124,7 @@ const discoverDynamicRoutes = async () => {
             const route = `/te/guides/${identifier}`;
             if (!dynamicRoutes.includes(route)) {
               dynamicRoutes.push(route);
-              metadata.push({ route, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+              metadata.push({ route, title: translation.title, description: translation.description, image: normalizeImageUrl(parentGuide.cover_image_url) });
             }
 
             // Also add the English slug version with /te/ prefix
@@ -125,7 +132,7 @@ const discoverDynamicRoutes = async () => {
               const engRoute = `/te/guides/${parentGuide.slug}`;
               if (!dynamicRoutes.includes(engRoute)) {
                 dynamicRoutes.push(engRoute);
-                metadata.push({ route: engRoute, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+                metadata.push({ route: engRoute, title: translation.title, description: translation.description, image: normalizeImageUrl(parentGuide.cover_image_url) });
               }
             }
 
@@ -133,7 +140,7 @@ const discoverDynamicRoutes = async () => {
             const shortTeRoute = `/te/guides/${parentGuide.id}`;
             if (!dynamicRoutes.includes(shortTeRoute)) {
               dynamicRoutes.push(shortTeRoute);
-              metadata.push({ route: shortTeRoute, title: translation.title, description: translation.description, image: parentGuide.cover_image_url });
+              metadata.push({ route: shortTeRoute, title: translation.title, description: translation.description, image: normalizeImageUrl(parentGuide.cover_image_url) });
             }
           }
         });
