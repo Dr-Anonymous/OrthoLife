@@ -205,6 +205,7 @@ const DischargeSummaryDownload = () => {
                         logoUrl="/images/logos/logo.png"
                         className="min-h-[297mm]"
                         dischargeDate={summaryData.savedDischargeDate}
+                        showMargins={false}
                     />
                 )}
             </div>
@@ -252,6 +253,7 @@ const DischargeSummaryDownload = () => {
                             logoUrl="/images/logos/logo.png"
                             forceDesktop={true}
                             dischargeDate={summaryData.savedDischargeDate}
+                            showMargins={false}
                         />
                     )}
                 </div>

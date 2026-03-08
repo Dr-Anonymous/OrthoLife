@@ -294,6 +294,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                 logoUrl={getHospitalByName(printingConsultation.location || 'OrthoLife')?.logoUrl}
                 className="min-h-[297mm]"
                 forceDesktop={true}
+                showMargins={false}
               />
             )}
           </div>

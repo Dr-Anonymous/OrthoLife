@@ -21,6 +21,7 @@ interface DischargeSummaryPrintProps {
     noBackground?: boolean;
     forceDesktop?: boolean;
     dischargeDate?: string;
+    showMargins?: boolean;
 }
 
 export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeSummaryPrintProps>(({
@@ -32,7 +33,8 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     className,
     noBackground,
     forceDesktop,
-    dischargeDate
+    dischargeDate,
+    showMargins = true
 }, ref) => {
     const TRANSLATIONS: any = {
         en: {
@@ -87,7 +89,15 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
     return (
-        <div ref={ref} className={cn("p-8 font-sans text-sm bg-background text-foreground min-h-[296mm] print:p-0", className)} style={{ fontFamily: 'var(--font-sans)' }}>
+        <div
+            ref={ref}
+            className={cn(
+                "font-sans text-sm bg-background text-foreground min-h-[296mm] print:p-0",
+                showMargins ? "pl-16 pr-8 py-8" : "px-8 py-8",
+                className
+            )}
+            style={{ fontFamily: 'var(--font-sans)' }}
+        >
             <table className="w-full text-left">
                 <thead className="print:table-header-group">
                     <tr><td><div className="h-4"></div></td></tr>
@@ -351,7 +361,10 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
             {/* Footer - Visual only, fixed for print, flex box for screen */}
             <footer
-                className="mt-auto w-full p-2 border-t-2 border-primary-light flex justify-between items-center bg-white z-50 print:fixed print:bottom-0 print:left-0 print:right-0 print:px-8 print:mb-0 px-8 mb-4 break-inside-avoid"
+                className={cn(
+                    "mt-auto w-full p-2 border-t-2 border-primary-light flex justify-between items-center bg-white z-50 print:fixed print:bottom-0 print:left-0 print:right-0 print:mb-0 mb-4 break-inside-avoid",
+                    showMargins ? "print:pl-16 print:pr-8 pl-16 pr-8" : "print:px-8 px-8"
+                )}
                 style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
             >
                 <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />

@@ -53,6 +53,7 @@ interface PrescriptionProps {
   forceDesktop?: boolean;
   visitType?: string;
   showDoctorProfile?: boolean;
+  showMargins?: boolean;
 }
 
 /**
@@ -66,7 +67,7 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showMargins = true }, ref) => {
   const TRANSLATIONS = {
     en: {
       'prescription.advice': 'Advice',
@@ -111,7 +112,10 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
     <div ref={ref} className={cn("font-sans text-sm bg-background text-foreground", className)} style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
 
       {/* Page 1: Prescription Details */}
-      <div className="min-h-[296mm] py-8 pr-8 pl-16 flex flex-col relative box-border">
+      <div className={cn(
+        "min-h-[296mm] py-8 flex flex-col relative box-border",
+        showMargins ? "pl-16 pr-8" : "px-8"
+      )}>
         {/* Header */}
         <header
           className={cn(
@@ -365,7 +369,13 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
       {/* Doctor Profile (Back Page) */}
       {showDoctorProfile !== false && (
-        <section className="break-before-page min-h-[296mm] py-8 pl-8 pr-16 flex flex-col justify-center relative print:z-[60] print:bg-white" style={{ pageBreakBefore: 'always' }}>
+        <section
+          className={cn(
+            "break-before-page min-h-[296mm] py-8 flex flex-col justify-center relative print:z-[60] print:bg-white",
+            showMargins ? "pl-8 pr-16" : "px-8"
+          )}
+          style={{ pageBreakBefore: 'always' }}
+        >
           <div className="border-4 border-primary/20 rounded-xl p-6 flex flex-col justify-start bg-white h-full relative overflow-hidden">
 
             {language === 'te' ? (

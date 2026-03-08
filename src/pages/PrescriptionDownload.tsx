@@ -204,6 +204,7 @@ const PrescriptionDownload = () => {
                         language={consultation.language || i18n.language}
                         logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                         className="min-h-[297mm]"
+                        showMargins={false}
                     />
                 )}
             </div>
@@ -255,6 +256,7 @@ const PrescriptionDownload = () => {
                             noBackground={true}
                             forceDesktop={true}
                             visitType={consultation.visit_type}
+                            showMargins={false}
                         />
                     )}
                 </div>
