@@ -164,6 +164,7 @@ const InPatientManagement = () => {
     const [availableGuides, setAvailableGuides] = useState<any[]>([]);
     const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
     const [currentGuideLink, setCurrentGuideLink] = useState<string | null>(null);
+    const [whatsAppPhone, setWhatsAppPhone] = useState('');
 
     // Admission Form State
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -503,6 +504,7 @@ const InPatientManagement = () => {
 
     const initWhatsApp = async (patient: InPatient, type: 'pre-op' | 'post-op' | 'rehab' | 'general') => {
         setSelectedPatientForWhatsApp(patient);
+        setWhatsAppPhone(patient.patient.phone || '');
         setWhatsAppType(type);
         setMatchedGuideTitle(null); // Reset
         setAvailableGuides([]);
@@ -1280,6 +1282,14 @@ const InPatientManagement = () => {
                         <DialogDescription>Review and edit the message before sending.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
+                        <div className="mb-4 space-y-2">
+                            <Label>Phone Number</Label>
+                            <Input
+                                value={whatsAppPhone}
+                                onChange={(e) => setWhatsAppPhone(e.target.value)}
+                                placeholder="Enter phone number..."
+                            />
+                        </div>
                         {whatsAppType === 'rehab' && availableGuides.length > 0 && (
                             <div className="mb-4 space-y-2">
                                 <Label>Attached Rehabilitation Guide</Label>
@@ -1316,7 +1326,7 @@ const InPatientManagement = () => {
                             onClick={() => {
                                 if (selectedPatientForWhatsApp) {
                                     sendWhatsAppMutation.mutate({
-                                        phone: selectedPatientForWhatsApp.patient.phone,
+                                        phone: whatsAppPhone,
                                         message: whatsAppMessage
                                     });
                                 }

@@ -20,24 +20,28 @@ import ConsultationCard from './ConsultationCard';
  * - Selection triggers consultation load in main page.
  */
 export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation }) => {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [search, setSearch] = useState('');
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = async () => {
     const trimmedKeyword = keyword.trim();
-    if (!name && !phone && !trimmedKeyword) {
+    const trimmedSearch = search.trim();
+    if (!trimmedSearch && !trimmedKeyword) {
       setResults([]);
       return;
     }
 
-    const sanitizedPhone = phone ? phone.replace(/\D/g, '') : '';
+    // Heuristic: if it looks like a phone number (mostly digits), search by phone.
+    // Otherwise, search by name.
+    const isPhoneNumber = /^[0-9+\-\s()]{5,}$/.test(trimmedSearch) && trimmedSearch.replace(/\D/g, '').length >= 5;
+    const sanitizedPhone = isPhoneNumber ? trimmedSearch.replace(/\D/g, '') : '';
+    const searchName = isPhoneNumber ? '' : trimmedSearch;
 
     setIsLoading(true);
     const { data, error } = await supabase.functions.invoke('search-consultations', {
-      body: { name, phone: sanitizedPhone, keyword: trimmedKeyword },
+      body: { name: searchName, phone: sanitizedPhone, keyword: trimmedKeyword },
     });
 
     if (error) {
@@ -92,10 +96,9 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
         <DialogHeader>
           <DialogTitle>Search Consultations</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
-          <Input placeholder="Search by phone..." value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={handleKeyDown} />
-          <Input placeholder="Search by name..." value={name} onChange={(e) => setName(e.target.value)} onKeyDown={handleKeyDown} />
-          <Input placeholder="Search by keyword..." value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+          <Input placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={handleKeyDown} />
+          <Input placeholder="Search by keyword in notes..." value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} />
         </div>
         <div className="px-4 pb-4">
           <Button onClick={handleSearch} className="w-full">Search</Button>
