@@ -63,6 +63,15 @@ export interface InPatient {
     surgical_consents?: { id: string }[];
 }
 
+export interface SurgicalConsentTemplate {
+    id: string;
+    name: string;
+    risks_procedure_en: string | null;
+    risks_procedure_te: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface SurgicalConsent {
     id: string;
     in_patient_id: string;

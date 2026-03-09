@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SurgicalConsent, InPatient } from '@/types/inPatients';
+import { SurgicalConsent, InPatient, SurgicalConsentTemplate } from '@/types/inPatients';
 import {
     Camera,
     Save,
@@ -57,9 +57,11 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     initialData,
     isReadOnly = false
 }) => {
+    if (!patient) return null;
+
     const [step, setStep] = useState(1);
     const lang = patient.language === 'te' ? 'te' : 'en';
-    const content = CONSENT_RISKS[lang];
+    const content = CONSENT_RISKS[lang as keyof typeof CONSENT_RISKS] || CONSENT_RISKS.en;
 
     const [formData, setFormData] = useState<Partial<SurgicalConsent>>({
         in_patient_id: patient.id,
@@ -120,63 +122,55 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     const [isOtpSent, setIsOtpSent] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
 
-    // Template State
-    const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
-    const [templateName, setTemplateName] = useState('');
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     // Fetch Templates
     const { data: templates } = useQuery({
-        queryKey: ['surgical-consent-templates', formData.consent_language],
+        queryKey: ['surgical-consent-templates-all'],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('surgical_consent_templates')
                 .select('*')
-                .eq('language', formData.consent_language || 'en')
                 .order('name');
             if (error) throw error;
-            return data;
+            return data as SurgicalConsentTemplate[];
         },
         enabled: step === 2
     });
 
-    const handleSaveTemplate = async () => {
-        if (!templateName.trim()) {
-            toast.error("Please enter a template name");
-            return;
-        }
-
-        try {
-            const { error } = await supabase
-                .from('surgical_consent_templates')
-                .insert({
-                    name: templateName,
-                    language: formData.consent_language || 'en',
-                    risks_general: formData.risks_general,
-                    risks_anesthesia: formData.risks_anesthesia,
-                    risks_procedure: formData.risks_procedure
-                });
-
-            if (error) throw error;
-
-            toast.success("Template saved successfully");
-            setIsSaveTemplateOpen(false);
-            setTemplateName('');
-        } catch (err: any) {
-            console.error("Error saving template:", err);
-            toast.error("Failed to save template: " + err.message);
-        }
-    };
-
     const handleLoadTemplate = (templateId: string) => {
         const template = templates?.find(t => t.id === templateId);
         if (template) {
-            setFormData(prev => ({
-                ...prev,
-                risks_general: template.risks_general,
-                risks_anesthesia: template.risks_anesthesia,
-                risks_procedure: template.risks_procedure
-            }));
+            const isTe = formData.consent_language === 'te';
+            const templateRisks = isTe ? template.risks_procedure_te || '' : template.risks_procedure_en || '';
+            const defaultPlaceholder = CONSENT_RISKS[isTe ? 'te' : 'en'].procedure_placeholder;
+
+            setFormData(prev => {
+                let newProcedureName = (prev.procedure_name || '').trim();
+                if (!newProcedureName) {
+                    newProcedureName = template.name;
+                } else if (!newProcedureName.includes(template.name)) {
+                    newProcedureName = `${newProcedureName} + ${template.name}`;
+                }
+
+                let newRisksProcedure = (prev.risks_procedure || '').trim();
+                const isEmpty = !newRisksProcedure ||
+                    newRisksProcedure === '<p></p>' ||
+                    newRisksProcedure === '<p><br></p>' ||
+                    newRisksProcedure === defaultPlaceholder;
+
+                if (isEmpty) {
+                    newRisksProcedure = templateRisks;
+                } else {
+                    newRisksProcedure = `${newRisksProcedure}<br/><hr className="my-4"/><h3 style="font-size: 1.125rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;">${template.name}</h3>${templateRisks}`;
+                }
+
+                return {
+                    ...prev,
+                    procedure_name: newProcedureName,
+                    risks_procedure: newRisksProcedure
+                };
+            });
             toast.success(`Loaded template: ${template.name}`);
         }
     };
@@ -191,10 +185,12 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 procedure_name: initialData.procedure_name || prev.procedure_name,
                 surgery_date: initialData.surgery_date ? new Date(initialData.surgery_date).toISOString().split('T')[0] : prev.surgery_date,
                 patient_phone: initialData.patient_phone || prev.patient_phone,
-                risks_general: initialData.risks_general || prev.risks_general,
-                risks_anesthesia: initialData.risks_anesthesia || prev.risks_anesthesia,
+                // If the db returns empty for general/anesthesia, use constants
+                risks_general: initialData.risks_general || CONSENT_RISKS[initialData.consent_language as keyof typeof CONSENT_RISKS || 'en'].general,
+                risks_anesthesia: initialData.risks_anesthesia || CONSENT_RISKS[initialData.consent_language as keyof typeof CONSENT_RISKS || 'en'].anesthesia,
                 risks_procedure: initialData.risks_procedure || prev.risks_procedure,
                 consent_status: initialData.consent_status || prev.consent_status,
+                consent_language: initialData.consent_language || prev.consent_language,
                 patient_signature: initialData.patient_signature || prev.patient_signature,
                 selfie_url: initialData.selfie_url || prev.selfie_url,
                 signed_at: initialData.signed_at || prev.signed_at,
@@ -383,12 +379,16 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 setFormData(prev => ({ ...prev, patient_signature: finalSigUrl }));
             }
 
+            const currentLang = formData.consent_language || lang;
             const finalData = {
                 ...formData,
                 in_patient_id: patient.id,
                 consent_status: 'pending' as const,
                 selfie_url: finalSelfieUrl,
-                patient_signature: finalSigUrl
+                patient_signature: finalSigUrl,
+                // Optimization to prevent duplicity
+                risks_general: formData.risks_general === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].general ? '' : formData.risks_general,
+                risks_anesthesia: formData.risks_anesthesia === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].anesthesia ? '' : formData.risks_anesthesia,
             };
 
             const res = await onSave(finalData);
@@ -472,13 +472,17 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         }
         let finalSigUrl = await uploadImage(sigData, 'sig');
 
+        const currentLang = formData.consent_language || lang;
         const finalData = {
             ...formData,
             in_patient_id: patient.id,
             patient_signature: finalSigUrl,
             selfie_url: finalSelfieUrl,
             consent_status: 'signed' as const,
-            signed_at: new Date().toISOString()
+            signed_at: new Date().toISOString(),
+            // Optimization to prevent duplicity
+            risks_general: formData.risks_general === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].general ? '' : formData.risks_general,
+            risks_anesthesia: formData.risks_anesthesia === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].anesthesia ? '' : formData.risks_anesthesia,
         };
 
         onSave(finalData);
@@ -528,7 +532,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                             </CardContent>
                         </Card>
                         <Card className="col-span-full">
-                            <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle size={18} className="text-orange-500" /> {t.procedure}</CardTitle></CardHeader>
+                            {/* Header removed to avoid duplication with content */}
                             <CardContent>
                                 <div className="prose text-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: formData.risks_procedure || '' }} />
                             </CardContent>
@@ -644,14 +648,14 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/30 p-4 rounded-lg border">
                             <div className="w-full sm:w-1/2">
-                                <Label className="block mb-2 text-xs uppercase text-muted-foreground">Load from Template</Label>
+                                <Label className="block mb-2 text-xs uppercase text-muted-foreground">Load / Append Template</Label>
                                 <Select onValueChange={handleLoadTemplate}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select a template..." />
+                                        <SelectValue placeholder="Select one or more templates..." />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {templates?.length === 0 ? (
-                                            <div className="p-2 text-sm text-muted-foreground text-center">No templates found for {formData.consent_language === 'te' ? 'Telugu' : 'English'}</div>
+                                            <div className="p-2 text-sm text-muted-foreground text-center">No templates found</div>
                                         ) : (
                                             templates?.map(t => (
                                                 <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
@@ -660,9 +664,6 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Button variant="outline" onClick={() => setIsSaveTemplateOpen(true)} className="w-full sm:w-auto mt-auto">
-                                <Save className="w-4 h-4 mr-2" /> Save as Template
-                            </Button>
                         </div>
 
                         <div className="space-y-2">
@@ -800,6 +801,10 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                             <Button variant="secondary" onClick={handleSaveDraft} className="w-full sm:w-auto">
                                 <Save className="w-4 h-4 mr-2" /> Save Draft
                             </Button>
+                        </>
+                    )}
+                    {step === 3 && (
+                        <>
                             <Button className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto" onClick={handleWhatsApp}>
                                 <Send className="w-4 h-4 mr-2" /> WhatsApp
                             </Button>
@@ -810,31 +815,6 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                     )}
                 </div>
             </div>
-            {/* Save Template Dialog */}
-            <Dialog open={isSaveTemplateOpen} onOpenChange={setIsSaveTemplateOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Save Consent Template</DialogTitle>
-                        <DialogDescription>
-                            Save the current risks and procedure details as a reusable template for {formData.consent_language === 'te' ? 'Telugu' : 'English'} consents.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Template Name</Label>
-                            <Input
-                                placeholder="e.g. ACL Reconstruction (Standard)"
-                                value={templateName}
-                                onChange={e => setTemplateName(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSaveTemplateOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveTemplate}>Save Template</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };

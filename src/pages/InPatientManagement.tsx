@@ -62,6 +62,7 @@ import { processTextShortcuts } from '@/lib/textShortcuts';
 import { useTranslation } from 'react-i18next';
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
 import { ConsentManagementModal } from '@/components/inpatient/ConsentManagementModal';
+import { ConsentTemplateManager } from '@/components/inpatient/ConsentTemplateManager';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -148,6 +149,7 @@ const InPatientManagement = () => {
     const [isAdmitModalOpen, setIsAdmitModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+    const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
     const [isDischargeModalOpen, setIsDischargeModalOpen] = useState(false);
     const [transientDischargeLanguage, setTransientDischargeLanguage] = useState('en');
@@ -782,6 +784,10 @@ const InPatientManagement = () => {
                         <UserPlus className="w-4 h-4 mr-2" />
                         Admit Patient
                     </Button>
+                    <Button variant="outline" onClick={() => setIsTemplateManagerOpen(true)}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Consent Templates
+                    </Button>
                 </div>
             </div>
 
@@ -1341,12 +1347,21 @@ const InPatientManagement = () => {
                 </DialogContent>
             </Dialog>
 
+            {/* Consent Form Modal */}
             <ConsentManagementModal
                 isOpen={isConsentModalOpen}
-                onClose={() => setIsConsentModalOpen(false)}
+                onClose={() => {
+                    setIsConsentModalOpen(false);
+                    setSelectedPatientForConsent(null);
+                }}
                 patient={selectedPatientForConsent}
             />
 
+            {/* Consent Templates Manager Modal */}
+            <ConsentTemplateManager
+                isOpen={isTemplateManagerOpen}
+                onClose={() => setIsTemplateManagerOpen(false)}
+            />
         </div >
     );
 };

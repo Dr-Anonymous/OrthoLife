@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { auth } from '@/integrations/firebase/client';
 import { AlertTriangle } from 'lucide-react';
+import { CONSENT_RISKS } from '@/utils/consentConstants';
 
 interface PublicConsentData {
     id: string;
@@ -444,11 +445,11 @@ const PublicConsentVerification = () => {
                     <h3 className="font-semibold text-lg px-2">{t.risksTitle}</h3>
 
                     <Card className="border-l-4 border-l-red-500 shadow-sm">
-                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_general || '' }} />
+                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_general || CONSENT_RISKS[langCode as keyof typeof CONSENT_RISKS].general }} />
                     </Card>
 
                     <Card className="border-l-4 border-l-blue-500 shadow-sm">
-                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_anesthesia || '' }} />
+                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_anesthesia || CONSENT_RISKS[langCode as keyof typeof CONSENT_RISKS].anesthesia }} />
                     </Card>
 
                     <Card className="border-l-4 border-l-orange-500 shadow-sm">
