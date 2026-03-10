@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Facebook, Instagram, Twitter, MapPin, Image as ImageIcon, Calendar as CalendarIcon, Send, RefreshCcw, Landmark } from 'lucide-react';
+import { Facebook, Instagram, MapPin, Image as ImageIcon, Calendar as CalendarIcon, Send, RefreshCcw, Landmark } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -19,14 +19,12 @@ const PLATFORMS = [
   { id: 'gbp', name: 'Google Business', icon: MapPin, color: 'text-blue-600' },
   { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-500' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
-  { id: 'twitter', name: 'Twitter', icon: Twitter, color: 'text-sky-500' },
 ] as const satisfies ReadonlyArray<{ id: SocialPlatform; name: string; icon: React.ComponentType<{ className?: string }>; color: string }>;
 
 const DEFAULT_PLATFORMS: SelectedPlatforms = {
   gbp: true,
   facebook: true,
   instagram: true,
-  twitter: true,
 };
 
 const parseStoredPlatforms = (): SelectedPlatforms => {
@@ -39,7 +37,6 @@ const parseStoredPlatforms = (): SelectedPlatforms => {
       gbp: parsed.gbp ?? true,
       facebook: parsed.facebook ?? true,
       instagram: parsed.instagram ?? true,
-      twitter: parsed.twitter ?? true,
     };
   } catch {
     return DEFAULT_PLATFORMS;
@@ -168,6 +165,11 @@ const PostComposer = () => {
 
     if (selectedPlatforms.gbp && !selectedGbpLocation) {
       toast.error('Please select a target Google Business Profile.');
+      return;
+    }
+
+    if (selectedPlatforms.instagram && mediaFiles.length === 0) {
+      toast.error('Instagram requires at least one image or video.');
       return;
     }
 

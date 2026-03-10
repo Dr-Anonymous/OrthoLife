@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type SocialPlatform = 'gbp' | 'facebook' | 'instagram' | 'twitter';
+export type SocialPlatform = 'gbp' | 'facebook' | 'instagram';
 
 export interface GBPLocation {
     name: string;
@@ -26,7 +26,7 @@ interface SocialPublishResponse {
     results: SocialPublishResult[];
 }
 
-const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'facebook', 'instagram', 'twitter'];
+const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'facebook', 'instagram'];
 
 const isSocialPlatform = (value: string): value is SocialPlatform => {
     return ALLOWED_PLATFORMS.includes(value as SocialPlatform);
@@ -41,7 +41,7 @@ const toResultsRecord = (results: SocialPublishResult[]) => {
     return results.reduce<Record<SocialPlatform, SocialPublishResult | undefined>>((acc, result) => {
         acc[result.platform] = result;
         return acc;
-    }, { gbp: undefined, facebook: undefined, instagram: undefined, twitter: undefined });
+    }, { gbp: undefined, facebook: undefined, instagram: undefined });
 };
 
 export const socialService = {

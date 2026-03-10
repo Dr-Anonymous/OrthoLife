@@ -7,7 +7,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type SocialPlatform = 'gbp' | 'facebook' | 'instagram' | 'twitter';
+type SocialPlatform = 'gbp' | 'facebook' | 'instagram';
 
 interface PublishResult {
     platform: SocialPlatform;
@@ -228,14 +228,172 @@ serve(async (req: Request) => {
                         data: await postRes.json()
                     });
 
-                } else {
-                    // Other platforms still mocked for now
-                    console.log(`[social-publish] Platform '${platform}' is currently mocked.`);
+                } else if (platform === 'facebook') {
+                    console.log("[social-publish] Processing Facebook publish...");
+                    const pageId = Deno.env.get('FB_PAGE_ID');
+                    const pageAccessToken = Deno.env.get('FB_PAGE_ACCESS_TOKEN');
+
+                    if (!pageId || !pageAccessToken) {
+                        throw new Error("Facebook credentials (FB_PAGE_ID, FB_PAGE_ACCESS_TOKEN) are missing.");
+                    }
+
+                    let fbResponse;
+                    if (mediaUrls.length === 0) {
+                        // Text only
+                        fbResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                message: content,
+                                access_token: pageAccessToken
+                            })
+                        });
+                    } else if (mediaUrls.length === 1) {
+                        // Single photo
+                        fbResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                url: mediaUrls[0],
+                                caption: content,
+                                access_token: pageAccessToken
+                            })
+                        });
+                    } else {
+                        // Multiple photos - publish individual then link
+                        const photoIds = [];
+                        for (const url of mediaUrls) {
+                            const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    url: url,
+                                    published: false,
+                                    access_token: pageAccessToken
+                                })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                photoIds.push({ media_fbid: data.id });
+                            }
+                        }
+
+                        fbResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                message: content,
+                                attached_media: photoIds,
+                                access_token: pageAccessToken
+                            })
+                        });
+                    }
+
+                    if (!fbResponse.ok) {
+                        const err = await fbResponse.text();
+                        console.error(`[social-publish] Facebook API Error: ${err}`);
+                        throw new Error(`Facebook API Error: ${fbResponse.status}`);
+                    }
+
                     results.push({
-                        platform,
+                        platform: 'facebook',
                         success: true,
-                        message: `Published (mocked) to ${platform}`
+                        message: `Successfully published to Facebook Page.`,
+                        data: await fbResponse.json()
                     });
+
+                } else if (platform === 'instagram') {
+                    console.log("[social-publish] Processing Instagram publish...");
+                    const igUserId = Deno.env.get('IG_BUSINESS_ACCOUNT_ID');
+                    const accessToken = Deno.env.get('FB_PAGE_ACCESS_TOKEN'); // IG usually uses the linked Page access token
+
+                    if (!igUserId || !accessToken) {
+                        throw new Error("Instagram credentials (IG_BUSINESS_ACCOUNT_ID, FB_PAGE_ACCESS_TOKEN) are missing.");
+                    }
+
+                    if (mediaUrls.length === 0) {
+                        throw new Error("Instagram requires at least one image or video.");
+                    }
+
+                    let creationId;
+                    if (mediaUrls.length === 1) {
+                        // Single image
+                        const containerRes = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/media`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                image_url: mediaUrls[0],
+                                caption: content,
+                                access_token: accessToken
+                            })
+                        });
+                        if (!containerRes.ok) throw new Error(`IG Container creation failed: ${await containerRes.text()}`);
+                        const data = await containerRes.json();
+                        creationId = data.id;
+                    } else {
+                        // Carousel
+                        const childrenIds = [];
+                        for (const url of mediaUrls) {
+                            const res = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/media`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    media_type: 'IMAGE', // Assuming all are images for now
+                                    image_url: url,
+                                    is_carousel_item: true,
+                                    access_token: accessToken
+                                })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                childrenIds.push(data.id);
+                            }
+                        }
+
+                        const containerRes = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/media`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                media_type: 'CAROUSEL',
+                                children: childrenIds,
+                                caption: content,
+                                access_token: accessToken
+                            })
+                        });
+                        if (!containerRes.ok) throw new Error(`IG Carousel Container creation failed: ${await containerRes.text()}`);
+                        const data = await containerRes.json();
+                        creationId = data.id;
+                    }
+
+                    // Wait a bit for IG to process the container
+                    await new Promise(r => setTimeout(r, 2000));
+
+                    // Publish
+                    const publishRes = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/media_publish`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            creation_id: creationId,
+                            access_token: accessToken
+                        })
+                    });
+
+                    if (!publishRes.ok) {
+                        const err = await publishRes.text();
+                        console.error(`[social-publish] Instagram API Error: ${err}`);
+                        throw new Error(`Instagram API Error: ${publishRes.status}`);
+                    }
+
+                    results.push({
+                        platform: 'instagram',
+                        success: true,
+                        message: `Successfully published to Instagram Business account.`,
+                        data: await publishRes.json()
+                    });
+
+                } else {
+                    console.log(`[social-publish] Platform '${platform}' is currently not handled or mocked.`);
+
                 }
 
             } catch (err: any) {
