@@ -15,6 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
+import { proxySupabaseUrl } from '@/utils/urlUtils';
+
 
 // Define types for our data
 export interface Category {
@@ -320,7 +322,7 @@ const BlogPage = () => {
                       <div className="md:flex">
                         <div className="md:w-1/2">
                           <img
-                            src={featuredPost.image_url}
+                            src={proxySupabaseUrl(featuredPost.image_url)}
                             alt={featuredPost.title}
                             className="w-full h-64 md:h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
@@ -355,7 +357,7 @@ const BlogPage = () => {
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
                           <img
-                            src={post.image_url}
+                            src={proxySupabaseUrl(post.image_url)}
                             alt={post.title}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                             loading="lazy"

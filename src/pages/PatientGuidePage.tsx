@@ -17,6 +17,8 @@ import NextSteps from '@/components/NextSteps';
 import { TableOfContents } from '@/components/TableOfContents';
 import { generateTocAndInjectIds, TocItem } from '@/utils/toc';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
+import { proxySupabaseUrl } from '@/utils/urlUtils';
+
 
 interface TranslatedGuide {
   title: string;
@@ -160,7 +162,7 @@ const PatientGuidePage = () => {
       title: `${title} | OrthoLife Patient Guide`,
       description,
       canonicalPath,
-      image: guide.cover_image_url,
+      image: proxySupabaseUrl(guide.cover_image_url),
       jsonLd: [
         {
           '@context': 'https://schema.org',
@@ -261,7 +263,7 @@ const PatientGuidePage = () => {
                     </div>
                   </header>
 
-                  <img src={guide.cover_image_url} alt={translatedGuide?.title || guide.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+                  <img src={proxySupabaseUrl(guide.cover_image_url)} alt={translatedGuide?.title || guide.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
                   {/* Always show TOC on mobile before the content if there are items */}
                   {tocItems.length > 0 && (

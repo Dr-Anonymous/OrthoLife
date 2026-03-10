@@ -16,6 +16,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { generatePdf } from '@/lib/pdfUtils';
 import { isTelugu } from '@/lib/languageUtils';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
+import { proxySupabaseUrl } from '@/utils/urlUtils';
+
 
 export interface GuideCategory {
   id: number;
@@ -426,7 +428,7 @@ const PatientGuidesPage = () => {
                     <div className="md:flex">
                       <div className="md:w-1/3">
                         <img
-                          src={guidesToDisplay[0].cover_image_url}
+                          src={proxySupabaseUrl(guidesToDisplay[0].cover_image_url)}
                           alt={getTranslatedGuide(guidesToDisplay[0], i18n.language).title}
                           className="w-full h-64 md:h-full object-cover"
                           loading="lazy"
@@ -481,7 +483,7 @@ const PatientGuidesPage = () => {
                       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                         <div className="aspect-video overflow-hidden">
                           <img
-                            src={guide.cover_image_url}
+                            src={proxySupabaseUrl(guide.cover_image_url)}
                             alt={getTranslatedGuide(guide, i18n.language).title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"

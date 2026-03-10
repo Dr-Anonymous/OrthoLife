@@ -15,6 +15,8 @@ import NextSteps from '@/components/NextSteps';
 import { TableOfContents } from '@/components/TableOfContents';
 import { generateTocAndInjectIds, TocItem } from '@/utils/toc';
 import { applySeo, buildBreadcrumbJsonLd } from '@/utils/seo';
+import { proxySupabaseUrl } from '@/utils/urlUtils';
+
 
 interface Post {
   id: number;
@@ -199,14 +201,14 @@ const BlogPostPage = () => {
       description,
       canonicalPath,
       ogType: 'article',
-      image: post.image_url,
+      image: proxySupabaseUrl(post.image_url),
       jsonLd: [
         {
           '@context': 'https://schema.org',
           '@type': 'Article',
           headline: title,
           description,
-          image: post.image_url ? [post.image_url] : undefined,
+          image: post.image_url ? [proxySupabaseUrl(post.image_url)] : undefined,
           datePublished: post.created_at,
           dateModified: post.updated_at || post.created_at,
           articleSection: post.categories?.name || 'Orthopaedics',
@@ -280,7 +282,7 @@ const BlogPostPage = () => {
                     </div>
                   </header>
 
-                  <img src={post.image_url} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
+                  <img src={proxySupabaseUrl(post.image_url)} alt={translatedPost?.title || post.title} className="w-full h-auto rounded-lg mb-8" loading="lazy" />
 
                   {/* Always show TOC on mobile before the content if there are items */}
                   {tocItems.length > 0 && (
