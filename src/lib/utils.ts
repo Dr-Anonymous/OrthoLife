@@ -7,7 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 
 export function removeBracketedText(text: string): string {
   if (!text) return '';
-  return text.replace(/\s*\(.*?\)\s*/g, ' ').trim();
+  // Preserve line breaks by avoiding \s* (which includes newlines).
+  // This keeps multi-line fields (e.g., investigations) intact.
+  return text.replace(/[ \t]*\(.*?\)[ \t]*/g, ' ').trim();
 }
 
 /**

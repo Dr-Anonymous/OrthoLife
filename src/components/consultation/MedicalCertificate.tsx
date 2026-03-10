@@ -247,10 +247,11 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
     }
   }, [restPeriodStartDate]);
 
-  // Reset step on open
+  // Reset step and content on open
   useEffect(() => {
     if (isOpen) {
       setStep('input');
+      setEditorContent('');
     }
   }, [isOpen]);
 

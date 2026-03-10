@@ -241,6 +241,43 @@ const ConsultationPage = () => {
   const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const activeConsultationIdRef = useRef<string | null>(null);
 
+  const waitForNextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
+  // Syncs latest textarea values from DOM refs into state to avoid stale prints.
+  const syncExtraDataFromRefs = useCallback(() => {
+    const updates: Partial<typeof extraData> = {};
+
+    const syncField = (field: keyof typeof extraData, ref: React.RefObject<HTMLTextAreaElement | null>) => {
+      const value = ref.current?.value;
+      if (typeof value === 'string' && value !== extraData[field]) {
+        updates[field] = value as any;
+      }
+    };
+
+    syncField('complaints', complaintsRef);
+    syncField('findings', findingsRef);
+    syncField('investigations', investigationsRef);
+    syncField('diagnosis', diagnosisRef);
+    syncField('advice', adviceRef);
+    syncField('followup', followupRef);
+    syncField('procedure', procedureRef);
+
+    if (Object.keys(updates).length > 0) {
+      setExtraData(prev => ({ ...prev, ...updates }));
+      return true;
+    }
+    return false;
+  }, [
+    extraData,
+    complaintsRef,
+    findingsRef,
+    investigationsRef,
+    diagnosisRef,
+    adviceRef,
+    followupRef,
+    procedureRef
+  ]);
+
 
   // Keyword Modal Prefill
   const [keywordModalPrefill, setKeywordModalPrefill] = useState<KeywordPrefillData | null>(null);
@@ -735,10 +772,9 @@ const ConsultationPage = () => {
       setInitialLocation(selectedHospital.name);
       setInitialLanguage(consultationLanguage);
 
-      const updatedAllConsultations = allConsultations.map(c =>
-        c.id === updatedConsultation.id ? updatedConsultation : c
+      setAllConsultations(prev =>
+        prev.map(c => (c.id === updatedConsultation.id ? updatedConsultation : c))
       );
-      setAllConsultations(updatedAllConsultations);
 
       // 4. SIDE EFFECTS (Decoupled from cloud)
       if (statusChanged && newStatus === 'completed') {
@@ -1281,8 +1317,33 @@ const ConsultationPage = () => {
   }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
 
   const handleSaveAndPrint = async () => {
+    const didSync = syncExtraDataFromRefs();
+    if (didSync) {
+      await waitForNextPaint();
+    }
     const saved = await saveChanges({ markAsCompleted: true });
-    if (saved) handlePrint();
+    if (saved) {
+      await waitForNextPaint();
+      handlePrint();
+    }
+  };
+
+  const handleOpenMedicalCertificate = async () => {
+    const didSync = syncExtraDataFromRefs();
+    if (didSync) {
+      await waitForNextPaint();
+    }
+    setIsMedicalCertificateModalOpen(true);
+  };
+
+  const handleMedicalCertificateSubmit = async (data: CertificateData) => {
+    const didSync = syncExtraDataFromRefs();
+    if (didSync) {
+      await waitForNextPaint();
+    }
+    setCertificateData(data);
+    setIsMedicalCertificateModalOpen(false);
+    setIsReadyToPrintCertificate(true);
   };
 
 
@@ -1634,7 +1695,7 @@ const ConsultationPage = () => {
                   onSave={saveChanges}
                   onSaveAndPrint={handleSaveAndPrint}
                   onSaveBundleClick={handleSaveBundleClick}
-                  onMedicalCertificateClick={() => setIsMedicalCertificateModalOpen(true)}
+                  onMedicalCertificateClick={handleOpenMedicalCertificate}
                   onReceiptClick={() => setIsReceiptModalOpen(true)}
                   onManageMedicationsClick={() => setIsMedicationsModalOpen(true)}
                   onManageKeywordsClick={() => setIsKeywordModalOpen(true)}
@@ -1748,11 +1809,7 @@ const ConsultationPage = () => {
           <MedicalCertificateModal
             isOpen={isMedicalCertificateModalOpen}
             onClose={() => setIsMedicalCertificateModalOpen(false)}
-            onSubmit={(data) => {
-              setCertificateData(data);
-              setIsMedicalCertificateModalOpen(false);
-              setIsReadyToPrintCertificate(true);
-            }}
+            onSubmit={handleMedicalCertificateSubmit}
             patientName={editablePatientDetails.name}
             patient={{
               id: editablePatientDetails.id, // Using existing data structure
