@@ -2,11 +2,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type SocialPlatform = 'gbp' | 'facebook' | 'instagram' | 'twitter';
 
+export interface GBPLocation {
+    name: string;
+    title: string;
+}
+
 interface PublishAllPayload {
     content: string;
     mediaFiles?: File[];
     scheduledAt?: string;
     platforms: SocialPlatform[];
+    gbpLocationName?: string;
 }
 
 interface SocialPublishResult {
@@ -39,6 +45,19 @@ const toResultsRecord = (results: SocialPublishResult[]) => {
 };
 
 export const socialService = {
+    async getGBPLocations(): Promise<GBPLocation[]> {
+        const { data, error } = await supabase.functions.invoke<{ locations: GBPLocation[] }>('social-publish', {
+            method: 'GET',
+        });
+
+        if (error) {
+            console.error('Error fetching GBP locations:', error);
+            return [];
+        }
+
+        return data?.locations || [];
+    },
+
     async publishAll(payload: PublishAllPayload) {
         const normalizedPlatforms = payload.platforms.filter(isSocialPlatform);
         if (normalizedPlatforms.length === 0) {
@@ -57,6 +76,9 @@ export const socialService = {
         formData.append('platforms', JSON.stringify(normalizedPlatforms));
         if (payload.scheduledAt) {
             formData.append('scheduledAt', payload.scheduledAt);
+        }
+        if (payload.gbpLocationName) {
+            formData.append('gbpLocationName', payload.gbpLocationName);
         }
         payload.mediaFiles?.forEach((file) => formData.append('files', file));
 

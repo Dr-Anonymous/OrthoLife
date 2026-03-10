@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Facebook, Instagram, Twitter, MapPin, Image as ImageIcon, Calendar as CalendarIcon, Send } from 'lucide-react';
+import { Facebook, Instagram, Twitter, MapPin, Image as ImageIcon, Calendar as CalendarIcon, Send, RefreshCcw, Landmark } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { socialService, type SocialPlatform } from '@/utils/socialService';
+import { socialService, type SocialPlatform, type GBPLocation } from '@/utils/socialService';
 
 type SelectedPlatforms = Record<SocialPlatform, boolean>;
 type MediaFile = { file: File; preview: string };
@@ -71,22 +71,54 @@ const PostComposer = () => {
   const [scheduledTime, setScheduledTime] = useState('09:00');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [gbpLocations, setGbpLocations] = useState<GBPLocation[]>([]);
+  const [selectedGbpLocation, setSelectedGbpLocation] = useState<string>(localStorage.getItem('smm_gbp_location') || '');
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const mediaFilesRef = React.useRef<MediaFile[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     mediaFilesRef.current = mediaFiles;
   }, [mediaFiles]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('smm_selected_platforms', JSON.stringify(selectedPlatforms));
   }, [selectedPlatforms]);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (selectedGbpLocation) {
+      localStorage.setItem('smm_gbp_location', selectedGbpLocation);
+    }
+  }, [selectedGbpLocation]);
+
+  useEffect(() => {
+    if (selectedPlatforms.gbp) {
+      fetchLocations();
+    }
+  }, [selectedPlatforms.gbp]);
+
+  useEffect(() => {
     return () => {
       revokePreviews(mediaFilesRef.current);
     };
   }, []);
+
+  const fetchLocations = async () => {
+    setIsLoadingLocations(true);
+    try {
+      const locations = await socialService.getGBPLocations();
+      setGbpLocations(locations);
+      if (locations.length > 0 && !selectedGbpLocation) {
+        const defaultLoc = locations.find(l => l.title.toLowerCase().includes('ortholife')) || locations[0];
+        setSelectedGbpLocation(defaultLoc.name);
+      }
+    } catch (err) {
+      console.error("Failed to fetch GBP locations", err);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
 
   const handlePlatformToggle = (platformId: SocialPlatform) => {
     setSelectedPlatforms((prev) => ({
@@ -134,8 +166,8 @@ const PostComposer = () => {
       return;
     }
 
-    if (content.length > 2200) {
-      toast.error('Post content exceeds 2200 characters.');
+    if (selectedPlatforms.gbp && !selectedGbpLocation) {
+      toast.error('Please select a target Google Business Profile.');
       return;
     }
 
@@ -157,6 +189,7 @@ const PostComposer = () => {
         platforms: activePlatforms,
         scheduledAt: scheduledDateTime?.toISOString(),
         mediaFiles: mediaFiles.map((m) => m.file),
+        gbpLocationName: selectedPlatforms.gbp ? selectedGbpLocation : undefined,
       });
 
       toast.success(scheduledDateTime ? 'Post scheduled successfully!' : 'Post published successfully to selected platforms!');
@@ -218,6 +251,50 @@ const PostComposer = () => {
             })}
           </div>
         </div>
+
+        {selectedPlatforms.gbp && (
+          <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 space-y-3 animate-in fade-in slide-in-from-top-1 duration-300">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                <Landmark size={14} />
+                Target Business Profile
+              </Label>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-blue-600 hover:bg-blue-100"
+                onClick={fetchLocations}
+                disabled={isLoadingLocations}
+              >
+                <RefreshCcw size={12} className={cn(isLoadingLocations && "animate-spin")} />
+              </Button>
+            </div>
+
+            {gbpLocations.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {gbpLocations.map((loc) => (
+                  <button
+                    key={loc.name}
+                    type="button"
+                    onClick={() => setSelectedGbpLocation(loc.name)}
+                    className={cn(
+                      "text-left px-3 py-2 rounded-lg text-sm transition-all border",
+                      selectedGbpLocation === loc.name
+                        ? "bg-white border-blue-300 text-blue-900 shadow-sm font-medium"
+                        : "bg-transparent border-transparent text-blue-700 hover:bg-blue-100/50"
+                    )}
+                  >
+                    {loc.title}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-blue-600/70 italic">
+                {isLoadingLocations ? "Loading profiles..." : "No managed profiles found. Ensure your account has a verified GBP listing."}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-3">
           <Label className="text-base font-medium">Post Content</Label>
