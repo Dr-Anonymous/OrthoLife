@@ -17,10 +17,16 @@ export const useAuth = () => {
           .eq('phone', phone);
 
         if (patients && patients.length > 0) {
-          user.displayName = patients[0].name;
+          setUser({
+            ...user,
+            displayName: patients[0].name
+          } as User);
+        } else {
+          setUser(user);
         }
+      } else {
+        setUser(null);
       }
-      setUser(user);
       setLoading(false);
     });
 
