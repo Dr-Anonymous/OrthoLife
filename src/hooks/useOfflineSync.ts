@@ -151,7 +151,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
             if (conflictData || patientConflictData) return;
             if (isSyncingRef.current) return;
 
-            console.log("Starting syncOfflineData pass...");
+            // console.log("Starting syncOfflineData pass...");
             isSyncingRef.current = true;
             try {
                 const keys = await offlineStore.keys();
