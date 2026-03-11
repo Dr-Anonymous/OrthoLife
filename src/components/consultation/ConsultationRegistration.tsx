@@ -197,18 +197,18 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       }
 
       // 2. Fetch from DB if needed
-      // Use last 8 digits for accuracy if phone >= 10, else prefix
-      const currentPrefix = phone.length >= 10 ? phone.slice(-8) : phone.slice(0, 8);
+      // Use the first 8 digits to fetch once and prevent a double-query at 10 digits
+      const currentPrefix = phone.slice(0, 8);
 
       if (phone.length >= 8 && currentPrefix !== lastFetchedPrefix) {
         try {
           let patients: Patient[] = [];
 
           if (isOnline) {
-            // Direct Supabase Query for max speed & control (limit 100)
+            // Direct Supabase Query for max speed & control (limit 50)
             const { data, error } = await supabase
               .from('patients')
-              .select('*')
+              .select('id, name, dob, sex, phone, secondary_phone, drive_id, is_dob_estimated')
               .ilike('phone', `%${currentPrefix}%`)
               .limit(50); // Fetch enough to be useful but not overload
 
