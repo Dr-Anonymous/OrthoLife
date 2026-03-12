@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -105,7 +105,7 @@ const PatientRegistration = () => {
 
   const fetchTodaysConsultations = React.useCallback(async () => {
     setIsFetchingConsultations(true);
-    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+    const selectedDateStr = format(selectedDate || new Date(), 'yyyy-MM-dd');
     const cacheKey = `server_cache_${selectedDateStr}`;
 
     try {
@@ -196,6 +196,37 @@ const PatientRegistration = () => {
     fetchTodaysConsultations();
   }, [fetchTodaysConsultations]);
 
+  const hydrateInsertedConsultation = useCallback(async (id: string | number) => {
+    try {
+      const { data, error } = await supabase
+        .from('consultations')
+        .select('*, patient:patients(*)')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) return;
+
+      // Ensure the new record belongs to the currently viewed date
+      const dataDate = format(new Date(data.created_at), 'yyyy-MM-dd');
+      const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
+      if (dataDate !== viewDate) return;
+
+      setTodaysConsultations(prev => {
+        const exists = prev.some(c => c.id === data.id);
+        const newList = exists
+          ? prev.map(c => (c.id === data.id ? data : c))
+          : [data, ...prev];
+        
+        // Keep sorted by created_at DESC
+        return [...newList].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
+    } catch (err) {
+      console.error('Failed to hydrate inserted consultation (registration):', err);
+    }
+  }, [selectedDate]);
+
   // Realtime subscription for instant updates (e.g., from doctor's room or front desk)
   useEffect(() => {
     if (!isOnline || !locationName) return;
@@ -210,19 +241,34 @@ const PatientRegistration = () => {
           table: 'consultations',
         },
         (payload: any) => {
-          // If the change belongs to our location, refetch the list
-          // Without REPLICA IDENTITY FULL, DELETE events won't include the location in payload.old
-          // So we refetch on any DELETE to ensure the UI stays perfectly in sync
-          const isDelete = payload.eventType === 'DELETE';
-          const newRow = payload.new;
-          const oldRow = payload.old;
+          const { eventType, new: newRow, old: oldRow } = payload;
+          
+          // Guard for location
           const locationMatch = 
             (newRow?.location === locationName) || 
             (oldRow?.location === locationName);
-            
-          if (isDelete || locationMatch) {
-            console.log('Realtime update detected in Registration, refetching...', payload.eventType);
-            fetchTodaysConsultations();
+
+          // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
+          // but filtering locally by ID is safe and cost-free.
+          if (eventType !== 'DELETE' && !locationMatch) return;
+
+          console.log(`Realtime ${eventType} detected in Registration, handling...`);
+
+          if (eventType === 'INSERT') {
+            // New patient registered: we must refetch to get nested patient data
+            if (newRow?.id != null) {
+              hydrateInsertedConsultation(newRow.id);
+            }
+          } 
+          else if (eventType === 'UPDATE') {
+            // Status changed or data updated: update local state instantly to save egress
+            setTodaysConsultations(prev => prev.map(c => 
+              c.id === newRow.id ? { ...c, ...newRow } : c
+            ));
+          } 
+          else if (eventType === 'DELETE') {
+            // Record removed: filter out locally
+            setTodaysConsultations(prev => prev.filter(c => c.id !== oldRow.id));
           }
         }
       )
@@ -231,7 +277,7 @@ const PatientRegistration = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOnline, locationName, fetchTodaysConsultations]);
+  }, [isOnline, locationName, fetchTodaysConsultations, hydrateInsertedConsultation]);
 
   const filteredConsultations = todaysConsultations.filter(
     c => c.location?.toLowerCase() === locationName.toLowerCase()

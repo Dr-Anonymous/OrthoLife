@@ -28,7 +28,6 @@ interface ConsultationSidebarProps {
 
     onSearchClick: () => void;
     onRegisterClick: () => void;
-    onRefreshClick: () => void;
 
     isFetchingConsultations: boolean;
 
@@ -84,7 +83,6 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     setIsConsultationDatePickerOpen,
     onSearchClick,
     onRegisterClick,
-    onRefreshClick,
     isFetchingConsultations,
     totalConsultationsCount,
     pendingConsultations,
@@ -252,10 +250,6 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onRegisterClick}>
                             <UserPlus className="h-4 w-4" />
                             <span className="sr-only">Register New Patient</span>
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onRefreshClick} disabled={isFetchingConsultations}>
-                            {isFetchingConsultations ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                            <span className="sr-only">Refresh</span>
                         </Button>
                         <Link to="/stats">
                             <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />

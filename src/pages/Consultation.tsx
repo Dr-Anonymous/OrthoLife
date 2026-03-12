@@ -571,6 +571,37 @@ const ConsultationPage = () => {
     }
   }, [fetchConsultations, selectedHospital.name]);
 
+  const hydrateInsertedConsultation = useCallback(async (id: string | number) => {
+    try {
+      const { data, error } = await supabase
+        .from('consultations')
+        .select('*, patient:patients(*)')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) return;
+
+      // Ensure the new record belongs to the currently viewed date
+      const dataDate = format(new Date(data.created_at), 'yyyy-MM-dd');
+      const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
+      if (dataDate !== viewDate) return;
+
+      setAllConsultations(prev => {
+        const exists = prev.some(c => c.id === data.id);
+        const newList = exists
+          ? prev.map(c => (c.id === data.id ? data : c))
+          : [data, ...prev];
+        
+        // Keep sorted by created_at DESC (newest at top)
+        return [...newList].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
+    } catch (err) {
+      console.error('Failed to hydrate inserted consultation:', err);
+    }
+  }, [selectedDate]);
+
   // Realtime subscription for instant updates (e.g., from front desk registration)
   useEffect(() => {
     if (!isOnline || !selectedHospital.name) return;
@@ -585,19 +616,34 @@ const ConsultationPage = () => {
           table: 'consultations',
         },
         (payload: any) => {
-          // If the change belongs to our location, refetch the list
-          // Without REPLICA IDENTITY FULL, DELETE events won't include the location in payload.old
-          // So we refetch on any DELETE to ensure the UI stays perfectly in sync
-          const isDelete = payload.eventType === 'DELETE';
-          const newRow = payload.new;
-          const oldRow = payload.old;
+          const { eventType, new: newRow, old: oldRow } = payload;
+          
+          // Guard for location
           const locationMatch = 
             (newRow?.location === selectedHospital.name) || 
             (oldRow?.location === selectedHospital.name);
-            
-          if (isDelete || locationMatch) {
-            console.log('Realtime update detected, refetching...', payload.eventType);
-            fetchConsultations();
+
+          // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
+          // but filtering locally by ID is safe and cost-free.
+          if (eventType !== 'DELETE' && !locationMatch) return;
+
+          console.log(`Realtime ${eventType} detected, handling...`);
+
+          if (eventType === 'INSERT') {
+            // New record: we must refetch to get nested patient data and full hydration
+            if (newRow?.id != null) {
+              hydrateInsertedConsultation(newRow.id);
+            }
+          } 
+          else if (eventType === 'UPDATE') {
+            // Data change: update local state instantly to save egress
+            setAllConsultations(prev => prev.map(c => 
+              c.id === newRow.id ? { ...c, ...newRow } : c
+            ));
+          } 
+          else if (eventType === 'DELETE') {
+            // Removal: filter out locally
+            setAllConsultations(prev => prev.filter(c => c.id !== oldRow.id));
           }
         }
       )
@@ -606,7 +652,7 @@ const ConsultationPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOnline, selectedHospital.name, fetchConsultations]);
+  }, [isOnline, selectedHospital.name, fetchConsultations, hydrateInsertedConsultation]);
 
   /**
    * GPS Logic
@@ -1535,7 +1581,6 @@ const ConsultationPage = () => {
             setIsConsultationDatePickerOpen={setIsConsultationDatePickerOpen}
             onSearchClick={() => setIsSearchModalOpen(true)}
             onRegisterClick={() => setIsRegistrationModalOpen(true)}
-            onRefreshClick={() => fetchConsultations(selectedDate)}
             isFetchingConsultations={isFetchingConsultations}
             totalConsultationsCount={filteredConsultations.length}
             pendingConsultations={pendingConsultations}
