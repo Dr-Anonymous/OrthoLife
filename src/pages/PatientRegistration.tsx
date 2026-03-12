@@ -103,7 +103,7 @@ const PatientRegistration = () => {
     }
   };
 
-  const fetchTodaysConsultations = async () => {
+  const fetchTodaysConsultations = React.useCallback(async () => {
     setIsFetchingConsultations(true);
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     const cacheKey = `server_cache_${selectedDateStr}`;
@@ -190,11 +190,44 @@ const PatientRegistration = () => {
     } finally {
       setIsFetchingConsultations(false);
     }
-  };
+  }, [selectedDate, isOnline]);
 
   useEffect(() => {
     fetchTodaysConsultations();
-  }, [selectedDate]);
+  }, [fetchTodaysConsultations]);
+
+  // Realtime subscription for instant updates (e.g., from doctor's room or front desk)
+  useEffect(() => {
+    if (!isOnline || !locationName) return;
+
+    const channel = supabase
+      .channel('registration-updates')
+      .on(
+        'postgres_changes' as any,
+        {
+          event: '*',
+          table: 'consultations',
+        },
+        (payload: any) => {
+          // If the change belongs to our location, refetch the list
+          const newRow = payload.new;
+          const oldRow = payload.old;
+          const locationMatch = 
+            (newRow?.location === locationName) || 
+            (oldRow?.location === locationName);
+            
+          if (locationMatch) {
+            console.log('Realtime update detected in Registration, refetching...', payload.eventType);
+            fetchTodaysConsultations();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOnline, locationName, fetchTodaysConsultations]);
 
   const filteredConsultations = todaysConsultations.filter(
     c => c.location?.toLowerCase() === locationName.toLowerCase()

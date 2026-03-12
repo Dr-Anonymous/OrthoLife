@@ -572,6 +572,39 @@ const ConsultationPage = () => {
     }
   }, [fetchConsultations, selectedHospital.name]);
 
+  // Realtime subscription for instant updates (e.g., from front desk registration)
+  useEffect(() => {
+    if (!isOnline || !selectedHospital.name) return;
+
+    const channel = supabase
+      .channel('consultation-updates')
+      .on(
+        'postgres_changes' as any,
+        {
+          event: '*',
+          table: 'consultations',
+        },
+        (payload: any) => {
+          // If the change belongs to our location, refetch the list
+          const newRow = payload.new;
+          const oldRow = payload.old;
+          const locationMatch = 
+            (newRow?.location === selectedHospital.name) || 
+            (oldRow?.location === selectedHospital.name);
+            
+          if (locationMatch) {
+            console.log('Realtime update detected, refetching...', payload.eventType);
+            fetchConsultations();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOnline, selectedHospital.name, fetchConsultations]);
+
   /**
    * GPS Logic
    * Automatically selects the nearest hospital based on the user's current location.
