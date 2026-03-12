@@ -36,7 +36,7 @@ interface PublicConsentData {
 const UI_TEXT = {
     en: {
         title: "Surgical Consent Form",
-        headerTitle: "OrthoLife Secure Consent",
+        headerTitle: "OrthoLife",
         disclaimer: "Please read the entire document carefully before signing.",
         patientInfo: "Patient & Procedure Details",
         procedureName: "Procedure Name",
@@ -72,7 +72,7 @@ const UI_TEXT = {
     },
     te: {
         title: "శస్త్రచికిత్స సమ్మతి పత్రం",
-        headerTitle: "ఆర్థోలైఫ్ సురక్షిత అంగీకారం",
+        headerTitle: "ఆర్థోలైఫ్",
         disclaimer: "దయచేసి సంతకం చేసే ముందు మొత్తం పత్రాన్ని జాగ్రత్తగా చదవండి.",
         patientInfo: "రోగి మరియు శస్త్రచికిత్స వివరాలు",
         procedureName: "శస్త్రచికిత్స పేరు",
@@ -453,7 +453,7 @@ const PublicConsentVerification = () => {
                     </Card>
 
                     <Card className="border-l-4 border-l-orange-500 shadow-sm">
-                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_procedure || '' }} />
+                        <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_procedure || CONSENT_RISKS[langCode as keyof typeof CONSENT_RISKS].procedure_placeholder }} />
                     </Card>
                 </div>
 
@@ -489,7 +489,7 @@ const PublicConsentVerification = () => {
                                 </Label>
                                 {isSigned && consentData.selfie_url ? (
                                     <div className="flex flex-col items-center gap-4 p-4 border rounded-xl bg-slate-50">
-                                        <img src={consentData.selfie_url} alt="Selfie" className="w-[300px] h-[225px] object-cover rounded-md shadow-sm" />
+                                        <img src={consentData.selfie_url} alt="Selfie" className="w-full max-w-[300px] aspect-[4/3] object-cover rounded-md shadow-sm" />
                                     </div>
                                 ) : (
                                     <>
@@ -499,14 +499,14 @@ const PublicConsentVerification = () => {
                                         <div className="flex flex-col items-center gap-4 p-4 border-2 border-dashed rounded-xl bg-slate-50">
                                             {selfieImage ? (
                                                 <div className="relative">
-                                                    <img src={selfieImage} alt="Selfie" className="w-[300px] h-[225px] object-cover rounded-md shadow-sm" />
+                                                    <img src={selfieImage} alt="Selfie" className="w-full max-w-[300px] aspect-[4/3] object-cover rounded-md shadow-sm" />
                                                     <Button size="sm" variant="destructive" className="absolute top-2 right-2 shadow-sm" onClick={() => setSelfieImage(null)}>{t.retake}</Button>
                                                 </div>
                                             ) : (
                                                 <>
                                                     {isCameraOpen ? (
                                                         <div className="relative overflow-hidden rounded-md">
-                                                            <video ref={videoRef} autoPlay playsInline className="w-[300px] h-[225px] object-cover bg-black" />
+                                                            <video ref={videoRef} autoPlay playsInline className="w-full max-w-[300px] aspect-[4/3] object-cover bg-black" />
                                                             <canvas ref={canvasRef} width="300" height="225" className="hidden" />
                                                             <Button size="sm" className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg" onClick={captureSelfie}>{t.capture}</Button>
                                                         </div>

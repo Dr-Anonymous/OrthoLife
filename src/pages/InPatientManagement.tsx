@@ -23,7 +23,8 @@ import {
     AlertTriangle,
     Activity,
     Trash2,
-    Download
+    Download,
+    MoreVertical
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -68,6 +69,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 // --- Types ---
@@ -761,39 +763,41 @@ const InPatientManagement = () => {
 
     return (
         <div className="container mx-auto p-4 max-w-7xl animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-primary flex items-center gap-3">
-                        <Users className="w-8 h-8" />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-6">
+                <div className="w-full">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-primary flex items-center gap-3">
+                        <Users className="w-7 h-7 sm:w-8 sm:h-8" />
                         IP Management
                     </h1>
-                    <p className="text-muted-foreground mt-1">Manage admissions, procedures, and patient updates.</p>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage admissions, procedures, and patient updates.</p>
                 </div>
 
-                <div className="flex gap-3 w-full md:w-auto">
-                    <div className="relative flex-grow md:flex-grow-0 md:w-64">
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div className="relative w-full md:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                             placeholder="Search patients..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9"
+                            className="pl-9 h-10"
                         />
                     </div>
-                    <Button onClick={() => setIsAdmitModalOpen(true)} className="bg-primary hover:bg-primary/90">
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Admit Patient
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsTemplateManagerOpen(true)}>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Consent Templates
-                    </Button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <Button onClick={() => setIsAdmitModalOpen(true)} className="flex-1 sm:flex-none bg-primary hover:bg-primary/90">
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Admit
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsTemplateManagerOpen(true)} className="flex-1 sm:flex-none">
+                            <FileText className="w-4 h-4 mr-2" />
+                            Templates
+                        </Button>
+                    </div>
                 </div>
             </div>
 
             <Tabs defaultValue="admitted" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 max-w-md mb-6">
-                    <TabsTrigger value="admitted" className="flex items-center gap-2">
+                <TabsList className="grid w-full grid-cols-2 lg:max-w-md mb-6">
+                    <TabsTrigger value="admitted" className="flex items-center gap-2 h-10">
                         <CheckCircle2 className="w-4 h-4" />
                         Admitted ({admittedPatients.length})
                     </TabsTrigger>
@@ -825,15 +829,15 @@ const InPatientManagement = () => {
                 </TabsContent>
 
                 <TabsContent value="discharged">
-                    <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-muted/40 rounded-lg border items-end">
-                        <div className="space-y-2 flex-1 w-full">
-                            <Label>From Date</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-muted/40 rounded-lg border">
+                        <div className="space-y-1.5 h-full flex flex-col justify-end">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">From Date</Label>
                             <Popover open={isStartDatePickerOpen} onOpenChange={setIsStartDatePickerOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant={"outline"}
                                         className={cn(
-                                            "w-full justify-start text-left font-normal bg-background",
+                                            "w-full justify-start text-left font-normal bg-background h-10",
                                             !dischargeDateStart && "text-muted-foreground"
                                         )}
                                     >
@@ -854,14 +858,14 @@ const InPatientManagement = () => {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <div className="space-y-2 flex-1 w-full">
-                            <Label>To Date</Label>
+                        <div className="space-y-1.5 h-full flex flex-col justify-end">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">To Date</Label>
                             <Popover open={isEndDatePickerOpen} onOpenChange={setIsEndDatePickerOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant={"outline"}
                                         className={cn(
-                                            "w-full justify-start text-left font-normal bg-background",
+                                            "w-full justify-start text-left font-normal bg-background h-10",
                                             !dischargeDateEnd && "text-muted-foreground"
                                         )}
                                     >
@@ -882,10 +886,10 @@ const InPatientManagement = () => {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <div className="space-y-2 flex-1 w-full min-w-[200px]">
-                            <Label>Payment Mode</Label>
+                        <div className="space-y-1.5 h-full flex flex-col justify-end">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Payment Mode</Label>
                             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                                <SelectTrigger className="bg-background">
+                                <SelectTrigger className="bg-background h-10">
                                     <SelectValue placeholder="Filter by Payment" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -896,29 +900,33 @@ const InPatientManagement = () => {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button
-                            variant="secondary"
-                            onClick={() => { setDischargeDateStart(''); setDischargeDateEnd(''); setPaymentFilter('all'); }}
-                            className="mb-0.5 w-full md:w-auto"
-                        >
-                            Reset Filters
-                        </Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="mb-0.5 w-full md:w-auto gap-2">
-                                    <Download className="w-4 h-4" />
-                                    Export
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleExport('excel')}>
-                                    Export as Excel (CSV)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleExport('text')}>
-                                    Export as Text (Tab Separated)
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="h-full flex flex-col justify-end">
+                            <Button
+                                variant="secondary"
+                                onClick={() => { setDischargeDateStart(''); setDischargeDateEnd(''); setPaymentFilter('all'); }}
+                                className="w-full h-10"
+                            >
+                                Reset Filters
+                            </Button>
+                        </div>
+                        <div className="h-full flex flex-col justify-end">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full h-10 gap-2">
+                                        <Download className="w-4 h-4" />
+                                        Export
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleExport('excel')}>
+                                        Export as Excel (CSV)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExport('text')}>
+                                        Export as Text (Tab Separated)
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2338,31 +2346,47 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
             isDischarged ? "border-t-muted-foreground opacity-90" : "border-t-primary"
         )}>
             <CardHeader className="pb-3 relative">
-                {(onEdit || onViewSummary) && (
-                    <div className="absolute top-2 right-2 flex gap-1">
-                        {onViewSummary && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onViewSummary} title="View Discharge Summary">
-                                <FileText className="w-3 h-3 text-muted-foreground" />
-                            </Button>
-                        )}
-                        {onPrint && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onPrint} title="Print Summary">
-                                <Printer className="w-3 h-3 text-muted-foreground" />
-                            </Button>
-                        )}
-                        {onEdit && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit} title="Edit Record">
-                                <Pencil className="w-3 h-3 text-muted-foreground" />
-                            </Button>
-                        )}
-                        {!isDischarged && onDelete && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-red-600 hover:bg-red-50" onClick={onDelete} title="Delete Record">
-                                <Trash2 className="w-3 h-3 text-muted-foreground" />
-                            </Button>
-                        )}
+                {(onEdit || onViewSummary || onPrint || onDelete) && (
+                    <div className="absolute top-2 right-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                {onViewSummary && (
+                                    <DropdownMenuItem onClick={onViewSummary}>
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        View Discharge Summary
+                                    </DropdownMenuItem>
+                                )}
+                                {onPrint && (
+                                    <DropdownMenuItem onClick={onPrint}>
+                                        <Printer className="w-4 h-4 mr-2" />
+                                        Print Summary
+                                    </DropdownMenuItem>
+                                )}
+                                {onEdit && (
+                                    <DropdownMenuItem onClick={onEdit}>
+                                        <Pencil className="w-4 h-4 mr-2" />
+                                        Edit Record
+                                    </DropdownMenuItem>
+                                )}
+                                {!isDischarged && onDelete && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete Record
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 )}
-                <div className="flex justify-between items-start pr-6">
+                <div className="flex justify-between items-start pr-8">
                     <div className="space-y-1">
                         <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                             {patientName}
@@ -2473,19 +2497,19 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                 </div>
 
                 {/* Actions */}
-                <div className="pt-3 flex flex-col gap-2 mt-auto">
+                <div className="pt-3 flex flex-col gap-3 mt-auto">
                     {!isDischarged && (
-                        <div className="grid grid-cols-4 gap-2">
-                            <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'pre-op')}>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <Button variant="outline" size="sm" className="h-9 sm:h-8 text-[11px] sm:text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'pre-op')}>
                                 Pre-Op
                             </Button>
-                            <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'post-op')}>
+                            <Button variant="outline" size="sm" className="h-9 sm:h-8 text-[11px] sm:text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'post-op')}>
                                 Post-Op
                             </Button>
-                            <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'rehab')}>
+                            <Button variant="outline" size="sm" className="h-9 sm:h-8 text-[11px] sm:text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'rehab')}>
                                 Rehab
                             </Button>
-                            <Button variant="outline" size="sm" className="h-8 text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'general')}>
+                            <Button variant="outline" size="sm" className="h-9 sm:h-8 text-[11px] sm:text-[10px] px-1" onClick={() => onSendWhatsApp(patient, 'general')}>
                                 General
                             </Button>
                         </div>
@@ -2493,14 +2517,14 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
 
                     <div className="grid grid-cols-2 gap-2">
                         {onConsents && (
-                            <Button variant="secondary" size="sm" className={cn("w-full text-xs px-1", !onDischarge && "col-span-2")} onClick={onConsents}>
-                                <FileText className="w-3 h-3 mr-1" />
+                            <Button variant="secondary" size="sm" className={cn("w-full text-xs h-9 px-1", !onDischarge && "col-span-2")} onClick={onConsents}>
+                                <FileText className="w-3.5 h-3.5 mr-1.5" />
                                 Consents
                             </Button>
                         )}
                         {onDischarge && (
-                            <Button variant="destructive" size="sm" className="w-full text-xs px-1" onClick={onDischarge}>
-                                <ArrowRightLeft className="w-3 h-3 mr-1" />
+                            <Button variant="destructive" size="sm" className="w-full text-xs h-9 px-1" onClick={onDischarge}>
+                                <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5" />
                                 Discharge
                             </Button>
                         )}

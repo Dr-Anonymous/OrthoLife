@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Loader2, Printer } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -17,6 +17,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import RichTextEditor from '@/components/RichTextEditor';
 import { CONSENT_RISKS } from '@/utils/consentConstants';
+import { useReactToPrint } from 'react-to-print';
+import { ConsentTemplatePrint } from './ConsentTemplatePrint';
+import { useRef } from 'react';
 
 interface ConsentTemplateManagerProps {
     isOpen: boolean;
@@ -29,7 +32,29 @@ export const ConsentTemplateManager: React.FC<ConsentTemplateManagerProps> = ({
 }) => {
     const [viewMode, setViewMode] = useState<'list' | 'edit'>('list');
     const [editingTemplate, setEditingTemplate] = useState<Partial<SurgicalConsentTemplate> | null>(null);
+    const [printingTemplate, setPrintingTemplate] = useState<SurgicalConsentTemplate | null>(null);
     const queryClient = useQueryClient();
+    const printRef = useRef<HTMLDivElement>(null);
+
+    const handlePrintLaunch = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `Consent_${printingTemplate?.name || 'Template'}`,
+    });
+
+    const handlePrint = (template: SurgicalConsentTemplate) => {
+        setPrintingTemplate(template);
+        // Small timeout to ensure the print component has rendered with new data
+        setTimeout(() => {
+            handlePrintLaunch();
+        }, 150);
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            setViewMode('list');
+            setEditingTemplate(null);
+        }
+    }, [isOpen]);
 
     const { data: templates, isLoading } = useQuery({
         queryKey: ['surgical-consent-templates-all'],
@@ -104,13 +129,16 @@ export const ConsentTemplateManager: React.FC<ConsentTemplateManagerProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="w-[95vw] max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-4 md:p-6">
-                <DialogHeader className="flex-row items-center justify-between pr-8">
-                    <div className="flex items-center gap-4">
+            <DialogContent className="w-[95vw] sm:w-full max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden border-none sm:border">
+                <DialogHeader className="flex-row items-center justify-between p-4 md:p-6 pb-0 md:pb-0 border-b">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-2 rounded-lg hidden sm:block">
+                            <BookOpen className="h-5 w-5 text-primary" />
+                        </div>
                         <div>
-                            <DialogTitle>Manage Consent Templates</DialogTitle>
-                            <DialogDescription>
-                                Create and edit standard dual-language risk templates for procedures.
+                            <DialogTitle className="text-xl">Consent Templates</DialogTitle>
+                            <DialogDescription className="text-xs sm:text-sm">
+                                Standard Procedure Risk Templates
                             </DialogDescription>
                         </div>
                     </div>
@@ -128,14 +156,17 @@ export const ConsentTemplateManager: React.FC<ConsentTemplateManagerProps> = ({
                     )}
                 </DialogHeader>
 
-                <div className="flex-1 overflow-hidden mt-4">
+                <div className="flex-1 overflow-hidden p-4 md:p-6">
                     {viewMode === 'list' ? (
-                        <ScrollArea className="h-full pr-4">
+                        <ScrollArea className="h-full pr-0 sm:pr-4">
                             {isLoading ? (
-                                <div className="text-center py-8 text-muted-foreground">Loading templates...</div>
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 opacity-20" />
+                                    Loading templates...
+                                </div>
                             ) : templates?.length === 0 ? (
-                                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                                    <h3 className="font-medium text-lg mb-2">No templates found</h3>
+                                <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
+                                    <h3 className="font-semibold text-lg mb-2">No templates found</h3>
                                     <Button onClick={() => {
                                         setEditingTemplate({
                                             name: '',
@@ -143,26 +174,29 @@ export const ConsentTemplateManager: React.FC<ConsentTemplateManagerProps> = ({
                                             risks_procedure_te: CONSENT_RISKS.te.procedure_placeholder
                                         });
                                         setViewMode('edit');
-                                    }}>Create First Template</Button>
+                                    }} className="rounded-full px-8">Create First Template</Button>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {templates?.map(template => (
-                                        <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                                            <div>
-                                                <h4 className="font-semibold">{template.name}</h4>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Created: {new Date(template.created_at).toLocaleDateString()}
+                                        <div key={template.id} className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/30 transition-all gap-4 bg-card shadow-sm">
+                                            <div className="min-w-0">
+                                                <h4 className="font-bold text-base">{template.name}</h4>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-1">
+                                                    Saved {new Date(template.created_at).toLocaleDateString()}
                                                 </p>
                                             </div>
                                             <div className="flex gap-2">
-                                                <Button variant="ghost" size="sm" onClick={() => {
+                                                <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 border" onClick={() => handlePrint(template)} title="Print Offline Consent">
+                                                    <Printer className="w-4 h-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 border" onClick={() => {
                                                     setEditingTemplate(template);
                                                     setViewMode('edit');
                                                 }}>
                                                     <Edit className="w-4 h-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id, template.name)}>
+                                                <Button variant="outline" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 text-destructive hover:bg-destructive hover:text-white border-destructive/20" onClick={() => handleDelete(template.id, template.name)}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
@@ -212,6 +246,16 @@ export const ConsentTemplateManager: React.FC<ConsentTemplateManagerProps> = ({
                     )}
                 </div>
             </DialogContent>
+
+            {/* Hidden Print Content */}
+            <div className="hidden">
+                {printingTemplate && (
+                    <ConsentTemplatePrint 
+                        ref={printRef}
+                        template={printingTemplate} 
+                    />
+                )}
+            </div>
         </Dialog>
     );
 };

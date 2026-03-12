@@ -13,13 +13,17 @@ import {
     AlertTriangle,
     Send,
     Calendar,
-    ArrowLeft
+    ArrowLeft,
+    FileText,
+    CheckCircle2,
+    Loader2
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { calculateAge } from "@/lib/age";
 import { supabase } from '@/integrations/supabase/client';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { auth } from '@/integrations/firebase/client';
@@ -138,36 +142,49 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         enabled: step === 2
     });
 
+    // Aggressive normalization for reliable semantic HTML comparison
+    const normalizeHTML = (html: string | undefined | null) => {
+        if (!html) return '';
+        return html
+            // 1. Strip attributes from all tags
+            .replace(/<([^>]+)>/g, (match, tagContents) => {
+                const tagName = tagContents.split(' ')[0].toLowerCase();
+                return `<${tagName}>`;
+            })
+            // 2. Remove "noise" tags that editors inject but don't change meaning
+            .replace(/<\/?(p|span|br|div)\b[^>]*>/gi, '')
+            // 3. Remove all whitespace and entities
+            .replace(/&nbsp;/g, '')
+            .replace(/\s+/g, '')
+            // 4. Final cleanup
+            .trim()
+            .toLowerCase();
+    };
+
     const handleLoadTemplate = (templateId: string) => {
         const template = templates?.find(t => t.id === templateId);
         if (template) {
-            const isTe = formData.consent_language === 'te';
-            const templateRisks = isTe ? template.risks_procedure_te || '' : template.risks_procedure_en || '';
-            const defaultPlaceholder = CONSENT_RISKS[isTe ? 'te' : 'en'].procedure_placeholder;
+            const currentLang = formData.consent_language || lang;
+            const defaults = CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS] || CONSENT_RISKS.en;
+            const templateRisks = currentLang === 'te' ? template.risks_procedure_te || '' : template.risks_procedure_en || '';
 
             setFormData(prev => {
-                let newProcedureName = (prev.procedure_name || '').trim();
-                if (!newProcedureName) {
-                    newProcedureName = template.name;
-                } else if (!newProcedureName.includes(template.name)) {
-                    newProcedureName = `${newProcedureName} + ${template.name}`;
-                }
+                const currentRisks = prev.risks_procedure || '';
+                const normalizedCurrent = normalizeHTML(currentRisks);
+                const isEmpty = !normalizedCurrent || 
+                                normalizedCurrent === '<p></p>' || 
+                                normalizedCurrent === '<p><br></p>' || 
+                                normalizedCurrent === normalizeHTML(defaults.procedure_placeholder);
 
-                let newRisksProcedure = (prev.risks_procedure || '').trim();
-                const isEmpty = !newRisksProcedure ||
-                    newRisksProcedure === '<p></p>' ||
-                    newRisksProcedure === '<p><br></p>' ||
-                    newRisksProcedure === defaultPlaceholder;
-
+                let newRisksProcedure = '';
                 if (isEmpty) {
                     newRisksProcedure = templateRisks;
                 } else {
-                    newRisksProcedure = `${newRisksProcedure}<br/><hr className="my-4"/><h3 style="font-size: 1.125rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;">${template.name}</h3>${templateRisks}`;
+                    newRisksProcedure = `${currentRisks}<br/><hr className="my-4"/><h3 style="font-size: 1.125rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;">${template.name}</h3>${templateRisks}`;
                 }
 
                 return {
                     ...prev,
-                    procedure_name: newProcedureName,
                     risks_procedure: newRisksProcedure
                 };
             });
@@ -205,14 +222,34 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         }
     }, [initialData]);
 
+    // --- Optimization Helper ---
+    const getOptimizedPayload = (data: Partial<SurgicalConsent>) => {
+        const currentLang = data.consent_language || lang;
+        const defaults = CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS] || CONSENT_RISKS.en;
+
+        const optimized = { ...data };
+        if (normalizeHTML(data.risks_general) === normalizeHTML(defaults.general)) {
+            optimized.risks_general = '';
+        }
+        if (normalizeHTML(data.risks_anesthesia) === normalizeHTML(defaults.anesthesia)) {
+            optimized.risks_anesthesia = '';
+        }
+        // Also clean procedure placeholder if unchanged
+        if (normalizeHTML(data.risks_procedure) === normalizeHTML(defaults.procedure_placeholder)) {
+            optimized.risks_procedure = '';
+        }
+
+        return optimized;
+    };
+
     const handleNext = () => {
         if (step === 2) {
             // Auto-save draft when moving to verification step to prevent data loss
-            const draftData = {
+            const draftData = getOptimizedPayload({
                 ...formData,
                 in_patient_id: patient.id,
                 consent_status: 'pending' as const,
-            };
+            });
             // Use onSave result to update ID
             onSave(draftData, false).then(res => {
                 if (res?.saved?.id) {
@@ -379,17 +416,13 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 setFormData(prev => ({ ...prev, patient_signature: finalSigUrl }));
             }
 
-            const currentLang = formData.consent_language || lang;
-            const finalData = {
+            const finalData = getOptimizedPayload({
                 ...formData,
                 in_patient_id: patient.id,
                 consent_status: 'pending' as const,
                 selfie_url: finalSelfieUrl,
                 patient_signature: finalSigUrl,
-                // Optimization to prevent duplicity
-                risks_general: formData.risks_general === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].general ? '' : formData.risks_general,
-                risks_anesthesia: formData.risks_anesthesia === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].anesthesia ? '' : formData.risks_anesthesia,
-            };
+            });
 
             const res = await onSave(finalData);
             if (res?.saved?.id) {
@@ -405,11 +438,11 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     };
 
     const handleWhatsApp = async () => {
-        const draftData = {
+        const draftData = getOptimizedPayload({
             ...formData,
             in_patient_id: patient.id,
             consent_status: 'pending' as const,
-        };
+        });
 
         try {
             toast.loading("Saving draft...");
@@ -472,18 +505,14 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         }
         let finalSigUrl = await uploadImage(sigData, 'sig');
 
-        const currentLang = formData.consent_language || lang;
-        const finalData = {
+        const finalData = getOptimizedPayload({
             ...formData,
             in_patient_id: patient.id,
             patient_signature: finalSigUrl,
             selfie_url: finalSelfieUrl,
             consent_status: 'signed' as const,
             signed_at: new Date().toISOString(),
-            // Optimization to prevent duplicity
-            risks_general: formData.risks_general === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].general ? '' : formData.risks_general,
-            risks_anesthesia: formData.risks_anesthesia === CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS].anesthesia ? '' : formData.risks_anesthesia,
-        };
+        });
 
         onSave(finalData);
     };
@@ -505,64 +534,100 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
     if (isReadOnly) {
         return (
-            <div className="flex flex-col h-full overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    <div className="text-center border-b pb-4">
-                        <h2 className="text-2xl font-bold">Consent Form</h2>
-                        <p className="text-muted-foreground">
-                            for {formData.procedure_name} on {formData.surgery_date ? format(new Date(formData.surgery_date), 'dd MMM yyyy') : ''}
-                        </p>
-                        <p className="text-sm font-medium">
-                            Patient: {patient.patient.name} ({patientAge} years)
-                            {formData.is_minor && <span className="text-orange-600 ml-2">(Minor - Guardian Consent)</span>}
-                        </p>
+            <div className="flex flex-col h-full overflow-hidden bg-slate-50/50">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
+                    <div className="text-center border-b pb-8">
+                        <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">
+                            <FileText className="w-8 h-8 text-primary" />
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">Surgical Consent Form</h2>
+                        <div className="mt-4 flex flex-col items-center gap-2">
+                            <p className="text-lg font-semibold text-primary">{formData.procedure_name}</p>
+                            <p className="text-muted-foreground flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                {formData.surgery_date ? format(new Date(formData.surgery_date), 'dd MMM yyyy') : ''}
+                            </p>
+                        </div>
+                        <div className="mt-6 p-4 bg-white border rounded-xl shadow-sm inline-block text-left">
+                            <p className="text-sm font-medium text-slate-700">
+                                <span className="text-muted-foreground mr-2 font-normal uppercase tracking-wider text-[10px]">Patient:</span>
+                                {patient.patient.name} ({calculateAge(patient.patient.dob || null)})
+                            </p>
+                            {formData.is_minor && (
+                                <p className="text-xs text-orange-600 mt-1 flex items-center gap-1.5 ring-1 ring-orange-100 bg-orange-50 px-2 py-0.5 rounded-full">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    Minor - Guardian Consent Required
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card>
-                            {/* Header removed to avoid duplication with content */}
-                            <CardContent className="pt-6">
-                                <div className="prose text-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: formData.risks_general || '' }} />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            {/* Header removed to avoid duplication with content */}
-                            <CardContent className="pt-6">
-                                <div className="prose text-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: formData.risks_anesthesia || '' }} />
-                            </CardContent>
-                        </Card>
-                        <Card className="col-span-full">
-                            {/* Header removed to avoid duplication with content */}
+                        <Card className="border-none shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t.general}</CardTitle>
+                            </CardHeader>
                             <CardContent>
-                                <div className="prose text-sm max-w-none break-words" dangerouslySetInnerHTML={{ __html: formData.risks_procedure || '' }} />
+                                <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: formData.risks_general || CONSENT_RISKS[lang as keyof typeof CONSENT_RISKS].general }} />
+                            </CardContent>
+                        </Card>
+                        <Card className="border-none shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t.anesthesia}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: formData.risks_anesthesia || CONSENT_RISKS[lang as keyof typeof CONSENT_RISKS].anesthesia }} />
+                            </CardContent>
+                        </Card>
+                        <Card className="col-span-full border-none shadow-sm border-l-4 border-l-primary">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-primary">{t.procedure}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="prose prose-sm sm:prose-base max-w-none text-slate-800 leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: formData.risks_procedure || CONSENT_RISKS[lang as keyof typeof CONSENT_RISKS].procedure_placeholder }} />
                             </CardContent>
                         </Card>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-6 items-center justify-center border-t pt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start border-t pt-8">
                         {formData.patient_signature && (
-                            <div className="text-center w-full sm:w-auto">
-                                <p className="font-semibold mb-1">{formData.is_minor ? 'Guardian Signature' : 'Patient Signature'}</p>
-                                {formData.is_minor && <p className="text-xs text-muted-foreground mb-1">Signed by: {formData.guardian_name}</p>}
-                                <img src={formData.patient_signature} alt="Signature" className="border rounded h-auto max-h-32 max-w-full mx-auto" />
+                            <div className="space-y-3">
+                                <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{formData.is_minor ? 'Guardian Signature' : 'Patient Signature'}</p>
+                                <div className="bg-white border p-4 rounded-xl shadow-sm inline-block min-w-[200px]">
+                                    {formData.is_minor && <p className="text-[10px] font-bold text-muted-foreground mb-2">Signed by: {formData.guardian_name}</p>}
+                                    <img src={formData.patient_signature} alt="Signature" className="h-auto max-h-32 object-contain mx-auto" />
+                                </div>
                             </div>
                         )}
                         {formData.selfie_url && (
-                            <div className="text-center w-full sm:w-auto">
-                                <p className="font-semibold mb-1">{formData.is_minor ? 'Guardian & Patient Photo' : 'Patient Verification'}</p>
-                                <img src={formData.selfie_url} alt="Verification Photo" className="border rounded h-auto max-h-32 max-w-full object-cover mx-auto" />
+                            <div className="space-y-3">
+                                <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{formData.is_minor ? 'Identity Verification' : 'Patient Identification'}</p>
+                                <div className="relative group">
+                                    <img src={formData.selfie_url} alt="Verification" className="w-full max-w-[250px] aspect-[4/3] object-cover rounded-xl shadow-md ring-4 ring-white" />
+                                    <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[10px] p-2 rounded-b-xl backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Identity Verified via Multi-Factor Auth
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
-                    <div className="text-center text-sm text-muted-foreground pb-4">
-                        Signed on: {new Date(formData.signed_at || '').toLocaleString()}
+
+                    <div className="text-center pt-8 border-t border-dashed">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-100">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Signed on {new Date(formData.signed_at || '').toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
+                        </div>
                     </div>
                 </div>
-                <div className="p-4 border-t bg-background flex justify-start">
-                    <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
+                <div className="p-4 md:p-6 border-t bg-white/80 backdrop-blur-md flex justify-between items-center">
+                    <Button variant="ghost" onClick={onCancel} className="gap-2">
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to List
                     </Button>
+                    <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <Lock className="w-3 h-3" />
+                        SECURE DIGITAL RECORD ID: {formData.id?.slice(0, 8).toUpperCase()}
+                    </div>
                 </div>
             </div>
         )
@@ -696,7 +761,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 {step === 3 && (
                     <div className="space-y-6">
                         {isMinor && (
-                            <Card className="border-orange-200 bg-orange-50/30">
+                            <Card className="border-l-4 border-l-orange-500 shadow-sm">
                                 <CardContent className="pt-6 space-y-4">
                                     <div className="space-y-2">
                                         <Label>Guardian Name</Label>
@@ -756,6 +821,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                     ref={patientSigRef}
                                     penColor="black"
                                     backgroundColor="white"
+                                    clearOnResize={false}
                                     canvasProps={{ className: 'w-full h-full' }}
                                     onEnd={handleSignatureEnd}
                                 />
@@ -765,22 +831,29 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
                         {/* OTP Verification */}
                         <div className="space-y-4 pt-4 border-t">
-                            <Label>3. Final Verification</Label>
+                            <Label className="flex items-center gap-2">
+                                <Lock className="w-4 h-4 text-primary" />
+                                3. Final Verification
+                            </Label>
                             {!isOtpSent ? (
-                                <Button className="w-full" onClick={sendOtp} disabled={!selfieImage}>
-                                    <Lock className="w-4 h-4 mr-2" /> Send OTP to Sign
+                                <Button className="w-full h-12 text-base" onClick={sendOtp} disabled={!selfieImage}>
+                                    <Send className="w-4 h-4 mr-2" /> Send OTP to Sign
                                 </Button>
                             ) : (
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <Input
-                                        placeholder="Enter OTP"
+                                        className="h-12 text-center text-lg tracking-widest sm:flex-1"
+                                        placeholder="000000"
                                         value={otp}
                                         onChange={e => setOtp(e.target.value)}
+                                        maxLength={6}
                                     />
-                                    <Button onClick={verifyOtp} disabled={isVerifying}>
-                                        {isVerifying ? 'Verifying...' : 'Verify & Sign'}
-                                    </Button>
-                                    <Button variant="ghost" onClick={() => setIsOtpSent(false)}>Resend</Button>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <Button onClick={verifyOtp} disabled={isVerifying} className="flex-1 sm:w-32 h-12">
+                                            {isVerifying ? <Loader2 className="animate-spin" /> : 'Verify & Sign'}
+                                        </Button>
+                                        <Button variant="outline" onClick={() => setIsOtpSent(false)} className="h-12">Resend</Button>
+                                    </div>
                                 </div>
                             )}
                         </div>
