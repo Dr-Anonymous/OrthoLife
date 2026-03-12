@@ -582,17 +582,21 @@ const ConsultationPage = () => {
         'postgres_changes' as any,
         {
           event: '*',
+          schema: 'public',
           table: 'consultations',
         },
         (payload: any) => {
           // If the change belongs to our location, refetch the list
+          // Without REPLICA IDENTITY FULL, DELETE events won't include the location in payload.old
+          // So we refetch on any DELETE to ensure the UI stays perfectly in sync
+          const isDelete = payload.eventType === 'DELETE';
           const newRow = payload.new;
           const oldRow = payload.old;
           const locationMatch = 
             (newRow?.location === selectedHospital.name) || 
             (oldRow?.location === selectedHospital.name);
             
-          if (locationMatch) {
+          if (isDelete || locationMatch) {
             console.log('Realtime update detected, refetching...', payload.eventType);
             fetchConsultations();
           }
