@@ -808,6 +808,18 @@ const ConsultationPage = () => {
         medications: (restExtraData.medications || []).map(cleanMedicationForSave)
       });
 
+      const parseConsultantCut = (val: any, fee: any) => {
+        if (!val) return null;
+        const sVal = String(val).trim();
+        if (sVal.endsWith('%')) {
+          const percent = parseFloat(sVal.replace('%', ''));
+          const f = fee ? Number(fee) : 0;
+          return isNaN(percent) ? null : (percent / 100) * f;
+        }
+        const num = Number(sVal);
+        return isNaN(num) ? null : num;
+      };
+
       // 1. Build Standardized Payload (v2)
       const offlineBundle: OfflineConsultationBundle = {
         schemaVersion: 2,
@@ -824,7 +836,7 @@ const ConsultationPage = () => {
         location: selectedHospital.name,
         duration: timerSeconds,
         procedure_fee: procedure_fee ? Number(procedure_fee) : null,
-        procedure_consultant_cut: procedure_consultant_cut ? Number(procedure_consultant_cut) : null,
+        procedure_consultant_cut: parseConsultantCut(procedure_consultant_cut, procedure_fee),
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
       };
@@ -843,7 +855,7 @@ const ConsultationPage = () => {
         status: newStatus as any,
         duration: timerSeconds,
         procedure_fee: procedure_fee ? Number(procedure_fee) : null,
-        procedure_consultant_cut: procedure_consultant_cut ? Number(procedure_consultant_cut) : null,
+        procedure_consultant_cut: parseConsultantCut(procedure_consultant_cut, procedure_fee),
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
       };
@@ -1734,12 +1746,17 @@ const ConsultationPage = () => {
                               <div className="space-y-2">
                                 <Label>Consultant Share</Label>
                                 <Input
-                                  type="number"
+                                  type="text"
                                   placeholder="Amount or %"
                                   value={extraData.procedure_consultant_cut}
                                   onChange={(e) => handleExtraChange('procedure_consultant_cut', e.target.value)}
                                 />
-                                <p className="text-[10px] text-muted-foreground">Enter number for fixed amount.</p>
+                                {extraData.procedure_consultant_cut?.toString().endsWith('%') && extraData.procedure_fee && (
+                                  <p className="text-[10px] text-primary font-bold mt-1 animate-pulse-soft">
+                                    Calculated: ₹{((parseFloat(extraData.procedure_consultant_cut.toString().replace('%', '')) / 100) * Number(extraData.procedure_fee)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                  </p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground">Type e.g. 500 or 10%</p>
                               </div>
                             </>
                           )}

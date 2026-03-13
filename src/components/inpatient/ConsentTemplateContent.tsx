@@ -281,7 +281,7 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
                     <div>
                         <h2 className="text-xl font-bold">Consent Templates</h2>
                         <p className="text-xs sm:text-sm text-muted-foreground">
-                            Standard Procedure Risk Templates
+                            Procedure Specific Risk Templates
                         </p>
                     </div>
                 </div>
