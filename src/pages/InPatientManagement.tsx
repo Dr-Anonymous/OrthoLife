@@ -24,7 +24,8 @@ import {
     Activity,
     Trash2,
     Download,
-    MoreVertical
+    MoreVertical,
+    ExternalLink
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

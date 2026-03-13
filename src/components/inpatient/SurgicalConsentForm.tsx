@@ -166,7 +166,9 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         if (template) {
             const currentLang = formData.consent_language || lang;
             const defaults = CONSENT_RISKS[currentLang as keyof typeof CONSENT_RISKS] || CONSENT_RISKS.en;
-            const templateRisks = currentLang === 'te' ? template.risks_procedure_te || '' : template.risks_procedure_en || '';
+            const rawRisks = currentLang === 'te' ? template.risks_procedure_te || '' : template.risks_procedure_en || '';
+            // Strip redundant <h2> headers from the template content
+            const templateRisks = rawRisks.replace(/<h2[^>]*>.*?<\/h2>/gi, '').trim();
 
             setFormData(prev => {
                 const currentRisks = prev.risks_procedure || '';
@@ -176,11 +178,20 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                                 normalizedCurrent === '<p><br></p>' || 
                                 normalizedCurrent === normalizeHTML(defaults.procedure_placeholder);
 
+                const headerEn = `Procedure Specific Risks of ${template.name}`;
+                const headerTe = `${template.name} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు`;
+                const header = currentLang === 'te' ? headerTe : headerEn;
+
+                const newChunk = `<div style="margin-bottom: 28px;">
+                    <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">${header}</h4>
+                    ${templateRisks}
+                </div>`;
+
                 let newRisksProcedure = '';
                 if (isEmpty) {
-                    newRisksProcedure = templateRisks;
+                    newRisksProcedure = newChunk;
                 } else {
-                    newRisksProcedure = `${currentRisks}<br/><hr className="my-4"/><h3 style="font-size: 1.125rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;">${template.name}</h3>${templateRisks}`;
+                    newRisksProcedure = `${currentRisks}${newChunk}`;
                 }
 
                 return {
@@ -465,7 +476,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
 
                 try {
                     const { error } = await supabase.functions.invoke('send-whatsapp', {
-                        body: { number: patient.patient.phone, message: message },
+                        body: { number: formData.patient_phone, message: message },
                     });
 
                     if (error) throw error;
@@ -475,7 +486,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                     toast.error("Failed to send WhatsApp message automatically. Opening WhatsApp...");
                     // Fallback to manual open if function fails
                     const encodedMessage = encodeURIComponent(message);
-                    window.open(`https://wa.me/${patient.patient.phone}?text=${encodedMessage}`, '_blank');
+                    window.open(`https://wa.me/${formData.patient_phone}?text=${encodedMessage}`, '_blank');
                 }
             } else {
                 toast.error("Could not save draft to generate link.");

@@ -68,7 +68,10 @@ const UI_TEXT = {
         guardianSelfieDesc: "Please take a clear photo of the Guardian and the Patient together.",
         guardianSignatureTitle: "2. Guardian Signature",
         guardianSignatureDesc: "Guardian must sign below to confirm legal consent for the minor.",
-        patientAge: "Age"
+        patientAge: "Age",
+        riskGeneral: "General Surgical Risks",
+        riskAnesthesia: "Anesthesia Risks",
+        riskProcedure: "Procedure Specific Risks"
     },
     te: {
         title: "శస్త్రచికిత్స సమ్మతి పత్రం",
@@ -104,7 +107,10 @@ const UI_TEXT = {
         guardianSelfieDesc: "దయచేసి సంరక్షకుడు మరియు రోగి కలిసి ఉన్న స్పష్టమైన ఫోటోను తీసుకోండి.",
         guardianSignatureTitle: "2. సంరక్షకుడి సంతకం",
         guardianSignatureDesc: "మైనర్ కోసం చట్టపరమైన సమ్మతిని నిర్ధారించడానికి సంరక్షకుడు తప్పనిసరిగా క్రింద సంతకం చేయాలి.",
-        patientAge: "వయస్సు"
+        patientAge: "వయస్సు",
+        riskGeneral: "సాధారణ శస్త్రచికిత్స ప్రమాదాలు",
+        riskAnesthesia: "అనస్థీషియా ప్రమాదాలు",
+        riskProcedure: "శస్త్రచికిత్స నిర్దిష్ట ప్రమాదాలు"
     }
 };
 
@@ -445,14 +451,23 @@ const PublicConsentVerification = () => {
                     <h3 className="font-semibold text-lg px-2">{t.risksTitle}</h3>
 
                     <Card className="border-l-4 border-l-red-500 shadow-sm">
+                        <CardHeader className="py-3 bg-red-50/30 border-b">
+                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-red-900">{t.riskGeneral}</CardTitle>
+                        </CardHeader>
                         <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_general || CONSENT_RISKS[langCode as keyof typeof CONSENT_RISKS].general }} />
                     </Card>
 
                     <Card className="border-l-4 border-l-blue-500 shadow-sm">
+                        <CardHeader className="py-3 bg-blue-50/30 border-b">
+                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-blue-900">{t.riskAnesthesia}</CardTitle>
+                        </CardHeader>
                         <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_anesthesia || CONSENT_RISKS[langCode as keyof typeof CONSENT_RISKS].anesthesia }} />
                     </Card>
 
                     <Card className="border-l-4 border-l-orange-500 shadow-sm">
+                        <CardHeader className="py-3 bg-orange-50/30 border-b">
+                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-orange-900">{t.riskProcedure}</CardTitle>
+                        </CardHeader>
                         <CardContent className="pt-6 text-sm prose max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: consentData.risks_procedure || CONSENT_RISKS[langCode as keyof typeof CONSENT_RISKS].procedure_placeholder }} />
                     </Card>
                 </div>
@@ -611,6 +626,16 @@ const PublicConsentVerification = () => {
                 </div>
             </div>
 
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .prose h4 {
+                    color: inherit !important;
+                    margin-top: 0 !important;
+                }
+                .prose hr {
+                    margin: 1.5rem 0 !important;
+                }
+            `}} />
             <footer className="mt-12 text-center text-xs text-muted-foreground no-print">
                 <p>{t.footer}</p>
                 <p>&copy; {new Date().getFullYear()} OrthoLife</p>
