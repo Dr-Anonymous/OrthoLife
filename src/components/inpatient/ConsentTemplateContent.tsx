@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Loader2, Printer, X, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Loader2, Printer, X, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -45,8 +45,36 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
         date: new Date().toISOString().split('T')[0]
     });
     const [isPrintDatePickerOpen, setIsPrintDatePickerOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [focusedIndex, setFocusedIndex] = useState(0);
+    const [language, setLanguage] = useState<string>('te');
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
     const printRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (viewMode === 'list') {
+            const timer = setTimeout(() => {
+                searchInputRef.current?.focus();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [viewMode]);
+
+    useEffect(() => {
+        if (viewMode === 'list' && filteredTemplates && filteredTemplates.length > 0) {
+            setFocusedIndex(0);
+        } else {
+            setFocusedIndex(-1);
+        }
+    }, [searchQuery, viewMode]);
+
+    useEffect(() => {
+        if (focusedIndex >= 0 && filteredTemplates?.[focusedIndex]) {
+            const el = document.getElementById(`template-${filteredTemplates[focusedIndex].id}`);
+            el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    }, [focusedIndex]);
 
     const handlePrintLaunch = useReactToPrint({
         contentRef: printRef,
@@ -66,6 +94,10 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
         }, 200);
     };
 
+    const cleanName = (name: string) => {
+        return name.replace(/\s*\([^)]*\)/g, '').trim();
+    };
+
     const handleBulkPrint = () => {
         if (selectedTemplateIds.length === 0) return;
 
@@ -79,14 +111,14 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
         // Combine templates
         const combinedTemplate: SurgicalConsentTemplate = {
             id: 'combined',
-            name: selectedTemplates.map(t => t.name).join(' + '),
+            name: selectedTemplates.map(t => cleanName(t.name)).join(' + '),
             risks_procedure_en: selectedTemplates
                 .map(t => {
                     let content = t.risks_procedure_en || '';
-                    // Strip the redundant H2 header if present in the template to avoid double headers
                     const cleanContent = content.replace(/<h2[^>]*>.*?<\/h2>/gi, '').trim();
+                    const name = cleanName(t.name);
                     return `<div style="margin-bottom: 28px;">
-                        <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">Procedure Specific Risks of ${t.name}</h4>
+                        <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">Procedure Specific Risks of ${name}</h4>
                         ${cleanContent}
                     </div>`;
                 })
@@ -95,8 +127,9 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
                 .map(t => {
                     let content = t.risks_procedure_te || '';
                     const cleanContent = content.replace(/<h2[^>]*>.*?<\/h2>/gi, '').trim();
+                    const name = cleanName(t.name);
                     return `<div style="margin-bottom: 28px;">
-                        <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">${t.name} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు</h4>
+                        <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">${name} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు</h4>
                         ${cleanContent}
                     </div>`;
                 })
@@ -126,6 +159,57 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
             return data as SurgicalConsentTemplate[];
         }
     });
+
+    const filteredTemplates = templates?.filter(template => 
+        template.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (viewMode !== 'list' || !filteredTemplates || filteredTemplates.length === 0 || printInfoModalOpen) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setFocusedIndex(prev => Math.min(prev + 1, filteredTemplates.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setFocusedIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.metaKey || e.ctrlKey) {
+                if (selectedTemplateIds.length > 1) {
+                    handleBulkPrint();
+                } else if (focusedIndex >= 0) {
+                    handlePrint(filteredTemplates[focusedIndex]);
+                }
+            } else if (focusedIndex >= 0) {
+                toggleSelection(filteredTemplates[focusedIndex].id);
+            }
+        } else if (e.key === ' ' && document.activeElement !== searchInputRef.current) {
+            if (focusedIndex >= 0) {
+                e.preventDefault();
+                toggleSelection(filteredTemplates[focusedIndex].id);
+            }
+        }
+    };
+
+    // Global listener for modal shortcuts
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            if (printInfoModalOpen) {
+                if (e.key === 'Enter') {
+                    // Prevent propagation to background
+                    e.preventDefault();
+                    e.stopPropagation();
+                    confirmPrint();
+                } else if (e.key === 'Escape') {
+                    setPrintInfoModalOpen(false);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown, true);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+    }, [printInfoModalOpen, printInfo]);
 
     const createMutation = useMutation({
         mutationFn: async (template: Partial<SurgicalConsentTemplate>) => {
@@ -186,7 +270,7 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden bg-background">
+        <div className="flex flex-col h-full overflow-hidden bg-background" onKeyDown={handleKeyDown}>
             <header className="flex items-center justify-between p-4 md:p-6 border-b shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="bg-primary/10 p-2 rounded-lg hidden sm:block">
@@ -200,136 +284,193 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
                     </div>
                 </div>
                 {viewMode === 'list' && (
-                    <div className="flex items-center gap-2">
-                        {selectedTemplateIds.length > 0 && (
-                            <div className="flex items-center gap-2 mr-2">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-2 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
-                                    onClick={handleBulkPrint}
-                                >
-                                    <Printer className="h-4 w-4" />
-                                    Print ({selectedTemplateIds.length})
-                                </Button>
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-muted-foreground"
-                                    onClick={() => setSelectedTemplateIds([])}
-                                    title="Clear Selection"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        )}
-                        {!readonly && (
-                            <Button size="icon" variant="ghost" onClick={() => {
-                                setEditingTemplate({
-                                    name: '',
-                                    risks_procedure_en: CONSENT_RISKS.en.procedure_placeholder,
-                                    risks_procedure_te: CONSENT_RISKS.te.procedure_placeholder
-                                });
-                                setViewMode('edit');
-                            }} title="New Template">
-                                <Plus className="h-5 w-5 text-primary" />
+                    <div className="flex items-center gap-4">
+                        {/* Language Switcher */}
+                        <div className="flex items-center bg-muted rounded-md p-0.5 h-8">
+                            <Button
+                                type="button"
+                                variant={language === 'en' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="h-7 px-3 text-xs font-bold"
+                                onClick={() => setLanguage('en')}
+                            >
+                                EN
                             </Button>
-                        )}
+                            <Button
+                                type="button"
+                                variant={language === 'te' ? 'default' : 'ghost'}
+                                size="sm"
+                                className="h-7 px-3 text-xs font-bold"
+                                onClick={() => setLanguage('te')}
+                            >
+                                తె
+                            </Button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {selectedTemplateIds.length > 0 && (
+                                <div className="flex items-center gap-2 mr-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-2 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
+                                        onClick={handleBulkPrint}
+                                    >
+                                        <Printer className="h-4 w-4" />
+                                        Print ({selectedTemplateIds.length})
+                                    </Button>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-muted-foreground"
+                                        onClick={() => setSelectedTemplateIds([])}
+                                        title="Clear Selection"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )}
+                            {!readonly && (
+                                <Button size="icon" variant="ghost" onClick={() => {
+                                    setEditingTemplate({
+                                        name: '',
+                                        risks_procedure_en: CONSENT_RISKS.en.procedure_placeholder,
+                                        risks_procedure_te: CONSENT_RISKS.te.procedure_placeholder
+                                    });
+                                    setViewMode('edit');
+                                }} title="New Template">
+                                    <Plus className="h-5 w-5 text-primary" />
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 )}
             </header>
 
-            <main className="flex-1 overflow-hidden p-4 md:p-6">
+            <main className="flex-1 overflow-hidden p-4 md:p-6 flex flex-col">
                 {viewMode === 'list' ? (
-                    <ScrollArea className="h-full pr-0 sm:pr-4">
-                        {isLoading ? (
-                            <div className="text-center py-12 text-muted-foreground">
-                                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 opacity-20" />
-                                Loading templates...
-                            </div>
-                        ) : templates?.length === 0 ? (
-                            <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
-                                <h3 className="font-semibold text-lg mb-2">No templates found</h3>
-                                {!readonly && (
-                                    <Button onClick={() => {
-                                        setEditingTemplate({
-                                            name: '',
-                                            risks_procedure_en: CONSENT_RISKS.en.procedure_placeholder,
-                                            risks_procedure_te: CONSENT_RISKS.te.procedure_placeholder
-                                        });
-                                        setViewMode('edit');
-                                    }} className="rounded-full px-8">Create First Template</Button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {templates?.map(template => (
-                                    <div
-                                        key={template.id}
-                                        className={`flex items-center justify-between p-4 border rounded-xl hover:bg-muted/30 transition-all gap-4 bg-card shadow-sm cursor-pointer ${selectedTemplateIds.includes(template.id) ? 'border-primary bg-primary/5' : ''}`}
-                                        onClick={() => toggleSelection(template.id)}
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selectedTemplateIds.includes(template.id) ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
-                                                {selectedTemplateIds.includes(template.id) && <div className="w-2 h-2 bg-white rounded-full" />}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h4 className="font-bold text-base">{template.name}</h4>
-                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-1">
-                                                    Saved {new Date(template.created_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                                            <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 border" onClick={() => handlePrint(template)} title="Print Offline Consent">
-                                                <Printer className="w-4 h-4" />
-                                            </Button>
-                                            {!readonly && (
-                                                <>
-                                                    <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 border" onClick={() => {
-                                                        setEditingTemplate(template);
-                                                        setViewMode('edit');
-                                                    }}>
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 text-destructive hover:bg-destructive hover:text-white border-destructive/20" onClick={() => handleDelete(template.id, template.name)}>
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </ScrollArea>
-                ) : (
-                    <div className="flex flex-col h-full">
-                        <div className="flex-1 overflow-y-auto space-y-6 px-1 pb-4">
-                            <div className="space-y-2">
-                                <Label>Procedure Name (Template Name)</Label>
-                                <Input
-                                    value={editingTemplate?.name || ''}
-                                    onChange={e => setEditingTemplate(prev => prev ? { ...prev, name: e.target.value } : { name: e.target.value })}
-                                    placeholder="e.g. ACL Reconstruction"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Procedure Specific Risks (English)</Label>
-                                <RichTextEditor
-                                    content={editingTemplate?.risks_procedure_en || ''}
-                                    onChange={content => setEditingTemplate(prev => prev ? { ...prev, risks_procedure_en: content } : { risks_procedure_en: content })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Procedure Specific Risks (Telugu)</Label>
-                                <RichTextEditor
-                                    content={editingTemplate?.risks_procedure_te || ''}
-                                    onChange={content => setEditingTemplate(prev => prev ? { ...prev, risks_procedure_te: content } : { risks_procedure_te: content })}
-                                />
-                            </div>
+                    <div className="flex flex-col h-full overflow-hidden">
+                        <div className="relative mb-6 shrink-0">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                ref={searchInputRef}
+                                placeholder="Search procedure templates..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 h-11 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/30 rounded-xl"
+                            />
+                            {searchQuery && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    onClick={() => setSearchQuery('')}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
                         </div>
-                        <div className="pt-4 border-t flex justify-between">
+
+                        <ScrollArea className="flex-1 pr-0 sm:pr-4">
+                            {isLoading ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 opacity-20" />
+                                    Loading templates...
+                                </div>
+                            ) : filteredTemplates?.length === 0 ? (
+                                <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
+                                    <h3 className="font-semibold text-lg mb-2">No templates found</h3>
+                                    {!readonly && (
+                                        <Button onClick={() => {
+                                            setEditingTemplate({
+                                                name: '',
+                                                risks_procedure_en: CONSENT_RISKS.en.procedure_placeholder,
+                                                risks_procedure_te: CONSENT_RISKS.te.procedure_placeholder
+                                            });
+                                            setViewMode('edit');
+                                        }} className="rounded-full px-8">Create First Template</Button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-4 pb-4">
+                                    {filteredTemplates?.map((template, index) => (
+                                        <div
+                                            key={template.id}
+                                            id={`template-${template.id}`}
+                                            className={cn(
+                                                "flex items-center justify-between p-4 border rounded-xl hover:bg-muted/30 transition-all gap-4 bg-card shadow-sm cursor-pointer",
+                                                selectedTemplateIds.includes(template.id) && "border-primary bg-primary/5",
+                                                focusedIndex === index && "ring-2 ring-primary ring-offset-2"
+                                            )}
+                                            onClick={() => toggleSelection(template.id)}
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className={cn(
+                                                    "w-5 h-5 rounded border flex items-center justify-center transition-colors",
+                                                    selectedTemplateIds.includes(template.id) ? "bg-primary border-primary" : "border-muted-foreground/30"
+                                                )}>
+                                                    {selectedTemplateIds.includes(template.id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h4 className="font-bold text-base">{template.name}</h4>
+                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-1">
+                                                        Saved {template.created_at ? format(new Date(template.created_at), 'dd MMM yyyy') : 'Recently'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                                                <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 border" onClick={() => handlePrint(template)} title="Print Offline Consent">
+                                                    <Printer className="w-4 h-4" />
+                                                </Button>
+                                                {!readonly && (
+                                                    <>
+                                                        <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 border" onClick={() => {
+                                                            setEditingTemplate(template);
+                                                            setViewMode('edit');
+                                                        }}>
+                                                            <Edit className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-9 sm:w-9 border text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id!, template.name)}>
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </div>
+                ) : (
+                    <div className="flex flex-col h-full overflow-hidden">
+                        <ScrollArea className="flex-1 pr-4">
+                            <div className="space-y-6 pb-4">
+                                <div className="space-y-2">
+                                    <Label>Procedure Name (Template Name)</Label>
+                                    <Input
+                                        value={editingTemplate?.name || ''}
+                                        onChange={e => setEditingTemplate(prev => prev ? { ...prev, name: e.target.value } : { name: e.target.value })}
+                                        placeholder="e.g. ACL Reconstruction"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Procedure Specific Risks (English)</Label>
+                                    <RichTextEditor
+                                        content={editingTemplate?.risks_procedure_en || ''}
+                                        onChange={content => setEditingTemplate(prev => prev ? { ...prev, risks_procedure_en: content } : { risks_procedure_en: content })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Procedure Specific Risks (Telugu)</Label>
+                                    <RichTextEditor
+                                        content={editingTemplate?.risks_procedure_te || ''}
+                                        onChange={content => setEditingTemplate(prev => prev ? { ...prev, risks_procedure_te: content } : { risks_procedure_te: content })}
+                                    />
+                                </div>
+                            </div>
+                        </ScrollArea>
+                        <div className="pt-4 border-t flex justify-between shrink-0">
                             <Button variant="outline" onClick={() => {
                                 setViewMode('list');
                                 setEditingTemplate(null);
@@ -351,6 +492,7 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
                         ref={printRef}
                         template={printingTemplate}
                         printInfo={printInfo}
+                        language={language}
                     />
                 )}
             </div>
