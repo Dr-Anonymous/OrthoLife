@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, differenceInDays, startOfDay, endOfDay } from 'date-fns';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { format, differenceInDays, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import {
     Users,
     UserPlus,
@@ -94,13 +94,14 @@ interface AutofillProtocol {
 
 const InPatientManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [dischargeDateStart, setDischargeDateStart] = useState<string>('');
-    const [dischargeDateEnd, setDischargeDateEnd] = useState<string>('');
+    const [dischargeDateStart, setDischargeDateStart] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+    const [dischargeDateEnd, setDischargeDateEnd] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
     const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
     const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
     const [isAdmissionDatePickerOpen, setIsAdmissionDatePickerOpen] = useState(false);
     const [isProcedureDatePickerOpen, setIsProcedureDatePickerOpen] = useState(false);
     const [paymentFilter, setPaymentFilter] = useState<string>('all');
+    const [activeTab, setActiveTab] = useState('admitted');
     const { i18n } = useTranslation();
 
     // Refs
@@ -222,8 +223,9 @@ const InPatientManagement = () => {
         enabled: patientSearch.length >= 3
     });
 
-    const { data: inPatients, isLoading } = useQuery({
-        queryKey: ['in-patients'],
+    // --- Queries ---
+    const { data: admittedInPatients, isLoading: isLoadingAdmitted } = useQuery({
+        queryKey: ['in-patients', 'admitted'],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('in_patients')
@@ -232,12 +234,46 @@ const InPatientManagement = () => {
           patient:patients(name, phone, dob, sex, drive_id),
           surgical_consents(id)
         `)
+                .eq('status', 'admitted')
                 .order('admission_date', { ascending: false });
 
             if (error) throw error;
             return data as InPatient[];
-        }
+        },
+        placeholderData: keepPreviousData
     });
+
+    const { data: dischargedInPatients, isLoading: isLoadingDischarged } = useQuery({
+        queryKey: ['in-patients', 'discharged', dischargeDateStart, dischargeDateEnd, paymentFilter],
+        queryFn: async () => {
+            let query = supabase
+                .from('in_patients')
+                .select(`
+          *,
+          patient:patients(name, phone, dob, sex, drive_id),
+          surgical_consents(id)
+        `)
+                .eq('status', 'discharged')
+                .order('discharge_date', { ascending: false });
+
+            if (dischargeDateStart) {
+                query = query.gte('discharge_date', startOfDay(new Date(dischargeDateStart)).toISOString());
+            }
+            if (dischargeDateEnd) {
+                query = query.lte('discharge_date', endOfDay(new Date(dischargeDateEnd)).toISOString());
+            }
+            if (paymentFilter && paymentFilter !== 'all') {
+                query = query.eq('payment_mode', paymentFilter);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            return data as InPatient[];
+        },
+        placeholderData: keepPreviousData
+    });
+
+    const isLoading = isLoadingAdmitted || isLoadingDischarged;
 
     // --- Mutations ---
 
@@ -626,50 +662,27 @@ const InPatientManagement = () => {
         }
     };
 
-    const filteredPatients = useMemo(() => {
-        if (!inPatients) return [];
-        return inPatients.filter(p =>
+    const admittedPatients = useMemo(() => {
+        if (!admittedInPatients) return [];
+        if (!searchTerm) return admittedInPatients;
+        return admittedInPatients.filter(p =>
             p.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             p.patient.phone.includes(searchTerm) ||
             (p.diagnosis && p.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()))
         );
-    }, [inPatients, searchTerm]);
-
-    const admittedPatients = filteredPatients.filter(p => p.status === 'admitted');
-    const dischargedPatients = filteredPatients.filter(p => p.status === 'discharged');
+    }, [admittedInPatients, searchTerm]);
 
     const filteredDischargedPatients = useMemo(() => {
-        let result = [...dischargedPatients];
+        if (!dischargedInPatients) return [];
+        if (!searchTerm) return dischargedInPatients;
+        return dischargedInPatients.filter(p =>
+            p.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.patient.phone.includes(searchTerm) ||
+            (p.diagnosis && p.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    }, [dischargedInPatients, searchTerm]);
 
-        // Sort by discharge date desc (most recent first)
-        result.sort((a, b) => {
-            const dateA = new Date(a.discharge_date || 0).getTime();
-            const dateB = new Date(b.discharge_date || 0).getTime();
-            return dateB - dateA;
-        });
-
-        if (dischargeDateStart) {
-            const start = startOfDay(new Date(dischargeDateStart));
-            result = result.filter(p => {
-                if (!p.discharge_date) return false;
-                return new Date(p.discharge_date) >= start;
-            });
-        }
-
-        if (dischargeDateEnd) {
-            const end = endOfDay(new Date(dischargeDateEnd));
-            result = result.filter(p => {
-                if (!p.discharge_date) return false;
-                return new Date(p.discharge_date) <= end;
-            });
-        }
-
-        if (paymentFilter && paymentFilter !== 'all') {
-            result = result.filter(p => p.payment_mode === paymentFilter);
-        }
-
-        return result;
-    }, [dischargedPatients, dischargeDateStart, dischargeDateEnd, paymentFilter]);
+    const dischargedPatients = filteredDischargedPatients;
 
     const handleExport = (exportFormat: 'excel' | 'text') => {
         if (!filteredDischargedPatients.length) {
@@ -751,12 +764,15 @@ const InPatientManagement = () => {
         document.body.removeChild(link);
     };
 
-    if (isLoading) {
+    // Only show full page loader if we have NO data at all on first entry
+    const isFirstEverLoad = !admittedInPatients && !dischargedInPatients && (isLoadingAdmitted || isLoadingDischarged);
+
+    if (isFirstEverLoad) {
         return (
             <div className="flex items-center justify-center p-12 h-[60vh]">
                 <div className="text-center">
                     <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-lg font-medium">Loading patient records...</p>
+                    <p className="text-lg font-medium text-muted-foreground">Initializing IP Portal...</p>
                 </div>
             </div>
         );
@@ -796,37 +812,41 @@ const InPatientManagement = () => {
                 </div>
             </div>
 
-            <Tabs defaultValue="admitted" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 lg:max-w-md mb-6">
                     <TabsTrigger value="admitted" className="flex items-center gap-2 h-10">
                         <CheckCircle2 className="w-4 h-4" />
-                        Admitted ({admittedPatients.length})
+                        Admitted ({admittedInPatients?.length || 0})
                     </TabsTrigger>
                     <TabsTrigger value="discharged" className="flex items-center gap-2">
                         <History className="w-4 h-4" />
-                        Discharged ({dischargedPatients.length})
+                        Discharged ({dischargedInPatients?.length || 0})
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="admitted">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {admittedPatients.length > 0 ? admittedPatients.map(p => (
-                            <InPatientCard
-                                key={p.id}
-                                patient={p}
-                                onSendWhatsApp={initWhatsApp}
-                                onEdit={() => openEditModal(p)}
-                                onDischarge={() => openDischargeModal(p)}
-                                onConsents={() => openConsentModal(p)}
-                                onDelete={() => handleDeletePatient(p)}
-                            />
-                        )) : (
-                            <div className="col-span-full py-20 text-center bg-muted/20 rounded-xl border-2 border-dashed">
-                                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                                <h3 className="text-xl font-medium text-muted-foreground">No patients currently admitted</h3>
-                            </div>
-                        )}
-                    </div>
+                    {isLoadingAdmitted ? (
+                        <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary/20" /></div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {admittedPatients.length > 0 ? admittedPatients.map(p => (
+                                <InPatientCard
+                                    key={p.id}
+                                    patient={p}
+                                    onSendWhatsApp={initWhatsApp}
+                                    onEdit={() => openEditModal(p)}
+                                    onDischarge={() => openDischargeModal(p)}
+                                    onConsents={() => openConsentModal(p)}
+                                    onDelete={() => handleDeletePatient(p)}
+                                />
+                            )) : (
+                                <div className="col-span-full py-20 text-center bg-muted/20 rounded-xl border-2 border-dashed">
+                                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                                    <h3 className="text-xl font-medium text-muted-foreground">No patients currently admitted</h3>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="discharged">
@@ -904,7 +924,11 @@ const InPatientManagement = () => {
                         <div className="h-full flex flex-col justify-end">
                             <Button
                                 variant="secondary"
-                                onClick={() => { setDischargeDateStart(''); setDischargeDateEnd(''); setPaymentFilter('all'); }}
+                                onClick={() => { 
+                                    setDischargeDateStart(format(startOfMonth(new Date()), 'yyyy-MM-dd')); 
+                                    setDischargeDateEnd(format(endOfMonth(new Date()), 'yyyy-MM-dd')); 
+                                    setPaymentFilter('all'); 
+                                }}
                                 className="w-full h-10"
                             >
                                 Reset Filters
@@ -930,7 +954,12 @@ const InPatientManagement = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+                        {isLoadingDischarged && (
+                            <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-xl">
+                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                            </div>
+                        )}
                         {filteredDischargedPatients.length > 0 ? filteredDischargedPatients.map(p => (
                             <InPatientCard
                                 key={p.id}
