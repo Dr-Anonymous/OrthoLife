@@ -14,6 +14,8 @@ import RichTextEditor from '@/components/RichTextEditor';
 import { CONSENT_RISKS } from '@/utils/consentConstants';
 import { useReactToPrint } from 'react-to-print';
 import { ConsentTemplatePrint } from './ConsentTemplatePrint';
+import { trackEvent } from '@/lib/analytics';
+import { useAuth } from '@/hooks/useAuth';
 import {
     Dialog,
     DialogContent,
@@ -49,6 +51,7 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
     const [focusedIndex, setFocusedIndex] = useState(0);
     const [language, setLanguage] = useState<string>('te');
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const { user } = useAuth();
     const queryClient = useQueryClient();
     const printRef = useRef<HTMLDivElement>(null);
 
@@ -88,6 +91,23 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
 
     const confirmPrint = () => {
         setPrintInfoModalOpen(false);
+        
+        // Log to analytics
+        if (printingTemplate) {
+            trackEvent({
+                eventType: 'consent_template_print',
+                path: window.location.pathname,
+                user_phone: user?.phoneNumber,
+                user_name: user?.displayName,
+                details: {
+                    template_id: printingTemplate.id,
+                    template_name: printingTemplate.name,
+                    patient_name: printInfo.patientName,
+                    is_bulk: printingTemplate.id === 'combined'
+                }
+            });
+        }
+
         // Small timeout to ensure the print component has updated with printInfo if needed (though it's in the same render cycle, sometimes refs need a tick)
         setTimeout(() => {
             handlePrintLaunch();

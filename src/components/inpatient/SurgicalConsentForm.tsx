@@ -16,7 +16,10 @@ import {
     ArrowLeft,
     FileText,
     CheckCircle2,
-    Loader2
+    Loader2,
+    Search,
+    X,
+    ChevronDown
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
@@ -27,21 +30,6 @@ import { calculateAge } from "@/lib/age";
 import { supabase } from '@/integrations/supabase/client';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { auth } from '@/integrations/firebase/client';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from "@/components/ui/dialog";
 import { useQuery } from '@tanstack/react-query';
 import RichTextEditor from '@/components/RichTextEditor';
 import { CONSENT_RISKS } from '@/utils/consentConstants';
@@ -127,6 +115,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     const [isVerifying, setIsVerifying] = useState(false);
 
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const templateSearchRef = useRef<HTMLInputElement>(null);
 
     // Fetch Templates
     const { data: templates } = useQuery({
@@ -141,6 +130,31 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
         },
         enabled: step === 2
     });
+
+    const [templateSearch, setTemplateSearch] = useState('');
+    const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
+    const [focusedTemplateIndex, setFocusedTemplateIndex] = useState(0);
+
+    const filteredTemplates = templates?.filter(t => {
+        const name = t.name.toLowerCase();
+        const queryWords = templateSearch.toLowerCase().split(/\s+/).filter(Boolean);
+        return queryWords.every(word => name.includes(word));
+    });
+
+    // Reset focus when search changes
+    useEffect(() => {
+        setFocusedTemplateIndex(0);
+    }, [templateSearch]);
+
+    // Autofocus search on step 2
+    useEffect(() => {
+        if (step === 2) {
+            // Small timeout to ensure the DOM is ready and any transitions are complete
+            setTimeout(() => {
+                templateSearchRef.current?.focus();
+            }, 100);
+        }
+    }, [step]);
 
     // Aggressive normalization for reliable semantic HTML comparison
     const normalizeHTML = (html: string | undefined | null) => {
@@ -161,6 +175,28 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
             .toLowerCase();
     };
 
+    const handleTemplateKeyDown = (e: React.KeyboardEvent) => {
+        if (!isTemplateDropdownOpen || !filteredTemplates || filteredTemplates.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setFocusedTemplateIndex(prev => (prev + 1) % filteredTemplates.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setFocusedTemplateIndex(prev => (prev - 1 + filteredTemplates.length) % filteredTemplates.length);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const selected = filteredTemplates[focusedTemplateIndex];
+            if (selected) {
+                handleLoadTemplate(selected.id);
+                setIsTemplateDropdownOpen(false);
+                setTemplateSearch('');
+            }
+        } else if (e.key === 'Escape') {
+            setIsTemplateDropdownOpen(false);
+        }
+    };
+
     const handleLoadTemplate = (templateId: string) => {
         const template = templates?.find(t => t.id === templateId);
         if (template) {
@@ -173,10 +209,10 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
             setFormData(prev => {
                 const currentRisks = prev.risks_procedure || '';
                 const normalizedCurrent = normalizeHTML(currentRisks);
-                const isEmpty = !normalizedCurrent || 
-                                normalizedCurrent === '<p></p>' || 
-                                normalizedCurrent === '<p><br></p>' || 
-                                normalizedCurrent === normalizeHTML(defaults.procedure_placeholder);
+                const isEmpty = !normalizedCurrent ||
+                    normalizedCurrent === '<p></p>' ||
+                    normalizedCurrent === '<p><br></p>' ||
+                    normalizedCurrent === normalizeHTML(defaults.procedure_placeholder);
 
                 const headerEn = `Procedure Specific Risks of ${template.name}`;
                 const headerTe = `${template.name} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు`;
@@ -723,22 +759,84 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                 {step === 2 && (
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/30 p-4 rounded-lg border">
-                            <div className="w-full sm:w-1/2">
-                                <Label className="block mb-2 text-xs uppercase text-muted-foreground">Load / Append Template</Label>
-                                <Select onValueChange={handleLoadTemplate}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select one or more templates..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {templates?.length === 0 ? (
-                                            <div className="p-2 text-sm text-muted-foreground text-center">No templates found</div>
-                                        ) : (
-                                            templates?.map(t => (
-                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                            ))
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                            <div className="w-full sm:w-2/3 space-y-2">
+                                <Label className="block text-[10px] sm:text-xs uppercase text-muted-foreground font-bold tracking-wider mb-2">Load / Append Template</Label>
+
+                                <Popover open={isTemplateDropdownOpen} onOpenChange={setIsTemplateDropdownOpen}>
+                                    <PopoverTrigger asChild>
+                                        <div className="relative group cursor-pointer" onClick={() => setIsTemplateDropdownOpen(true)}>
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
+                                            <Input
+                                                ref={templateSearchRef}
+                                                placeholder="Search and select templates..."
+                                                value={templateSearch}
+                                                onChange={(e) => {
+                                                    setTemplateSearch(e.target.value);
+                                                    if (!isTemplateDropdownOpen) setIsTemplateDropdownOpen(true);
+                                                }}
+                                                onKeyDown={handleTemplateKeyDown}
+                                                className="pl-9 pr-10 h-11 bg-background border-primary/10 focus-visible:ring-primary/20 transition-all rounded-xl shadow-sm"
+                                            />
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                                {templateSearch && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setTemplateSearch('');
+                                                        }}
+                                                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                )}
+                                                <ChevronDown className={cn(
+                                                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                                                    isTemplateDropdownOpen && "rotate-180"
+                                                )} />
+                                            </div>
+                                        </div>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        className="p-0 border-primary/10 shadow-2xl rounded-xl overflow-hidden"
+                                        style={{ width: 'var(--radix-popover-trigger-width)' }}
+                                        align="start"
+                                        onOpenAutoFocus={(e) => e.preventDefault()}
+                                    >
+                                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                            {!filteredTemplates || filteredTemplates.length === 0 ? (
+                                                <div className="p-8 text-sm text-muted-foreground text-center flex flex-col items-center gap-2">
+                                                    <Search className="w-10 h-10 opacity-10" />
+                                                    <p>No matching templates found</p>
+                                                    {templateSearch && <p className="text-xs opacity-60">Try different keywords</p>}
+                                                </div>
+                                            ) : (
+                                                <div className="p-1">
+                                                    {filteredTemplates.map((t, index) => (
+                                                        <button
+                                                            key={t.id}
+                                                            onClick={() => {
+                                                                handleLoadTemplate(t.id);
+                                                                setIsTemplateDropdownOpen(false);
+                                                                setTemplateSearch('');
+                                                            }}
+                                                            className={cn(
+                                                                "w-full flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg text-left transition-colors group",
+                                                                focusedTemplateIndex === index ? "bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-primary/5"
+                                                            )}
+                                                        >
+                                                            <span className={cn(
+                                                                "font-semibold text-sm transition-colors",
+                                                                focusedTemplateIndex === index ? "text-primary" : "group-hover:text-primary"
+                                                            )}>{t.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                         </div>
 

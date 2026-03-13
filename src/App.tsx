@@ -45,6 +45,7 @@ const PharmacySupplierPage = lazy(() => import("./pages/PharmacySupplierPage"));
 const PharmacyAuthGuard = lazy(() => import("./components/PharmacyAuthGuard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const InPatientManagement = lazy(() => import("./pages/InPatientManagement"));
+const ConsentAuthGuard = lazy(() => import("./components/ConsentAuthGuard"));
 const PublicConsentVerification = lazy(() => import("./pages/PublicConsentVerification"));
 const JointReplacementPage = lazy(() => import("./pages/services/JointReplacementPage"));
 const ArthroscopyPage = lazy(() => import("./pages/services/ArthroscopyPage"));
@@ -173,7 +174,14 @@ const App = () => {
                   <Route path="/d" element={<DischargeSummaryDownload />} />
                   <Route path="/consent-verify/:id" element={<PublicConsentVerification />} />
                   <Route path="/smm" element={<SocialMediaManager />} />
-                  <Route path="/consents" element={<ConsentManagementPage />} />
+                  <Route 
+                    path="/consents" 
+                    element={
+                      <ConsentAuthGuard>
+                        <ConsentManagementPage />
+                      </ConsentAuthGuard>
+                    } 
+                  />
 
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

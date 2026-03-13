@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header';
+import { cn } from "@/lib/utils";
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -19,12 +20,12 @@ const AnalyticsPage = () => {
   const [monthlyViewType, setMonthlyViewType] = useState<'date' | 'user'>('date');
 
   const processedTrails = useMemo(() => {
-    const pageViewEvents = analyticsData.filter(d => d.event_type === 'page_view' && d.user_phone);
-    if (pageViewEvents.length === 0) {
+    const relevantEvents = analyticsData.filter(d => d.user_phone);
+    if (relevantEvents.length === 0) {
       return {};
     }
 
-    return pageViewEvents.reduce((acc, activity) => {
+    return relevantEvents.reduce((acc, activity) => {
       const date = format(new Date(activity.created_at), 'yyyy-MM-dd');
       const userKey = `${activity.user_name || 'Unknown'} (${activity.user_phone})`;
 
@@ -144,6 +145,14 @@ const AnalyticsPage = () => {
         return acc;
       }, {});
 
+    const consentPrints = analyticsData
+      .filter(d => d.event_type === 'consent_template_print')
+      .reduce((acc, curr) => {
+        const name = curr.details?.template_name || 'Unknown';
+        acc[name] = (acc[name] || 0) + 1;
+        return acc;
+      }, {});
+
     const formatDataForChart = (data: Record<string, number>) => {
       return Object.entries(data)
         .map(([name, value]) => ({ name, value }))
@@ -159,6 +168,7 @@ const AnalyticsPage = () => {
       testCartAdds: formatDataForChart(testCartAdds),
       medicinePurchases: formatDataForChart(medicinePurchases),
       testPurchases: formatDataForChart(testPurchases),
+      consentPrints: formatDataForChart(consentPrints),
     };
   }, [analyticsData]);
 
@@ -355,6 +365,7 @@ const AnalyticsPage = () => {
           {!loading && !error && processedData && (
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 animate-scale-in">
               {renderChart(processedData.pageViews, 'Page Views', 'value')}
+              {renderChart(processedData.consentPrints, 'Most Printed Consents', 'value')}
               {renderChart(processedData.popularBlogPosts, 'Popular Blog Posts', 'value')}
               {renderChart(processedData.popularGuides, 'Popular Patient Guides', 'value')}
               {renderChart(processedData.medicineCartAdds, 'Top Medicines (Cart)', 'value')}
@@ -370,20 +381,46 @@ const AnalyticsPage = () => {
   );
 };
 
-const Trail = ({ trail }: { trail: any[] }) => (
-  <div className="flex flex-wrap items-center gap-2 text-sm">
-    {trail.map((activity, index) => (
-      <React.Fragment key={activity.created_at}>
-        <div className="group relative flex items-center bg-muted/50 hover:bg-primary/5 border border-transparent hover:border-primary/20 rounded-full px-3 py-1 transition-colors duration-200">
-          <span className="font-medium text-foreground/80 group-hover:text-primary transition-colors">{activity.path}</span>
-          <span className="ml-2 text-[10px] text-muted-foreground group-hover:text-primary/70 border-l border-muted-foreground/20 pl-2">
-            {format(new Date(activity.created_at), 'p')}
-          </span>
-        </div>
-        {index < trail.length - 1 && <ArrowRight className="w-3 h-3 text-muted-foreground/40" />}
-      </React.Fragment>
-    ))}
-  </div>
-);
+const Trail = ({ trail }: { trail: any[] }) => {
+  const getLabel = (activity: any) => {
+    switch (activity.event_type) {
+      case 'page_view':
+        return activity.path;
+      case 'consent_portal_access':
+        return 'Accessed Consent Portal';
+      case 'consent_template_print':
+        return `Printed ${activity.details?.template_name || 'Consent'}`;
+      case 'add_to_cart':
+        return `Cart: ${activity.details?.medicineName || activity.details?.testName || 'Item'}`;
+      case 'purchase':
+        return 'Completed Purchase';
+      default:
+        return activity.event_type;
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      {trail.map((activity, index) => (
+        <React.Fragment key={activity.created_at}>
+          <div className={cn(
+            "group relative flex items-center border rounded-full px-3 py-1 transition-all duration-200 shadow-sm",
+            activity.event_type === 'consent_template_print' 
+              ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" 
+              : activity.event_type === 'consent_portal_access'
+              ? "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+              : "bg-muted/50 border-transparent hover:bg-primary/5 hover:border-primary/20"
+          )}>
+            <span className="font-medium truncate max-w-[200px]">{getLabel(activity)}</span>
+            <span className="ml-2 text-[10px] opacity-60 border-l border-current/20 pl-2">
+              {format(new Date(activity.created_at), 'p')}
+            </span>
+          </div>
+          {index < trail.length - 1 && <ArrowRight className="w-3 h-3 text-muted-foreground/40" />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+};
 
 export default AnalyticsPage;
