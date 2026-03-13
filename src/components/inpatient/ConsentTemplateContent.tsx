@@ -53,13 +53,13 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
     const printRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (viewMode === 'list') {
+        if (viewMode === 'list' && !printInfoModalOpen) {
             const timer = setTimeout(() => {
                 searchInputRef.current?.focus();
             }, 100);
             return () => clearTimeout(timer);
         }
-    }, [viewMode]);
+    }, [viewMode, printInfoModalOpen]);
 
     useEffect(() => {
         if (viewMode === 'list' && filteredTemplates && filteredTemplates.length > 0) {
@@ -160,9 +160,11 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
         }
     });
 
-    const filteredTemplates = templates?.filter(template => 
-        template.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredTemplates = templates?.filter(template => {
+        const name = template.name.toLowerCase();
+        const queryWords = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+        return queryWords.every(word => name.includes(word));
+    });
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (viewMode !== 'list' || !filteredTemplates || filteredTemplates.length === 0 || printInfoModalOpen) return;
@@ -388,7 +390,7 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
                                                 risks_procedure_te: CONSENT_RISKS.te.procedure_placeholder
                                             });
                                             setViewMode('edit');
-                                        }} className="rounded-full px-8">Create First Template</Button>
+                                        }} className="rounded-full px-8">Create Template</Button>
                                     )}
                                 </div>
                             ) : (

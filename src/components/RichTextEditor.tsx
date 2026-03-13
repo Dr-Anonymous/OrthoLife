@@ -12,7 +12,7 @@ import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Pilcrow, Table as TableIcon, Trash, CornerUpLeft, CornerUpRight, Columns, Rows } from 'lucide-react';
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, Heading2, Minus, Strikethrough, Quote, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Pilcrow, Table as TableIcon, Trash, CornerUpLeft, CornerUpRight, Columns, Rows, List, ListOrdered } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,31 +40,33 @@ interface RichTextEditorProps {
  */
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange, toolbarClassName }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extensions = React.useMemo(() => [
+    StarterKit.configure({
+      heading: {
+        levels: [2, 3],
+      },
+    }),
+    BubbleMenuExtension.configure({
+      pluginKey: 'imageBubbleMenu',
+    }),
+    Underline,
+    CustomImage,
+    TextStyle,
+    Color,
+    Link.configure({
+      openOnClick: false,
+      autolink: true,
+    }),
+    Table.configure({
+      resizable: true,
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
+  ], []);
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [2, 3],
-        },
-      }),
-      BubbleMenuExtension.configure({
-        pluginKey: 'imageBubbleMenu',
-      }),
-      Underline,
-      CustomImage,
-      TextStyle,
-      Color,
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-      }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-    ],
+    extensions,
     content: content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -75,6 +77,42 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange, tool
       },
     }
   });
+
+  const lastContentRef = useRef(content);
+
+  // Helper to normalize HTML for comparison
+  const isEquivalent = (a: string, b: string) => {
+    const normalize = (html: string) => {
+      if (!html || html === '<p></p>' || html === '<p></p>\n') return '';
+      // Remove all whitespace and common artifacts for robust comparison
+      return html.trim().replace(/\s+/g, ' ').replace(/>\s+</g, '><');
+    };
+    return normalize(a) === normalize(b);
+  };
+
+  // 1. Initial history clear on mount - using a type-safe approach or suppressing
+  React.useEffect(() => {
+    if (editor) {
+      // @ts-ignore - clearHistory is available at runtime from StarterKit's history extension
+      if (typeof editor.commands.clearHistory === 'function') {
+        // @ts-ignore
+        editor.commands.clearHistory();
+      }
+    }
+  }, [editor]);
+
+  // 2. Sync from props only when not focused
+  React.useEffect(() => {
+    if (editor && !editor.isFocused && !isEquivalent(content, editor.getHTML())) {
+      editor.commands.setContent(content, { emitUpdate: false });
+      // @ts-ignore
+      if (typeof editor.commands.clearHistory === 'function') {
+        // @ts-ignore
+        editor.commands.clearHistory();
+      }
+    }
+    lastContentRef.current = content;
+  }, [content, editor]);
 
   const setLink = () => {
     if (!editor) return;
@@ -101,13 +139,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange, tool
       editor.chain().focus().setImage({ src: url }).run();
     }
   };
-
-  // Update editor content when content prop changes (e.g., loading template)
-  React.useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
-    }
-  }, [content, editor]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -144,6 +175,27 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange, tool
   return (
     <div className="border rounded-md">
       <div className={cn("p-2 border-b flex items-center flex-wrap gap-1 sticky top-[104px] bg-background z-40", toolbarClassName)}>
+        <Button
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          variant="ghost"
+          size="sm"
+          type="button"
+          title="Undo"
+        >
+          <CornerUpLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          variant="ghost"
+          size="sm"
+          type="button"
+          title="Redo"
+        >
+          <CornerUpRight className="h-4 w-4" />
+        </Button>
+        <div className="w-[1px] h-6 bg-border mx-1" />
         <Button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
@@ -200,6 +252,24 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange, tool
         </Button>
         <Button onClick={setLink} variant={editor.isActive('link') ? 'secondary' : 'ghost'} size="sm" type="button" title="Link">
           <LinkIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'}
+          size="sm"
+          type="button"
+          title="Bullet List"
+        >
+          <List className="h-4 w-4" />
+        </Button>
+        <Button
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'}
+          size="sm"
+          type="button"
+          title="Ordered List"
+        >
+          <ListOrdered className="h-4 w-4" />
         </Button>
         <Button
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
