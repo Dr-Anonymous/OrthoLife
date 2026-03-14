@@ -200,6 +200,7 @@ const ConsultationPage = () => {
 
   // UI State
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
+  const recentlyHandledIds = useRef<Set<string | number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
 
   const [consultationLanguage, setConsultationLanguage] = useState<string>('te');
@@ -571,7 +572,19 @@ const ConsultationPage = () => {
     }
   }, [fetchConsultations, selectedHospital.name]);
 
-  const hydrateInsertedConsultation = useCallback(async (id: string | number) => {
+  const hydrateInsertedConsultation = useCallback(async (
+    id: string | number,
+    options?: { force?: boolean }
+  ) => {
+    // Optimization: Skip if we just registered this or it's already in list
+    if (!options?.force && recentlyHandledIds.current.has(id)) return null;
+
+    if (!recentlyHandledIds.current.has(id)) {
+      recentlyHandledIds.current.add(id);
+      // Clean up after 10 seconds
+      setTimeout(() => recentlyHandledIds.current.delete(id), 10000);
+    }
+
     try {
       const { data, error } = await supabase
         .from('consultations')
@@ -579,12 +592,12 @@ const ConsultationPage = () => {
         .eq('id', id)
         .single();
 
-      if (error || !data) return;
+      if (error || !data) return null;
 
       // Ensure the new record belongs to the currently viewed date
       const dataDate = format(new Date(data.created_at), 'yyyy-MM-dd');
       const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
-      if (dataDate !== viewDate) return;
+      if (dataDate !== viewDate) return null;
 
       setAllConsultations(prev => {
         const exists = prev.some(c => c.id === data.id);
@@ -597,8 +610,11 @@ const ConsultationPage = () => {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       });
+
+      return data;
     } catch (err) {
       console.error('Failed to hydrate inserted consultation:', err);
+      return null;
     }
   }, [selectedDate]);
 
@@ -1936,15 +1952,58 @@ const ConsultationPage = () => {
           <div className="py-4">
             <ConsultationRegistration
               location={selectedHospital.name}
-              onSuccess={(newConsultation, consultationData) => {
+              onSuccess={async (newConsultation, consultationData) => {
                 setIsRegistrationModalOpen(false);
+                
+                // If we don't have patient data, hydrate first to avoid null access
+                if (newConsultation?.id && !newConsultation.patient && !String(newConsultation.patient_id).startsWith('offline-')) {
+                  const hydrated = await hydrateInsertedConsultation(newConsultation.id, { force: true });
+                  if (hydrated) {
+                    const consultationToSelect = { ...hydrated };
+                    if (consultationData) {
+                      consultationToSelect.consultation_data = {
+                        ...(consultationToSelect.consultation_data || {}),
+                        ...consultationData
+                      };
+                    }
+                    confirmSelection(consultationToSelect);
+                  }
+                  return;
+                }
+
+                // Track ID to prevent WebSocket redundant fetch (only when already hydrated)
+                if (newConsultation.id) {
+                  recentlyHandledIds.current.add(newConsultation.id);
+                  // Clean up after 10 seconds
+                  setTimeout(() => recentlyHandledIds.current.delete(newConsultation.id), 10000);
+                }
+
                 if (String(newConsultation.patient_id).startsWith('offline-')) {
                   setAllConsultations(prev => [newConsultation, ...prev]);
-                  confirmSelection(newConsultation); // Use confirmSelection to ensure extraData is populated
-                  // setPendingSyncIds handled globally by scanning store
+                  confirmSelection(newConsultation); 
                 } else if (selectedDate) {
-                  // Pass language from newConsultation if available
-                  fetchConsultations(selectedDate, newConsultation.patient_id, consultationData, newConsultation.language);
+                  // Ensure the new record belongs to the currently viewed date
+                  const dataDate = format(new Date(newConsultation.created_at), 'yyyy-MM-dd');
+                  const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
+                  if (dataDate !== viewDate) return;
+
+                  // Optimization: Update list locally instead of full re-fetch
+                  setAllConsultations(prev => {
+                    const exists = prev.some(c => c.id === newConsultation.id);
+                    if (exists) return prev;
+                    return [newConsultation, ...prev];
+                  });
+                  
+                  // Ensure data is merged if provided
+                  const consultationToSelect = { ...newConsultation };
+                  if (consultationData) {
+                    consultationToSelect.consultation_data = {
+                      ...(consultationToSelect.consultation_data || {}),
+                      ...consultationData
+                    };
+                  }
+                  
+                  confirmSelection(consultationToSelect);
                 }
               }}
             />

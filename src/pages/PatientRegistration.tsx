@@ -37,6 +37,7 @@ const PatientRegistration = () => {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const recentlyHandledIds = useRef<Set<string | number>>(new Set());
 
   const getLocationName = () => {
     const path = location.pathname.toLowerCase();
@@ -160,7 +161,7 @@ const PatientRegistration = () => {
       if (isOnline) {
         // 2. Fetch Fresh Server Data
         const { data, error } = await supabase.functions.invoke('get-consultations', {
-          body: { date: selectedDateStr },
+          body: { date: selectedDateStr, hospital: locationName },
         });
 
         if (error) throw error;
@@ -190,13 +191,28 @@ const PatientRegistration = () => {
     } finally {
       setIsFetchingConsultations(false);
     }
-  }, [selectedDate, isOnline]);
+  }, [selectedDate, isOnline, locationName]);
 
   useEffect(() => {
     fetchTodaysConsultations();
   }, [fetchTodaysConsultations]);
 
-  const hydrateInsertedConsultation = useCallback(async (id: string | number) => {
+  const hydrateInsertedConsultation = useCallback(async (
+    id: string | number,
+    options?: { force?: boolean }
+  ) => {
+    // Optimization: Skip if we just registered this or it's already in list
+    if (!options?.force && recentlyHandledIds.current.has(id)) return;
+
+    if (!recentlyHandledIds.current.has(id)) {
+      recentlyHandledIds.current.add(id);
+      // Clean up after 10 seconds
+      setTimeout(() => recentlyHandledIds.current.delete(id), 10000);
+    }
+    
+    // We can't check todaysConsultations without it being a dependency, 
+    // but the ID set check usually covers the race condition.
+    
     try {
       const { data, error } = await supabase
         .from('consultations')
@@ -226,6 +242,41 @@ const PatientRegistration = () => {
       console.error('Failed to hydrate inserted consultation (registration):', err);
     }
   }, [selectedDate]);
+
+  const handleRegistrationSuccess = useCallback(async (newConsultation: any) => {
+    if (!newConsultation) return;
+    
+    // If we don't have patient data, hydrate first to avoid null access
+    if (newConsultation?.id && !newConsultation.patient && !String(newConsultation.patient_id).startsWith('offline-')) {
+      await hydrateInsertedConsultation(newConsultation.id, { force: true });
+      return;
+    }
+
+    // Track ID to prevent WebSocket redundant fetch (only when already hydrated)
+    if (newConsultation.id) {
+      recentlyHandledIds.current.add(newConsultation.id);
+      // Clean up after 10 seconds
+      setTimeout(() => recentlyHandledIds.current.delete(newConsultation.id), 10000);
+    }
+
+    // Ensure the new record belongs to the currently viewed date
+    const dataDate = format(new Date(newConsultation.created_at), 'yyyy-MM-dd');
+    const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
+    if (dataDate !== viewDate) return;
+
+    setTodaysConsultations(prev => {
+      const exists = prev.some(c => c.id === newConsultation.id);
+      if (exists) {
+        return prev.map(c => (c.id === newConsultation.id ? newConsultation : c));
+      }
+      
+      const newList = [newConsultation, ...prev];
+      // Keep sorted by created_at DESC
+      return [...newList].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    });
+  }, [selectedDate, hydrateInsertedConsultation]);
 
   // Realtime subscription for instant updates (e.g., from doctor's room or front desk)
   useEffect(() => {
@@ -297,7 +348,7 @@ const PatientRegistration = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            <ConsultationRegistration onSuccess={fetchTodaysConsultations} location={locationName} existingConsultations={filteredConsultations} />
+            <ConsultationRegistration onSuccess={handleRegistrationSuccess} location={locationName} existingConsultations={filteredConsultations} />
           </CardContent>
         </Card>
 
@@ -440,7 +491,16 @@ const PatientRegistration = () => {
         patient={editingPatient}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSave={fetchTodaysConsultations}
+        onSave={(updatedPatient) => {
+          // Optimization: Update local state instead of full re-fetch
+          if (updatedPatient) {
+            setTodaysConsultations(prev => prev.map(c => 
+              c.patient?.id === updatedPatient.id ? { ...c, patient: updatedPatient } : c
+            ));
+          } else {
+            fetchTodaysConsultations();
+          }
+        }}
       />
     </div >
   );

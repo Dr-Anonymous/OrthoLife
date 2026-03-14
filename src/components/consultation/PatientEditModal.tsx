@@ -15,7 +15,7 @@ interface PatientEditModalProps {
     patient: Patient | null;
     isOpen: boolean;
     onClose: () => void;
-    onSave: () => void;
+    onSave: (updatedPatient?: Patient) => void;
 }
 
 export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isOpen, onClose, onSave }) => {
@@ -102,7 +102,16 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                 title: 'Patient Updated',
                 description: 'Patient details have been successfully updated.',
             });
-            onSave();
+            const updatedPatient: Patient = {
+                ...patient,
+                name: formData.name,
+                phone: sanitizePhoneNumber(formData.phone),
+                dob: formData.dob,
+                sex: formData.sex,
+                is_dob_estimated: formData.is_dob_estimated,
+                secondary_phone: formData.secondary_phone ? sanitizePhoneNumber(formData.secondary_phone) : null,
+            };
+            onSave(updatedPatient);
             onClose();
         } catch (error) {
             console.error('Error updating patient:', error);
