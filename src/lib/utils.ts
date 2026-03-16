@@ -96,6 +96,15 @@ export function pruneEmptyFields(data: any): any {
         return acc;
       }
 
+      // Special handling for referred_to_list to remove empty strings
+      if (key === 'referred_to_list' && Array.isArray(value)) {
+        const validItems = value.filter((item: any) => typeof item === 'string' && item.trim() !== '');
+        if (validItems.length > 0) {
+          acc[key] = validItems;
+        }
+        return acc;
+      }
+
       // Recursively prune objects
       if (typeof value === 'object') {
         const pruned = pruneEmptyFields(value);

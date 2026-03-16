@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { cleanConsultationData, pruneEmptyFields, cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
+import { fetchRecentHistory, generateAutofillData, calculateLastVisitString } from '@/lib/consultation-history';
 import SavedMedicationsModal from '@/components/consultation/SavedMedicationsModal';
 import KeywordManagementModal, { KeywordPrefillData } from '@/components/consultation/KeywordManagementModal';
 import UnsavedChangesModal from '@/components/consultation/UnsavedChangesModal';
@@ -598,6 +599,26 @@ const ConsultationPage = () => {
       const dataDate = format(new Date(data.created_at), 'yyyy-MM-dd');
       const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
       if (dataDate !== viewDate) return null;
+
+      // --- AUTOFILL RESTORATION LOGIC ---
+      let consultation_data = data.consultation_data;
+      if (!consultation_data || (typeof consultation_data === 'object' && Object.keys(consultation_data).length === 0)) {
+        const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(data.patient_id, data.created_at);
+        consultation_data = generateAutofillData(data, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
+        
+        let referred_by = data.referred_by;
+        if (!referred_by && !data.consultation_data && lastConsultation && lastConsultation.referred_by) {
+            referred_by = lastConsultation.referred_by;
+        }
+
+        const last_visit_date = calculateLastVisitString(lastOpDate, lastDischargeDate);
+        
+        // update memory object before pushing to state
+        data.consultation_data = consultation_data;
+        data.referred_by = referred_by;
+        data.last_visit_date = last_visit_date;
+      }
+      // ----------------------------------------
 
       setAllConsultations(prev => {
         const exists = prev.some(c => c.id === data.id);
