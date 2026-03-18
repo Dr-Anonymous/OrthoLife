@@ -244,7 +244,7 @@ const WhatsAppMe = () => {
         address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${waLinkPhone}` : `https://wa.me/917093551714?text=${waLinkPhone}`;
         break;
       case 2:
-        address = `sms:+919983849838?body=${waLinkPhone}`;
+        address = `sms:+919983849838?body=+${waLinkPhone}`;
         break;
       default:
         address = "%2F";
