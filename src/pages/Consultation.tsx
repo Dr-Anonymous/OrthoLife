@@ -664,22 +664,26 @@ const ConsultationPage = () => {
           // but filtering locally by ID is safe and cost-free.
           if (eventType !== 'DELETE' && !locationMatch) return;
 
-          console.log(`Realtime ${eventType} detected, handling...`);
-
           if (eventType === 'INSERT') {
             // New record: we must refetch to get nested patient data and full hydration
             if (newRow?.id != null) {
+              if (recentlyHandledIds.current.has(newRow.id)) return;
+              console.log(`Realtime ${eventType} detected, handling...`);
               hydrateInsertedConsultation(newRow.id);
             }
           } 
           else if (eventType === 'UPDATE') {
             // Data change: update local state instantly to save egress
+            if (newRow?.id != null && recentlyHandledIds.current.has(newRow.id)) return;
+            console.log(`Realtime ${eventType} detected, handling...`);
+
             setAllConsultations(prev => prev.map(c => 
               c.id === newRow.id ? { ...c, ...newRow } : c
             ));
           } 
           else if (eventType === 'DELETE') {
             // Removal: filter out locally
+            console.log(`Realtime ${eventType} detected, handling...`);
             setAllConsultations(prev => prev.filter(c => c.id !== oldRow.id));
           }
         }
@@ -879,6 +883,11 @@ const ConsultationPage = () => {
       };
 
       // 2. PRIMARY WRITE: IndexedDB (offlineStore)
+      if (selectedConsultation.id) {
+        recentlyHandledIds.current.add(selectedConsultation.id);
+        // Clean up after 10 seconds
+        setTimeout(() => recentlyHandledIds.current.delete(selectedConsultation.id), 10000);
+      }
       await offlineStore.setItem(selectedConsultation.id, offlineBundle);
 
       // 3. INTERNAL STATE UPDATE (Reflect changes immediately)

@@ -303,22 +303,25 @@ const PatientRegistration = () => {
           // but filtering locally by ID is safe and cost-free.
           if (eventType !== 'DELETE' && !locationMatch) return;
 
-          console.log(`Realtime ${eventType} detected in Registration, handling...`);
-
           if (eventType === 'INSERT') {
             // New patient registered: we must refetch to get nested patient data
             if (newRow?.id != null) {
+              if (recentlyHandledIds.current.has(newRow.id)) return;
+              console.log(`Realtime ${eventType} detected in Registration, handling...`);
               hydrateInsertedConsultation(newRow.id);
             }
           } 
           else if (eventType === 'UPDATE') {
             // Status changed or data updated: update local state instantly to save egress
+            if (newRow?.id != null && recentlyHandledIds.current.has(newRow.id)) return;
+            console.log(`Realtime ${eventType} detected in Registration, handling...`);
             setTodaysConsultations(prev => prev.map(c => 
               c.id === newRow.id ? { ...c, ...newRow } : c
             ));
           } 
           else if (eventType === 'DELETE') {
             // Record removed: filter out locally
+            console.log(`Realtime ${eventType} detected in Registration, handling...`);
             setTodaysConsultations(prev => prev.filter(c => c.id !== oldRow.id));
           }
         }
