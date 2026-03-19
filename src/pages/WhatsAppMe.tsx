@@ -192,6 +192,7 @@ const WhatsAppMe = () => {
     }
 
     const waLinkPhone = formatWhatsAppLink(phone);
+    const formattedForText = `+${waLinkPhone}`;
     const message = getMessageForType(e);
 
     // Check if WhatsApp is installed
@@ -221,7 +222,7 @@ const WhatsAppMe = () => {
       // If waLinkPhone has 91 prefix added by us, we might want to keep it or just use sanitized input
       // The requirement was mainly for WhatsApp. SMS usually handles both.
       // Let's use formatWhatsAppLink result which is sanitized + prefix if needed.
-      window.location.href = `sms:${waLinkPhone}?body=${encodedBody}`;
+      window.location.href = `sms:${formattedForText}?body=${encodedBody}`;
     }
   };
 
@@ -237,14 +238,15 @@ const WhatsAppMe = () => {
     }
 
     const waLinkPhone = formatWhatsAppLink(phone);
+    const formattedForText = `+${waLinkPhone}`;
 
     let address;
     switch (e) {
       case 1:
-        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${waLinkPhone}` : `https://wa.me/917093551714?text=${waLinkPhone}`;
+        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedForText}` : `https://wa.me/917093551714?text=${formattedForText}`;
         break;
       case 2:
-        address = `sms:+919983849838?body=+${waLinkPhone}`;
+        address = `sms:+919983849838?body=${formattedForText}`;
         break;
       default:
         address = "%2F";
