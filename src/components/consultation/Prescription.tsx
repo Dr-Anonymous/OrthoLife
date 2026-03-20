@@ -53,6 +53,8 @@ interface PrescriptionProps {
   forceDesktop?: boolean;
   visitType?: string;
   showDoctorProfile?: boolean;
+  showSignSeal?: boolean;
+  onlyMedicationsAndFollowup?: boolean;
   showMargins?: boolean;
 }
 
@@ -67,7 +69,7 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showMargins = true }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, onlyMedicationsAndFollowup = false, showMargins = true }, ref) => {
   const TRANSLATIONS = {
     en: {
       'prescription.advice': 'Advice',
@@ -142,7 +144,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
         <main className="flex-grow space-y-2 pt-1">
           {/* Title */}
           <div className="text-center">
-            <h1 className={cn("text-lg font-bold uppercase tracking-wide text-primary", visitType === 'paid' && "underline decoration-2 underline-offset-4")}>Out-Patient Summary</h1>
+            <h1 className={cn("text-lg font-bold uppercase tracking-wide text-primary", visitType === 'paid' && "underline decoration-2 underline-offset-4")}>
+              {onlyMedicationsAndFollowup ? "Prescription" : "Out-Patient Summary"}
+            </h1>
           </div>
           {/* Patient Info */}
           <section className={cn("border border-border rounded-lg bg-muted/10 break-inside-avoid", forceDesktop ? "p-4 grid grid-cols-2 gap-4" : "p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4")} style={{ pageBreakInside: 'avoid' }}>
@@ -162,7 +166,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
 
           {/* Vitals */}
-          {(consultation.bp || consultation.temperature || consultation.weight || consultation.allergy) && (
+          {(consultation.bp || consultation.temperature || consultation.weight || consultation.allergy) && !onlyMedicationsAndFollowup && (
             <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               {consultation.bp && (
                 <div className="flex items-center">
@@ -192,60 +196,59 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
 
           {/* Medical Info */}
-          <section className="space-y-4">
-            {consultation.complaints && (
-              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1">Complaints:</h3>
-                <p className="whitespace-pre-wrap">{consultation.complaints}</p>
-              </div>
-            )}
-            {consultation.findings && (
-              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1">Findings:</h3>
-                <p className="whitespace-pre-wrap">{consultation.findings}</p>
-              </div>
-            )}
-            {consultation.investigations && (
-              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1">Investigations:</h3>
-                <p className="whitespace-pre-wrap">{consultation.investigations}</p>
-              </div>
-            )}
-            {consultation.diagnosis && (
-              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis:</h3>
-                <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
-              </div>
-            )}
-            {consultation.procedure && (
-              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
-                  <Syringe className="h-4 w-4" />
-                  <span>Procedure Done:</span>
-                </h3>
-                <p className="whitespace-pre-wrap">{consultation.procedure}</p>
-              </div>
-            )}
-            {consultation.advice && (
-              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{t('prescription.advice')}:</span>
-                </h3>
-                <div className="whitespace-pre-wrap">
-                  {consultation.advice.split('\n').map((line, i) => {
-                    if (!line.trim()) return <br key={i} />;
-                    const isGuide = line.toLowerCase().includes('guide');
-                    const displayLine = isGuide ? cleanAdviceLine(line) : line;
-                    // Join with newline by rendering div or just verify <br> behavior?
-                    // whitespace-pre-wrap handles \n but map returns array.
-                    // Better to just return span with newline or div.
-                    return <div key={i}>{displayLine}</div>
-                  })}
+          {!onlyMedicationsAndFollowup && (
+            <section className="space-y-4">
+              {consultation.complaints && (
+                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-heading font-semibold text-primary mb-1">Complaints:</h3>
+                  <p className="whitespace-pre-wrap">{consultation.complaints}</p>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+              {consultation.findings && (
+                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-heading font-semibold text-primary mb-1">Findings:</h3>
+                  <p className="whitespace-pre-wrap">{consultation.findings}</p>
+                </div>
+              )}
+              {consultation.investigations && (
+                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-heading font-semibold text-primary mb-1">Investigations:</h3>
+                  <p className="whitespace-pre-wrap">{consultation.investigations}</p>
+                </div>
+              )}
+              {consultation.diagnosis && (
+                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis:</h3>
+                  <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
+                </div>
+              )}
+              {consultation.procedure && (
+                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
+                    <Syringe className="h-4 w-4" />
+                    <span>Procedure Done:</span>
+                  </h3>
+                  <p className="whitespace-pre-wrap">{consultation.procedure}</p>
+                </div>
+              )}
+              {consultation.advice && (
+                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{t('prescription.advice')}:</span>
+                  </h3>
+                  <div className="whitespace-pre-wrap">
+                    {consultation.advice.split('\n').map((line, i) => {
+                      if (!line.trim()) return <br key={i} />;
+                      const isGuide = line.toLowerCase().includes('guide');
+                      const displayLine = isGuide ? cleanAdviceLine(line) : line;
+                      return <div key={i}>{displayLine}</div>
+                    })}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Medications */}
           {hasMedications && (
@@ -357,6 +360,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
         {/* Footer Group */}
         <div className="mt-auto break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+          {showSignSeal && (
+            <div className="flex justify-end mb-2 mr-4">
+              <div className="relative flex items-center justify-center">
+                <img src="/images/assets/sign.png" alt="Doctor's Signature" className="h-16 w-auto relative z-10" />
+                <div className="absolute opacity-50 z-0" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                  <img src="/images/assets/seal.png" alt="Doctor's Seal" className="h-24 w-32" />
+                </div>
+              </div>
+            </div>
+          )}
           <footer
             className="mt-4 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center bg-white"
             style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}

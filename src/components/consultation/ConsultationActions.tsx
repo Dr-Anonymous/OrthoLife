@@ -21,6 +21,10 @@ interface ConsultationActionsProps {
     onToggleAutoSend?: () => void;
     showDoctorProfile?: boolean;
     onToggleDoctorProfile?: (checked: boolean) => void;
+    showSignSeal?: boolean;
+    onToggleSignSeal?: (checked: boolean) => void;
+    onlyMedicationsAndFollowup?: boolean;
+    onToggleOnlyMeds?: (checked: boolean) => void;
 }
 
 /**
@@ -49,7 +53,11 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     isAutoSendEnabled,
     onToggleAutoSend,
     showDoctorProfile,
-    onToggleDoctorProfile
+    onToggleDoctorProfile,
+    showSignSeal,
+    onToggleSignSeal,
+    onlyMedicationsAndFollowup,
+    onToggleOnlyMeds
 }) => {
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
@@ -127,6 +135,46 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             </div>
                             <p className="text-[10px] text-muted-foreground mt-1">
                                 Include doctor profile in print.
+                            </p>
+                        </div>
+
+                        <div
+                            className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onToggleSignSeal?.(!showSignSeal);
+                            }}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Print Sign & Seal</span>
+                                <Switch
+                                    checked={showSignSeal}
+                                    onCheckedChange={() => { }} // Handled by parent div click
+                                    className="scale-75"
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                                Add digital signature and seal.
+                            </p>
+                        </div>
+
+                        <div
+                            className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onToggleOnlyMeds?.(!onlyMedicationsAndFollowup);
+                            }}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Print Meds & Follow-up Only</span>
+                                <Switch
+                                    checked={onlyMedicationsAndFollowup}
+                                    onCheckedChange={() => { }} // Handled by parent div click
+                                    className="scale-75"
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                                Hide medical notes, show only medications.
                             </p>
                         </div>
 

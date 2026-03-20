@@ -323,14 +323,26 @@ const ConsultationPage = () => {
 
   // Doctor Profile Visibility (Location-Aware)
   const [showDoctorProfile, setShowDoctorProfile] = useState<boolean>(true);
+  const [showSignSeal, setShowSignSeal] = useState<boolean>(false);
+  const [onlyMedicationsAndFollowup, setOnlyMedicationsAndFollowup] = useState<boolean>(false);
 
   // Load profile preference on location change
   useEffect(() => {
     if (selectedHospital.name) {
-      const key = `showDoctorProfile_${selectedHospital.name}`;
-      const stored = localStorage.getItem(key);
-      // Default to true if not set
-      setShowDoctorProfile(stored !== null ? JSON.parse(stored) : true);
+      const profileKey = `showDoctorProfile_${selectedHospital.name}`;
+      const signSealKey = `showSignSeal_${selectedHospital.name}`;
+      const onlyMedsKey = `onlyMedicationsAndFollowup_${selectedHospital.name}`;
+      
+      const storedProfile = localStorage.getItem(profileKey);
+      const storedSignSeal = localStorage.getItem(signSealKey);
+      const storedOnlyMeds = localStorage.getItem(onlyMedsKey);
+      
+      // Default to true for profiles if not set
+      setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
+      // Default to false for sign+seal if not set
+      setShowSignSeal(storedSignSeal !== null ? JSON.parse(storedSignSeal) : false);
+      // Default to false for only meds if not set
+      setOnlyMedicationsAndFollowup(storedOnlyMeds !== null ? JSON.parse(storedOnlyMeds) : false);
     }
   }, [selectedHospital.name]);
 
@@ -338,6 +350,20 @@ const ConsultationPage = () => {
     setShowDoctorProfile(checked);
     if (selectedHospital.name) {
       localStorage.setItem(`showDoctorProfile_${selectedHospital.name}`, JSON.stringify(checked));
+    }
+  };
+
+  const toggleSignSeal = (checked: boolean) => {
+    setShowSignSeal(checked);
+    if (selectedHospital.name) {
+      localStorage.setItem(`showSignSeal_${selectedHospital.name}`, JSON.stringify(checked));
+    }
+  };
+
+  const toggleOnlyMeds = (checked: boolean) => {
+    setOnlyMedicationsAndFollowup(checked);
+    if (selectedHospital.name) {
+      localStorage.setItem(`onlyMedicationsAndFollowup_${selectedHospital.name}`, JSON.stringify(checked));
     }
   };
 
@@ -1842,6 +1868,10 @@ const ConsultationPage = () => {
                   onToggleAutoSend={() => setIsAutoSendEnabled(!isAutoSendEnabled)}
                   showDoctorProfile={showDoctorProfile}
                   onToggleDoctorProfile={toggleDoctorProfile}
+                  showSignSeal={showSignSeal}
+                  onToggleSignSeal={toggleSignSeal}
+                  onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
+                  onToggleOnlyMeds={toggleOnlyMeds}
                 />
               </div>
             ) : (
@@ -1868,6 +1898,8 @@ const ConsultationPage = () => {
               visitType={extraData.visit_type}
               forceDesktop={true}
               showDoctorProfile={showDoctorProfile}
+              showSignSeal={showSignSeal}
+              onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
             />
           )}
         </div>
