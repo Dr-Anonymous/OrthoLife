@@ -239,14 +239,15 @@ const WhatsAppMe = () => {
 
     const waLinkPhone = formatWhatsAppLink(phone);
     const formattedForText = `+${waLinkPhone}`;
+    const encodedPhone = encodeURIComponent(formattedForText);
 
     let address;
     switch (e) {
       case 1:
-        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${formattedForText}` : `https://wa.me/917093551714?text=${formattedForText}`;
+        address = (window as { AndroidClipboard?: unknown }).AndroidClipboard ? `whatsapp://send?phone=917093551714&text=${encodedPhone}` : `https://wa.me/917093551714?text=${encodedPhone}`;
         break;
       case 2:
-        address = `sms:+919983849838?body=${formattedForText}`;
+        address = `sms:+919983849838?body=${encodedPhone}`;
         break;
       default:
         address = "%2F";
