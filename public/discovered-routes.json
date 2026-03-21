@@ -90,12 +90,12 @@
     "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
     "/te/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
     "/te/guides/7",
-    "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
-    "/te/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
-    "/te/guides/4",
     "/te/guides/జాయింట్-ఇంజెక్షన్-తర్వాత-తీసుకోవలసిన-జాగ్రత్తలు-రోగుల-కోసం-మార్గదర్శకాలు",
     "/te/guides/post-injection-care-a-guide-to-recovery-after-joint-injections",
     "/te/guides/16",
+    "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
+    "/te/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
+    "/te/guides/4",
     "/te/guides/చదునైన-పాదాల-సంరక్షణ-ఆరోగ్యకరమైన-పాదాలకు-ప్రభావవంతమైన-వ్యాయామాలు-మరియు-సూచనలు",
     "/te/guides/flat-foot-care-effective-exercises-and-tips-for-healthy-feet",
     "/te/guides/1",
@@ -117,9 +117,6 @@
     "/te/guides/ఆంధ్రప్రదేశ్-మధుమేహ-రోగుల-కోసం-ఆహార-పట్టిక",
     "/te/guides/diabetic-diet-chart-for-andhra-pradesh-patients",
     "/te/guides/6",
-    "/te/guides/acl-పునరావాస-ప్రయాణం-శస్త్రచికిత్స-అనంతర-ప్రోటోకాల్",
-    "/te/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
-    "/te/guides/11",
     "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
     "/te/guides/post-surgery-recovery-what-to-expect",
     "/te/guides/15",
@@ -132,6 +129,9 @@
     "/te/guides/శస్త్రచికిత్స-అనంతర-ఆహారం-శస్త్రచికిత్స-తర్వాత-కోలుకోవడానికి-మీ-మార్గదర్శిని",
     "/te/guides/post-operative-diet-your-guide-to-healing-after-surgery",
     "/te/guides/10",
+    "/te/guides/acl-పునరావాస-ప్రయాణం-శస్త్రచికిత్స-అనంతర-ప్రోటోకాల్",
+    "/te/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
+    "/te/guides/11",
     "/te/guides/బరువు-తగ్గడం",
     "/te/guides/weight-loss-guide",
     "/te/guides/17"
@@ -678,24 +678,6 @@
       "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
     },
     {
-      "route": "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
-      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
-      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
-      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
-    },
-    {
-      "route": "/te/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
-      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
-      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
-      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
-    },
-    {
-      "route": "/te/guides/4",
-      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
-      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
-      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
-    },
-    {
       "route": "/te/guides/జాయింట్-ఇంజెక్షన్-తర్వాత-తీసుకోవలసిన-జాగ్రత్తలు-రోగుల-కోసం-మార్గదర్శకాలు",
       "title": "జాయింట్ ఇంజెక్షన్ తర్వాత తీసుకోవలసిన జాగ్రత్తలు: రోగుల కోసం మార్గదర్శకాలు",
       "description": "మీరు స్టెరాయిడ్, PRP లేదా జెల్ ఇంజెక్షన్ తీసుకున్నారా? త్వరగా కోలుకోవడానికి మరియు ఇంజెక్షన్ పూర్తి ఫలితం పొందడానికి ఈ ముఖ్యమైన సూచనలను పాటించండి.",
@@ -712,6 +694,24 @@
       "title": "జాయింట్ ఇంజెక్షన్ తర్వాత తీసుకోవలసిన జాగ్రత్తలు: రోగుల కోసం మార్గదర్శకాలు",
       "description": "మీరు స్టెరాయిడ్, PRP లేదా జెల్ ఇంజెక్షన్ తీసుకున్నారా? త్వరగా కోలుకోవడానికి మరియు ఇంజెక్షన్ పూర్తి ఫలితం పొందడానికి ఈ ముఖ్యమైన సూచనలను పాటించండి.",
       "image": "https://images.pexels.com/photos/5234476/pexels-photo-5234476.jpeg"
+    },
+    {
+      "route": "/te/guides/ప్లాంటార్-ఫాసియా-వ్యాయామాలు-మడమ-నొప్పి-నివారణకు-ప్రభావవంతమైన-వ్యాయామాలు",
+      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
+      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
+      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
+    },
+    {
+      "route": "/te/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
+      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
+      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
+      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
+    },
+    {
+      "route": "/te/guides/4",
+      "title": "ప్లాంటార్ ఫాసియా వ్యాయామాలు: మడమ నొప్పి నివారణకు ప్రభావవంతమైన వ్యాయామాలు",
+      "description": "సాధారణ రోజువారీ వ్యాయామాలు ప్లాంటార్ ఫాసియా వల్ల కలిగే మడమ నొప్పిని గణనీయంగా తగ్గిస్తాయి. మీ ప్లాంటార్ ఫాసియాను నయం చేయడానికి మరియు పునరావృతం కాకుండా నిరోధించడానికి సులభమైన మరియు ఇంటి వద్దనే చేయగలిగే వ్యాయామాలను నేర్చుకోండి.",
+      "image": "https://images.pexels.com/photos/163535/run-fitness-workout-train-163535.jpeg?cs=srgb&dl=pexels-pixabay-163535.jpg&fm=jpg&w=640&h=457&_gl=1*1edcrtp*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTYzNTE1NjIkbzIkZzEkdDE3NTYzNTE2MDYkajE2JGwwJGgw"
     },
     {
       "route": "/te/guides/చదునైన-పాదాల-సంరక్షణ-ఆరోగ్యకరమైన-పాదాలకు-ప్రభావవంతమైన-వ్యాయామాలు-మరియు-సూచనలు",
@@ -840,24 +840,6 @@
       "image": "https://images.pexels.com/photos/6941101/pexels-photo-6941101.jpeg?cs=srgb&dl=pexels-n-voitkevich-6941101.jpg&fm=jpg&w=640&h=427&_gl=1*1gahef3*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTcxNzEzNTgkbzkkZzEkdDE3NTcxNzE0MDAkajE4JGwwJGgw"
     },
     {
-      "route": "/te/guides/acl-పునరావాస-ప్రయాణం-శస్త్రచికిత్స-అనంతర-ప్రోటోకాల్",
-      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
-      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
-      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
-    },
-    {
-      "route": "/te/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
-      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
-      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
-      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
-    },
-    {
-      "route": "/te/guides/11",
-      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
-      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
-      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
-    },
-    {
       "route": "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
       "title": "శస్త్రచికిత్స తర్వాత కోలుకోవడం: ఏమి ఆశించాలి",
       "description": "ఆర్థోపెడిక్ సర్జరీ తర్వాత కోలుకునే ప్రక్రియ మరియు వైద్యంను ఎలా సానుకూలం చేయాలి అనే దాని గురించి ముఖ్యమైన సమాచారం.",
@@ -928,6 +910,24 @@
       "title": "శస్త్రచికిత్స అనంతర ఆహారం: శస్త్రచికిత్స తర్వాత కోలుకోవడానికి మీ మార్గదర్శిని",
       "description": "శస్త్రచికిత్స తర్వాత మీరు తినే ఆహారం మీ కోలుకోవడంలో కీలకం. ఈ మార్గదర్శిని మీ శరీరం నయం కావడానికి, ఇన్ఫెక్షన్లను నివారించడానికి మరియు శక్తిని తిరిగి పొందడానికి తినవలసిన ఉత్తమ ఆహారాలు మరియు నివారించవలసినవి ఏమిటో వివరిస్తుంది.",
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
+    },
+    {
+      "route": "/te/guides/acl-పునరావాస-ప్రయాణం-శస్త్రచికిత్స-అనంతర-ప్రోటోకాల్",
+      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
+      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
+      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
+    },
+    {
+      "route": "/te/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
+      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
+      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
+      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
+    },
+    {
+      "route": "/te/guides/11",
+      "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
+      "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
+      "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
     },
     {
       "route": "/te/guides/బరువు-తగ్గడం",
