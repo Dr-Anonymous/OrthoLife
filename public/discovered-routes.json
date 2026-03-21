@@ -57,32 +57,32 @@
     "/te/blog/9",
     "/guides/flat-foot-care-effective-exercises-and-tips-for-healthy-feet",
     "/guides/1",
+    "/guides/neck-pain-exercises-effective-stretches-and-strengthening-for-relief",
+    "/guides/12",
     "/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
     "/guides/11",
     "/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
     "/guides/7",
-    "/guides/neck-pain-exercises-effective-stretches-and-strengthening-for-relief",
-    "/guides/12",
     "/guides/diabetic-diet-chart-for-andhra-pradesh-patients",
     "/guides/6",
     "/guides/post-surgery-recovery-what-to-expect",
     "/guides/15",
+    "/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
+    "/guides/9",
     "/guides/managing-high-blood-pressure-essential-diet-for-hypertensive-patients",
     "/guides/8",
     "/guides/knee-strengthening-exercises-a-detailed-patient-guide",
     "/guides/5",
-    "/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
-    "/guides/9",
     "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
     "/guides/4",
     "/guides/back-strengthening-exercises-do-s-and-dont-s",
     "/guides/3",
     "/guides/post-injection-care-a-guide-to-recovery-after-joint-injections",
     "/guides/16",
-    "/guides/post-operative-diet-your-guide-to-healing-after-surgery",
-    "/guides/10",
     "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
     "/guides/2",
+    "/guides/post-operative-diet-your-guide-to-healing-after-surgery",
+    "/guides/10",
     "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
     "/guides/14",
     "/guides/weight-loss-guide",
@@ -480,6 +480,18 @@
       "image": "https://images.unsplash.com/photo-1468616047823-d688c44bf6dd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=danie-franco-jyyNiSEcCl4-unsplash.jpg"
     },
     {
+      "route": "/guides/neck-pain-exercises-effective-stretches-and-strengthening-for-relief",
+      "title": "Neck Pain Exercises: Effective Stretches and Strengthening for Relief",
+      "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery.",
+      "image": "https://images.pexels.com/photos/4506108/pexels-photo-4506108.jpeg?cs=srgb&dl=pexels-karolina-grabowska-4506108.jpg&fm=jpg&w=640&h=960&_gl=1*1l7b9ve*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5OTcxMDYkbzgkZzEkdDE3NTY5OTcxNTckajkkbDAkaDA."
+    },
+    {
+      "route": "/guides/12",
+      "title": "Neck Pain Exercises: Effective Stretches and Strengthening for Relief",
+      "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery.",
+      "image": "https://images.pexels.com/photos/4506108/pexels-photo-4506108.jpeg?cs=srgb&dl=pexels-karolina-grabowska-4506108.jpg&fm=jpg&w=640&h=960&_gl=1*1l7b9ve*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5OTcxMDYkbzgkZzEkdDE3NTY5OTcxNTckajkkbDAkaDA."
+    },
+    {
       "route": "/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
       "title": "The ACL Rehab Journey: A Complete Post-Operative Protocol",
       "description": "This guide outlines a typical timeline and the goals, exercises, and milestones for each phase, from the day after surgery to a full year later.",
@@ -502,18 +514,6 @@
       "title": "Navigating Life with a Plaster Cast: Essential Care and Tips",
       "description": "A broken bone is a temporary setback, but proper cast care is crucial for a smooth recovery. Learn essential tips for living with a plaster cast, including how to keep it dry, manage itching, and spot red flags that need a doctor's attention.",
       "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
-    },
-    {
-      "route": "/guides/neck-pain-exercises-effective-stretches-and-strengthening-for-relief",
-      "title": "Neck Pain Exercises: Effective Stretches and Strengthening for Relief",
-      "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery.",
-      "image": "https://images.pexels.com/photos/4506108/pexels-photo-4506108.jpeg?cs=srgb&dl=pexels-karolina-grabowska-4506108.jpg&fm=jpg&w=640&h=960&_gl=1*1l7b9ve*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5OTcxMDYkbzgkZzEkdDE3NTY5OTcxNTckajkkbDAkaDA."
-    },
-    {
-      "route": "/guides/12",
-      "title": "Neck Pain Exercises: Effective Stretches and Strengthening for Relief",
-      "description": "Simple and effective neck exercises to relieve stiffness, improve posture, and strengthen neck muscles. Safe movements designed for patients with chronic neck pain, desk workers, and post-injury recovery.",
-      "image": "https://images.pexels.com/photos/4506108/pexels-photo-4506108.jpeg?cs=srgb&dl=pexels-karolina-grabowska-4506108.jpg&fm=jpg&w=640&h=960&_gl=1*1l7b9ve*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY5OTcxMDYkbzgkZzEkdDE3NTY5OTcxNTckajkkbDAkaDA."
     },
     {
       "route": "/guides/diabetic-diet-chart-for-andhra-pradesh-patients",
@@ -540,6 +540,18 @@
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
     },
     {
+      "route": "/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
+      "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
+      "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution.",
+      "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    },
+    {
+      "route": "/guides/9",
+      "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
+      "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution.",
+      "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    },
+    {
       "route": "/guides/managing-high-blood-pressure-essential-diet-for-hypertensive-patients",
       "title": "Managing High Blood Pressure: Essential Diet for Hypertensive Patients",
       "description": "Discover the best dietary strategies to control high blood pressure. Learn about foods to eat and avoid, and how a heart-healthy diet can improve your hypertension.",
@@ -562,18 +574,6 @@
       "title": "Knee Strengthening Exercises: A Detailed Patient Guide",
       "description": "Learn how to strengthen the muscles around your knee (quads, hamstrings, glutes, calves) with this comprehensive guide. Includes step-by-step instructions for effective exercises and recommendations for specific knee conditions like ACL tear, PCL tear, and arthritis.",
       "image": "https://images.pexels.com/photos/7894601/pexels-photo-7894601.jpeg?cs=srgb&dl=pexels-mart-production-7894601.jpg&fm=jpg&w=640&h=960&_gl=1*322bzb*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTY0Nzk4NTgkbzQkZzEkdDE3NTY0Nzk4NzgkajQwJGwwJGgw"
-    },
-    {
-      "route": "/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
-      "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
-      "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution.",
-      "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-    },
-    {
-      "route": "/guides/9",
-      "title": "Hypothyroidism Diet: Fueling Your Body for Optimal Thyroid Health",
-      "description": "Learn about the best diet for hypothyroidism patients to support thyroid function and manage symptoms. Discover foods that help and those to approach with caution.",
-      "image": "https://plus.unsplash.com/premium_photo-1661544732462-04520898ed72?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     },
     {
       "route": "/guides/plantar-fascia-exercises-effective-stretches-and-strengthening-for-heel-pain-relief",
@@ -612,18 +612,6 @@
       "image": "https://images.pexels.com/photos/5234476/pexels-photo-5234476.jpeg"
     },
     {
-      "route": "/guides/post-operative-diet-your-guide-to-healing-after-surgery",
-      "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
-      "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy.",
-      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
-    },
-    {
-      "route": "/guides/10",
-      "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
-      "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy.",
-      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
-    },
-    {
       "route": "/guides/best-diet-for-gout-patients-foods-to-eat-and-avoid",
       "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
       "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right diet (low purine) can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
@@ -634,6 +622,18 @@
       "title": "Best Diet for Gout Patients: Foods to Eat and Avoid",
       "description": "Gout is a painful form of arthritis caused by excess uric acid in the body. The right diet (low purine) can help reduce flare-ups, manage uric acid levels, and improve overall joint health.",
       "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+    },
+    {
+      "route": "/guides/post-operative-diet-your-guide-to-healing-after-surgery",
+      "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
+      "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy.",
+      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
+    },
+    {
+      "route": "/guides/10",
+      "title": "Post-Operative Diet: Your Guide to Healing After Surgery",
+      "description": "What you eat after surgery is key to your recovery. This guide covers the best foods to eat and what to avoid to help your body heal, fight infection, and regain energy.",
+      "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
     },
     {
       "route": "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
