@@ -149,6 +149,7 @@ const ConsultationPage = () => {
     referred_by: '',
     referral_amount: '',
     visit_type: 'paid', // default
+    affordabilityPreference: 'none',
   });
 
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
@@ -1465,13 +1466,17 @@ const ConsultationPage = () => {
     // Logic: Only show protocol-matched medications.
     const finalMedications = medications;
 
+    const currentlyAddedMedIds = new Set(extraData.medications.map(m => m.savedMedicationId).filter(Boolean));
     const currentlyAddedMedNames = new Set(extraData.medications.map(m => (m.name || '').toLowerCase()));
 
     return {
       suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s)),
       suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.includes(s)),
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s)),
-      suggestedMedications: finalMedications.filter(m => !currentlyAddedMedNames.has((m.name || '').toLowerCase()))
+      suggestedMedications: finalMedications.filter(m =>
+        !currentlyAddedMedIds.has(m.id) &&
+        !currentlyAddedMedNames.has((m.name || '').toLowerCase())
+      )
     };
   }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
 
@@ -1771,6 +1776,9 @@ const ConsultationPage = () => {
                   addMedication={addMedication}
                   suggestedMedications={suggestedMedications}
                   handleMedicationSuggestionClick={handleMedicationSuggestionClick}
+                  currentLocation={selectedHospital?.name}
+                  affordabilityPreference={extraData.affordabilityPreference}
+                  onAffordabilityChange={(val) => handleExtraChange('affordabilityPreference', val)}
                 />
 
                 <FollowUpSection

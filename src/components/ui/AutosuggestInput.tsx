@@ -2,9 +2,11 @@ import React, { useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 
-interface Suggestion {
+export interface Suggestion {
   id: string;
   name: string;
+  label?: string;
+  isBrand?: boolean;
 }
 
 interface AutosuggestInputProps {
@@ -35,9 +37,10 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
     onChange(inputValue);
 
     if (inputValue.length > 0) {
-      const filtered = suggestions.filter(suggestion =>
-        suggestion.name.toLowerCase().includes(inputValue.toLowerCase())
-      );
+      const filtered = suggestions.filter(suggestion => {
+        const searchTarget = suggestion.label || suggestion.name;
+        return searchTarget.toLowerCase().includes(inputValue.toLowerCase());
+      });
       setFilteredSuggestions(filtered);
       setIsSuggestionsVisible(true);
     } else {
@@ -90,16 +93,19 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
         {...inputProps}
       />
       {isSuggestionsVisible && filteredSuggestions.length > 0 && (
-        <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg">
+        <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg max-h-[300px] overflow-y-auto">
           <ul>
             {filteredSuggestions.map((suggestion, index) => (
               <li
-                key={suggestion.id}
+                key={`${suggestion.id}-${suggestion.name}-${index}`}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className={`p-2 cursor-pointer ${index === activeSuggestionIndex ? 'bg-muted' : 'hover:bg-muted'
-                  }`}
+                className={`p-2 cursor-pointer transition-colors ${index === activeSuggestionIndex ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'
+                  } ${suggestion.isBrand ? 'pl-6 text-sm italic' : 'font-semibold'}`}
               >
-                {suggestion.name}
+                <div className="flex items-center gap-2">
+                  {suggestion.isBrand && <span className="text-muted-foreground">↳</span>}
+                  <span>{suggestion.label || suggestion.name}</span>
+                </div>
               </li>
             ))}
           </ul>

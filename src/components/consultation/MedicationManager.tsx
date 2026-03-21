@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Stethoscope, Plus } from 'lucide-react';
 import { SortableMedicationItem } from '@/components/consultation/SortableMedicationItem';
 import { Medication } from '@/types/consultation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from '@/hooks/use-toast';
 
 interface MedicationManagerProps {
     medications: Medication[];
@@ -25,6 +27,9 @@ interface MedicationManagerProps {
     addMedication: () => void;
     suggestedMedications: Medication[];
     handleMedicationSuggestionClick: (med: Medication) => void;
+    currentLocation?: string;
+    affordabilityPreference?: string;
+    onAffordabilityChange?: (val: string) => void;
 
     // Referred To Section (Keep passing props for now if colocated, or can separate)
     // Actually the plan said "MedicationManager" extracts the medication list.
@@ -60,7 +65,10 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     addMedication,
     suggestedMedications,
     handleMedicationSuggestionClick,
-    initialMedications
+    initialMedications,
+    currentLocation,
+    affordabilityPreference = 'none',
+    onAffordabilityChange
 }) => {
     // Track previous length to detect additions
     const prevMedicationsLength = React.useRef(medications.length);
@@ -134,6 +142,71 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [addMedication, handleManualAdd]);
 
+
+
+    // Autoswap Engine (Automatic Trigger)
+    React.useEffect(() => {
+        if (currentLocation || affordabilityPreference !== 'none') {
+            handleAutoswap(true); // true means silent if already optimal
+        }
+    }, [currentLocation, affordabilityPreference, savedMedications]);
+
+    const handleAutoswap = (silentIfOptimal = false) => {
+        if (!currentLocation && affordabilityPreference === 'none') {
+            if (!silentIfOptimal) {
+                toast({ title: "No Optimization Criteria", description: "Set a location or cost preference first." });
+            }
+            return;
+        }
+        if (!savedMedications || savedMedications.length === 0) return;
+
+        let updated = false;
+        let swapCount = 0;
+        const newMeds = medicationsRef.current.map(med => {
+            if (!med.savedMedicationId) return med;
+            const savedItem = savedMedications.find(s => s.id === med.savedMedicationId);
+            if (!savedItem || !savedItem.brand_metadata || savedItem.brand_metadata.length === 0) return med;
+
+            // Filter by location
+            let validBrands = savedItem.brand_metadata.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation || ''));
+            // If no location matches, fallback to all (or maybe skip if explicit location required? for now fallback)
+            if (validBrands.length === 0) validBrands = [...savedItem.brand_metadata];
+
+            // Sort by cost
+            if (affordabilityPreference === 'cheap') {
+                validBrands.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+            } else if (affordabilityPreference === 'costly') {
+                validBrands.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+            }
+
+            const bestBrand = validBrands[0];
+            // If the best brand is different from the currently selected brand
+            if (bestBrand && bestBrand.name !== med.brandName) {
+                updated = true;
+                swapCount++;
+                return {
+                    ...med,
+                    brandName: bestBrand.name,
+                    name: bestBrand.name
+                };
+            }
+            return med;
+        });
+
+        if (updated) {
+            setExtraData((prev: any) => ({ ...prev, medications: newMeds }));
+            toast({
+                title: "Medications Optimized",
+                description: `Swapped ${swapCount} medication(s) based on your preferences.`,
+            });
+        } else if (!silentIfOptimal) {
+            toast({
+                title: "Already Optimal",
+                description: "Prescriptions already match your criteria.",
+            });
+        }
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -142,7 +215,21 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                         <Stethoscope className="w-5 h-5 text-primary" />
                         <h3 className="text-lg font-semibold text-foreground">Medications</h3>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    {onAffordabilityChange && (
+                        <div className="flex items-center gap-2 ml-4">
+                            <Select value={affordabilityPreference} onValueChange={onAffordabilityChange}>
+                                <SelectTrigger className="w-[120px] h-8 text-xs">
+                                    <SelectValue placeholder="Cost pref." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Standard</SelectItem>
+                                    <SelectItem value="cheap">Economy</SelectItem>
+                                    <SelectItem value="costly">Premium</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 ml-4">
                         {suggestedMedications.map((med) => (
                             <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)}>
                                 {med.name}

@@ -13,11 +13,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, X, Plus, Save, Trash2, Edit, Search } from 'lucide-react';
+import { Loader2, X, Plus, Save, Trash2, Edit, Search, MapPin } from 'lucide-react';
+import { useHospitals } from '@/context/HospitalsContext';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Medication {
   id?: string;
-  name: string;
+  name: string; // This acts as the generic/composition name now
+  brand_metadata?: { name: string; cost?: number; locations?: string[] }[];
   dose: string;
   freqMorning: boolean;
   freqNoon: boolean;
@@ -49,12 +53,14 @@ interface SavedMedicationsModalProps {
  * - Custom frequency support.
  */
 const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, onClose, onMedicationsUpdate }) => {
+  const { hospitals } = useHospitals();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [isCustom, setIsCustom] = useState(false);
   const [newMed, setNewMed] = useState<Medication>({
     name: '',
+    brand_metadata: [],
     dose: '',
     freqMorning: false,
     freqNoon: false,
@@ -159,7 +165,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     }
   }, [isOpen]);
 
-  const handleInputChange = (field: keyof Medication, value: string | boolean) => {
+  const handleInputChange = (field: keyof Medication, value: any) => {
     setNewMed(prev => ({ ...prev, [field]: value }));
   };
 
@@ -173,6 +179,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     const { error } = isEditing
       ? await supabase.from('saved_medications').update({
         name: newMed.name,
+        brand_metadata: newMed.brand_metadata || [],
         dose: newMed.dose,
         freq_morning: newMed.freqMorning,
         freq_noon: newMed.freqNoon,
@@ -188,6 +195,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
       }).eq('id', isEditing)
       : await supabase.from('saved_medications').insert([{
         name: newMed.name,
+        brand_metadata: newMed.brand_metadata || [],
         dose: newMed.dose,
         freq_morning: newMed.freqMorning,
         freq_noon: newMed.freqNoon,
@@ -234,7 +242,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const resetForm = () => {
     setIsEditing(null);
-    setNewMed({ name: '', dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', duration_te: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
+    setNewMed({ name: '', brand_metadata: [], dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', duration_te: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
     setIsCustom(false);
   };
 
@@ -248,8 +256,87 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{isEditing ? 'Edit Medication' : 'Add New Medication'}</h3>
             <div className="space-y-2">
-              <Label htmlFor="med-name">Name</Label>
-              <Input id="med-name" value={newMed.name} onChange={e => handleInputChange('name', e.target.value)} />
+              <Label htmlFor="med-name">Name (Composition)</Label>
+              <Input id="med-name" value={newMed.name} onChange={e => handleInputChange('name', e.target.value)} placeholder="e.g. Aceclofenac + Paracetamol" />
+            </div>
+            <div className="space-y-4 border p-4 rounded-md">
+              <div className="flex justify-between items-center">
+                <Label>Brand Metadata</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleInputChange('brand_metadata', [...(newMed.brand_metadata || []), { name: '' }])}
+                >
+                  <Plus className="w-3 h-3 mr-1" /> Add Brand
+                </Button>
+              </div>
+              {(newMed.brand_metadata || []).map((b, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-start mt-2 border-b pb-2">
+                  <div className="col-span-5">
+                    <Input placeholder="Brand name" value={b.name} onChange={e => {
+                        const arr = [...(newMed.brand_metadata || [])];
+                        arr[i].name = e.target.value;
+                        handleInputChange('brand_metadata', arr);
+                    }} />
+                  </div>
+                  <div className="col-span-3">
+                    <Input type="number" placeholder="Cost" value={b.cost?.toString() || ''} onChange={e => {
+                        const arr = [...(newMed.brand_metadata || [])];
+                        arr[i].cost = e.target.value ? Number(e.target.value) : undefined;
+                        handleInputChange('brand_metadata', arr);
+                    }} />
+                  </div>
+                  <div className="col-span-3">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full justify-between px-2 h-10 font-normal">
+                          <span className="truncate">
+                            {b.locations?.length ? `${b.locations.length} locs` : 'All Locs'}
+                          </span>
+                          <MapPin className="w-3 h-3 ml-1 text-muted-foreground shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-2" align="start">
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Select Locations</p>
+                          {hospitals.map(h => (
+                            <div key={h.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`loc-${i}-${h.id}`} 
+                                checked={(b.locations || []).includes(h.name)} 
+                                onCheckedChange={(checked) => {
+                                  const arr = [...(newMed.brand_metadata || [])];
+                                  const currentLocs = arr[i].locations || [];
+                                  if (checked) {
+                                    arr[i].locations = [...currentLocs, h.name];
+                                  } else {
+                                    arr[i].locations = currentLocs.filter(name => name !== h.name);
+                                  }
+                                  handleInputChange('brand_metadata', arr);
+                                }} 
+                              />
+                              <label htmlFor={`loc-${i}-${h.id}`} className="text-xs cursor-pointer truncate">
+                                {h.name}
+                              </label>
+                            </div>
+                          ))}
+                          {hospitals.length === 0 && <p className="text-xs italic text-muted-foreground">No locations found</p>}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="col-span-1 pt-1 justify-self-center">
+                    <Button type="button" variant="ghost" size="icon" className="h-8 text-destructive" onClick={() => {
+                        const arr = [...(newMed.brand_metadata || [])];
+                        arr.splice(i, 1);
+                        handleInputChange('brand_metadata', arr);
+                    }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="space-y-2">
               <Label htmlFor="med-dose">Dose</Label>
@@ -368,10 +455,17 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                 </div>
               ) : (
                 medications
-                  .filter(med => med.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(med => med.name.toLowerCase().includes(searchQuery.toLowerCase()) || (med.brand_metadata && med.brand_metadata.some(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))))
                   .map(med => (
                     <div key={med.id} className="flex items-center justify-between p-2 border rounded-md">
-                      <span className="font-medium">({med.id}) {med.name}</span>
+                      <div>
+                        <span className="font-medium block">{med.name}</span>
+                        {med.brand_metadata && med.brand_metadata.length > 0 && (
+                          <span className="text-xs text-muted-foreground block">
+                            {med.brand_metadata.map(b => `${b.name} (₹${b.cost || '-'})`).join(', ')}
+                          </span>
+                        )}
+                      </div>
                       <div className="space-x-2">
                         <Button variant="ghost" size="icon" onClick={() => startEditing(med)}><Edit className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteMedication(med.id!)}><Trash2 className="w-4 h-4" /></Button>

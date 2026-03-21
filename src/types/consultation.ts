@@ -4,9 +4,19 @@ export interface TextShortcut {
     expansion: string;
 }
 
+export interface BrandMetadata {
+    name: string;
+    cost?: number;
+    locations?: string[];
+}
+
 export interface Medication {
     id: string;
     name: string;
+    brand_metadata?: BrandMetadata[];
+    savedMedicationId?: string;
+    compositionName?: string;
+    brandName?: string;
     dose: string;
     freqMorning: boolean;
     freqNoon: boolean;

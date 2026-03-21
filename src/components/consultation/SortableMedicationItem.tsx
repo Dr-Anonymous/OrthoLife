@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import AutosuggestInput from '@/components/ui/AutosuggestInput';
+import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { GripVertical, Loader2, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -87,7 +87,11 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
         setIsCustom(!!med.frequency);
     }, [med.frequency]);
 
-    const isFavorite = savedMedications.some(savedMed => (savedMed.name || '').toLowerCase() === (med.name || '').toLowerCase());
+    const isFavorite = savedMedications.some(savedMed => {
+        const nameMatches = (savedMed.name || '').toLowerCase() === (med.name || '').toLowerCase();
+        const brandMatches = (savedMed.brand_metadata || []).some(b => b.name.toLowerCase() === (med.name || '').toLowerCase());
+        return nameMatches || brandMatches;
+    });
 
     const handleFavoriteClick = async () => {
         if (!med.name) {
@@ -190,19 +194,43 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 ref={medicationNameInputRef}
                                 value={med.name || ''}
                                 onChange={value => handleMedChange(index, 'name', value)}
-                                suggestions={savedMedications.map(m => ({ id: m.id, name: m.name }))}
+                                suggestions={savedMedications.flatMap(m => {
+                                    const items: Suggestion[] = [{ id: m.id!, name: m.name, label: m.name }];
+                                    if (m.brand_metadata && m.brand_metadata.length > 0) {
+                                        m.brand_metadata.forEach(brand => {
+                                            items.push({
+                                                id: m.id!,
+                                                name: brand.name,
+                                                label: brand.cost ? `${brand.name} (₹${brand.cost})` : brand.name,
+                                                isBrand: true
+                                            });
+                                        });
+                                    }
+                                    return items;
+                                })}
                                 onSuggestionSelected={suggestion => {
                                     const savedMed = savedMedications.find(m => m.id === suggestion.id);
                                     if (savedMed) {
+                                        const isBrand = suggestion.name !== savedMed.name;
                                         const medToAdd = language === 'te' ? {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
-                                            name: savedMed.name,
+                                            name: suggestion.name,
+                                            savedMedicationId: savedMed.id,
+                                            compositionName: savedMed.name,
+                                            brandName: isBrand ? suggestion.name : undefined,
                                             instructions: savedMed.instructions_te || savedMed.instructions,
                                             frequency: savedMed.frequency_te || savedMed.frequency,
                                             duration: savedMed.duration_te || savedMed.duration,
                                             notes: savedMed.notes_te || savedMed.notes,
-                                        } : { ...savedMed, id: crypto.randomUUID(), name: savedMed.name };
+                                        } : {
+                                            ...savedMed,
+                                            id: crypto.randomUUID(),
+                                            name: suggestion.name,
+                                            savedMedicationId: savedMed.id,
+                                            compositionName: savedMed.name,
+                                            brandName: isBrand ? suggestion.name : undefined
+                                        };
 
                                         setExtraData(prev => {
                                             const newMeds = [...prev.medications];
