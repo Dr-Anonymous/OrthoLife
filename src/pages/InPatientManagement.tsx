@@ -337,12 +337,12 @@ const InPatientManagement = () => {
     });
 
     const dischargeMutation = useMutation({
-        mutationFn: async ({ id, summary, language, dischargeDate }: { id: string, summary: DischargeSummary, language: string, dischargeDate?: string }) => {
+        mutationFn: async ({ id, summary, language, dischargeDate, isDraft }: { id: string, summary: DischargeSummary, language: string, dischargeDate?: string, isDraft?: boolean }) => {
             const { error } = await supabase
                 .from('in_patients')
                 .update({
-                    status: 'discharged',
-                    discharge_date: dischargeDate || new Date().toISOString(),
+                    status: isDraft ? 'admitted' : 'discharged',
+                    discharge_date: dischargeDate || (isDraft ? null : new Date().toISOString()),
                     discharge_summary: summary,
                     language: language
                 })
@@ -352,10 +352,13 @@ const InPatientManagement = () => {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['in-patients'] });
             setIsDischargeModalOpen(false);
-            toast({ title: "Discharged", description: "Patient discharged successfully." });
+            toast({ 
+                title: variables.isDraft ? "Draft Saved" : "Discharged", 
+                description: variables.isDraft ? "Discharge summary draft saved successfully." : "Patient discharged successfully." 
+            });
 
-            // Send notification ONLY if this is the first time (status changing from admitted -> discharged)
-            if (selectedPatientForDischarge && selectedPatientForDischarge.status !== 'discharged') {
+            // Send notification ONLY if this is NOT a draft AND it's the first time (status changing from admitted -> discharged)
+            if (!variables.isDraft && selectedPatientForDischarge && selectedPatientForDischarge.status !== 'discharged') {
                 sendDischargeNotification(selectedPatientForDischarge, variables.language);
             }
         },
@@ -1277,7 +1280,7 @@ const InPatientManagement = () => {
                             ref={dischargeFormRef}
                             patient={selectedPatientForDischarge}
                             currentLanguage={transientDischargeLanguage}
-                            onSubmit={(summary, date) => {
+                            onSubmit={(summary, date, isDraft) => {
                                 // Use the date selected in the form
                                 let isoDate = date;
                                 if (date && !date.includes('T')) {
@@ -1289,7 +1292,8 @@ const InPatientManagement = () => {
                                     id: selectedPatientForDischarge.id,
                                     summary: pruneEmptyFields(summary),
                                     language: transientDischargeLanguage,
-                                    dischargeDate: isoDate
+                                    dischargeDate: isoDate,
+                                    isDraft: isDraft
                                 });
                             }}
                             isSaving={dischargeMutation.isPending}
@@ -1558,7 +1562,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
 // --- Discharge Form with Medication Manager ---
 const DischargeForm = forwardRef<{ print: () => void }, {
     patient: InPatient | null,
-    onSubmit: (d: DischargeSummary, date: string) => void,
+    onSubmit: (d: DischargeSummary, date: string, isDraft?: boolean) => void,
     isSaving: boolean,
     onPrint?: (d: DischargeSummary, date: string) => void,
     currentLanguage: string
@@ -1924,7 +1928,11 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     }));
 
     const handleSubmit = () => {
-        onSubmit(buildSummary(), dischargeDate);
+        onSubmit(buildSummary(), dischargeDate, false);
+    };
+
+    const handleSaveDraft = () => {
+        onSubmit(buildSummary(), dischargeDate, true);
     };
 
     if (!patient) return null;
@@ -2330,10 +2338,22 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                         </div>
                         <div className="flex justify-between mt-4 pt-4 border-t sticky bottom-0 bg-background">
                             <Button variant="outline" onClick={() => setActiveTab("course")}>Back</Button>
-                            <Button onClick={handleSubmit} disabled={isSaving} className="bg-green-600 hover:bg-green-700">
-                                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                Finalize Discharge
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="secondary" 
+                                    onClick={handleSaveDraft} 
+                                    disabled={isSaving}
+                                    className="bg-muted hover:bg-muted/80"
+                                >
+                                    {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                    <ClipboardList className="w-4 h-4 mr-2" />
+                                    Save Draft
+                                </Button>
+                                <Button onClick={handleSubmit} disabled={isSaving} className="bg-green-600 hover:bg-green-700">
+                                    {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                    Finalize Discharge
+                                </Button>
+                            </div>
                         </div>
                     </TabsContent>
                 </div>
