@@ -35,7 +35,7 @@ export function cleanConsultationData(data: any): any {
 
   const cleanMedication = (med: any) => ({
     ...med,
-    composition: removeBracketedText(med.composition),
+    composition: removeBracketedText(med.composition || med.name),
     dose: removeBracketedText(med.dose),
     frequency: removeBracketedText(med.frequency),
     duration: removeBracketedText(med.duration),

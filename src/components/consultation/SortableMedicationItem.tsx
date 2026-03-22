@@ -207,8 +207,14 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     className: getStyle('composition', med.composition)
                                 }}
                                 ref={medicationNameInputRef}
-                                value={med.composition || ''}
-                                onChange={value => handleMedChange(index, 'composition', value)}
+                                value={med.brandName || med.composition || ''}
+                                onChange={value => {
+                                    handleMedChange(index, 'composition', value);
+                                    if (med.brandName || med.savedMedicationId) {
+                                      handleMedChange(index, 'brandName', undefined);
+                                      handleMedChange(index, 'savedMedicationId', undefined);
+                                    }
+                                }}
                                 suggestions={savedMedications.flatMap(m => {
                                     const items: Suggestion[] = [{ id: m.id!, name: m.composition, label: m.composition }];
                                     if (m.brand_metadata && m.brand_metadata.length > 0) {
@@ -231,7 +237,6 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     if (savedMed) {
                                         const isBrand = suggestion.name !== savedMed.composition;
                                         let finalBrandName = isBrand ? suggestion.name : undefined;
-                                        let finalName = suggestion.name;
                                         
                                         // Auto-swap logic for generics at the moment of selection
                                         if (!isBrand && (currentLocation || affordabilityPreference !== 'none')) {
@@ -249,14 +254,13 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                                     validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
                                                 }
                                                 finalBrandName = validBrands[0].name;
-                                                finalName = validBrands[0].name;
                                             }
                                         }
 
                                         const medToAdd = language === 'te' ? {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
-                                            composition: finalName,
+                                            composition: savedMed.composition,
                                             savedMedicationId: savedMed.id,
                                             brandName: finalBrandName,
                                             instructions: savedMed.instructions_te || savedMed.instructions,
@@ -266,7 +270,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         } : {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
-                                            composition: finalName,
+                                            composition: savedMed.composition,
                                             savedMedicationId: savedMed.id,
                                             brandName: finalBrandName
                                         };

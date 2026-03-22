@@ -29,7 +29,7 @@ serve(async (req) => {
       let { data: existingMed, error: selectError } = await supabase
         .from('saved_medications')
         .select('id')
-        .eq('name', med.name)
+        .eq('composition', med.composition || med.name)
         .single();
 
       if (selectError && selectError.code !== 'PGRST116') { // PGRST116: Not found
@@ -42,7 +42,7 @@ serve(async (req) => {
         const { data: newMed, error: insertError } = await supabase
           .from('saved_medications')
           .insert({
-            name: med.name,
+            composition: med.composition || med.name,
             dose: med.dose,
             freq_morning: med.freqMorning,
             freq_noon: med.freqNoon,

@@ -117,9 +117,10 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
   useEffect(() => {
     const initialQuantities: Record<string, number> = {};
     const initialTypes: Record<string, 'pack' | 'unit' | 'auto'> = {};
-    medications.forEach(med => {
-      initialQuantities[med.composition] = calculateQuantity(med);
-      initialTypes[med.composition] = 'auto';
+    medications.forEach((med, index) => {
+      const nameKey = `${(med as any).brandName || (med as any).composition || (med as any).name || 'Unnamed'}-${index}`;
+      initialQuantities[nameKey] = calculateQuantity(med);
+      initialTypes[nameKey] = 'auto';
     });
     setMedicationQuantities(initialQuantities);
     setMedicationTypes(initialTypes);
@@ -214,8 +215,9 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
 
   const handleOrderNow = () => {
     const query = Object.entries(medicationQuantities)
-      .map(([name, quantity]) => {
-        const type = medicationTypes[name] || 'auto';
+      .map(([nameKey, quantity]) => {
+        const type = medicationTypes[nameKey] || 'auto';
+        const name = nameKey.substring(0, nameKey.lastIndexOf('-'));
         if (type === 'auto') {
           return `${encodeURIComponent(cleanMedicationName(name))}*${quantity}`;
         }
@@ -276,20 +278,23 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {medications.map((med, index) => (
+                      {medications.map((med, index) => {
+                        const nameKey = `${(med as any).brandName || (med as any).composition || (med as any).name || 'Unnamed'}-${index}`;
+                        const displayName = (med as any).brandName || (med as any).composition || (med as any).name || '';
+                        return (
                         <tr key={index} className="group">
-                          <td className="py-2 text-sm">{med.composition}</td>
+                          <td className="py-2 text-sm">{displayName}</td>
                           <td className="text-right py-2 flex items-center justify-end gap-2">
                             <Input
                               type="number"
-                              value={medicationQuantities[med.composition] || ''}
-                              onChange={(e) => handleQuantityChange(med.composition, e.target.value)}
+                              value={medicationQuantities[nameKey] || ''}
+                              onChange={(e) => handleQuantityChange(nameKey, e.target.value)}
                               className="w-20 h-8"
                             />
                             <select
                               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                              value={medicationTypes[med.composition] || 'auto'}
-                              onChange={(e) => handleTypeChange(med.composition, e.target.value as 'pack' | 'unit' | 'auto')}
+                              value={medicationTypes[nameKey] || 'auto'}
+                              onChange={(e) => handleTypeChange(nameKey, e.target.value as 'pack' | 'unit' | 'auto')}
                             >
                               <option value="auto">Auto</option>
                               <option value="pack">Pack</option>
@@ -297,7 +302,8 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
                             </select>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                   <Button onClick={handleOrderNow} className="w-full">

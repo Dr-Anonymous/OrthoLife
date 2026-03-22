@@ -110,7 +110,11 @@ export function generateAutofillData(
       console.error("Error parsing discharge summary:", e);
     }
   } else if (lastConsultation && lastConsultation.consultation_data) {
-    return lastConsultation.consultation_data;
+    const data = { ...lastConsultation.consultation_data };
+    if (data.medications) {
+      data.medications = data.medications.map((m: any) => ({ ...m, composition: m.composition || m.name || '' }));
+    }
+    return data;
   }
   return null;
 }

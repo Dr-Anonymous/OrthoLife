@@ -154,7 +154,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                         <ul className="list-disc pl-5 text-sm text-muted-foreground">
                             {data.medications.map((med: any, index: number) => (
                                 <li key={index}>
-                                    {renderText(`${med.composition}${med.duration ? ` - ${med.duration}` : ''} - ${med.dose || ''}`)}
+                                    {renderText(`${med.brandName || med.composition || med.name || ''}${med.duration ? ` - ${med.duration}` : ''} - ${med.dose || ''}`)}
                                 </li>
                             ))}
                         </ul>

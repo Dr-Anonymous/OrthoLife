@@ -441,7 +441,7 @@ const ConsultationPage = () => {
       diagnosis: savedData.diagnosis || '',
       advice: savedData.advice || '',
       followup: savedData.followup || '',
-      medications: loadedMedications,
+      medications: (loadedMedications || []).map((m: any) => ({ ...m, composition: m.composition || m.name || '' })),
       weight: savedData.weight || '',
       bp: savedData.bp || '',
       temperature: savedData.temperature || '',
@@ -1310,7 +1310,6 @@ const ConsultationPage = () => {
     const isTelugu = consultationLanguage === 'te';
     
     let finalBrandName: string | undefined = undefined;
-    let finalName = med.composition || '';
     
     // Auto-swap logic for generic suggestions
     const affordabilityPreference = extraData.affordabilityPreference || 'none';
@@ -1329,13 +1328,12 @@ const ConsultationPage = () => {
           validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
         }
         finalBrandName = validBrands[0].name;
-        finalName = validBrands[0].name;
       }
     }
 
     const newMed: Medication = {
       id: crypto.randomUUID(),
-      composition: finalName,
+      composition: med.composition || '',
       savedMedicationId: med.id,
       brandName: finalBrandName,
       dose: med.dose || '',

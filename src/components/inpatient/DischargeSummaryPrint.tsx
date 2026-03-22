@@ -249,7 +249,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                                         <React.Fragment key={index}>
                                                             <tr>
                                                                 <td className="border border-border p-2">{index + 1}</td>
-                                                                <td className="border border-border p-2">{med.composition}</td>
+                                                                <td className="border border-border p-2">{(med as any).brandName || (med as any).composition || (med as any).name || ''}</td>
                                                                 <td className="border border-border p-2">{med.dose}</td>
                                                                 {med.frequency ? (
                                                                     <td colSpan={3} className="border border-border p-2 text-center">{med.frequency}</td>

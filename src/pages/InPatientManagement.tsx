@@ -1882,7 +1882,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         });
 
         // Filter out already added
-        const currentNames = new Set(discharge.medications.map(m => (m.composition || '').toLowerCase()));
+        const currentNames = new Set(discharge.medications.map(m => ((m as any).composition || (m as any).name || '').toLowerCase()));
 
         return {
             suggestedMedications: meds.filter(m => !currentNames.has((m.composition || '').toLowerCase()))
@@ -2495,7 +2495,7 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                                 <span className="font-bold uppercase block mb-1">Meds ({summary.discharge_data.medications.length})</span>
                                 <ul className="list-disc pl-3 space-y-0.5">
                                     {summary.discharge_data.medications.slice(0, 3).map((m, i) => (
-                                        <li key={i}>{m.composition} - {m.frequency} x {m.duration}</li>
+                                        <li key={i}>{m.brandName || m.composition} - {m.frequency} x {m.duration}</li>
                                     ))}
                                     {summary.discharge_data.medications.length > 3 && <li>...</li>}
                                 </ul>
