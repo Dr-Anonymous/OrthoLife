@@ -98,7 +98,7 @@ export function generateAutofillData(
         complaints: complaintsText,
         diagnosis: course.diagnosis || '',
         procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? new Date(lastDischarge.procedure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}` : '',
-        medications: discharge.medications || [],
+        medications: (discharge.medications || []).map((m: any) => ({ ...m, composition: m.composition || m.name || '' })),
         advice: discharge.post_op_care || '',
         findings: discharge.clinical_notes || '',
         followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',

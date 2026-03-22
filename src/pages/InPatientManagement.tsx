@@ -1647,11 +1647,11 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     const [autofillKeywords, setAutofillKeywords] = useState<AutofillProtocol[]>([]);
 
     const fetchSavedMedications = async () => {
-        const { data } = await supabase.from('saved_medications').select('*').order('name');
+        const { data } = await supabase.from('saved_medications').select('*').order('composition');
         if (data) {
             const mappedData = data.map((item: any) => ({
                 ...item,
-                name: item.name || '',
+                composition: item.composition || '',
                 dose: item.dose || '',
                 frequency: item.frequency || '',
                 duration: item.duration || '',
@@ -1706,7 +1706,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                 setDischarge({
                     medications: (s.discharge_data.medications || []).map(m => ({
                         ...m,
-                        name: m.name || '',
+                        composition: m.composition || '',
                         dose: m.dose || '',
                         frequency: m.frequency || '',
                         duration: m.duration || '',
@@ -1767,13 +1767,13 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         setDischarge(prev => {
             const newMeds = [...prev.medications];
             // Text shortcuts
-            if (typeof value === 'string' && (field === 'name' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
+            if (typeof value === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
                 const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
                 if (processed) {
                     newMeds[index] = { ...newMeds[index], [field]: processed.newValue };
                     setTimeout(() => {
                         const refs = {
-                            name: medicationNameInputRef.current,
+                            composition: medicationNameInputRef.current,
                             frequency: medFrequencyRefs.current[`${index}.frequency`],
                             duration: medDurationRefs.current[`${index}.duration`],
                             instructions: medInstructionsRefs.current[`${index}.instructions`],
@@ -1796,7 +1796,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     const addMedication = React.useCallback(() => {
         const newMed: Medication = {
             id: crypto.randomUUID(),
-            name: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
+            composition: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
             freqMorning: false, freqNoon: false, freqNight: false
         };
         setDischarge(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
@@ -1824,7 +1824,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         const isTelugu = currentLanguage === 'te';
         const newMed: Medication = {
             id: crypto.randomUUID(),
-            name: med.name || '',
+            composition: med.composition || '',
             dose: med.dose || '',
             freqMorning: med.freqMorning || false,
             freqNoon: med.freqNoon || false,
@@ -1882,10 +1882,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         });
 
         // Filter out already added
-        const currentNames = new Set(discharge.medications.map(m => m.name.toLowerCase()));
+        const currentNames = new Set(discharge.medications.map(m => (m.composition || '').toLowerCase()));
 
         return {
-            suggestedMedications: meds.filter(m => !currentNames.has(m.name.toLowerCase()))
+            suggestedMedications: meds.filter(m => !currentNames.has((m.composition || '').toLowerCase()))
         };
     }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications]);
 
@@ -2495,7 +2495,7 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                                 <span className="font-bold uppercase block mb-1">Meds ({summary.discharge_data.medications.length})</span>
                                 <ul className="list-disc pl-3 space-y-0.5">
                                     {summary.discharge_data.medications.slice(0, 3).map((m, i) => (
-                                        <li key={i}>{m.name} - {m.frequency} x {m.duration}</li>
+                                        <li key={i}>{m.composition} - {m.frequency} x {m.duration}</li>
                                     ))}
                                     {summary.discharge_data.medications.length > 3 && <li>...</li>}
                                 </ul>

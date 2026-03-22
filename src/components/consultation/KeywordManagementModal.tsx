@@ -21,11 +21,11 @@ interface Keyword {
 
 interface Medication {
   id: number;
-  name: string;
+  composition: string;
 }
 
 export interface KeywordPrefillData {
-  medications?: { name: string }[];
+  medications?: { composition: string }[];
   advice?: string;
   advice_te?: string;
   investigations?: string;
@@ -65,7 +65,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
   const filteredMeds = medications.filter(med => 
-    med.name.toLowerCase().includes(searchQuery.toLowerCase())
+    med.composition.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   useEffect(() => {
@@ -109,7 +109,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   };
 
   const fetchMedications = async () => {
-    const { data, error } = await supabase.from('saved_medications').select('id, name');
+    const { data, error } = await supabase.from('saved_medications').select('id, composition');
     if (error) {
       toast({ variant: 'destructive', title: 'Error fetching medications', description: error.message });
     } else {
@@ -155,9 +155,9 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
   useEffect(() => {
     if (isOpen && prefilledData && medications.length > 0 && !hasPrefilledRef.current) {
-      const prefilledNames = prefilledData.medications?.map(m => m.name.toLowerCase()) || [];
+      const prefilledNames = prefilledData.medications?.map(m => m.composition.toLowerCase()) || [];
       const matchedIds = medications
-        .filter(m => prefilledNames.includes(m.name.toLowerCase()))
+        .filter(m => prefilledNames.includes(m.composition.toLowerCase()))
         .map(m => m.id);
 
       setSelectedMeds(matchedIds);
@@ -183,7 +183,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       } else {
         const selectedMedicationObjects = selectedMeds.map(id => {
           const med = medications.find(m => m.id === id);
-          return { id: med?.id, name: med?.name };
+          return { id: med?.id, composition: med?.composition };
         });
 
         const { error } = await supabase.functions.invoke('save-autofill-bundle', {
@@ -287,7 +287,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                             }
                           }}
                         />
-                        <Label htmlFor={`med-${med.id}`}>{med.name}</Label>
+                        <Label htmlFor={`med-${med.id}`}>{med.composition}</Label>
                       </div>
                     ))}
                 </div>
@@ -344,7 +344,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                     <div>
                       <p className="font-semibold">{(kw.keywords || []).join(', ')}</p>
                       <p className="text-sm text-muted-foreground">
-                        Meds: {(kw.medication_ids || []).map(id => medications.find(m => m.id === id)?.name).join(', ')}
+                        Meds: {(kw.medication_ids || []).map(id => medications.find(m => m.id === id)?.composition).join(', ')}
                       </p>
                       {kw.advice && <p className="text-sm text-muted-foreground mt-1">Advice: {kw.advice}</p>}
                       {kw.investigations && <p className="text-sm text-muted-foreground mt-1">Investigations: {kw.investigations}</p>}

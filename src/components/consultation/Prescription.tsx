@@ -5,7 +5,7 @@ import { cleanAdviceLine } from '@/lib/utils';
 import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope } from 'lucide-react';
 
 interface Medication {
-  name: string;
+  composition: string;
   dose: string;
   freqMorning: boolean;
   freqNoon: boolean;
@@ -304,7 +304,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                       <React.Fragment key={index}>
                         <tr>
                           <td className="border border-border p-2">{index + 1}</td>
-                          <td className="border border-border p-2">{med.name}</td>
+                          <td className="border border-border p-2">{med.composition}</td>
                           <td className="border border-border p-2">{med.dose}</td>
                           {med.frequency ? (
                             <td colSpan={3} className="border border-border p-2 text-center">

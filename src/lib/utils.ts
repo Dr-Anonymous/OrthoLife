@@ -35,7 +35,7 @@ export function cleanConsultationData(data: any): any {
 
   const cleanMedication = (med: any) => ({
     ...med,
-    name: removeBracketedText(med.name),
+    composition: removeBracketedText(med.composition),
     dose: removeBracketedText(med.dose),
     frequency: removeBracketedText(med.frequency),
     duration: removeBracketedText(med.duration),
@@ -60,7 +60,7 @@ export function cleanConsultationData(data: any): any {
     diagnosis: removeBracketedText(data.diagnosis),
     advice: removeBracketedText(data.advice),
     followup: removeBracketedText(data.followup),
-    medications: (data.medications?.map(cleanMedication) || []).filter((m: any) => m.name && m.name.trim().length > 0),
+    medications: (data.medications?.map(cleanMedication) || []).filter((m: any) => m.composition && m.composition.trim().length > 0),
     procedure: removeBracketedText(data.procedure),
     referred_to: referredToString,
     // maintain the list in cleaned data too, though print might not use it directly yet
@@ -89,7 +89,7 @@ export function pruneEmptyFields(data: any): any {
 
       // Special handling for medications to remove empty rows
       if (key === 'medications' && Array.isArray(value)) {
-        const validMeds = value.filter((m: any) => m && m.name && m.name.trim() !== '');
+        const validMeds = value.filter((m: any) => m && m.composition && m.composition.trim() !== '');
         if (validMeds.length > 0) {
           acc[key] = validMeds.map(pruneEmptyFields);
         }

@@ -83,7 +83,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
         const currentMeds = medicationsRef.current;
         const lastMed = currentMeds[currentMeds.length - 1];
         const isLastEmpty = lastMed &&
-            !(lastMed.name || '').trim() &&
+            !(lastMed.composition || '').trim() &&
             !(lastMed.dose || '').trim() &&
             !(lastMed.frequency || '').trim() &&
             !(lastMed.duration || '').trim() &&
@@ -186,8 +186,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                 swapCount++;
                 return {
                     ...med,
-                    brandName: bestBrand.name,
-                    name: bestBrand.name
+                    brandName: bestBrand.name
                 };
             }
             return med;
@@ -232,7 +231,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                     <div className="flex flex-wrap items-center gap-2 ml-4">
                         {suggestedMedications.map((med) => (
                             <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)}>
-                                {med.name}
+                                {med.composition}
                             </Button>
                         ))}
                     </div>

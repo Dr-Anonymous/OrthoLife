@@ -13,10 +13,9 @@ export interface BrandMetadata {
 
 export interface Medication {
     id: string;
-    name: string;
+    composition: string;
     brand_metadata?: BrandMetadata[];
     savedMedicationId?: string;
-    compositionName?: string;
     brandName?: string;
     dose: string;
     freqMorning: boolean;

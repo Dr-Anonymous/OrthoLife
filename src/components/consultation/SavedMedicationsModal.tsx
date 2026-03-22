@@ -20,7 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface Medication {
   id?: string;
-  name: string; // This acts as the generic/composition name now
+  composition: string; // This acts as the generic/composition name now
   brand_metadata?: { name: string; cost?: number; packSize?: number; locations?: string[] }[];
   dose: string;
   freqMorning: boolean;
@@ -59,7 +59,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [isCustom, setIsCustom] = useState(false);
   const [newMed, setNewMed] = useState<Medication>({
-    name: '',
+    composition: '',
     brand_metadata: [],
     dose: '',
     freqMorning: false,
@@ -83,7 +83,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
   const filteredMeds = medications.filter(med => 
-    med.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    med.composition.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (med.brand_metadata && med.brand_metadata.some(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
@@ -201,7 +201,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const fetchMedications = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.from('saved_medications').select('*').order('name');
+    const { data, error } = await supabase.from('saved_medications').select('*').order('composition');
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch saved medications.' });
     } else {
@@ -221,15 +221,15 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   };
 
   const handleAddOrUpdateMedication = async () => {
-    if (!newMed.name) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Medication name is required.' });
+    if (!newMed.composition) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Composition is required.' });
       return;
     }
 
     setIsLoading(true);
     const { error } = isEditing
       ? await supabase.from('saved_medications').update({
-        name: newMed.name,
+        composition: newMed.composition,
         brand_metadata: newMed.brand_metadata || [],
         dose: newMed.dose,
         freq_morning: newMed.freqMorning,
@@ -245,7 +245,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
         notes_te: newMed.notes_te,
       }).eq('id', isEditing)
       : await supabase.from('saved_medications').insert([{
-        name: newMed.name,
+        composition: newMed.composition,
         brand_metadata: newMed.brand_metadata || [],
         dose: newMed.dose,
         freq_morning: newMed.freqMorning,
@@ -293,7 +293,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const resetForm = () => {
     setIsEditing(null);
-    setNewMed({ name: '', brand_metadata: [], dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', duration_te: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
+    setNewMed({ composition: '', brand_metadata: [], dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', duration_te: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
     setIsCustom(false);
   };
 
@@ -307,8 +307,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{isEditing ? 'Edit Medication' : 'Add New Medication'}</h3>
             <div className="space-y-2">
-              <Label htmlFor="med-name">Name (Composition)</Label>
-              <Input id="med-name" value={newMed.name} onChange={e => handleInputChange('name', e.target.value)} placeholder="e.g. Aceclofenac + Paracetamol" />
+              <Label htmlFor="med-composition">Composition</Label>
+              <Input id="med-composition" value={newMed.composition} onChange={e => handleInputChange('composition', e.target.value)} placeholder="e.g. Aceclofenac + Paracetamol" />
             </div>
             <div className="space-y-4 border p-4 rounded-md bg-muted/30">
               <div className="flex justify-between items-center">
@@ -339,9 +339,10 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                           value={b.name} 
                           className="h-8 text-xs"
                           onChange={e => {
-                            const arr = [...(newMed.brand_metadata || [])];
-                            arr[i].name = e.target.value;
-                            handleInputChange('brand_metadata', arr);
+                            const newValue = e.target.value;
+                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) => 
+                              idx === i ? { ...item, name: newValue } : item
+                            ));
                           }} 
                         />
                       </div>
@@ -370,9 +371,10 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                           value={b.cost?.toString() || ''} 
                           className="h-8 text-xs font-mono"
                           onChange={e => {
-                            const arr = [...(newMed.brand_metadata || [])];
-                            arr[i].cost = e.target.value ? Number(e.target.value) : undefined;
-                            handleInputChange('brand_metadata', arr);
+                            const newValue = e.target.value ? Number(e.target.value) : undefined;
+                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) => 
+                              idx === i ? { ...item, cost: newValue } : item
+                            ));
                           }} 
                         />
                       </div>
@@ -385,9 +387,10 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                           value={b.packSize?.toString() || ''} 
                           className="h-8 text-xs font-mono"
                           onChange={e => {
-                            const arr = [...(newMed.brand_metadata || [])];
-                            arr[i].packSize = e.target.value ? Number(e.target.value) : undefined;
-                            handleInputChange('brand_metadata', arr);
+                            const newValue = e.target.value ? Number(e.target.value) : undefined;
+                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) => 
+                              idx === i ? { ...item, packSize: newValue } : item
+                            ));
                           }} 
                         />
                       </div>
@@ -411,14 +414,16 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                                     id={`loc-${i}-${h.id}`} 
                                     checked={(b.locations || []).includes(h.name)} 
                                     onCheckedChange={(checked) => {
-                                      const arr = [...(newMed.brand_metadata || [])];
-                                      const currentLocs = arr[i].locations || [];
-                                      if (checked) {
-                                        arr[i].locations = [...currentLocs, h.name];
-                                      } else {
-                                        arr[i].locations = currentLocs.filter(name => name !== h.name);
-                                      }
-                                      handleInputChange('brand_metadata', arr);
+                                      const currentBrands = newMed.brand_metadata || [];
+                                      const newBrands = currentBrands.map((brand, idx) => {
+                                        if (idx !== i) return brand;
+                                        const currentLocs = brand.locations || [];
+                                        const newLocs = checked 
+                                          ? [...currentLocs, h.name]
+                                          : currentLocs.filter(name => name !== h.name);
+                                        return { ...brand, locations: newLocs };
+                                      });
+                                      handleInputChange('brand_metadata', newBrands);
                                     }} 
                                   />
                                   <label htmlFor={`loc-${i}-${h.id}`} className="text-[10px] cursor-pointer truncate font-medium">
@@ -562,7 +567,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                       className={`flex items-center justify-between p-2 border rounded-md transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10 border-primary/50' : ''}`}
                     >
                       <div>
-                        <span className="font-medium block">{med.name}</span>
+                        <span className="font-medium block">{med.composition}</span>
                         {med.brand_metadata && med.brand_metadata.length > 0 && (
                           <span className="text-[10px] text-muted-foreground block mt-0.5">
                             {med.brand_metadata.map(b => {

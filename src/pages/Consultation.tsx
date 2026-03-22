@@ -287,7 +287,7 @@ const ConsultationPage = () => {
   const handleSaveBundleClick = () => {
     const isTelugu = consultationLanguage === 'te';
     setKeywordModalPrefill({
-      medications: extraData.medications.map(m => ({ name: m.name || '' })),
+      medications: extraData.medications.map(m => ({ composition: m.composition || '' })),
       advice: isTelugu ? '' : extraData.advice, // Default to empty if not English
       advice_te: isTelugu ? extraData.advice : '', // Populate Telugu if current language is Telugu
       investigations: extraData.investigations, // Usually English?
@@ -796,7 +796,7 @@ const ConsultationPage = () => {
     const pruneMeds = (data: any) => {
       if (!data) return data;
       const { medications, ...rest } = data;
-      const validMeds = (medications || []).filter((m: any) => m.name && m.name.trim().length > 0);
+      const validMeds = (medications || []).filter((m: any) => m.composition && m.composition.trim().length > 0);
       return { ...rest, medications: validMeds };
     };
 
@@ -1036,7 +1036,7 @@ const ConsultationPage = () => {
 
   // Data Fetching
   const fetchSavedMedications = async () => {
-    const { data, error } = await supabase.from('saved_medications').select('*').order('name');
+    const { data, error } = await supabase.from('saved_medications').select('*').order('composition');
     if (!error && data) {
       const mappedData = data.map((item: any) => ({
         ...item,
@@ -1310,7 +1310,7 @@ const ConsultationPage = () => {
     const isTelugu = consultationLanguage === 'te';
     
     let finalBrandName: string | undefined = undefined;
-    let finalName = med.name || '';
+    let finalName = med.composition || '';
     
     // Auto-swap logic for generic suggestions
     const affordabilityPreference = extraData.affordabilityPreference || 'none';
@@ -1335,9 +1335,8 @@ const ConsultationPage = () => {
 
     const newMed: Medication = {
       id: crypto.randomUUID(),
-      name: finalName,
+      composition: finalName,
       savedMedicationId: med.id,
-      compositionName: med.name,
       brandName: finalBrandName,
       dose: med.dose || '',
       freqMorning: med.freqMorning || false,
@@ -1363,27 +1362,27 @@ const ConsultationPage = () => {
       const newMeds = [...prev.medications];
       const currentVal = newMeds[index][field];
 
-      if (field === 'name' && typeof value === 'string' && value.includes('//')) {
+      if (field === 'composition' && typeof value === 'string' && value.includes('//')) {
         setIsMedicationsModalOpen(true);
-        newMeds[index] = { ...newMeds[index], name: value.replace('//', '') };
+        newMeds[index] = { ...newMeds[index], composition: value.replace('//', '') };
         return { ...prev, medications: newMeds };
       }
 
-      if (field === 'name' && typeof value === 'string' && value.includes('@')) {
+      if (field === 'composition' && typeof value === 'string' && value.includes('@')) {
         setIsKeywordModalOpen(true);
         const med = newMeds[index];
-        newMeds[index] = { ...med, name: med.name.replace('@', '') };
+        newMeds[index] = { ...med, composition: med.composition.replace('@', '') };
         return { ...prev, medications: newMeds };
       }
 
-      if (typeof value === 'string' && (field === 'name' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
+      if (typeof value === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
         const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
         if (processed) {
           newMeds[index] = { ...newMeds[index], [field]: processed.newValue };
           // Cursor update logic
           setTimeout(() => {
             const refs = {
-              name: medicationNameInputRef.current,
+              composition: medicationNameInputRef.current,
               frequency: medFrequencyRefs.current[`${index}.frequency`],
               duration: medDurationRefs.current[`${index}.duration`],
               instructions: medInstructionsRefs.current[`${index}.instructions`],
@@ -1406,7 +1405,7 @@ const ConsultationPage = () => {
   const addMedication = useCallback(() => {
     const newMed: Medication = {
       id: crypto.randomUUID(),
-      name: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
+      composition: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
       freqMorning: false, freqNoon: false, freqNight: false
     };
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
@@ -1495,7 +1494,7 @@ const ConsultationPage = () => {
     const finalMedications = medications;
 
     const currentlyAddedMedIds = new Set(extraData.medications.map(m => m.savedMedicationId).filter(Boolean));
-    const currentlyAddedMedNames = new Set(extraData.medications.map(m => (m.name || '').toLowerCase()));
+    const currentlyAddedMedNames = new Set(extraData.medications.map(m => (m.composition || '').toLowerCase()));
 
     return {
       suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s)),
@@ -1503,7 +1502,7 @@ const ConsultationPage = () => {
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s)),
       suggestedMedications: finalMedications.filter(m =>
         !currentlyAddedMedIds.has(m.id) &&
-        !currentlyAddedMedNames.has((m.name || '').toLowerCase())
+        !currentlyAddedMedNames.has((m.composition || '').toLowerCase())
       )
     };
   }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);

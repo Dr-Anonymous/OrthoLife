@@ -92,13 +92,13 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     }, [med.frequency]);
 
     const isFavorite = savedMedications.some(savedMed => {
-        const nameMatches = (savedMed.name || '').toLowerCase() === (med.name || '').toLowerCase();
-        const brandMatches = (savedMed.brand_metadata || []).some(b => b.name.toLowerCase() === (med.name || '').toLowerCase());
+        const nameMatches = (savedMed.composition || '').toLowerCase() === (med.composition || '').toLowerCase();
+        const brandMatches = (savedMed.brand_metadata || []).some(b => b.name.toLowerCase() === (med.composition || '').toLowerCase());
         return nameMatches || brandMatches;
     });
 
     const handleFavoriteClick = async () => {
-        if (!med.name) {
+        if (!med.composition) {
             toast({
                 variant: 'destructive',
                 title: 'Cannot save favorite',
@@ -110,12 +110,22 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
         try {
             const isTelugu = language === 'te';
             const payload: any = {
-                name: med.name,
+                composition: med.composition,
+                brand_metadata: med.brand_metadata || [],
                 dose: med.dose,
                 freq_morning: med.freqMorning,
                 freq_noon: med.freqNoon,
                 freq_night: med.freqNight,
             };
+
+            // If we have a brandName that isn't already the composition name
+            // and it's not in brand_metadata, we should probably ensure it's recorded
+            if (med.brandName && med.brandName !== med.composition) {
+                const brandExists = (payload.brand_metadata as any[]).some(b => b.name === med.brandName);
+                if (!brandExists) {
+                    payload.brand_metadata = [{ name: med.brandName }, ...(payload.brand_metadata as any[])];
+                }
+            }
 
             if (isTelugu) {
                 payload.frequency_te = med.frequency;
@@ -127,21 +137,22 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                 payload.duration = med.duration;
                 payload.instructions = med.instructions;
                 payload.notes = med.notes;
-                // Maintain the possibly existing te values if they exist in the object and we are in EN
-                if (med.duration_te) payload.duration_te = med.duration_te;
+                
+                // Also preserve existing te values if present
                 if (med.frequency_te) payload.frequency_te = med.frequency_te;
+                if (med.duration_te) payload.duration_te = med.duration_te;
                 if (med.instructions_te) payload.instructions_te = med.instructions_te;
                 if (med.notes_te) payload.notes_te = med.notes_te;
             }
 
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('saved_medications')
                 .insert([payload]);
 
             if (error) throw error;
             toast({
                 title: 'Favorite saved',
-                description: `${med.name} has been added to your saved medications.`,
+                description: `${med.composition} has been added to your saved medications.`,
             });
             fetchSavedMedications();
         } catch (error) {
@@ -193,13 +204,13 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                             </div>
                             <AutosuggestInput
                                 inputProps={{
-                                    className: getStyle('name', med.name)
+                                    className: getStyle('composition', med.composition)
                                 }}
                                 ref={medicationNameInputRef}
-                                value={med.name || ''}
-                                onChange={value => handleMedChange(index, 'name', value)}
+                                value={med.composition || ''}
+                                onChange={value => handleMedChange(index, 'composition', value)}
                                 suggestions={savedMedications.flatMap(m => {
-                                    const items: Suggestion[] = [{ id: m.id!, name: m.name, label: m.name }];
+                                    const items: Suggestion[] = [{ id: m.id!, name: m.composition, label: m.composition }];
                                     if (m.brand_metadata && m.brand_metadata.length > 0) {
                                         m.brand_metadata.forEach(brand => {
                                             const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
@@ -209,7 +220,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                                 name: brand.name,
                                                 label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
                                                 isBrand: true,
-                                                searchTerms: m.name
+                                                searchTerms: m.composition
                                             });
                                         });
                                     }
@@ -218,7 +229,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 onSuggestionSelected={suggestion => {
                                     const savedMed = savedMedications.find(m => m.id === suggestion.id);
                                     if (savedMed) {
-                                        const isBrand = suggestion.name !== savedMed.name;
+                                        const isBrand = suggestion.name !== savedMed.composition;
                                         let finalBrandName = isBrand ? suggestion.name : undefined;
                                         let finalName = suggestion.name;
                                         
@@ -245,9 +256,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         const medToAdd = language === 'te' ? {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
-                                            name: finalName,
+                                            composition: finalName,
                                             savedMedicationId: savedMed.id,
-                                            compositionName: savedMed.name,
                                             brandName: finalBrandName,
                                             instructions: savedMed.instructions_te || savedMed.instructions,
                                             frequency: savedMed.frequency_te || savedMed.frequency,
@@ -256,9 +266,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         } : {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
-                                            name: finalName,
+                                            composition: finalName,
                                             savedMedicationId: savedMed.id,
-                                            compositionName: savedMed.name,
                                             brandName: finalBrandName
                                         };
 

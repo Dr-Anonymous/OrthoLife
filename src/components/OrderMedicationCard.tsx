@@ -13,7 +13,7 @@ import { Loader2, RefreshCw, XCircle, Pill } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Medication {
-  name: string;
+  composition: string;
   dose: string;
   freqMorning: boolean;
   freqNoon: boolean;
@@ -118,8 +118,8 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
     const initialQuantities: Record<string, number> = {};
     const initialTypes: Record<string, 'pack' | 'unit' | 'auto'> = {};
     medications.forEach(med => {
-      initialQuantities[med.name] = calculateQuantity(med);
-      initialTypes[med.name] = 'auto';
+      initialQuantities[med.composition] = calculateQuantity(med);
+      initialTypes[med.composition] = 'auto';
     });
     setMedicationQuantities(initialQuantities);
     setMedicationTypes(initialTypes);
@@ -278,18 +278,18 @@ const OrderMedicationCard: React.FC<OrderMedicationCardProps> = ({ medications }
                     <tbody className="divide-y">
                       {medications.map((med, index) => (
                         <tr key={index} className="group">
-                          <td className="py-2 text-sm">{med.name}</td>
+                          <td className="py-2 text-sm">{med.composition}</td>
                           <td className="text-right py-2 flex items-center justify-end gap-2">
                             <Input
                               type="number"
-                              value={medicationQuantities[med.name] || ''}
-                              onChange={(e) => handleQuantityChange(med.name, e.target.value)}
+                              value={medicationQuantities[med.composition] || ''}
+                              onChange={(e) => handleQuantityChange(med.composition, e.target.value)}
                               className="w-20 h-8"
                             />
                             <select
                               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                              value={medicationTypes[med.name] || 'auto'}
-                              onChange={(e) => handleTypeChange(med.name, e.target.value as 'pack' | 'unit' | 'auto')}
+                              value={medicationTypes[med.composition] || 'auto'}
+                              onChange={(e) => handleTypeChange(med.composition, e.target.value as 'pack' | 'unit' | 'auto')}
                             >
                               <option value="auto">Auto</option>
                               <option value="pack">Pack</option>
