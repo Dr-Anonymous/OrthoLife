@@ -29,6 +29,8 @@ interface SortableMedicationItemProps {
     language: string;
     initialMedications?: Medication[];
     handleManualAdd?: () => void;
+    currentLocation?: string;
+    affordabilityPreference?: string;
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -46,7 +48,9 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     medNotesRefs,
     language,
     initialMedications,
-    handleManualAdd
+    handleManualAdd,
+    currentLocation,
+    affordabilityPreference
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof Medication, value: any) => {
@@ -198,11 +202,14 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     const items: Suggestion[] = [{ id: m.id!, name: m.name, label: m.name }];
                                     if (m.brand_metadata && m.brand_metadata.length > 0) {
                                         m.brand_metadata.forEach(brand => {
+                                            const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
+                                            const costLabel = unitPrice ? `₹${unitPrice}/u` : brand.cost ? `₹${brand.cost}` : '';
                                             items.push({
                                                 id: m.id!,
                                                 name: brand.name,
-                                                label: brand.cost ? `${brand.name} (₹${brand.cost})` : brand.name,
-                                                isBrand: true
+                                                label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
+                                                isBrand: true,
+                                                searchTerms: m.name
                                             });
                                         });
                                     }
@@ -212,13 +219,36 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     const savedMed = savedMedications.find(m => m.id === suggestion.id);
                                     if (savedMed) {
                                         const isBrand = suggestion.name !== savedMed.name;
+                                        let finalBrandName = isBrand ? suggestion.name : undefined;
+                                        let finalName = suggestion.name;
+                                        
+                                        // Auto-swap logic for generics at the moment of selection
+                                        if (!isBrand && (currentLocation || affordabilityPreference !== 'none')) {
+                                            let validBrands = savedMed.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation || '')) || [];
+                                            // Fallback to all brands if no matching locations
+                                            if (validBrands.length === 0 && savedMed.brand_metadata) {
+                                                validBrands = [...savedMed.brand_metadata];
+                                            }
+                                            
+                                            // Sort by unit cost based on preference
+                                            if (validBrands.length > 0) {
+                                                if (affordabilityPreference === 'cheap') {
+                                                    validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
+                                                } else if (affordabilityPreference === 'costly') {
+                                                    validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+                                                }
+                                                finalBrandName = validBrands[0].name;
+                                                finalName = validBrands[0].name;
+                                            }
+                                        }
+
                                         const medToAdd = language === 'te' ? {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
-                                            name: suggestion.name,
+                                            name: finalName,
                                             savedMedicationId: savedMed.id,
                                             compositionName: savedMed.name,
-                                            brandName: isBrand ? suggestion.name : undefined,
+                                            brandName: finalBrandName,
                                             instructions: savedMed.instructions_te || savedMed.instructions,
                                             frequency: savedMed.frequency_te || savedMed.frequency,
                                             duration: savedMed.duration_te || savedMed.duration,
@@ -226,10 +256,10 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         } : {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
-                                            name: suggestion.name,
+                                            name: finalName,
                                             savedMedicationId: savedMed.id,
                                             compositionName: savedMed.name,
-                                            brandName: isBrand ? suggestion.name : undefined
+                                            brandName: finalBrandName
                                         };
 
                                         setExtraData(prev => {

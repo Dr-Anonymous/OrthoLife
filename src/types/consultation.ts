@@ -7,6 +7,7 @@ export interface TextShortcut {
 export interface BrandMetadata {
     name: string;
     cost?: number;
+    packSize?: number;
     locations?: string[];
 }
 

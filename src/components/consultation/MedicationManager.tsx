@@ -172,11 +172,11 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
             // If no location matches, fallback to all (or maybe skip if explicit location required? for now fallback)
             if (validBrands.length === 0) validBrands = [...savedItem.brand_metadata];
 
-            // Sort by cost
+            // Sort by cost per unit
             if (affordabilityPreference === 'cheap') {
-                validBrands.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+                validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
             } else if (affordabilityPreference === 'costly') {
-                validBrands.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+                validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
             }
 
             const bestBrand = validBrands[0];
@@ -260,6 +260,8 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 medNotesRefs={medNotesRefs}
                                 initialMedications={initialMedications}
                                 handleManualAdd={handleManualAdd}
+                                currentLocation={currentLocation}
+                                affordabilityPreference={affordabilityPreference}
                             />
                         ))}
                     </SortableContext>

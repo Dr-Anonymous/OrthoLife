@@ -62,6 +62,40 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [followupTe, setFollowupTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+
+  const filteredMeds = medications.filter(med => 
+    med.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  useEffect(() => {
+    setActiveSuggestionIndex(0);
+  }, [searchQuery]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredMeds.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => (prev + 1) % filteredMeds.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => (prev - 1 + filteredMeds.length) % filteredMeds.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const activeMed = filteredMeds[activeSuggestionIndex];
+      if (activeMed) {
+        const id = activeMed.id;
+        setSelectedMeds(prev => {
+          if (prev.includes(id)) {
+            return prev.filter(mid => mid !== id);
+          } else {
+            return [...prev, id];
+          }
+        });
+      }
+    }
+  };
 
   const fetchKeywords = async () => {
     setIsLoading(true);
@@ -230,15 +264,17 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                       placeholder="Search meds..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleKeyDown}
                       className="h-8 w-40 pl-8"
                     />
                   </div>
                 </div>
                 <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
-                  {medications
-                    .filter(med => med.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map(med => (
-                      <div key={med.id} className="flex items-center gap-2">
+                  {filteredMeds.map((med, idx) => (
+                      <div 
+                        key={med.id} 
+                        className={`flex items-center gap-2 p-1 rounded-sm transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10' : ''}`}
+                      >
                         <input
                           type="checkbox"
                           id={`med-${med.id}`}

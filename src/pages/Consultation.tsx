@@ -1308,9 +1308,37 @@ const ConsultationPage = () => {
    */
   const handleMedicationSuggestionClick = useCallback((med: Medication) => {
     const isTelugu = consultationLanguage === 'te';
+    
+    let finalBrandName: string | undefined = undefined;
+    let finalName = med.name || '';
+    
+    // Auto-swap logic for generic suggestions
+    const affordabilityPreference = extraData.affordabilityPreference || 'none';
+    const currentLocation = selectedHospital?.name || '';
+    
+    if (affordabilityPreference !== 'none' || currentLocation) {
+      let validBrands = med.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation)) || [];
+      if (validBrands.length === 0 && med.brand_metadata) {
+        validBrands = [...med.brand_metadata];
+      }
+      
+      if (validBrands.length > 0) {
+        if (affordabilityPreference === 'cheap') {
+          validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
+        } else if (affordabilityPreference === 'costly') {
+          validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+        }
+        finalBrandName = validBrands[0].name;
+        finalName = validBrands[0].name;
+      }
+    }
+
     const newMed: Medication = {
       id: crypto.randomUUID(),
-      name: med.name,
+      name: finalName,
+      savedMedicationId: med.id,
+      compositionName: med.name,
+      brandName: finalBrandName,
       dose: med.dose || '',
       freqMorning: med.freqMorning || false,
       freqNoon: med.freqNoon || false,
@@ -1322,7 +1350,7 @@ const ConsultationPage = () => {
     };
 
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-  }, [consultationLanguage]);
+  }, [consultationLanguage, extraData.affordabilityPreference, selectedHospital?.name]);
 
   /**
    * Handles changes to individual medication fields.

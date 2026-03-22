@@ -7,6 +7,7 @@ export interface Suggestion {
   name: string;
   label?: string;
   isBrand?: boolean;
+  searchTerms?: string;
 }
 
 interface AutosuggestInputProps {
@@ -38,8 +39,8 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
 
     if (inputValue.length > 0) {
       const filtered = suggestions.filter(suggestion => {
-        const searchTarget = suggestion.label || suggestion.name;
-        return searchTarget.toLowerCase().includes(inputValue.toLowerCase());
+        const searchTarget = `${suggestion.label || ''} ${suggestion.name || ''} ${suggestion.searchTerms || ''}`.toLowerCase();
+        return searchTarget.includes(inputValue.toLowerCase());
       });
       setFilteredSuggestions(filtered);
       setIsSuggestionsVisible(true);
