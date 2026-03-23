@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send } from 'lucide-react';
+import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send, Users } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 interface ConsultationActionsProps {
@@ -16,6 +16,7 @@ interface ConsultationActionsProps {
     onManageMedicationsClick: () => void;
     onManageKeywordsClick: () => void;
     onManageShortcutsClick: () => void;
+    onManageReferralDoctorsClick: () => void;
     onSendCompletionClick: () => void;
     isAutoSendEnabled?: boolean;
     onToggleAutoSend?: () => void;
@@ -49,6 +50,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onManageMedicationsClick,
     onManageKeywordsClick,
     onManageShortcutsClick,
+    onManageReferralDoctorsClick,
     onSendCompletionClick,
     isAutoSendEnabled,
     onToggleAutoSend,
@@ -113,6 +115,10 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             <DropdownMenuItem onSelect={onManageShortcutsClick} className="flex items-center p-2 cursor-pointer">
                                 <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
                                 <span className="text-sm">Manage Shortcuts</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={onManageReferralDoctorsClick} className="flex items-center p-2 cursor-pointer">
+                                <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                                <span className="text-sm">Manage Referral Doctors</span>
                             </DropdownMenuItem>
                         </div>
 

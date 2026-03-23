@@ -23,6 +23,7 @@ import { Receipt, ReceiptModal, ReceiptData } from '@/components/consultation/Re
 import { useHospitals } from '@/context/HospitalsContext';
 import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
+import ReferralDoctorManagementModal from '@/components/consultation/ReferralDoctorManagementModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
 import { LinkPatientModal } from '@/components/consultation/LinkPatientModal';
@@ -51,6 +52,45 @@ import { generateCompletionMessage as generateCompletionMessageUtil } from '@/li
 import { requestOfflineSyncNow } from '@/lib/offline-sync-events';
 import { OfflineConsultationBundle } from '@/types/offline-sync';
 
+const waitForNextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+
+// Local Translations
+const TRANSLATIONS = {
+  en: {
+    day: "day",
+    day_plural: "days",
+    week: "week",
+    week_plural: "weeks",
+    month: "month",
+    month_plural: "months",
+    year: "year",
+    year_plural: "years",
+    followup_message_structure: "after {{count}} {{unit}}, or immediately if symptoms worsen."
+  },
+  te: {
+    day: "రోజు తర్వాత",
+    day_plural: "రోజుల తర్వాత",
+    week: "వారం తర్వాత",
+    week_plural: "వారాల తర్వాత",
+    month: "నెల తర్వాత",
+    month_plural: "నెలల తర్వాత",
+    year: "సంవత్సరం తర్వాత",
+    year_plural: "సంవత్సరాల తర్వాత",
+    followup_message_structure: "{{count}} {{unit}} / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే."
+  }
+};
+
+const t = (key: string, options?: { lng?: string, count?: number, unit?: string }) => {
+  const lang = (options?.lng || 'en') as keyof typeof TRANSLATIONS;
+  let text = (TRANSLATIONS[lang] as any)[key] || key;
+
+  if (options) {
+    Object.entries(options).forEach(([k, v]) => {
+      text = text.replace(`{{${k}}}`, String(v));
+    });
+  }
+  return text;
+};
 
 /**
  * ConsultationPage Component
@@ -66,44 +106,6 @@ import { OfflineConsultationBundle } from '@/types/offline-sync';
 const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
   const { hospitals, isLoading: isHospitalsLoading } = useHospitals();
-
-  // Local Translations
-  const TRANSLATIONS = {
-    en: {
-      day: "day",
-      day_plural: "days",
-      week: "week",
-      week_plural: "weeks",
-      month: "month",
-      month_plural: "months",
-      year: "year",
-      year_plural: "years",
-      followup_message_structure: "after {{count}} {{unit}}, or immediately if symptoms worsen."
-    },
-    te: {
-      day: "రోజు తర్వాత",
-      day_plural: "రోజుల తర్వాత",
-      week: "వారం తర్వాత",
-      week_plural: "వారాల తర్వాత",
-      month: "నెల తర్వాత",
-      month_plural: "నెలల తర్వాత",
-      year: "సంవత్సరం తర్వాత",
-      year_plural: "సంవత్సరాల తర్వాత",
-      followup_message_structure: "{{count}} {{unit}} / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే."
-    }
-  };
-
-  const t = useCallback((key: string, options?: { lng?: string, count?: number, unit?: string }) => {
-    const lang = (options?.lng || 'en') as keyof typeof TRANSLATIONS;
-    let text = (TRANSLATIONS[lang] as any)[key] || key;
-
-    if (options) {
-      Object.entries(options).forEach(([k, v]) => {
-        text = text.replace(`{{${k}}}`, String(v));
-      });
-    }
-    return text;
-  }, []);
 
   // --- Data State ---
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -152,6 +154,11 @@ const ConsultationPage = () => {
     affordabilityPreference: 'none',
   });
 
+  const extraDataRef = useRef(extraData);
+  useEffect(() => {
+    extraDataRef.current = extraData;
+  }, [extraData]);
+
   const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
@@ -165,6 +172,7 @@ const ConsultationPage = () => {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [deletePatientAlso, setDeletePatientAlso] = useState<boolean>(false);
 
   // History Modal State - generalized to support any patient
@@ -182,23 +190,7 @@ const ConsultationPage = () => {
   const [completionMessage, setCompletionMessage] = useState('');
   const [isMessageManuallyEdited, setIsMessageManuallyEdited] = useState(false);
 
-  // --- Completion Message Logic ---
-  const handleOpenCompletionModal = () => {
-    if (!editablePatientDetails || !selectedConsultation) return;
 
-    if (!isMessageManuallyEdited) {
-      const message = generateCompletionMessage(editablePatientDetails, matchedGuides);
-      setCompletionMessage(message);
-    }
-    // If manually edited, keep the existing 'completionMessage' state
-
-    setIsCompletionModalOpen(true);
-  };
-
-  useEffect(() => {
-    setCompletionMessage('');
-    setIsMessageManuallyEdited(false);
-  }, [selectedConsultation?.id]);
 
   // UI State
   const [isFetchingConsultations, setIsFetchingConsultations] = useState(false);
@@ -243,15 +235,14 @@ const ConsultationPage = () => {
   const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const activeConsultationIdRef = useRef<string | null>(null);
 
-  const waitForNextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-
   // Syncs latest textarea values from DOM refs into state to avoid stale prints.
   const syncExtraDataFromRefs = useCallback(() => {
-    const updates: Partial<typeof extraData> = {};
+    const currentExtraData = extraDataRef.current;
+    const updates: Partial<typeof currentExtraData> = {};
 
-    const syncField = (field: keyof typeof extraData, ref: React.RefObject<HTMLTextAreaElement | null>) => {
+    const syncField = (field: keyof typeof currentExtraData, ref: React.RefObject<HTMLTextAreaElement | null>) => {
       const value = ref.current?.value;
-      if (typeof value === 'string' && value !== extraData[field]) {
+      if (typeof value === 'string' && value !== currentExtraData[field]) {
         updates[field] = value as any;
       }
     };
@@ -270,7 +261,6 @@ const ConsultationPage = () => {
     }
     return false;
   }, [
-    extraData,
     complaintsRef,
     findingsRef,
     investigationsRef,
@@ -458,6 +448,7 @@ const ConsultationPage = () => {
       referred_to_list: loadedReferredToList,
 
       visit_type: savedData.visit_type || consultation.visit_type || 'paid',
+      affordabilityPreference: savedData.affordabilityPreference || 'none',
     };
     setExtraData(newExtraData as any);
     setInitialExtraData(newExtraData);
@@ -471,6 +462,7 @@ const ConsultationPage = () => {
 
     setIsProcedureExpanded(!!newExtraData.procedure);
     setIsReferredToExpanded(!!newExtraData.referred_to);
+    setIsFinancialExpanded(false);
 
 
     // --- Last Visit Date Logic ---
@@ -765,10 +757,28 @@ const ConsultationPage = () => {
     return stored !== null ? JSON.parse(stored) : true;
   });
 
-  const generateCompletionMessage = (patient: any, guidesMatched: any[]) => {
+  const generateCompletionMessage = useCallback((patient: any, guidesMatched: any[]) => {
     // Use selected consultation language
     return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage);
-  };
+  }, [consultationLanguage]);
+
+  // --- Completion Message Logic ---
+  const handleOpenCompletionModal = useCallback(() => {
+    if (!editablePatientDetails || !selectedConsultation) return;
+
+    if (!isMessageManuallyEdited) {
+      const message = generateCompletionMessage(editablePatientDetails, matchedGuides);
+      setCompletionMessage(message);
+    }
+    // If manually edited, keep the existing 'completionMessage' state
+
+    setIsCompletionModalOpen(true);
+  }, [editablePatientDetails, selectedConsultation, isMessageManuallyEdited, generateCompletionMessage, matchedGuides]);
+
+  useEffect(() => {
+    setCompletionMessage('');
+    setIsMessageManuallyEdited(false);
+  }, [selectedConsultation?.id]);
 
 
   // Keep patient comparison logic centralized so "dirty check" and "save path" stay consistent.
@@ -827,7 +837,7 @@ const ConsultationPage = () => {
    * @param options.markAsCompleted - If true, attempts to mark status as 'completed' (or 'under_evaluation' if incomplete).
    * @param options.skipToast - If true, suppresses success toasts (e.g., for auto-saves).
    */
-  const saveChanges = async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
+  const saveChanges = useCallback(async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
 
     const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
@@ -961,24 +971,8 @@ const ConsultationPage = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [selectedConsultation, editablePatientDetails, extraData, hasChanges, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline]);
 
-  /**
-   * Offline Sync Logic (Refactored to Hook)
-   * MOVED TO GLOBAL LEVEL (App.tsx)
-   */
-  // const {
-  //   pendingSyncIds,
-  //   setPendingSyncIds,
-  //   conflictData,
-  //   setConflictData,
-  //   patientConflictData,
-  //   setPatientConflictData,
-  //   resolveConflict,
-  //   resolvePatientConflict
-  // } = useOfflineSync({
-  //   isOnline,
-  // });
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -1035,7 +1029,7 @@ const ConsultationPage = () => {
   };
 
   // Data Fetching
-  const fetchSavedMedications = async () => {
+  const fetchSavedMedications = useCallback(async () => {
     const { data, error } = await supabase.from('saved_medications').select('*').order('composition');
     if (!error && data) {
       const mappedData = data.map((item: any) => ({
@@ -1046,22 +1040,22 @@ const ConsultationPage = () => {
       }));
       setSavedMedications(mappedData as Medication[]);
     }
-  };
+  }, []);
 
-  const fetchAutofillKeywords = async () => {
+  const fetchAutofillKeywords = useCallback(async () => {
     const { data } = await supabase.from('autofill_keywords').select('*');
     if (data) setAutofillKeywords(data);
-  };
+  }, []);
 
-  const fetchTextShortcuts = async () => {
+  const fetchTextShortcuts = useCallback(async () => {
     const { data } = await supabase.from('text_shortcuts').select('*');
     if (data) setTextShortcuts(data);
-  };
+  }, []);
 
-  const fetchReferralDoctors = async () => {
+  const fetchReferralDoctors = useCallback(async () => {
     const { data } = await supabase.from('referral_doctors').select('*').order('name');
     if (data) setReferralDoctors(data);
-  };
+  }, []);
 
   useEffect(() => {
     fetchSavedMedications();
@@ -1505,7 +1499,29 @@ const ConsultationPage = () => {
     };
   }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
 
-  const handleSaveAndPrint = async () => {
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+  });
+
+  const handleAfterPrintCertificate = useCallback(() => {
+    setIsReadyToPrintCertificate(false);
+  }, []);
+
+  const handleCertificatePrint = useReactToPrint({
+    contentRef: certificatePrintRef,
+    onAfterPrint: handleAfterPrintCertificate,
+  });
+
+  const handleAfterPrintReceipt = useCallback(() => {
+    setIsReadyToPrintReceipt(false);
+  }, []);
+
+  const handleReceiptPrint = useReactToPrint({
+    contentRef: receiptPrintRef,
+    onAfterPrint: handleAfterPrintReceipt,
+  });
+
+  const handleSaveAndPrint = useCallback(async () => {
     const didSync = syncExtraDataFromRefs();
     if (didSync) {
       await waitForNextPaint();
@@ -1515,7 +1531,7 @@ const ConsultationPage = () => {
       await waitForNextPaint();
       handlePrint();
     }
-  };
+  }, [syncExtraDataFromRefs, saveChanges, handlePrint]);
 
   const handleOpenMedicalCertificate = async () => {
     const didSync = syncExtraDataFromRefs();
@@ -1607,28 +1623,6 @@ const ConsultationPage = () => {
   const pendingConsultations = filteredConsultations.filter(c => c.status === 'pending');
   const evaluationConsultations = filteredConsultations.filter(c => c.status === 'under_evaluation');
   const completedConsultations = filteredConsultations.filter(c => c.status === 'completed');
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-  });
-
-  const handleAfterPrintCertificate = useCallback(() => {
-    setIsReadyToPrintCertificate(false);
-  }, []);
-
-  const handleCertificatePrint = useReactToPrint({
-    contentRef: certificatePrintRef,
-    onAfterPrint: handleAfterPrintCertificate,
-  });
-
-  const handleAfterPrintReceipt = useCallback(() => {
-    setIsReadyToPrintReceipt(false);
-  }, []);
-
-  const handleReceiptPrint = useReactToPrint({
-    contentRef: receiptPrintRef,
-    onAfterPrint: handleAfterPrintReceipt,
-  });
-
 
 
   useEffect(() => {
@@ -1661,7 +1655,7 @@ const ConsultationPage = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [saveChanges, handleSaveAndPrint, addMedication]);
+  }, [saveChanges, handleSaveAndPrint]);
 
   const handleLocationChange = (name: string) => {
     const h = hospitals.find(x => x.name === name);
@@ -1896,6 +1890,7 @@ const ConsultationPage = () => {
                   onManageMedicationsClick={() => setIsMedicationsModalOpen(true)}
                   onManageKeywordsClick={() => setIsKeywordModalOpen(true)}
                   onManageShortcutsClick={() => setIsShortcutModalOpen(true)}
+                  onManageReferralDoctorsClick={() => setIsReferralModalOpen(true)}
                   onSendCompletionClick={handleOpenCompletionModal}
                   isAutoSendEnabled={isAutoSendEnabled}
                   onToggleAutoSend={() => setIsAutoSendEnabled(!isAutoSendEnabled)}
@@ -2006,6 +2001,7 @@ const ConsultationPage = () => {
         </DialogContent>
       </Dialog>
       <TextShortcutManagementModal isOpen={isShortcutModalOpen} onClose={() => setIsShortcutModalOpen(false)} onUpdate={fetchTextShortcuts} />
+      <ReferralDoctorManagementModal isOpen={isReferralModalOpen} onClose={() => setIsReferralModalOpen(false)} onUpdate={fetchReferralDoctors} />
       {
         selectedConsultation && editablePatientDetails && (
           <MedicalCertificateModal
