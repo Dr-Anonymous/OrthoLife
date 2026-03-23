@@ -60,15 +60,22 @@ export function cleanConsultationData(data: any): any {
     diagnosis: removeBracketedText(data.diagnosis),
     advice: removeBracketedText(data.advice),
     followup: removeBracketedText(data.followup),
+    referred_by: removeBracketedText(data.referred_by),
     medications: (data.medications?.map(cleanMedication) || []).filter((m: any) => m.composition && m.composition.trim().length > 0),
     procedure: removeBracketedText(data.procedure),
     referred_to: referredToString,
     // maintain the list in cleaned data too, though print might not use it directly yet
     referred_to_list: referredToList,
     weight: removeBracketedText(data.weight),
+    height: removeBracketedText(data.height),
+    pulse: removeBracketedText(data.pulse),
+    spo2: removeBracketedText(data.spo2),
     bp: removeBracketedText(data.bp),
     temperature: removeBracketedText(data.temperature),
     allergy: removeBracketedText(data.allergy),
+    medicalHistory: removeBracketedText(data.medicalHistory),
+    occupation: removeBracketedText(data.occupation),
+    blood_group: removeBracketedText(data.blood_group),
   };
 }
 

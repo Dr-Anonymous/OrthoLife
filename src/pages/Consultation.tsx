@@ -257,6 +257,8 @@ const ConsultationPage = () => {
   const followupRef = useRef<HTMLTextAreaElement>(null);
   const procedureRef = useRef<HTMLTextAreaElement>(null);
   const referredToRef = useRef<HTMLInputElement>(null);
+  const personalNoteRef = useRef<HTMLTextAreaElement>(null);
+  const referredByRef = useRef<HTMLInputElement>(null);
 
   // Med Refs
   const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
@@ -353,11 +355,11 @@ const ConsultationPage = () => {
       const profileKey = `showDoctorProfile_${selectedHospital.name}`;
       const signSealKey = `showSignSeal_${selectedHospital.name}`;
       const onlyMedsKey = `onlyMedicationsAndFollowup_${selectedHospital.name}`;
-      
+
       const storedProfile = localStorage.getItem(profileKey);
       const storedSignSeal = localStorage.getItem(signSealKey);
       const storedOnlyMeds = localStorage.getItem(onlyMedsKey);
-      
+
       // Default to true for profiles if not set
       setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
       // Default to false for sign+seal if not set
@@ -662,14 +664,14 @@ const ConsultationPage = () => {
       if (!consultation_data || (typeof consultation_data === 'object' && Object.keys(consultation_data).length === 0)) {
         const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(data.patient_id, data.created_at);
         consultation_data = generateAutofillData(data, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
-        
+
         let referred_by = data.referred_by;
         if (!referred_by && !data.consultation_data && lastConsultation && lastConsultation.referred_by) {
-            referred_by = lastConsultation.referred_by;
+          referred_by = lastConsultation.referred_by;
         }
 
         const last_visit_date = calculateLastVisitString(lastOpDate, lastDischargeDate);
-        
+
         // update memory object before pushing to state
         data.consultation_data = consultation_data;
         data.referred_by = referred_by;
@@ -682,9 +684,9 @@ const ConsultationPage = () => {
         const newList = exists
           ? prev.map(c => (c.id === data.id ? data : c))
           : [data, ...prev];
-        
+
         // Keep sorted by created_at DESC (newest at top)
-        return [...newList].sort((a, b) => 
+        return [...newList].sort((a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       });
@@ -711,10 +713,10 @@ const ConsultationPage = () => {
         },
         (payload: any) => {
           const { eventType, new: newRow, old: oldRow } = payload;
-          
+
           // Guard for location
-          const locationMatch = 
-            (newRow?.location === selectedHospital.name) || 
+          const locationMatch =
+            (newRow?.location === selectedHospital.name) ||
             (oldRow?.location === selectedHospital.name);
 
           // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
@@ -728,16 +730,16 @@ const ConsultationPage = () => {
               console.log(`Realtime ${eventType} detected, handling...`);
               hydrateInsertedConsultation(newRow.id);
             }
-          } 
+          }
           else if (eventType === 'UPDATE') {
             // Data change: update local state instantly to save egress
             if (newRow?.id != null && recentlyHandledIds.current.has(newRow.id)) return;
             console.log(`Realtime ${eventType} detected, handling...`);
 
-            setAllConsultations(prev => prev.map(c => 
+            setAllConsultations(prev => prev.map(c =>
               c.id === newRow.id ? { ...c, ...newRow } : c
             ));
-          } 
+          }
           else if (eventType === 'DELETE') {
             // Removal: filter out locally
             console.log(`Realtime ${eventType} detected, handling...`);
@@ -1169,16 +1171,16 @@ const ConsultationPage = () => {
   const handleExtraChange = useCallback((field: string, value: any, cursorPosition?: number | null) => {
     if (field === 'complaints' && typeof value === 'string' && value.includes('//')) {
       setIsShortcutModalOpen(true);
-      setExtraData(prev => ({ ...prev, complaints: value.replace('//', '') })); // Remove the trigger
+      setExtraData(prev => ({ ...prev, [field]: value.replace('//', '') })); // Remove the trigger
       return;
     }
 
-    if (typeof value === 'string' && (field === 'complaints' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to')) {
+    if (typeof value === 'string' && (field === 'complaints' || field === 'medicalHistory' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to')) {
       let processedValue = value;
       let newCursor = cursorPosition || value.length;
 
       // Special Duration Shortcuts for Complaints/Advice
-      if (field === 'complaints' || field === 'advice') {
+      if (field === 'complaints' || field === 'advice' || field === 'medicalHistory') {
         const textBeforeCursor = value.substring(0, newCursor);
         const durationRegex = /(\d+)([dwmy])\.\s$/i;
         const match = textBeforeCursor.match(durationRegex);
@@ -1207,7 +1209,7 @@ const ConsultationPage = () => {
 
               setExtraData(prev => ({ ...prev, [field]: processedValue }));
               setTimeout(() => {
-                const targetRef = field === 'advice' ? adviceRef : complaintsRef;
+                const targetRef = field === 'advice' ? adviceRef : (field === 'medicalHistory' ? medicalHistoryRef : complaintsRef);
                 if (targetRef.current) {
                   targetRef.current.setSelectionRange(newCursor, newCursor);
                 }
@@ -1215,7 +1217,7 @@ const ConsultationPage = () => {
               return;
             }
           }
-        } else {
+        } else if (field === 'complaints' || field === 'advice' || field === 'medicalHistory') {
           // Unit-only shortcuts (e.g. "y. " -> "years ")
           const unitOnlyRegex = /(?:^|\s)([dwmy])\.\s$/i;
           const unitMatch = textBeforeCursor.match(unitOnlyRegex);
@@ -1245,7 +1247,7 @@ const ConsultationPage = () => {
 
                 setExtraData(prev => ({ ...prev, [field]: processedValue }));
                 setTimeout(() => {
-                  const targetRef = field === 'advice' ? adviceRef : complaintsRef;
+                  const targetRef = field === 'advice' ? adviceRef : (field === 'medicalHistory' ? medicalHistoryRef : complaintsRef);
                   if (targetRef.current) {
                     targetRef.current.setSelectionRange(newCursor, newCursor);
                   }
@@ -1300,18 +1302,22 @@ const ConsultationPage = () => {
         setExtraData(prev => ({ ...prev, [field]: processed.newValue }));
         // We need to set cursor position, using a ref or state
         setTimeout(() => {
-          const refMap: any = {
+          const refs = {
             complaints: complaintsRef.current,
+            medicalHistory: medicalHistoryRef.current,
             findings: findingsRef.current,
             diagnosis: diagnosisRef.current,
-            advice: adviceRef.current,
-            followup: followupRef.current,
-            procedure: procedureRef.current,
             investigations: investigationsRef.current,
+            procedure: procedureRef.current,
+            advice: adviceRef.current,
+            personalNote: personalNoteRef.current,
+            followup: followupRef.current,
             referred_to: referredToRef.current,
+            referred_by: referredByRef.current,
           };
-          if (refMap[field]) {
-            refMap[field].setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
+          const ref = (refs as any)[field];
+          if (ref) {
+            ref.setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
           }
         }, 0);
         return;
@@ -1327,19 +1333,19 @@ const ConsultationPage = () => {
    */
   const handleMedicationSuggestionClick = useCallback((med: Medication) => {
     const isTelugu = consultationLanguage === 'te';
-    
+
     let finalBrandName: string | undefined = undefined;
-    
+
     // Auto-swap logic for generic suggestions
     const affordabilityPreference = extraData.affordabilityPreference || 'none';
     const currentLocation = selectedHospital?.name || '';
-    
+
     if (affordabilityPreference !== 'none' || currentLocation) {
       let validBrands = med.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation)) || [];
       if (validBrands.length === 0 && med.brand_metadata) {
         validBrands = [...med.brand_metadata];
       }
-      
+
       if (validBrands.length > 0) {
         if (affordabilityPreference === 'cheap') {
           validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
@@ -1804,6 +1810,7 @@ const ConsultationPage = () => {
             onShowPatientHistory={handleOpenHistory}
             personalNote={extraData.personalNote}
             onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
+            personalNoteRef={personalNoteRef}
             initialPersonalNote={initialExtraData?.personalNote}
             isEvaluationCollapsed={isEvaluationCollapsed}
             setIsEvaluationCollapsed={setIsEvaluationCollapsed}
@@ -1814,6 +1821,7 @@ const ConsultationPage = () => {
             timerSeconds={timerSeconds}
             referredBy={extraData.referred_by}
             onReferredByChange={(val) => handleExtraChange('referred_by', val)}
+            referredByRef={referredByRef}
             initialReferredBy={initialExtraData?.referred_by}
           />
 

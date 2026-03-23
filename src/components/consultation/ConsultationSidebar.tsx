@@ -46,6 +46,7 @@ interface ConsultationSidebarProps {
 
     personalNote: string;
     onPersonalNoteChange: (value: string) => void;
+    personalNoteRef?: React.RefObject<HTMLTextAreaElement>;
     initialPersonalNote?: string;
 
     isEvaluationCollapsed: boolean;
@@ -59,6 +60,7 @@ interface ConsultationSidebarProps {
     timerSeconds: number;
     referredBy: string;
     onReferredByChange: (value: string) => void;
+    referredByRef?: React.RefObject<HTMLInputElement>;
     initialReferredBy?: string;
 }
 
@@ -95,6 +97,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     onShowPatientHistory,
     personalNote,
     onPersonalNoteChange,
+    personalNoteRef,
     initialPersonalNote,
     isEvaluationCollapsed,
     setIsEvaluationCollapsed,
@@ -105,6 +108,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     timerSeconds,
     referredBy,
     onReferredByChange,
+    referredByRef,
     initialReferredBy
 }) => {
     const { hospitals } = useHospitals();
@@ -314,6 +318,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
 
                         {(referredBy || isReferredByExpanded) && (
                             <Input
+                                ref={referredByRef}
                                 value={referredBy}
                                 onChange={e => onReferredByChange(e.target.value)}
                                 placeholder="Referrer name..."
@@ -362,6 +367,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
 
                         {(personalNote || isPersonalNoteExpanded) && (
                             <Textarea
+                                ref={personalNoteRef}
                                 id="personalNoteSidebar"
                                 value={personalNote}
                                 onChange={e => onPersonalNoteChange(e.target.value)}

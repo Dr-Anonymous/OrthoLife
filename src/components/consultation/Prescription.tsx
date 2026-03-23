@@ -22,10 +22,13 @@ interface Patient {
   sex: string;
   phone: string;
   id: string;
+  occupation?: string;
+  blood_group?: string;
 }
 
 interface ConsultationData {
   complaints: string;
+  medicalHistory?: string;
   findings: string;
   investigations: string;
   diagnosis: string;
@@ -34,9 +37,13 @@ interface ConsultationData {
   medications: Medication[];
   procedure?: string;
   referred_to?: string;
+  referred_by?: string;
   bp?: string;
   temperature?: string;
   weight?: string;
+  height?: string;
+  pulse?: string;
+  spo2?: string;
   allergy?: string;
 }
 
@@ -166,8 +173,14 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
 
           {/* Vitals */}
-          {(consultation.bp || consultation.temperature || consultation.weight || consultation.allergy) && !onlyMedicationsAndFollowup && (
+          {(consultation.bp || consultation.temperature || consultation.weight || consultation.height || consultation.pulse || consultation.spo2 || consultation.allergy || patient.blood_group) && !onlyMedicationsAndFollowup && (
             <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              {patient.blood_group && (
+                <div className="flex items-center">
+                  <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">Blood:</span>
+                  <span className="font-semibold text-primary">{patient.blood_group}</span>
+                </div>
+              )}
               {consultation.bp && (
                 <div className="flex items-center">
                   <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">BP:</span>
@@ -180,10 +193,28 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <span className="font-medium">{consultation.temperature}</span>
                 </div>
               )}
+              {consultation.height && (
+                <div className="flex items-center">
+                  <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">Height:</span>
+                  <span className="font-medium">{consultation.height} cm</span>
+                </div>
+              )}
               {consultation.weight && (
                 <div className="flex items-center">
                   <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">Weight:</span>
-                  <span className="font-medium">{consultation.weight}</span>
+                  <span className="font-medium">{consultation.weight} kg</span>
+                </div>
+              )}
+              {consultation.pulse && (
+                <div className="flex items-center">
+                  <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">Pulse:</span>
+                  <span className="font-medium">{consultation.pulse} bpm</span>
+                </div>
+              )}
+              {consultation.spo2 && (
+                <div className="flex items-center">
+                  <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">SpO2:</span>
+                  <span className="font-medium">{consultation.spo2} %</span>
                 </div>
               )}
               {consultation.allergy && (
@@ -200,8 +231,20 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
             <section className="space-y-4">
               {consultation.complaints && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1">Complaints:</h3>
+                  <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4" />
+                    Complaints:
+                  </h3>
                   <p className="whitespace-pre-wrap">{consultation.complaints}</p>
+                </div>
+              )}
+              {consultation.medicalHistory && (
+                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Past History:
+                  </h3>
+                  <p className="whitespace-pre-wrap">{consultation.medicalHistory}</p>
                 </div>
               )}
               {consultation.findings && (

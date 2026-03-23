@@ -122,7 +122,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="medicalHistory" className="text-sm font-medium">Medical History</Label>
+                    <Label htmlFor="medicalHistory" className="text-sm font-medium">Past History</Label>
                     <Textarea
                         ref={medicalHistoryRef}
                         id="medicalHistory"
