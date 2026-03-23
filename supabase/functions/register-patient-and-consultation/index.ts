@@ -90,33 +90,14 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { id, name, dob, sex, phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days } = await req.json();
+    const { id, name, dob, sex, phone, secondary_phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days } = await req.json();
     const freeDuration = free_visit_duration_days ? Number(free_visit_duration_days) : 14;
 
     // Sanitize phone and support matching both full international form and legacy last-10 form.
     const sanitizedPhone = sanitizePhoneNumber(phone);
     const legacyPhone = sanitizedPhone.length > 10 ? sanitizedPhone.slice(-10) : sanitizedPhone;
-    const phoneCandidates = Array.from(new Set([sanitizedPhone, legacyPhone]));
-
-    // Check for existing patients with the same phone number in both primary and secondary fields.
-    const [{ data: phoneMatches, error: phoneError }, { data: secondaryMatches, error: secondaryError }] = await Promise.all([
-      supabase
-        .from('patients')
-        .select('id, name, dob, sex, phone, drive_id')
-        .in('phone', phoneCandidates),
-      supabase
-        .from('patients')
-        .select('id, name, dob, sex, phone, drive_id')
-        .in('secondary_phone', phoneCandidates),
-    ]);
-
-    if (phoneError) throw phoneError;
-    if (secondaryError) throw secondaryError;
-    const existingPatients = Array.from(
-      new Map(
-        [...(phoneMatches || []), ...(secondaryMatches || [])].map((patient) => [patient.id, patient])
-      ).values()
-    );
+    const phoneCandidates = Array.from(new Set([sanitizedPhone, legacyPhone].filter(Boolean)));
+    const searchablePhone = sanitizedPhone.length >= 10 ? sanitizedPhone.slice(-10) : sanitizedPhone;
 
     // Helper function to calculate Levenshtein distance
     const levenshteinDistance = (a: string, b: string): number => {
@@ -143,77 +124,162 @@ serve(async (req: Request) => {
     };
 
     const normalizeString = (str: string): string => {
-      return str.toLowerCase().replace(/[^a-z]/g, '');
+      return str.toLowerCase().replace(/[^a-z0-9]/g, '');
     };
 
-    const newNameNormalized = normalizeString(name);
-    let bestMatch = null;
-    let highestSimilarity = 0;
+    const isDuplicateKeyError = (error: unknown): boolean => {
+      const typedError = error as { code?: string; message?: string; constraint?: string } | null;
+      return typedError?.code === '23505' ||
+        typedError?.constraint === 'patients_pkey' ||
+        typedError?.message?.includes('duplicate key value violates unique constraint "patients_pkey"') === true;
+    };
 
-    if (existingPatients && existingPatients.length > 0) {
-      for (const patient of existingPatients) {
-        // Strict sex check: if sex is provided and different, it's a different patient
+    const findExistingPatientsByPhone = async () => {
+      const queries = [];
+
+      if (phoneCandidates.length > 0) {
+        queries.push(
+          supabase
+            .from('patients')
+            .select('id, name, dob, sex, phone, drive_id')
+            .in('phone', phoneCandidates),
+          supabase
+            .from('patients')
+            .select('id, name, dob, sex, phone, drive_id')
+            .in('secondary_phone', phoneCandidates),
+        );
+      }
+
+      if (searchablePhone) {
+        queries.push(
+          supabase
+            .from('patients')
+            .select('id, name, dob, sex, phone, drive_id')
+            .like('phone', `%${searchablePhone}`),
+          supabase
+            .from('patients')
+            .select('id, name, dob, sex, phone, drive_id')
+            .like('secondary_phone', `%${searchablePhone}`),
+        );
+      }
+
+      const results = await Promise.all(queries);
+      const patients = [];
+
+      for (const result of results) {
+        if (result.error) throw result.error;
+        patients.push(...(result.data || []));
+      }
+
+      return Array.from(new Map(patients.map((patient) => [patient.id, patient])).values());
+    };
+
+    const calculateSimilarity = (incomingName: string, existingName: string): number => {
+      const normalizedIncomingName = normalizeString(incomingName);
+      const normalizedExistingName = normalizeString(existingName);
+      const distance = levenshteinDistance(normalizedIncomingName, normalizedExistingName);
+      const maxLength = Math.max(normalizedIncomingName.length, normalizedExistingName.length);
+      return maxLength === 0 ? 1 : 1 - (distance / maxLength);
+    };
+
+    const findBestPatientMatch = async () => {
+      if (id) {
+        const { data: patientById, error: idError } = await supabase
+          .from('patients')
+          .select('id, name, dob, sex, phone, drive_id')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (idError) throw idError;
+        if (patientById) {
+          return { patient: patientById, similarity: 1 };
+        }
+      }
+
+      const phoneMatches = await findExistingPatientsByPhone();
+      let bestPhoneMatch = null;
+      let bestPhoneSimilarity = 0;
+
+      for (const patient of phoneMatches) {
         if (sex && patient.sex && sex.toLowerCase() !== patient.sex.toLowerCase()) {
           continue;
         }
 
-        const existingNameNormalized = normalizeString(patient.name);
-
-        // Calculate similarity
-        const distance = levenshteinDistance(newNameNormalized, existingNameNormalized);
-        const maxLength = Math.max(newNameNormalized.length, existingNameNormalized.length);
-        const similarity = maxLength === 0 ? 1 : 1 - (distance / maxLength);
-
-        if (similarity >= 0.6) {
-          if (similarity > highestSimilarity) {
-            highestSimilarity = similarity;
-            bestMatch = patient;
-          }
+        const similarity = calculateSimilarity(name, patient.name);
+        if (similarity >= 0.6 && similarity > bestPhoneSimilarity) {
+          bestPhoneSimilarity = similarity;
+          bestPhoneMatch = patient;
         }
       }
-    }
 
-    if (bestMatch) {
-      // If a match is found (similarity >= 60%), create a new consultation for that patient
+      if (bestPhoneMatch) {
+        return { patient: bestPhoneMatch, similarity: bestPhoneSimilarity };
+      }
 
+      const { data: nameMatches, error: nameError } = await supabase
+        .from('patients')
+        .select('id, name, dob, sex, phone, drive_id')
+        .ilike('name', `%${name}%`)
+        .limit(5);
+
+      if (nameError) throw nameError;
+
+      let bestNameMatch = null;
+      let bestNameSimilarity = 0;
+      for (const patient of nameMatches || []) {
+        if (sex && patient.sex && sex.toLowerCase() !== patient.sex.toLowerCase()) {
+          continue;
+        }
+
+        const similarity = calculateSimilarity(name, patient.name);
+        if (similarity >= 0.8 && similarity > bestNameSimilarity) {
+          bestNameSimilarity = similarity;
+          bestNameMatch = patient;
+        }
+      }
+
+      if (bestNameMatch) {
+        return { patient: bestNameMatch, similarity: bestNameSimilarity };
+      }
+
+      return { patient: null, similarity: 0 };
+    };
+
+    const createConsultationForPatient = async (patient: { id: string | number; name: string; drive_id: string | null }, similarity: number) => {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayEnd = new Date();
       todayEnd.setHours(23, 59, 59, 999);
 
-      // Check for duplicate consultation for this patient today at this location
       const { data: existingConsultations } = await supabase
         .from('consultations')
         .select('id')
-        .eq('patient_id', bestMatch.id)
-        .ilike('location', location) // Case insensitive check
+        .eq('patient_id', patient.id)
+        .ilike('location', location)
         .gte('created_at', todayStart.toISOString())
         .lte('created_at', todayEnd.toISOString());
 
       if (existingConsultations && existingConsultations.length > 0) {
         return new Response(JSON.stringify({
           status: 'error',
-          message: `Consultation already booked for ${bestMatch.name} today at ${location}.`
+          message: `Consultation already booked for ${patient.name} today at ${location}.`
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          // Return 200 so the client can parse the custom message easily
           status: 200,
         });
       }
 
-      // Determine fields efficiently by running in parallel
-      const visitTypePromise = getVisitType(supabase, bestMatch.id, location, freeDuration);
-
+      const visitTypePromise = getVisitType(supabase, patient.id, location, freeDuration);
       const languagePromise = language
         ? Promise.resolve(language)
-        : getLastLanguage(supabase, bestMatch.id);
+        : getLastLanguage(supabase, patient.id);
 
       const [visitType, finalLanguage] = await Promise.all([visitTypePromise, languagePromise]);
 
       const { data: consultation, error: newConsultationError } = await supabase
         .from('consultations')
         .insert({
-          patient_id: bestMatch.id,
+          patient_id: patient.id,
           status: 'pending',
           location: location,
           visit_type: visitType,
@@ -228,13 +294,24 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({
         status: 'success',
         consultation,
-        driveId: bestMatch.drive_id,
-        matchType: highestSimilarity === 1 ? 'exact' : 'fuzzy',
-        similarity: highestSimilarity
+        driveId: patient.drive_id,
+        matchType: similarity === 1 ? 'exact' : 'fuzzy',
+        similarity
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
+    };
+
+    const newNameNormalized = normalizeString(name);
+    if (!newNameNormalized) {
+      throw new Error('Patient name is required.');
+    }
+
+    const { patient: bestMatch, similarity: highestSimilarity } = await findBestPatientMatch();
+
+    if (bestMatch) {
+      return await createConsultationForPatient(bestMatch, highestSimilarity);
     }
 
     // No matches, proceed with registration
@@ -243,11 +320,31 @@ serve(async (req: Request) => {
     const newPatientId = id || await generateIncrementalId(supabase);
     const { data: newPatient, error: newPatientError } = await supabase
       .from('patients')
-      .insert({ id: newPatientId, name, dob, sex, phone: sanitizedPhone, drive_id: driveId, is_dob_estimated: is_dob_estimated ?? true })
+      .insert({
+        id: newPatientId,
+        name,
+        dob,
+        sex,
+        phone: sanitizedPhone,
+        secondary_phone: secondary_phone ? sanitizePhoneNumber(secondary_phone) : null,
+        drive_id: driveId,
+        is_dob_estimated: is_dob_estimated ?? true
+      })
       .select('id, created_at, drive_id')
       .single();
 
-    if (newPatientError) throw newPatientError;
+    if (newPatientError) {
+      if (!isDuplicateKeyError(newPatientError)) {
+        throw newPatientError;
+      }
+
+      const recoveredMatch = await findBestPatientMatch();
+      if (recoveredMatch.patient) {
+        return await createConsultationForPatient(recoveredMatch.patient, recoveredMatch.similarity || 1);
+      }
+
+      throw newPatientError;
+    }
 
     if (!newPatient) {
       throw new Error("Patient could not be created.");
