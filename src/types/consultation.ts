@@ -40,6 +40,8 @@ export interface Patient {
     drive_id: string | null;
     is_dob_estimated?: boolean;
     secondary_phone?: string;
+    occupation?: string;
+    blood_group?: string;
 }
 
 export interface Consultation {
@@ -50,7 +52,8 @@ export interface Consultation {
     location?: string;
     language?: string;
     patient: Patient;
-    consultation_data?: any;
+    patient_id: string;
+    consultation_data?: ExtraData;
     last_visit_date?: string;
     duration?: number;
     procedure_fee?: number | null;
@@ -75,4 +78,44 @@ export interface MatchedGuide {
     query: string;
     guide?: Guide;
     guideLink?: string;
+}
+
+export interface ExtraData {
+    complaints: string;
+    medicalHistory: string;
+    findings: string;
+    investigations: string;
+    diagnosis: string;
+    advice: string;
+    followup: string;
+    medications: Medication[];
+    weight: string;
+    bp: string;
+    temperature: string;
+    height: string;
+    pulse: string;
+    spo2: string;
+    bmi: string;
+    allergy: string;
+    personalNote: string;
+    procedure: string;
+    procedure_fee: string;
+    procedure_consultant_cut: string;
+    referred_to: string;
+    referred_to_list: string[];
+    referred_by: string;
+    referral_amount: string;
+    visit_type: string;
+    affordabilityPreference: string;
+}
+
+export interface AutofillProtocol {
+    id: number;
+    keywords: string[];
+    medication_ids: number[];
+    advice?: string;
+    advice_te?: string;
+    investigations?: string;
+    followup?: string;
+    followup_te?: string;
 }

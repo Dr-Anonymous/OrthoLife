@@ -38,9 +38,31 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
     onChange(inputValue);
 
     if (inputValue.length > 0) {
+      const cleanSearch = (text: string) => {
+        if (!text) return '';
+        const prefixes = ['t\\.', 'cap\\.', 'syr\\.', 'tab\\.', 'inj\\.', 'crm\\.', 'gel\\.', 'oint\\.', 'tab', 'cap', 'syr', 'inj', 'crm', 'gel', 'oint', 'syp', 'caps', 'tabs', 'pint', 'p\\.int', 'p\\.inj', 'supp', 'susp', 'lot', 'pdr'];
+        const regex = new RegExp(`^(${prefixes.join('|')})\\s*`, 'i');
+        return text.toLowerCase()
+          .replace(regex, '')
+          .trim();
+      };
+
+      const searchVal = cleanSearch(inputValue);
+      
       const filtered = suggestions.filter(suggestion => {
-        const searchTarget = `${suggestion.label || ''} ${suggestion.name || ''} ${suggestion.searchTerms || ''}`.toLowerCase();
-        return searchTarget.includes(inputValue.toLowerCase());
+        const name = suggestion.name || '';
+        const label = suggestion.label || '';
+        const searchTerms = suggestion.searchTerms || '';
+        
+        const cleanName = cleanSearch(name);
+        const cleanLabel = cleanSearch(label);
+        const cleanTerms = cleanSearch(searchTerms);
+
+        return cleanName.includes(searchVal) || 
+               cleanLabel.includes(searchVal) || 
+               cleanTerms.includes(searchVal) ||
+               name.toLowerCase().includes(inputValue.toLowerCase()) ||
+               label.toLowerCase().includes(inputValue.toLowerCase());
       });
       setFilteredSuggestions(filtered);
       setIsSuggestionsVisible(true);

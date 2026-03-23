@@ -26,6 +26,8 @@ interface ConsultationActionsProps {
     onToggleSignSeal?: (checked: boolean) => void;
     onlyMedicationsAndFollowup?: boolean;
     onToggleOnlyMeds?: (checked: boolean) => void;
+    medicationSuggestionMode?: 'composition' | 'brand';
+    onToggleMedicationSuggestionMode?: (checked: boolean) => void;
 }
 
 /**
@@ -59,7 +61,9 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     showSignSeal,
     onToggleSignSeal,
     onlyMedicationsAndFollowup,
-    onToggleOnlyMeds
+    onToggleOnlyMeds,
+    medicationSuggestionMode = 'composition',
+    onToggleMedicationSuggestionMode
 }) => {
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
@@ -181,6 +185,26 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             </div>
                             <p className="text-[10px] text-muted-foreground mt-1">
                                 Hide medical notes, show only medications.
+                            </p>
+                        </div>
+
+                        <div
+                            className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onToggleMedicationSuggestionMode?.(medicationSuggestionMode !== 'brand');
+                            }}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Show Brands in Keywords</span>
+                                <Switch
+                                    checked={medicationSuggestionMode === 'brand'}
+                                    onCheckedChange={() => { }} // Handled by parent div click
+                                    className="scale-75"
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                                Show brand names instead of generic composition.
                             </p>
                         </div>
 

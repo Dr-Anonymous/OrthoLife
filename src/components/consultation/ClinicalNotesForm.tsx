@@ -12,12 +12,12 @@ import { MatchedGuide } from '@/types/consultation';
 interface ClinicalNotesFormProps {
     extraData: {
         complaints: string;
+        medicalHistory: string;
         findings: string;
         investigations: string;
         diagnosis: string;
         procedure: string;
         advice: string;
-        followup: string;
         referred_to: string;
         referred_to_list?: string[];
     };
@@ -25,22 +25,20 @@ interface ClinicalNotesFormProps {
 
     // Refs
     complaintsRef: React.RefObject<HTMLTextAreaElement>;
+    medicalHistoryRef: React.RefObject<HTMLTextAreaElement>;
     findingsRef: React.RefObject<HTMLTextAreaElement>;
     investigationsRef: React.RefObject<HTMLTextAreaElement>;
     diagnosisRef: React.RefObject<HTMLTextAreaElement>;
     procedureRef: React.RefObject<HTMLTextAreaElement>;
     adviceRef: React.RefObject<HTMLTextAreaElement>;
-    followupRef: React.RefObject<HTMLTextAreaElement>;
     referredToRef: React.RefObject<any>; // Typings for AutosuggestInput ref might be tricky
 
     // Suggestions
     suggestedInvestigations: string[];
     suggestedAdvice: string[];
-    suggestedFollowup: string[];
 
     onInvestigationSuggestionClick: (val: string) => void;
     onAdviceSuggestionClick: (val: string) => void;
-    onFollowupSuggestionClick: (val: string) => void;
 
     matchedGuides: MatchedGuide[];
 
@@ -71,19 +69,17 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     extraData,
     onExtraChange,
     complaintsRef,
+    medicalHistoryRef,
     findingsRef,
     investigationsRef,
     diagnosisRef,
     procedureRef,
     adviceRef,
-    followupRef,
     referredToRef,
     suggestedInvestigations,
     suggestedAdvice,
-    suggestedFollowup,
     onInvestigationSuggestionClick,
     onAdviceSuggestionClick,
-    onFollowupSuggestionClick,
     matchedGuides,
     isProcedureExpanded,
     setIsProcedureExpanded,
@@ -95,10 +91,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     initialData
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
-    const getStyle = (field: keyof typeof extraData, value: any) => {
+    const getStyle = (field: keyof ClinicalNotesFormProps['extraData'], value: any) => {
         if (!initialData) return "bg-background/50";
 
-        const initialValue = initialData[field];
+        const initialValue = (initialData as any)[field];
         // Check if value equals initial value AND value is not empty/falsy
         // We trim strings to be safe
         const isUnchanged = String(value).trim() === String(initialValue || '').trim();
@@ -126,6 +122,20 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 </div>
 
                 <div className="space-y-2">
+                    <Label htmlFor="medicalHistory" className="text-sm font-medium">Medical History</Label>
+                    <Textarea
+                        ref={medicalHistoryRef}
+                        id="medicalHistory"
+                        value={extraData.medicalHistory}
+                        onChange={e => onExtraChange('medicalHistory', e.target.value, e.target.selectionStart)}
+                        placeholder="Previous history, chronic conditions..."
+                        className={cn("min-h-[100px]", getStyle('medicalHistory', extraData.medicalHistory))}
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
                     <Label htmlFor="findings" className="text-sm font-medium">Clinical Findings</Label>
                     <Textarea
                         ref={findingsRef}
@@ -136,9 +146,20 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         className={cn("min-h-[100px]", getStyle('findings', extraData.findings))}
                     />
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
+                    <Textarea
+                        ref={diagnosisRef}
+                        id="diagnosis"
+                        value={extraData.diagnosis}
+                        onChange={e => onExtraChange('diagnosis', e.target.value, e.target.selectionStart)}
+                        placeholder="Clinical diagnosis..."
+                        className={cn("min-h-[100px]", getStyle('diagnosis', extraData.diagnosis))}
+                    />
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                         <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
@@ -155,18 +176,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         onChange={e => onExtraChange('investigations', e.target.value, e.target.selectionStart)}
                         placeholder="Investigations required..."
                         className={cn("min-h-[100px]", getStyle('investigations', extraData.investigations))}
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="diagnosis" className="text-sm font-medium">Diagnosis</Label>
-                    <Textarea
-                        ref={diagnosisRef}
-                        id="diagnosis"
-                        value={extraData.diagnosis}
-                        onChange={e => onExtraChange('diagnosis', e.target.value, e.target.selectionStart)}
-                        placeholder="Clinical diagnosis..."
-                        className={cn("min-h-[100px]", getStyle('diagnosis', extraData.diagnosis))}
                     />
                 </div>
             </div>

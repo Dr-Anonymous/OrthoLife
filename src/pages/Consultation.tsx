@@ -42,7 +42,7 @@ import { ClinicalNotesForm } from '@/components/consultation/ClinicalNotesForm';
 import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { FollowUpSection } from '@/components/consultation/FollowUpSection';
 import { ConsultationActions } from '@/components/consultation/ConsultationActions';
-import { Patient, Consultation, Medication, TextShortcut } from '@/types/consultation';
+import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol } from '@/types/consultation';
 
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
@@ -92,6 +92,20 @@ const t = (key: string, options?: { lng?: string, count?: number, unit?: string 
   return text;
 };
 
+// Keep patient comparison logic centralized so "dirty check" and "save path" stay consistent.
+const arePatientsEqual = (p1: Patient | null, p2: Patient | null) => {
+  if (!p1 || !p2) return p1 === p2;
+  const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+  return (
+    normalize(p1.name) === normalize(p2.name) &&
+    normalize(p1.phone) === normalize(p2.phone) &&
+    normalize(p1.dob) === normalize(p2.dob) &&
+    normalize(p1.sex) === normalize(p2.sex) &&
+    normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
+    normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
+  );
+};
+
 /**
  * ConsultationPage Component
  * 
@@ -115,7 +129,7 @@ const ConsultationPage = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [editablePatientDetails, setEditablePatientDetails] = useState<Patient | null>(null);
   const [initialPatientDetails, setInitialPatientDetails] = useState<Patient | null>(null);
-  const [initialExtraData, setInitialExtraData] = useState<any>(null);
+  const [initialExtraData, setInitialExtraData] = useState<ExtraData | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('selectedHospital') || '';
@@ -130,8 +144,9 @@ const ConsultationPage = () => {
   });
   const [initialLanguage, setInitialLanguage] = useState<string>('te');
 
-  const [extraData, setExtraData] = useState({
+  const [extraData, setExtraData] = useState<ExtraData>({
     complaints: '',
+    medicalHistory: '',
     findings: '',
     investigations: '',
     diagnosis: '',
@@ -141,6 +156,10 @@ const ConsultationPage = () => {
     weight: '',
     bp: '',
     temperature: '',
+    height: '',
+    pulse: '',
+    spo2: '',
+    bmi: '',
     allergy: '',
     personalNote: '',
     procedure: '',
@@ -163,7 +182,6 @@ const ConsultationPage = () => {
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
 
-  // Modals
   // --- Modals State ---
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<Consultation | null>(null);
@@ -212,6 +230,17 @@ const ConsultationPage = () => {
   });
 
   const [age, setAge] = useState<number | ''>('');
+  const [medicationSuggestionMode, setMedicationSuggestionMode] = useState<'composition' | 'brand'>(() => {
+    const stored = localStorage.getItem('medicationSuggestionMode');
+    return (stored as 'composition' | 'brand') || 'composition';
+  });
+
+  const toggleMedicationSuggestionMode = (checked: boolean) => {
+    const newMode = checked ? 'brand' : 'composition';
+    setMedicationSuggestionMode(newMode);
+    localStorage.setItem('medicationSuggestionMode', newMode);
+  };
+
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
 
   const debouncedAdvice = useDebounce(extraData.advice, 500);
@@ -220,6 +249,7 @@ const ConsultationPage = () => {
 
   // Refs
   const complaintsRef = useRef<HTMLTextAreaElement>(null);
+  const medicalHistoryRef = useRef<HTMLTextAreaElement>(null);
   const findingsRef = useRef<HTMLTextAreaElement>(null);
   const investigationsRef = useRef<HTMLTextAreaElement>(null);
   const diagnosisRef = useRef<HTMLTextAreaElement>(null);
@@ -297,12 +327,12 @@ const ConsultationPage = () => {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   // Suggestions state
-  const [autofillKeywords, setAutofillKeywords] = useState<any[]>([]);
+  const [autofillKeywords, setAutofillKeywords] = useState<AutofillProtocol[]>([]);
   const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
   const [isProcedureExpanded, setIsProcedureExpanded] = useState(false);
   const [isReferredToExpanded, setIsReferredToExpanded] = useState(false);
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
-  const [referralDoctors, setReferralDoctors] = useState<any[]>([]);
+  const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string, phone?: string }[]>([]);
   const [isFinancialExpanded, setIsFinancialExpanded] = useState(false);
 
   // Timer (Refactored)
@@ -404,7 +434,7 @@ const ConsultationPage = () => {
       setCalendarDate(new Date());
     }
 
-    const savedData = consultation.consultation_data || {};
+    const savedData = (consultation.consultation_data || {}) as Partial<ExtraData>;
     const loadedMedications = (() => {
       if (Array.isArray(savedData.medications)) return savedData.medications;
       if (typeof savedData.medications === 'string') {
@@ -424,8 +454,9 @@ const ConsultationPage = () => {
       loadedReferredToList = [savedData.referred_to];
     }
 
-    const newExtraData = {
+    const newExtraData: ExtraData = {
       complaints: savedData.complaints || '',
+      medicalHistory: savedData.medicalHistory || (savedData as any).medical_history || '',
       findings: savedData.findings || '',
       investigations: savedData.investigations || '',
       diagnosis: savedData.diagnosis || '',
@@ -435,8 +466,12 @@ const ConsultationPage = () => {
       weight: savedData.weight || '',
       bp: savedData.bp || '',
       temperature: savedData.temperature || '',
+      height: savedData.height || '',
+      pulse: savedData.pulse || '',
+      spo2: savedData.spo2 || '',
+      bmi: savedData.bmi || '',
       allergy: savedData.allergy || '',
-      personalNote: savedData.personalNote || savedData.personal_note || '',
+      personalNote: savedData.personalNote || (savedData as any).personal_note || '',
       procedure: savedData.procedure || '',
 
       procedure_fee: consultation.procedure_fee !== null ? String(consultation.procedure_fee) : '',
@@ -450,7 +485,7 @@ const ConsultationPage = () => {
       visit_type: savedData.visit_type || consultation.visit_type || 'paid',
       affordabilityPreference: savedData.affordabilityPreference || 'none',
     };
-    setExtraData(newExtraData as any);
+    setExtraData(newExtraData);
     setInitialExtraData(newExtraData);
     const consultationLocation = consultation.location || (hospitals.length > 0 ? hospitals[0].name : '');
     setSelectedLocation(consultationLocation);
@@ -495,6 +530,9 @@ const ConsultationPage = () => {
     } else {
       setLastVisitDate(null);
     }
+
+    setIsEvaluationCollapsed(true);
+    setIsCompletedCollapsed(true);
 
     // Auto-focus Complaints
     setTimeout(() => {
@@ -712,7 +750,7 @@ const ConsultationPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOnline, selectedHospital.name, fetchConsultations, hydrateInsertedConsultation]);
+  }, [isOnline, selectedHospital.name, hydrateInsertedConsultation]);
 
   /**
    * GPS Logic
@@ -781,19 +819,6 @@ const ConsultationPage = () => {
   }, [selectedConsultation?.id]);
 
 
-  // Keep patient comparison logic centralized so "dirty check" and "save path" stay consistent.
-  const arePatientsEqual = (p1: any, p2: any) => {
-    if (!p1 || !p2) return p1 === p2;
-    const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
-    return (
-      normalize(p1.name) === normalize(p2.name) &&
-      normalize(p1.phone) === normalize(p2.phone) &&
-      normalize(p1.dob) === normalize(p2.dob) &&
-      normalize(p1.sex) === normalize(p2.sex) &&
-      normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
-      normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
-    );
-  };
 
   // Derived state to check for changes
   const hasChanges = useMemo(() => {
@@ -1062,7 +1087,7 @@ const ConsultationPage = () => {
     fetchAutofillKeywords();
     fetchTextShortcuts();
     fetchReferralDoctors();
-  }, []);
+  }, [fetchSavedMedications, fetchAutofillKeywords, fetchTextShortcuts, fetchReferralDoctors]);
 
 
 
@@ -1294,7 +1319,7 @@ const ConsultationPage = () => {
     }
 
     setExtraData(prev => ({ ...prev, [field]: value }));
-  }, [t, textShortcuts, consultationLanguage]);
+  }, [textShortcuts, consultationLanguage]);
 
   /**
    * Adds a medication to the list from a suggestion.
@@ -1431,16 +1456,6 @@ const ConsultationPage = () => {
   }, []);
 
   // Suggestions Helpers (Protocol Logic)
-  interface AutofillProtocol {
-    id: number;
-    keywords: string[];
-    medication_ids: number[];
-    advice?: string;
-    advice_te?: string;
-    investigations?: string;
-    followup?: string;
-    followup_te?: string;
-  }
 
   const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications } = useMemo(() => {
     const inputDerivedSuggestions = {
@@ -1453,7 +1468,7 @@ const ConsultationPage = () => {
     const inputText = `${extraData.complaints} ${extraData.diagnosis} ${extraData.procedure}`.toLowerCase();
     const isTelugu = consultationLanguage === 'te';
 
-    (autofillKeywords as AutofillProtocol[]).forEach(protocol => {
+    autofillKeywords.forEach(protocol => {
       const match = (protocol.keywords || []).some(k => inputText.includes(k.toLowerCase()));
       if (match) {
         if (protocol.investigations) {
@@ -1486,18 +1501,49 @@ const ConsultationPage = () => {
     const finalMedications = medications;
 
     const currentlyAddedMedIds = new Set(extraData.medications.map(m => m.savedMedicationId).filter(Boolean));
-    const currentlyAddedMedNames = new Set(extraData.medications.map(m => (m.composition || '').toLowerCase()));
+    const cleanMedName = (name: string) => {
+      if (!name) return '';
+      const prefixes = ['t\\.', 'cap\\.', 'syr\\.', 'tab\\.', 'inj\\.', 'crm\\.', 'gel\\.', 'oint\\.', 'tab', 'cap', 'syr', 'inj', 'crm', 'gel', 'oint', 'syp', 'caps', 'tabs', 'pint', 'p\\.int', 'p\\.inj', 'supp', 'susp', 'lot', 'pdr', 't'];
+      const regex = new RegExp(`^(${prefixes.join('|')})\\s*`, 'i');
+      return name.toLowerCase()
+        .replace(regex, '')
+        .trim();
+    };
+    const currentlyAddedMedNames = new Set(extraData.medications.map(m => cleanMedName(m.brandName || m.composition || '')));
 
     return {
       suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s)),
       suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.includes(s)),
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s)),
-      suggestedMedications: finalMedications.filter(m =>
-        !currentlyAddedMedIds.has(m.id) &&
-        !currentlyAddedMedNames.has((m.composition || '').toLowerCase())
-      )
+      suggestedMedications: finalMedications
+        .filter(m => {
+          const isAddedById = currentlyAddedMedIds.has(m.id) || currentlyAddedMedIds.has(String(m.id) as any);
+          const cleanedName = cleanMedName(m.composition);
+          const isAddedByName = Array.from(currentlyAddedMedNames).some(name => cleanMedName(name) === cleanedName);
+          return !isAddedById && !isAddedByName;
+        })
+        .map(med => {
+          if (medicationSuggestionMode === 'brand' && med.brand_metadata && med.brand_metadata.length > 0) {
+            // Pick a brand if none exists or if we should show brands
+            // We can reuse the logic from MedicationManager handleAutoswap but let's be simpler here
+            let validBrands = med.brand_metadata.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(selectedLocation || ''));
+            if (validBrands.length === 0) validBrands = [...med.brand_metadata];
+
+            if (extraData.affordabilityPreference === 'cheap') {
+              validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
+            } else if (extraData.affordabilityPreference === 'costly') {
+              validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+            }
+
+            return {
+              ...med,
+              brandName: validBrands[0].name
+            };
+          }
+          return med;
+        })
     };
-  }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications]);
+  }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications, medicationSuggestionMode, selectedLocation, extraData.affordabilityPreference]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -1603,11 +1649,6 @@ const ConsultationPage = () => {
     }
   };
 
-  // Sync Conflict Resolution
-  // Sync Conflict Resolution handled by hook: resolveConflict
-
-  // Sync Patient Conflict Resolution handled by hook: resolvePatientConflict
-
   // Filter Consultations
   const filteredConsultations = useMemo(() => {
     return allConsultations.filter(c => {
@@ -1639,12 +1680,18 @@ const ConsultationPage = () => {
       // Save: Ctrl/Cmd + S
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        saveChanges();
+        saveChanges().catch(err => {
+          console.error("Manual save failed:", err);
+          toast({ variant: 'destructive', title: 'Save Failed', description: String(err) });
+        });
       }
       // Print: Ctrl/Cmd + P
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
         e.preventDefault();
-        handleSaveAndPrint();
+        handleSaveAndPrint().catch(err => {
+          console.error("Manual print failed:", err);
+          toast({ variant: 'destructive', title: 'Print Failed', description: String(err) });
+        });
       }
       // Search: Ctrl/Cmd + F
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
@@ -1656,6 +1703,62 @@ const ConsultationPage = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveChanges, handleSaveAndPrint]);
+
+  const handleRegistrationSuccess = async (newConsultation: Consultation, consultationData?: Partial<ExtraData>) => {
+    setIsRegistrationModalOpen(false);
+
+    // If we don't have patient data, hydrate first to avoid null access
+    if (newConsultation?.id && !newConsultation.patient && !String(newConsultation.patient_id).startsWith('offline-')) {
+      const hydrated = await hydrateInsertedConsultation(newConsultation.id, { force: true });
+      if (hydrated) {
+        const consultationToSelect = { ...hydrated };
+        if (consultationData) {
+          consultationToSelect.consultation_data = {
+            ...(consultationToSelect.consultation_data || {}),
+            ...consultationData
+          } as ExtraData;
+        }
+        confirmSelection(consultationToSelect);
+      }
+      return;
+    }
+
+    // Track ID to prevent WebSocket redundant fetch (only when already hydrated)
+    if (newConsultation.id) {
+      recentlyHandledIds.current.add(newConsultation.id);
+      // Clean up after 10 seconds
+      setTimeout(() => recentlyHandledIds.current.delete(newConsultation.id), 10000);
+    }
+
+    if (String(newConsultation.patient_id).startsWith('offline-')) {
+      setAllConsultations(prev => [newConsultation, ...prev]);
+      confirmSelection(newConsultation);
+    } else if (selectedDate) {
+      // Ensure the new record belongs to the currently viewed date
+      const dataDate = format(new Date(newConsultation.created_at), 'yyyy-MM-dd');
+      const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
+      if (dataDate !== viewDate) return;
+
+      // Optimization: Update list locally instead of full re-fetch
+      setAllConsultations(prev => {
+        const exists = prev.some(c => c.id === newConsultation.id);
+        if (exists) return prev;
+        return [newConsultation, ...prev];
+      });
+
+      // Ensure data is merged if provided
+      const consultationToSelect = { ...newConsultation };
+      if (consultationData) {
+        consultationToSelect.consultation_data = {
+          ...(consultationToSelect.consultation_data || {}),
+          ...consultationData
+        } as ExtraData;
+      }
+
+      confirmSelection(consultationToSelect);
+    }
+  };
+
 
   const handleLocationChange = (name: string) => {
     const h = hospitals.find(x => x.name === name);
@@ -1742,6 +1845,9 @@ const ConsultationPage = () => {
 
                 <VitalsForm
                   weight={extraData.weight}
+                  height={extraData.height}
+                  pulse={extraData.pulse}
+                  spo2={extraData.spo2}
                   bp={extraData.bp}
                   temperature={extraData.temperature}
                   allergy={extraData.allergy}
@@ -1752,19 +1858,17 @@ const ConsultationPage = () => {
                   extraData={extraData}
                   onExtraChange={handleExtraChange}
                   complaintsRef={complaintsRef}
+                  medicalHistoryRef={medicalHistoryRef}
                   findingsRef={findingsRef}
                   investigationsRef={investigationsRef}
                   diagnosisRef={diagnosisRef}
                   procedureRef={procedureRef}
                   adviceRef={adviceRef}
-                  followupRef={followupRef}
                   referredToRef={referredToRef}
                   suggestedInvestigations={suggestedInvestigations}
                   suggestedAdvice={suggestedAdvice}
-                  suggestedFollowup={suggestedFollowup}
                   onInvestigationSuggestionClick={(val) => handleAppendSuggestion('investigations', val)}
                   onAdviceSuggestionClick={(val) => handleAppendSuggestion('advice', val)}
-                  onFollowupSuggestionClick={(val) => handleAppendSuggestion('followup', val)}
                   matchedGuides={matchedGuides}
                   isProcedureExpanded={isProcedureExpanded}
                   setIsProcedureExpanded={setIsProcedureExpanded}
@@ -1795,9 +1899,11 @@ const ConsultationPage = () => {
                   addMedication={addMedication}
                   suggestedMedications={suggestedMedications}
                   handleMedicationSuggestionClick={handleMedicationSuggestionClick}
-                  currentLocation={selectedHospital?.name}
+                  currentLocation={selectedLocation}
                   affordabilityPreference={extraData.affordabilityPreference}
-                  onAffordabilityChange={(val) => handleExtraChange('affordabilityPreference', val)}
+                  onAffordabilityChange={(val) => setExtraData(prev => ({ ...prev, affordabilityPreference: val }))}
+                  medicationSuggestionMode={medicationSuggestionMode}
+                  consultationId={selectedConsultation?.id}
                 />
 
                 <FollowUpSection
@@ -1899,7 +2005,9 @@ const ConsultationPage = () => {
                   showSignSeal={showSignSeal}
                   onToggleSignSeal={toggleSignSeal}
                   onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
-                  onToggleOnlyMeds={toggleOnlyMeds}
+                  onToggleOnlyMeds={setIsOnlyConsultation}
+                  medicationSuggestionMode={medicationSuggestionMode}
+                  onToggleMedicationSuggestionMode={toggleMedicationSuggestionMode}
                 />
               </div>
             ) : (
@@ -2043,60 +2151,7 @@ const ConsultationPage = () => {
           <div className="py-4">
             <ConsultationRegistration
               location={selectedHospital.name}
-              onSuccess={async (newConsultation, consultationData) => {
-                setIsRegistrationModalOpen(false);
-                
-                // If we don't have patient data, hydrate first to avoid null access
-                if (newConsultation?.id && !newConsultation.patient && !String(newConsultation.patient_id).startsWith('offline-')) {
-                  const hydrated = await hydrateInsertedConsultation(newConsultation.id, { force: true });
-                  if (hydrated) {
-                    const consultationToSelect = { ...hydrated };
-                    if (consultationData) {
-                      consultationToSelect.consultation_data = {
-                        ...(consultationToSelect.consultation_data || {}),
-                        ...consultationData
-                      };
-                    }
-                    confirmSelection(consultationToSelect);
-                  }
-                  return;
-                }
-
-                // Track ID to prevent WebSocket redundant fetch (only when already hydrated)
-                if (newConsultation.id) {
-                  recentlyHandledIds.current.add(newConsultation.id);
-                  // Clean up after 10 seconds
-                  setTimeout(() => recentlyHandledIds.current.delete(newConsultation.id), 10000);
-                }
-
-                if (String(newConsultation.patient_id).startsWith('offline-')) {
-                  setAllConsultations(prev => [newConsultation, ...prev]);
-                  confirmSelection(newConsultation); 
-                } else if (selectedDate) {
-                  // Ensure the new record belongs to the currently viewed date
-                  const dataDate = format(new Date(newConsultation.created_at), 'yyyy-MM-dd');
-                  const viewDate = format(selectedDate || new Date(), 'yyyy-MM-dd');
-                  if (dataDate !== viewDate) return;
-
-                  // Optimization: Update list locally instead of full re-fetch
-                  setAllConsultations(prev => {
-                    const exists = prev.some(c => c.id === newConsultation.id);
-                    if (exists) return prev;
-                    return [newConsultation, ...prev];
-                  });
-                  
-                  // Ensure data is merged if provided
-                  const consultationToSelect = { ...newConsultation };
-                  if (consultationData) {
-                    consultationToSelect.consultation_data = {
-                      ...(consultationToSelect.consultation_data || {}),
-                      ...consultationData
-                    };
-                  }
-                  
-                  confirmSelection(consultationToSelect);
-                }
-              }}
+              onSuccess={handleRegistrationSuccess}
             />
           </div>
         </DialogContent>

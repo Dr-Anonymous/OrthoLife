@@ -31,6 +31,7 @@ interface SortableMedicationItemProps {
     handleManualAdd?: () => void;
     currentLocation?: string;
     affordabilityPreference?: string;
+    medicationSuggestionMode?: 'composition' | 'brand';
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -50,7 +51,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     initialMedications,
     handleManualAdd,
     currentLocation,
-    affordabilityPreference
+    affordabilityPreference,
+    medicationSuggestionMode = 'composition'
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof Medication, value: any) => {
@@ -137,7 +139,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                 payload.duration = med.duration;
                 payload.instructions = med.instructions;
                 payload.notes = med.notes;
-                
+
                 // Also preserve existing te values if present
                 if (med.frequency_te) payload.frequency_te = med.frequency_te;
                 if (med.duration_te) payload.duration_te = med.duration_te;
@@ -211,24 +213,36 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 onChange={value => {
                                     handleMedChange(index, 'composition', value);
                                     if (med.brandName || med.savedMedicationId) {
-                                      handleMedChange(index, 'brandName', undefined);
-                                      handleMedChange(index, 'savedMedicationId', undefined);
+                                        handleMedChange(index, 'brandName', undefined);
+                                        handleMedChange(index, 'savedMedicationId', undefined);
                                     }
                                 }}
                                 suggestions={savedMedications.flatMap(m => {
-                                    const items: Suggestion[] = [{ id: m.id!, name: m.composition, label: m.composition }];
-                                    if (m.brand_metadata && m.brand_metadata.length > 0) {
-                                        m.brand_metadata.forEach(brand => {
-                                            const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
-                                            const costLabel = unitPrice ? `₹${unitPrice}/u` : brand.cost ? `₹${brand.cost}` : '';
-                                            items.push({
-                                                id: m.id!,
-                                                name: brand.name,
-                                                label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
-                                                isBrand: true,
-                                                searchTerms: m.composition
+                                    const items: Suggestion[] = [];
+                                    const hasBrands = m.brand_metadata && m.brand_metadata.length > 0;
+
+                                    // If in 'composition' mode, always add the generic name
+                                    if (medicationSuggestionMode === 'composition') {
+                                        items.push({ id: m.id!, name: m.composition, label: m.composition });
+                                    }
+                                    // If in 'brand' mode
+                                    else if (medicationSuggestionMode === 'brand') {
+                                        if (hasBrands) {
+                                            m.brand_metadata!.forEach(brand => {
+                                                const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
+                                                const costLabel = unitPrice ? `₹${unitPrice}/u` : brand.cost ? `₹${brand.cost}` : '';
+                                                items.push({
+                                                    id: m.id!,
+                                                    name: brand.name,
+                                                    label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
+                                                    isBrand: true,
+                                                    searchTerms: m.composition
+                                                });
                                             });
-                                        });
+                                        } else {
+                                            // Fallback to composition if no brands are available
+                                            items.push({ id: m.id!, name: m.composition, label: m.composition });
+                                        }
                                     }
                                     return items;
                                 })}
@@ -237,7 +251,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     if (savedMed) {
                                         const isBrand = suggestion.name !== savedMed.composition;
                                         let finalBrandName = isBrand ? suggestion.name : undefined;
-                                        
+
                                         // Auto-swap logic for generics at the moment of selection
                                         if (!isBrand && (currentLocation || affordabilityPreference !== 'none')) {
                                             let validBrands = savedMed.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation || '')) || [];
@@ -245,7 +259,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             if (validBrands.length === 0 && savedMed.brand_metadata) {
                                                 validBrands = [...savedMed.brand_metadata];
                                             }
-                                            
+
                                             // Sort by unit cost based on preference
                                             if (validBrands.length > 0) {
                                                 if (affordabilityPreference === 'cheap') {

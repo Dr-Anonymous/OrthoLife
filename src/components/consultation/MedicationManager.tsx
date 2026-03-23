@@ -30,6 +30,8 @@ interface MedicationManagerProps {
     currentLocation?: string;
     affordabilityPreference?: string;
     onAffordabilityChange?: (val: string) => void;
+    medicationSuggestionMode?: 'composition' | 'brand';
+    consultationId?: string;
 
     // Referred To Section (Keep passing props for now if colocated, or can separate)
     // Actually the plan said "MedicationManager" extracts the medication list.
@@ -68,7 +70,9 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     initialMedications,
     currentLocation,
     affordabilityPreference = 'none',
-    onAffordabilityChange
+    onAffordabilityChange,
+    medicationSuggestionMode = 'composition',
+    consultationId
 }) => {
     // Track previous length to detect additions
     const prevMedicationsLength = React.useRef(medications.length);
@@ -145,11 +149,29 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
 
 
     // Autoswap Engine (Automatic Trigger)
+    // Only trigger when preferences CHANGE, not on initial consultation load
+    const lastConsultationId = React.useRef<string | undefined>(consultationId);
+    const lastLocation = React.useRef<string | undefined>(currentLocation);
+    const lastPreference = React.useRef<string | undefined>(affordabilityPreference);
+
     React.useEffect(() => {
-        if (currentLocation || affordabilityPreference !== 'none') {
-            handleAutoswap(true); // true means silent if already optimal
+        // If the consultation changed, update refs and skip autoswap
+        if (consultationId !== lastConsultationId.current) {
+            lastConsultationId.current = consultationId;
+            lastLocation.current = currentLocation;
+            lastPreference.current = affordabilityPreference;
+            return;
         }
-    }, [currentLocation, affordabilityPreference, savedMedications]);
+
+        // Only trigger if location or preference actually changed from what was loaded/set
+        if (currentLocation !== lastLocation.current || affordabilityPreference !== lastPreference.current) {
+            if (currentLocation || affordabilityPreference !== 'none') {
+                handleAutoswap(true); // true means silent if already optimal
+            }
+            lastLocation.current = currentLocation;
+            lastPreference.current = affordabilityPreference;
+        }
+    }, [currentLocation, affordabilityPreference, savedMedications, consultationId]);
 
     const handleAutoswap = (silentIfOptimal = false) => {
         if (!currentLocation && affordabilityPreference === 'none') {
@@ -229,11 +251,14 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                         </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2 ml-4">
-                        {suggestedMedications.map((med) => (
-                            <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)}>
-                                {med.composition}
-                            </Button>
-                        ))}
+                        {suggestedMedications.map((med) => {
+                            const displayName = medicationSuggestionMode === 'brand' && med.brandName ? med.brandName : med.composition;
+                            return (
+                                <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)}>
+                                    {displayName}
+                                </Button>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -261,6 +286,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 handleManualAdd={handleManualAdd}
                                 currentLocation={currentLocation}
                                 affordabilityPreference={affordabilityPreference}
+                                medicationSuggestionMode={medicationSuggestionMode}
                             />
                         ))}
                     </SortableContext>
