@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Loader2, Printer, X, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from "@/lib/utils";
+import { cn, removeBracketedText } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -114,9 +114,7 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
         }, 200);
     };
 
-    const cleanName = (name: string) => {
-        return name.replace(/\s*\([^)]*\)/g, '').trim();
-    };
+
 
     const handleBulkPrint = () => {
         if (selectedTemplateIds.length === 0) return;
@@ -131,12 +129,12 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
         // Combine templates
         const combinedTemplate: SurgicalConsentTemplate = {
             id: 'combined',
-            name: selectedTemplates.map(t => cleanName(t.name)).join(' + '),
+            name: selectedTemplates.map(t => removeBracketedText(t.name)).join(' + '),
             risks_procedure_en: selectedTemplates
                 .map(t => {
                     let content = t.risks_procedure_en || '';
                     const cleanContent = content.replace(/<h2[^>]*>.*?<\/h2>/gi, '').trim();
-                    const name = cleanName(t.name);
+                    const name = removeBracketedText(t.name);
                     return `<div style="margin-bottom: 28px;">
                         <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">Procedure Specific Risks of ${name}</h4>
                         ${cleanContent}
@@ -147,7 +145,7 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
                 .map(t => {
                     let content = t.risks_procedure_te || '';
                     const cleanContent = content.replace(/<h2[^>]*>.*?<\/h2>/gi, '').trim();
-                    const name = cleanName(t.name);
+                    const name = removeBracketedText(t.name);
                     return `<div style="margin-bottom: 28px;">
                         <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">${name} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు</h4>
                         ${cleanContent}

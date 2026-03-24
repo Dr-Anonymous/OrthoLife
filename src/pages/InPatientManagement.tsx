@@ -322,6 +322,7 @@ const InPatientManagement = () => {
                 referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
                 emergency_contact: vars.emergency_contact || null,
                 payment_mode: vars.payment_mode || 'Cash',
+                language: vars.language || 'en',
             }).eq('id', vars.id);
             if (error) throw error;
         },
@@ -352,9 +353,9 @@ const InPatientManagement = () => {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['in-patients'] });
             setIsDischargeModalOpen(false);
-            toast({ 
-                title: variables.isDraft ? "Draft Saved" : "Discharged", 
-                description: variables.isDraft ? "Discharge summary draft saved successfully." : "Patient discharged successfully." 
+            toast({
+                title: variables.isDraft ? "Draft Saved" : "Discharged",
+                description: variables.isDraft ? "Discharge summary draft saved successfully." : "Patient discharged successfully."
             });
 
             // Send notification ONLY if this is NOT a draft AND it's the first time (status changing from admitted -> discharged)
@@ -927,10 +928,10 @@ const InPatientManagement = () => {
                         <div className="h-full flex flex-col justify-end">
                             <Button
                                 variant="secondary"
-                                onClick={() => { 
-                                    setDischargeDateStart(format(startOfMonth(new Date()), 'yyyy-MM-dd')); 
-                                    setDischargeDateEnd(format(endOfMonth(new Date()), 'yyyy-MM-dd')); 
-                                    setPaymentFilter('all'); 
+                                onClick={() => {
+                                    setDischargeDateStart(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+                                    setDischargeDateEnd(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+                                    setPaymentFilter('all');
                                 }}
                                 className="w-full h-10"
                             >
@@ -1093,7 +1094,7 @@ const InPatientManagement = () => {
                                 onChange={(e) => setAdmissionData({ ...admissionData, room_number: e.target.value })}
                             />
                         </div>
-                        {/* Language Selection Moved to Header */}
+
 
                         <div className="space-y-2 col-span-1 lg:col-span-2">
                             <Label>Diagnosis</Label>
@@ -1223,9 +1224,6 @@ const InPatientManagement = () => {
             {/* 2. Edit Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
                 <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Edit Patient Details</DialogTitle>
-                    </DialogHeader>
                     <EditPatientForm
                         patient={selectedPatientForEdit}
                         onSubmit={(data: any) => editMutation.mutate({ ...data, id: selectedPatientForEdit?.id })}
@@ -1430,6 +1428,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
         referral_amount: patient?.referral_amount || '',
         emergency_contact: patient?.emergency_contact || '',
         payment_mode: patient?.payment_mode || 'Cash',
+        language: patient?.language || 'en',
     });
 
     const [isAdmissionOpen, setIsAdmissionOpen] = useState(false);
@@ -1439,6 +1438,29 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
 
     return (
         <div className="space-y-4">
+            <DialogHeader className="flex flex-row items-start justify-between text-left pr-10 mb-4">
+                <div className="space-y-1">
+                    <DialogTitle>Edit Patient Details</DialogTitle>
+                    <DialogDescription>Update patient information and preferences.</DialogDescription>
+                </div>
+                <div className="flex bg-muted rounded-md p-1 shrink-0 mt-0 ml-2">
+                    {[
+                        { code: 'en', label: 'EN' },
+                        { code: 'te', label: 'తె' }
+                    ].map(({ code, label }) => (
+                        <Button
+                            key={code}
+                            size="sm"
+                            variant={data.language === code ? "default" : "ghost"}
+                            className="h-6 px-2 text-xs"
+                            onClick={() => setData({ ...data, language: code })}
+                            type="button"
+                        >
+                            {label}
+                        </Button>
+                    ))}
+                </div>
+            </DialogHeader>
             <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Admission Date</Label>
@@ -1472,6 +1494,7 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
                     <Label>Room / Bed</Label>
                     <Input value={data.room_number || ''} onChange={e => setData({ ...data, room_number: e.target.value })} />
                 </div>
+
             </div>
             <div className="space-y-2 col-span-1 lg:col-span-2">
                 <Label>Diagnosis</Label>
@@ -2339,9 +2362,9 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                         <div className="flex justify-between mt-4 pt-4 border-t sticky bottom-0 bg-background">
                             <Button variant="outline" onClick={() => setActiveTab("course")}>Back</Button>
                             <div className="flex items-center gap-2">
-                                <Button 
-                                    variant="secondary" 
-                                    onClick={handleSaveDraft} 
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleSaveDraft}
                                     disabled={isSaving}
                                     className="bg-muted hover:bg-muted/80"
                                 >

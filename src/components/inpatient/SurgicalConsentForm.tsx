@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { cn, removeBracketedText } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { calculateAge } from "@/lib/age";
@@ -52,6 +52,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     if (!patient) return null;
 
     const [step, setStep] = useState(1);
+    const [firstTemplateName, setFirstTemplateName] = useState<string | null>(null);
     const lang = patient.language === 'te' ? 'te' : 'en';
     const content = CONSENT_RISKS[lang as keyof typeof CONSENT_RISKS] || CONSENT_RISKS.en;
 
@@ -214,20 +215,43 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                     normalizedCurrent === '<p><br></p>' ||
                     normalizedCurrent === normalizeHTML(defaults.procedure_placeholder);
 
-                const headerEn = `Procedure Specific Risks of ${template.name}`;
-                const headerTe = `${template.name} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు`;
+                const cleanName = removeBracketedText(template.name);
+                const headerEn = `Procedure Specific Risks of ${cleanName}`;
+                const headerTe = `${cleanName} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు`;
                 const header = currentLang === 'te' ? headerTe : headerEn;
 
-                const newChunk = `<div style="margin-bottom: 28px;">
-                    <h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">${header}</h4>
+                const headerHtml = `<h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">${header}</h4>`;
+
+                let processedCurrentRisks = currentRisks;
+
+                // If this is the second or subsequent template, and the first one didn't have a header, add it now
+                if (!isEmpty && firstTemplateName) {
+                    const firstHeaderEn = `Procedure Specific Risks of ${firstTemplateName}`;
+                    const firstHeaderTe = `${firstTemplateName} శస్త్రచికిత్స యొక్క నిర్దిష్ట ప్రమాదాలు`;
+                    const firstHeader = currentLang === 'te' ? firstHeaderTe : firstHeaderEn;
+                    const firstHeaderHtml = `<h4 style="font-weight: bold; text-decoration: underline; margin-bottom: 12px; font-size: 1.1em;">${firstHeader}</h4>`;
+
+                    // Try to insert the first header at the start of our special marked div
+                    if (processedCurrentRisks.includes('data-first-template="true"')) {
+                        processedCurrentRisks = processedCurrentRisks.replace('data-first-template="true">', 'data-first-template="true">' + firstHeaderHtml);
+                    } else {
+                        // Fallback: just prepend it
+                        processedCurrentRisks = firstHeaderHtml + processedCurrentRisks;
+                    }
+                    setFirstTemplateName(null);
+                }
+
+                const newChunk = `<div style="margin-bottom: 28px;" ${isEmpty ? 'data-first-template="true"' : ''}>
+                    ${isEmpty ? '' : headerHtml}
                     ${templateRisks}
                 </div>`;
 
                 let newRisksProcedure = '';
                 if (isEmpty) {
                     newRisksProcedure = newChunk;
+                    setFirstTemplateName(cleanName);
                 } else {
-                    newRisksProcedure = `${currentRisks}${newChunk}`;
+                    newRisksProcedure = `${processedCurrentRisks}${newChunk}`;
                 }
 
                 return {
