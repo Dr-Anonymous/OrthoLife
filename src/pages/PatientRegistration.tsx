@@ -351,7 +351,12 @@ const PatientRegistration = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            <ConsultationRegistration onSuccess={handleRegistrationSuccess} location={locationName} existingConsultations={filteredConsultations} />
+            <ConsultationRegistration 
+              onSuccess={handleRegistrationSuccess} 
+              location={locationName} 
+              existingConsultations={filteredConsultations} 
+              consultantId="fdeaf68e-251c-4ffc-a7c1-6bc574657729"
+            />
           </CardContent>
         </Card>
 
