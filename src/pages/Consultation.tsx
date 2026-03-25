@@ -268,6 +268,7 @@ const ConsultationPage = () => {
   const activeConsultationIdRef = useRef<string | null>(null);
 
   // Syncs latest textarea values from DOM refs into state to avoid stale prints.
+  // Returns the latest ExtraData object (either updated or current).
   const syncExtraDataFromRefs = useCallback(() => {
     const currentExtraData = extraDataRef.current;
     const updates: Partial<typeof currentExtraData> = {};
@@ -288,10 +289,11 @@ const ConsultationPage = () => {
     syncField('procedure', procedureRef);
 
     if (Object.keys(updates).length > 0) {
-      setExtraData(prev => ({ ...prev, ...updates }));
-      return true;
+      const nextData = { ...currentExtraData, ...updates };
+      setExtraData(nextData);
+      return nextData;
     }
-    return false;
+    return currentExtraData;
   }, [
     complaintsRef,
     findingsRef,
@@ -855,25 +857,41 @@ const ConsultationPage = () => {
    * Handles:
    * - Determining if changes exist (`hasChanges`).
    * - Cleaning and preparing data for Supabase/Offline Store.
-   * - Handling offline persistence via `offlineStore`.
-   * - Updating patient demographics if changed.
-   * - Updating consultation status and stopping timer on completion.
-   * - Sending completion notifications (WhatsApp) if enabled.
-   * - Triggering auto-refresh of consultation list.
+  /**
+   * Persists changes to the current consultation.
    * 
    * @param options.markAsCompleted - If true, attempts to mark status as 'completed' (or 'under_evaluation' if incomplete).
    * @param options.skipToast - If true, suppresses success toasts (e.g., for auto-saves).
+   * @param options.extraDataOverride - If provided, use this data instead of the current state (for bypassing React state races).
    */
-  const saveChanges = useCallback(async (options: { markAsCompleted?: boolean, skipToast?: boolean } = {}) => {
+  const saveChanges = useCallback(async (options: { markAsCompleted?: boolean, skipToast?: boolean, extraDataOverride?: ExtraData } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
 
-    const hasMedsOrFollowup = extraData.medications.length > 0 || (extraData.followup && extraData.followup.trim() !== '');
+    const activeExtraData = options.extraDataOverride || extraData;
+
+    const hasMedsOrFollowup = activeExtraData.medications.length > 0 || (activeExtraData.followup && activeExtraData.followup.trim() !== '');
     let newStatus = selectedConsultation.status;
     if (options.markAsCompleted) {
       newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
     }
     const statusChanged = newStatus !== selectedConsultation.status;
-    const shouldSave = hasChanges || statusChanged;
+
+    // Inside saveChanges, we must manually check for changes if extraDataOverride is provided
+    // to ensure we don't skip saving when passing fresh data from refs.
+    const pruneMeds = (data: any) => {
+      if (!data) return data;
+      const { medications, ...rest } = data;
+      const validMeds = (medications || []).filter((m: any) => m.composition && m.composition.trim().length > 0);
+      return { ...rest, medications: validMeds };
+    };
+
+    const extraDataChanged = JSON.stringify(pruneMeds(activeExtraData)) !== JSON.stringify(pruneMeds(initialExtraData));
+    const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
+    const locationChanged = selectedHospital.name !== initialLocation;
+    const languageChanged = consultationLanguage !== initialLanguage;
+
+    const hasActualChanges = patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
+    const shouldSave = hasActualChanges || statusChanged;
 
     if (!shouldSave) {
       return true;
@@ -881,7 +899,7 @@ const ConsultationPage = () => {
 
     setIsSaving(true);
     try {
-      const { visit_type, location, language, ...restExtraData } = extraData as any;
+      const { visit_type, location, language, ...restExtraData } = activeExtraData as any;
 
       const cleanMedicationForSave = (med: any) => {
         const cleaned = { ...med };
@@ -937,7 +955,7 @@ const ConsultationPage = () => {
         extraData: dataToSave,
         status: newStatus as any,
         language: consultationLanguage,
-        visit_type: extraData.visit_type,
+        visit_type: activeExtraData.visit_type,
         location: selectedHospital.name,
         duration: timerSeconds,
         procedure_fee: procedure_fee ? Number(procedure_fee) : null,
@@ -972,7 +990,7 @@ const ConsultationPage = () => {
 
       setSelectedConsultation(updatedConsultation);
       setInitialPatientDetails(editablePatientDetails);
-      setInitialExtraData(extraData);
+      setInitialExtraData(activeExtraData);
       setInitialLocation(selectedHospital.name);
       setInitialLanguage(consultationLanguage);
 
@@ -1574,11 +1592,8 @@ const ConsultationPage = () => {
   });
 
   const handleSaveAndPrint = useCallback(async () => {
-    const didSync = syncExtraDataFromRefs();
-    if (didSync) {
-      await waitForNextPaint();
-    }
-    const saved = await saveChanges({ markAsCompleted: true });
+    const latestData = syncExtraDataFromRefs();
+    const saved = await saveChanges({ markAsCompleted: true, extraDataOverride: latestData });
     if (saved) {
       await waitForNextPaint();
       handlePrint();
@@ -1586,18 +1601,15 @@ const ConsultationPage = () => {
   }, [syncExtraDataFromRefs, saveChanges, handlePrint]);
 
   const handleOpenMedicalCertificate = async () => {
-    const didSync = syncExtraDataFromRefs();
-    if (didSync) {
-      await waitForNextPaint();
-    }
+    syncExtraDataFromRefs();
     setIsMedicalCertificateModalOpen(true);
   };
 
   const handleMedicalCertificateSubmit = async (data: CertificateData) => {
-    const didSync = syncExtraDataFromRefs();
-    if (didSync) {
-      await waitForNextPaint();
-    }
+    const latestData = syncExtraDataFromRefs();
+    // Ensure data is saved before printing certificate, to capture any ref-based changes
+    await saveChanges({ extraDataOverride: latestData });
+    
     setCertificateData(data);
     setIsMedicalCertificateModalOpen(false);
     setIsReadyToPrintCertificate(true);

@@ -304,7 +304,21 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                 .eq('id', key)
                                 .single();
 
-                            if (error || !serverConsultation) {
+                            if (error) {
+                                // PGRST116 means "No rows found" - safe to remove if it's gone from server
+                                if (error.code === 'PGRST116') {
+                                    console.warn("Consultation not found on server, removing local copy", key);
+                                    await offlineStore.removeItem(key);
+                                    setPendingSyncIds(prev => prev.filter(id => id !== key));
+                                } else {
+                                    // Likely a network error or transient server error - DO NOT REMOVE
+                                    // We just continue and let the next sync pass retry it
+                                    console.error("Transient sync error for key:", key, error);
+                                }
+                                continue;
+                            }
+
+                            if (!serverConsultation) {
                                 await offlineStore.removeItem(key);
                                 setPendingSyncIds(prev => prev.filter(id => id !== key));
                                 continue;
