@@ -98,3 +98,33 @@ BEGIN
     UPDATE public.text_shortcuts SET consultant_id = default_id WHERE consultant_id IS NULL;
     UPDATE public.referral_doctors SET consultant_id = default_id WHERE consultant_id IS NULL;
 END $$;
+
+
+
+-- Fix RLS Permissions for Profile & Locations
+
+-- 1. Correct Consultant Profile update policy
+DROP POLICY IF EXISTS "Consultants can update their own profile" ON public.consultants;
+CREATE POLICY "Consultants can update their own profile" ON public.consultants
+    FOR UPDATE USING (true) 
+    WITH CHECK (true);
+
+-- 2. Enable Location management
+ALTER TABLE public.hospitals ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Hospitals are viewable by everyone" ON public.hospitals;
+CREATE POLICY "Hospitals are viewable by everyone" ON public.hospitals
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Consultants can insert their own locations" ON public.hospitals;
+CREATE POLICY "Consultants can insert their own locations" ON public.hospitals
+    FOR INSERT WITH CHECK (true); 
+
+DROP POLICY IF EXISTS "Consultants can update their own locations" ON public.hospitals;
+CREATE POLICY "Consultants can update their own locations" ON public.hospitals
+    FOR UPDATE USING (true)
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Consultants can delete their own locations" ON public.hospitals;
+CREATE POLICY "Consultants can delete their own locations" ON public.hospitals
+    FOR DELETE USING (true);

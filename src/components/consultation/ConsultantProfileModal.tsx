@@ -17,7 +17,7 @@ import { useConsultant } from '@/context/ConsultantContext';
 import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConsultantProfileModalProps {
@@ -27,7 +27,7 @@ interface ConsultantProfileModalProps {
 
 export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ isOpen, onClose }) => {
   const { consultant, refreshConsultant } = useConsultant();
-  const { hospitals } = useHospitals();
+  const { refreshHospitals } = useHospitals();
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -35,12 +35,15 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
   // Profile State
   const [formData, setFormData] = useState({
     name: consultant?.name || '',
+    phone: consultant?.phone || '',
     qualifications: consultant?.qualifications || '',
     specialization: consultant?.specialization || '',
     email: consultant?.email || '',
     photo_url: consultant?.photo_url || '',
     sign_url: consultant?.sign_url || '',
     seal_url: consultant?.seal_url || '',
+    bio: consultant?.bio || { en: '', te: '' },
+    services: consultant?.services || [],
   });
 
   // Locations State (fetched separately for editing)
@@ -50,12 +53,15 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     if (isOpen && consultant) {
       setFormData({
         name: consultant.name,
+        phone: consultant.phone,
         qualifications: consultant.qualifications || '',
         specialization: consultant.specialization || '',
         email: consultant.email || '',
         photo_url: consultant.photo_url || '',
         sign_url: consultant.sign_url || '',
         seal_url: consultant.seal_url || '',
+        bio: consultant.bio || { en: '', te: '' },
+        services: consultant.services || [],
       });
       fetchConsultantHospitals();
     }
@@ -81,12 +87,15 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         .from('consultants')
         .update({
           name: formData.name,
+          phone: formData.phone,
           qualifications: formData.qualifications,
           specialization: formData.specialization,
           email: formData.email,
           photo_url: formData.photo_url,
           sign_url: formData.sign_url,
           seal_url: formData.seal_url,
+          bio: formData.bio,
+          services: formData.services,
           updated_at: new Date().toISOString()
         })
         .eq('id', consultant.id);
@@ -132,69 +141,107 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     }
   };
 
-  const handleAddLocation = async () => {
+  // --- Location Management (Local Only) ---
+  const handleAddLocationUI = () => {
     if (!consultant) return;
-
+    const tempId = `temp_${Date.now()}`;
     const newHospital = {
+      id: tempId,
       name: 'New Clinic/Hospital',
       consultant_id: consultant.id,
       logo_url: '/logo.png',
       lat: 17.3850,
       lng: 78.4867,
+      is_new: true,
       settings: { op_fees: 0, free_visit_duration_days: 14 }
     };
-
-    const { data, error } = await supabase
-      .from('hospitals')
-      .insert(newHospital)
-      .select()
-      .single();
-
-    if (data) setEditableHospitals(prev => [...prev, data]);
-    if (error) toast({ variant: 'destructive', title: 'Failed to add location', description: error.message });
+    setEditableHospitals(prev => [...prev, newHospital]);
   };
 
-  const handleUpdateHospital = async (id: string, updates: any) => {
-    const { error } = await supabase
-      .from('hospitals')
-      .update(updates)
-      .eq('id', id);
+  const handleUpdateHospitalUI = (id: string, updates: any) => {
+    setEditableHospitals(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h));
+  };
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Update failed', description: error.message });
-    } else {
-      setEditableHospitals(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h));
+  const handleDeleteHospitalUI = async (id: string) => {
+    if (typeof id === 'string' && id.startsWith('temp_')) {
+        setEditableHospitals(prev => prev.filter(h => h.id !== id));
+        return;
     }
-  };
 
-  const handleDeleteHospital = async (id: string) => {
-    const { error } = await supabase
-      .from('hospitals')
-      .delete()
-      .eq('id', id);
-
+    const { error } = await supabase.from('hospitals').delete().eq('id', id);
     if (error) {
       toast({ variant: 'destructive', title: 'Delete failed', description: error.message });
     } else {
       setEditableHospitals(prev => prev.filter(h => h.id !== id));
-      toast({ title: 'Location Removed' });
+      toast({ title: 'Location Removed from DB' });
+      await refreshHospitals();
     }
+  };
+
+  const handleSaveAllLocations = async () => {
+    setIsSaving(true);
+    try {
+      for (const hospital of editableHospitals) {
+        const { id, is_new, ...data } = hospital;
+        if (is_new) {
+          const { error } = await supabase.from('hospitals').insert(data);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('hospitals').update(data).eq('id', id);
+          if (error) throw error;
+        }
+      }
+      toast({ title: 'Success', description: 'All location changes saved successfully.' });
+      await fetchConsultantHospitals();
+      await refreshHospitals();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Save failed', description: err.message });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Services Management ---
+  const addService = () => {
+    setFormData(prev => ({
+        ...prev,
+        services: [...prev.services, { title: { en: '', te: '' }, description: { en: '', te: '' }, icon: 'Bone' }]
+    }));
+  };
+
+  const updateService = (index: number, field: string, value: string, lang?: 'en' | 'te') => {
+    const newServices = [...formData.services];
+    // Cast to any to handle dynamic keys safely
+    const currentService = newServices[index] as any;
+    if (lang && (field === 'title' || field === 'description')) {
+        currentService[field][lang] = value;
+    } else {
+        currentService[field] = value;
+    }
+    setFormData(prev => ({ ...prev, services: newServices }));
+  };
+
+  const deleteService = (index: number) => {
+    setFormData(prev => ({
+        ...prev,
+        services: prev.services.filter((_, i) => i !== index)
+    }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <UserCog className="w-5 h-5" />
             My Professional Profile
           </DialogTitle>
           <DialogDescription>
-            Manage your credentials, clinic locations, and digital assets.
+            Manage your credentials, professional bio, and practice locations.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col mt-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col mt-4 overflow-hidden">
           <div className="px-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="profile">Profile & Credentials</TabsTrigger>
@@ -203,216 +250,200 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           </div>
 
           <ScrollArea className="flex-grow">
-            <TabsContent value="profile" className="p-6 space-y-6 m-0">
-              <form onSubmit={handeProfileSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TabsContent value="profile" className="p-6 space-y-8 m-0 outline-none">
+              <form onSubmit={handeProfileSubmit} className="space-y-8">
+                {/* Basic Info Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name (with Prefix)</Label>
+                    <Label htmlFor="name">Full Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="pl-9"
-                        placeholder="Dr. Samuel Manoj"
-                        required
-                      />
+                      <Input id="name" value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} className="pl-9" placeholder="Dr. Samuel Manoj" required />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="phone">Phone (Login)</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input id="phone" value={formData.phone} onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))} className="pl-9" placeholder="9866812555" required />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                        className="pl-9"
-                        placeholder="info@ortho.life"
-                      />
+                      <Input id="email" type="email" value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} className="pl-9" placeholder="info@ortho.life" />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Professional Titles */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="qualifications">Qualifications</Label>
                     <div className="relative">
                       <Award className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="qualifications"
-                        value={formData.qualifications}
-                        onChange={e => setFormData(prev => ({ ...prev, qualifications: e.target.value }))}
-                        className="pl-9"
-                        placeholder="MBBS, MS Ortho"
-                      />
+                      <Input id="qualifications" value={formData.qualifications} onChange={e => setFormData(prev => ({ ...prev, qualifications: e.target.value }))} className="pl-9" placeholder="MBBS, MS Ortho (Manipal)" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="specialization">Specialization / Department</Label>
+                    <Label htmlFor="specialization">Primary Specialization</Label>
                     <div className="relative">
                       <Stethoscope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="specialization"
-                        value={formData.specialization}
-                        onChange={e => setFormData(prev => ({ ...prev, specialization: e.target.value }))}
-                        className="pl-9"
-                        placeholder="Orthopaedic Surgeon"
-                      />
+                      <Input id="specialization" value={formData.specialization} onChange={e => setFormData(prev => ({ ...prev, specialization: e.target.value }))} className="pl-9" placeholder="Orthopaedic Surgeon" />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2">
-                      <ImageIcon className="w-4 h-4" /> Professional Photo
-                    </Label>
-                    <div className="border rounded-lg p-2 aspect-square flex items-center justify-center bg-secondary/10 relative overflow-hidden group">
-                      {formData.photo_url ? (
-                        <img src={formData.photo_url} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-12 h-12 text-muted-foreground/30" />
-                      )}
-                      <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <span className="text-white text-xs font-medium">Upload</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'photo')} />
-                      </label>
+                {/* Biography Section */}
+                <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Professional Biography</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label>Bio (English)</Label>
+                            <Textarea 
+                                className="h-32 text-sm leading-relaxed" 
+                                value={formData.bio.en} 
+                                onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, en: e.target.value } }))}
+                                placeholder="Write your professional bio in English..."
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Bio (Telugu / తెలుగు)</Label>
+                            <Textarea 
+                                className="h-32 text-sm leading-relaxed" 
+                                value={formData.bio.te} 
+                                onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, te: e.target.value } }))}
+                                placeholder="మీ వృత్తిపరమైన వివరాలను తెలుగులో వ్రాయండి..."
+                            />
+                        </div>
                     </div>
-                  </div>
+                </div>
 
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2">
-                      <FileSignature className="w-4 h-4" /> Digital Signature
-                    </Label>
-                    <div className="border rounded-lg p-2 aspect-square flex items-center justify-center bg-secondary/10 relative overflow-hidden group">
-                      {formData.sign_url ? (
-                        <img src={formData.sign_url} alt="Signature" className="max-w-full max-h-full object-contain" />
-                      ) : (
-                        <FileSignature className="w-12 h-12 text-muted-foreground/30" />
-                      )}
-                      <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <span className="text-white text-xs font-medium">Upload</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'sign')} />
-                      </label>
+                {/* Services Section */}
+                <div className="space-y-4 pt-4 border-t">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-sm font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4 text-primary" /> Specializations & Services</h3>
+                        <Button type="button" variant="outline" size="sm" onClick={addService}><Plus className="w-4 h-4 mr-1" /> Add Service</Button>
                     </div>
-                  </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        {formData.services.map((service: any, idx: number) => (
+                            <div key={idx} className="border rounded-lg p-4 bg-secondary/5 relative group">
+                                <Button type="button" variant="ghost" size="icon" className="absolute right-2 top-2 h-7 w-7 text-destructive opacity-0 group-hover:opacity-100" onClick={() => deleteService(idx)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs">Title (EN)</Label>
+                                            <Input value={service.title.en} onChange={e => updateService(idx, 'title', e.target.value, 'en')} className="h-8 text-sm" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs">Title (TE)</Label>
+                                            <Input value={service.title.te} onChange={e => updateService(idx, 'title', e.target.value, 'te')} className="h-8 text-sm" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs">Description (EN)</Label>
+                                            <Input value={service.description.en} onChange={e => updateService(idx, 'description', e.target.value, 'en')} className="h-8 text-sm" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs">Description (TE)</Label>
+                                            <Input value={service.description.te} onChange={e => updateService(idx, 'description', e.target.value, 'te')} className="h-8 text-sm" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4" /> Official Seal
-                    </Label>
-                    <div className="border rounded-lg p-2 aspect-square flex items-center justify-center bg-secondary/10 relative overflow-hidden group">
-                      {formData.seal_url ? (
-                        <img src={formData.seal_url} alt="Seal" className="max-w-full max-h-full object-contain" />
-                      ) : (
-                        <ShieldCheck className="w-12 h-12 text-muted-foreground/30" />
-                      )}
-                      <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <span className="text-white text-xs font-medium">Upload</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'seal')} />
-                      </label>
+                {/* Assets Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-sm font-semibold">Digital Assets (Sign, Seal, Photo)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Profile Photo</Label>
+                      <div className="border rounded-lg p-2 aspect-square flex items-center justify-center bg-secondary/10 relative overflow-hidden group">
+                        {formData.photo_url ? <img src={formData.photo_url} alt="Profile" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-muted-foreground/30" />}
+                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                          <span className="text-white text-xs font-medium">Upload New</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'photo')} />
+                        </label>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2"><FileSignature className="w-4 h-4" /> Digital Signature</Label>
+                      <div className="border rounded-lg p-2 aspect-square flex items-center justify-center bg-secondary/10 relative overflow-hidden group">
+                        {formData.sign_url ? <img src={formData.sign_url} alt="Signature" className="max-w-full max-h-full object-contain" /> : <FileSignature className="w-12 h-12 text-muted-foreground/30" />}
+                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                          <span className="text-white text-xs font-medium">Upload New</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'sign')} />
+                        </label>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Official Seal</Label>
+                      <div className="border rounded-lg p-2 aspect-square flex items-center justify-center bg-secondary/10 relative overflow-hidden group">
+                        {formData.seal_url ? <img src={formData.seal_url} alt="Seal" className="max-w-full max-h-full object-contain" /> : <ShieldCheck className="w-12 h-12 text-muted-foreground/30" />}
+                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                          <span className="text-white text-xs font-medium">Upload New</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'seal')} />
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t">
-                  <Button type="submit" disabled={isSaving || isUploading}>
+                <div className="flex justify-end pt-6 border-t sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10">
+                  <Button type="submit" disabled={isSaving || isUploading} className="w-full md:w-auto">
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                    Save Profile Changes
+                    Save All Profile Changes
                   </Button>
                 </div>
               </form>
             </TabsContent>
 
-            <TabsContent value="locations" className="p-6 space-y-6 m-0">
+            <TabsContent value="locations" className="p-6 space-y-6 m-0 outline-none">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-primary" />
                   Practice Locations
                 </h3>
-                <Button variant="outline" size="sm" onClick={handleAddLocation}>
+                <Button variant="outline" size="sm" onClick={handleAddLocationUI}>
                   <Plus className="w-4 h-4 mr-1" /> Add Location
                 </Button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {editableHospitals.map((hospital) => (
-                  <div key={hospital.id} className="border rounded-xl p-4 space-y-4 bg-secondary/5 relative group">
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute right-2 top-2 h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleDeleteHospital(hospital.id)}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Location Name</Label>
-                        <Input 
-                          value={hospital.name} 
-                          onChange={e => handleUpdateHospital(hospital.id, { name: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Logo URL / Path</Label>
-                        <Input 
-                          value={hospital.logo_url} 
-                          onChange={e => handleUpdateHospital(hospital.id, { logo_url: e.target.value })}
-                        />
-                      </div>
+                  <div key={hospital.id} className="border rounded-xl p-6 space-y-6 bg-secondary/5 relative group">
+                    <Button variant="ghost" size="icon" className="absolute right-2 top-2 h-8 w-8 text-destructive opacity-0 group-hover:opacity-100" onClick={() => handleDeleteHospitalUI(hospital.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2"><Label>Location Name</Label><Input value={hospital.name} onChange={e => handleUpdateHospitalUI(hospital.id, { name: e.target.value })} /></div>
+                      <div className="space-y-2"><Label>Logo URL / Path</Label><Input value={hospital.logo_url} onChange={e => handleUpdateHospitalUI(hospital.id, { logo_url: e.target.value })} /></div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                       <div className="space-y-2">
-                        <Label>OP Fees (₹)</Label>
-                        <Input 
-                          type="number"
-                          value={hospital.settings?.op_fees || 0} 
-                          onChange={e => handleUpdateHospital(hospital.id, { 
-                            settings: { ...hospital.settings, op_fees: parseInt(e.target.value) } 
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Free Visit (Days)</Label>
-                        <Input 
-                          type="number"
-                          value={hospital.settings?.free_visit_duration_days || 14} 
-                          onChange={e => handleUpdateHospital(hospital.id, { 
-                            settings: { ...hospital.settings, free_visit_duration_days: parseInt(e.target.value) } 
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Lat</Label>
-                        <Input 
-                          type="number" step="any"
-                          value={hospital.lat || 0} 
-                          onChange={e => handleUpdateHospital(hospital.id, { lat: parseFloat(e.target.value) })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Lng</Label>
-                        <Input 
-                          type="number" step="any"
-                          value={hospital.lng || 0} 
-                          onChange={e => handleUpdateHospital(hospital.id, { lng: parseFloat(e.target.value) })}
-                        />
-                      </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                       <div className="space-y-2"><Label>OP Fees (₹)</Label><Input type="number" value={hospital.settings?.op_fees || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, op_fees: parseInt(e.target.value) }})} /></div>
+                       <div className="space-y-2"><Label>Free Visit (Days)</Label><Input type="number" value={hospital.settings?.free_visit_duration_days || 14} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, free_visit_duration_days: parseInt(e.target.value) }})} /></div>
+                       <div className="space-y-2"><Label>Lat</Label><Input type="number" step="any" value={hospital.lat || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lat: parseFloat(e.target.value) })} /></div>
+                       <div className="space-y-2"><Label>Lng</Label><Input type="number" step="any" value={hospital.lng || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lng: parseFloat(e.target.value) })} /></div>
                     </div>
                   </div>
                 ))}
+                
+                {editableHospitals.length > 0 && (
+                    <div className="flex justify-end pt-6 sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10">
+                        <Button type="button" onClick={handleSaveAllLocations} disabled={isSaving} className="w-full md:w-auto bg-primary text-primary-foreground shadow-lg">
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Save All Location Changes
+                        </Button>
+                    </div>
+                )}
 
                 {editableHospitals.length === 0 && (
-                  <div className="text-center py-12 border-2 border-dashed rounded-xl">
-                    <MapPin className="w-12 h-12 text-muted-foreground/20 mx-auto" />
-                    <p className="mt-2 text-muted-foreground">No practice locations added yet.</p>
-                  </div>
+                  <div className="text-center py-12 border-2 border-dashed rounded-xl"><MapPin className="w-12 h-12 text-muted-foreground/20 mx-auto" /><p className="mt-2 text-muted-foreground">No practice locations added yet.</p></div>
                 )}
               </div>
             </TabsContent>

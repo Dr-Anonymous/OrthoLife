@@ -22,6 +22,7 @@ interface HospitalsContextType {
     isLoading: boolean;
     error: string | null;
     getHospitalByName: (name: string) => Hospital | undefined;
+    refreshHospitals: () => Promise<void>;
 }
 
 const HospitalsContext = createContext<HospitalsContextType | undefined>(undefined);
@@ -33,59 +34,59 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const { consultant } = useConsultant();
 
-    useEffect(() => {
-        const fetchHospitals = async () => {
-            if (!consultant) return;
+    const fetchHospitals = async () => {
+        if (!consultant) return;
 
-            // 1. Try to load from cache first (per-consultant cache)
-            const cacheKey = `hospitals_cache_${consultant.id}`;
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                try {
-                    setHospitals(JSON.parse(cached));
-                    setIsLoading(false); // Show cached content immediately
-                } catch (e) {
-                    console.error("Failed to parse hospital cache", e);
-                }
-            }
-
+        // 1. Try to load from cache first (per-consultant cache)
+        const cacheKey = `hospitals_cache_${consultant.id}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
             try {
-                const { data, error } = await supabase
-                    .from('hospitals')
-                    .select('*')
-                    .eq('consultant_id', consultant.id);
-
-                if (error) throw error;
-
-                // Transform snake_case DB columns to camelCase frontend interface
-                const transformed: Hospital[] = data.map((h: any) => ({
-                    id: h.id,
-                    name: h.name,
-                    logoUrl: h.logo_url,
-                    lat: h.lat,
-                    lng: h.lng,
-                    settings: h.settings || { op_fees: 0, free_visit_duration_days: 14 }
-                }));
-
-                setHospitals(transformed);
-                // 2. Update cache
-                localStorage.setItem(cacheKey, JSON.stringify(transformed));
-
-            } catch (err: any) {
-                console.error('Error fetching hospitals:', err);
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
+                setHospitals(JSON.parse(cached));
+                setIsLoading(false); // Show cached content immediately
+            } catch (e) {
+                console.error("Failed to parse hospital cache", e);
             }
-        };
+        }
 
+        try {
+            const { data, error } = await supabase
+                .from('hospitals')
+                .select('*')
+                .eq('consultant_id', consultant.id);
+
+            if (error) throw error;
+
+            // Transform snake_case DB columns to camelCase frontend interface
+            const transformed: Hospital[] = data.map((h: any) => ({
+                id: h.id,
+                name: h.name,
+                logoUrl: h.logo_url,
+                lat: h.lat,
+                lng: h.lng,
+                settings: h.settings || { op_fees: 0, free_visit_duration_days: 14 }
+            }));
+
+            setHospitals(transformed);
+            // 2. Update cache
+            localStorage.setItem(cacheKey, JSON.stringify(transformed));
+
+        } catch (err: any) {
+            console.error('Error fetching hospitals:', err);
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchHospitals();
     }, [consultant?.id]);
 
     const getHospitalByName = (name: string) => hospitals.find(h => h.name.toLowerCase() === name.toLowerCase());
 
     return (
-        <HospitalsContext.Provider value={{ hospitals, isLoading, error, getHospitalByName }}>
+        <HospitalsContext.Provider value={{ hospitals, isLoading, error, getHospitalByName, refreshHospitals: fetchHospitals }}>
             {children}
         </HospitalsContext.Provider>
     );
