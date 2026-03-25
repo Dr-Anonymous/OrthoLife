@@ -116,6 +116,12 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   };
 
   const hasMedications = consultation.medications && consultation.medications.length > 0;
+  
+  const cName = typeof consultant?.name === 'object' ? (consultant?.name?.[language === 'te' ? 'te' : 'en'] || consultant?.name?.en) : (consultant?.name || '');
+  const cQuals = typeof consultant?.qualifications === 'object' ? (consultant?.qualifications?.[language === 'te' ? 'te' : 'en'] || consultant?.qualifications?.en) : (consultant?.qualifications || '');
+  const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
+  const cAddress = typeof consultant?.address === 'object' ? (consultant?.address?.[language === 'te' ? 'te' : 'en'] || consultant?.address?.en) : (consultant?.address || '');
+  const cExp = typeof consultant?.experience === 'object' ? (consultant?.experience?.[language === 'te' ? 'te' : 'en'] || consultant?.experience?.en) : (consultant?.experience || '');
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
@@ -138,13 +144,13 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           </div>
           <div className={cn(forceDesktop ? "text-right" : "text-center sm:text-right")}>
             <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>
-              {consultant?.name || ''}
+              {cName}
             </h2>
             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
-              {consultant?.qualifications || ''}
+              {cQuals}
             </p>
             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
-              {consultant?.specialization || ''}
+              {cSpec}
             </p>
             <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
               {consultant?.phone && (
@@ -467,15 +473,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <div className="block sm:hidden print:hidden flex justify-center py-4">
                       <img
                         src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                        alt={consultant?.name || "Doctor"}
+                        alt={cName || "Doctor"}
                         className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{consultant?.name || ''}</h3>
-                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{consultant?.qualifications || ''}</p>
-                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{consultant?.specialization || ''}</p>
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{cName}</h3>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{cQuals}</p>
+                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{cSpec}</p>
+                      {cExp && <p className="text-base font-semibold text-primary/90 mt-2">{cExp}</p>}
                     </div>
                   </div>
 
@@ -483,7 +490,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
                     <img
                       src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                      alt={consultant?.name || "Doctor"}
+                      alt={cName || "Doctor"}
                       className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
                     />
                   </div>
@@ -524,7 +531,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
-                  <p className="font-semibold text-primary">ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03</p>
+                  <p className="font-semibold text-primary">{cAddress || 'ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03'}</p>
                   <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">{consultant?.phone || '99 838 49 838'}</strong></p>
                 </div>
               </div>
@@ -543,15 +550,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <div className="block sm:hidden print:hidden flex justify-center py-4">
                       <img
                         src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                        alt={consultant?.name || "Doctor"}
+                        alt={cName || "Doctor"}
                         className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{consultant?.name || ''}</h3>
-                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{consultant?.qualifications || ''}</p>
-                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{consultant?.specialization || ''}</p>
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{cName}</h3>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{cQuals}</p>
+                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{cSpec}</p>
+                      {cExp && <p className="text-base font-semibold text-primary/90 mt-2">{cExp}</p>}
                     </div>
                   </div>
 
@@ -559,7 +567,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
                     <img
                       src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                      alt={consultant?.name || "Doctor"}
+                      alt={cName || "Doctor"}
                       className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
                     />
                   </div>
@@ -600,7 +608,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
-                  <p className="font-semibold text-primary">OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03</p>
+                  <p className="font-semibold text-primary">{cAddress || 'OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03'}</p>
                   <p>For Appointments, Contact: <strong className="whitespace-nowrap">{consultant?.phone || '99 838 49 838'}</strong></p>
                 </div>
 

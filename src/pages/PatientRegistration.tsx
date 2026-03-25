@@ -161,7 +161,11 @@ const PatientRegistration = () => {
       if (isOnline) {
         // 2. Fetch Fresh Server Data
         const { data, error } = await supabase.functions.invoke('get-consultations', {
-          body: { date: selectedDateStr, hospital: locationName },
+          body: { 
+            date: selectedDateStr, 
+            hospital: locationName,
+            consultant_id: 'fdeaf68e-251c-4ffc-a7c1-6bc574657729'
+          },
         });
 
         if (error) throw error;

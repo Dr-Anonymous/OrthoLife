@@ -215,33 +215,6 @@ serve(async (req: Request) => {
       if (bestPhoneMatch) {
         return { patient: bestPhoneMatch, similarity: bestPhoneSimilarity };
       }
-
-      const { data: nameMatches, error: nameError } = await supabase
-        .from('patients')
-        .select('id, name, dob, sex, phone, drive_id')
-        .ilike('name', `%${name}%`)
-        .limit(5);
-
-      if (nameError) throw nameError;
-
-      let bestNameMatch = null;
-      let bestNameSimilarity = 0;
-      for (const patient of nameMatches || []) {
-        if (sex && patient.sex && sex.toLowerCase() !== patient.sex.toLowerCase()) {
-          continue;
-        }
-
-        const similarity = calculateSimilarity(name, patient.name);
-        if (similarity >= 0.8 && similarity > bestNameSimilarity) {
-          bestNameSimilarity = similarity;
-          bestNameMatch = patient;
-        }
-      }
-
-      if (bestNameMatch) {
-        return { patient: bestNameMatch, similarity: bestNameSimilarity };
-      }
-
       return { patient: null, similarity: 0 };
     };
 

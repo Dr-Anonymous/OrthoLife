@@ -35,15 +35,17 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const { consultant } = useConsultant();
 
     const fetchHospitals = async () => {
-        if (!consultant) return;
+        const activeConsultantId = consultant?.id || 'fdeaf68e-251c-4ffc-a7c1-6bc574657729';
+        
+        if (!activeConsultantId) return;
 
-        // 1. Try to load from cache first (per-consultant cache)
-        const cacheKey = `hospitals_cache_${consultant.id}`;
+        // 1. Try to load from cache first
+        const cacheKey = `hospitals_cache_${activeConsultantId}`;
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
             try {
                 setHospitals(JSON.parse(cached));
-                setIsLoading(false); // Show cached content immediately
+                setIsLoading(false);
             } catch (e) {
                 console.error("Failed to parse hospital cache", e);
             }
@@ -53,7 +55,7 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const { data, error } = await supabase
                 .from('hospitals')
                 .select('*')
-                .eq('consultant_id', consultant.id);
+                .or(`consultant_id.eq.${activeConsultantId},consultant_id.is.null`);
 
             if (error) throw error;
 

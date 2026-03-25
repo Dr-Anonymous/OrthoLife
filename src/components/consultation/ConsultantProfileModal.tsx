@@ -34,10 +34,12 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
   // Profile State
   const [formData, setFormData] = useState({
-    name: consultant?.name || '',
+    name: consultant?.name || { en: '', te: '' },
     phone: consultant?.phone || '',
-    qualifications: consultant?.qualifications || '',
-    specialization: consultant?.specialization || '',
+    qualifications: consultant?.qualifications || { en: '', te: '' },
+    specialization: consultant?.specialization || { en: '', te: '' },
+    address: consultant?.address || { en: '', te: '' },
+    experience: (consultant as any)?.experience || { en: '', te: '' },
     email: consultant?.email || '',
     photo_url: consultant?.photo_url || '',
     sign_url: consultant?.sign_url || '',
@@ -52,10 +54,12 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
   useEffect(() => {
     if (isOpen && consultant) {
       setFormData({
-        name: consultant.name,
+        name: consultant.name || { en: '', te: '' },
         phone: consultant.phone,
-        qualifications: consultant.qualifications || '',
-        specialization: consultant.specialization || '',
+        qualifications: consultant.qualifications || { en: '', te: '' },
+        specialization: consultant.specialization || { en: '', te: '' },
+        address: consultant.address || { en: '', te: '' },
+        experience: (consultant as any).experience || { en: '', te: '' },
         email: consultant.email || '',
         photo_url: consultant.photo_url || '',
         sign_url: consultant.sign_url || '',
@@ -90,6 +94,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           phone: formData.phone,
           qualifications: formData.qualifications,
           specialization: formData.specialization,
+          address: formData.address,
+          experience: formData.experience,
           email: formData.email,
           photo_url: formData.photo_url,
           sign_url: formData.sign_url,
@@ -252,15 +258,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           <ScrollArea className="flex-grow">
             <TabsContent value="profile" className="p-6 space-y-8 m-0 outline-none">
               <form onSubmit={handeProfileSubmit} className="space-y-8">
-                {/* Basic Info Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input id="name" value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} className="pl-9" placeholder="Dr. Samuel Manoj" required />
-                    </div>
-                  </div>
+                {/* Contact Info (Permanent) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone (Login)</Label>
                     <div className="relative">
@@ -277,21 +276,73 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </div>
                 </div>
 
-                {/* Professional Titles */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="qualifications">Qualifications</Label>
-                    <div className="relative">
-                      <Award className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input id="qualifications" value={formData.qualifications} onChange={e => setFormData(prev => ({ ...prev, qualifications: e.target.value }))} className="pl-9" placeholder="MBBS, MS Ortho (Manipal)" />
+                {/* English Profile Section */}
+                <div className="space-y-6 pt-6 border-t">
+                  <h3 className="text-sm font-semibold flex items-center gap-2 text-primary uppercase tracking-wider">
+                    <Globe className="w-4 h-4" /> English Professional Identity
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name_en">Full Name (English)</Label>
+                      <Input id="name_en" value={formData.name.en} onChange={e => setFormData(prev => ({ ...prev, name: { ...prev.name, en: e.target.value } }))} placeholder="Dr. Samuel Manoj" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="quals_en">Qualifications (English)</Label>
+                      <Input id="quals_en" value={formData.qualifications.en} onChange={e => setFormData(prev => ({ ...prev, qualifications: { ...prev.qualifications, en: e.target.value } }))} placeholder="MBBS, MS Ortho (Manipal)" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="spec_en">Primary Specialization (English)</Label>
+                      <Input id="spec_en" value={formData.specialization.en} onChange={e => setFormData(prev => ({ ...prev, specialization: { ...prev.specialization, en: e.target.value } }))} placeholder="Orthopaedic Surgeon" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="exp_en">Experience Tagline (English)</Label>
+                      <Input id="exp_en" value={formData.experience.en} onChange={e => setFormData(prev => ({ ...prev, experience: { ...prev.experience, en: e.target.value } }))} placeholder="8+ years and 5000+ surgeries experience" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="specialization">Primary Specialization</Label>
-                    <div className="relative">
-                      <Stethoscope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input id="specialization" value={formData.specialization} onChange={e => setFormData(prev => ({ ...prev, specialization: e.target.value }))} className="pl-9" placeholder="Orthopaedic Surgeon" />
+                    <Label htmlFor="addr_en">Complete Address (English)</Label>
+                    <Textarea 
+                      id="addr_en" 
+                      className="h-20" 
+                      value={formData.address.en} 
+                      onChange={e => setFormData(prev => ({ ...prev, address: { ...prev.address, en: e.target.value } }))}
+                      placeholder="OrthoLife, Kakinada..."
+                    />
+                  </div>
+                </div>
+
+                {/* Telugu Profile Section */}
+                <div className="space-y-6 pt-6 border-t bg-primary/5 p-4 rounded-lg">
+                  <h3 className="text-sm font-semibold flex items-center gap-2 text-primary-light uppercase tracking-wider">
+                    <Globe className="w-4 h-4" /> Telugu Professional Identity / తెలుగు వివరాలు
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name_te">Full Name (Telugu)</Label>
+                      <Input id="name_te" value={formData.name.te} onChange={e => setFormData(prev => ({ ...prev, name: { ...prev.name, te: e.target.value } }))} placeholder="డాక్టర్ మనోజ్ గారు" />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="quals_te">Qualifications (Telugu)</Label>
+                      <Input id="quals_te" value={formData.qualifications.te} onChange={e => setFormData(prev => ({ ...prev, qualifications: { ...prev.qualifications, te: e.target.value } }))} placeholder="MBBS, MS Ortho (మణిపాల్)" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="spec_te">Primary Specialization (Telugu)</Label>
+                      <Input id="spec_te" value={formData.specialization.te} onChange={e => setFormData(prev => ({ ...prev, specialization: { ...prev.specialization, te: e.target.value } }))} placeholder="ఆర్థోపెడిక్ సర్జన్" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="exp_te">Experience Tagline (Telugu)</Label>
+                      <Input id="exp_te" value={formData.experience.te} onChange={e => setFormData(prev => ({ ...prev, experience: { ...prev.experience, te: e.target.value } }))} placeholder="8+ ఏళ్ల అనుభవం..." />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="addr_te">Complete Address (Telugu)</Label>
+                    <Textarea 
+                      id="addr_te" 
+                      className="h-20" 
+                      value={formData.address.te} 
+                      onChange={e => setFormData(prev => ({ ...prev, address: { ...prev.address, te: e.target.value } }))}
+                      placeholder="ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్..."
+                    />
                   </div>
                 </div>
 

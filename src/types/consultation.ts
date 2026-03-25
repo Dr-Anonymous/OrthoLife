@@ -49,6 +49,8 @@ export interface ConsultantBio {
     te: string;
 }
 
+export type ConsultantText = ConsultantBio;
+
 export interface ConsultantService {
     title: { en: string; te: string };
     description: { en: string; te: string };
@@ -58,9 +60,11 @@ export interface ConsultantService {
 export interface Consultant {
     id: string;
     phone: string;
-    name: string;
-    qualifications?: string;
-    specialization?: string;
+    name: ConsultantText;
+    qualifications?: ConsultantText;
+    specialization?: ConsultantText;
+    address?: ConsultantText;
+    experience?: ConsultantText;
     email?: string;
     photo_url?: string;
     sign_url?: string;
