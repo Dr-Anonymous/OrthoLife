@@ -37,6 +37,7 @@ interface KeywordManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   prefilledData?: KeywordPrefillData | null;
+  consultantId?: string | number;
 }
 
 /**
@@ -49,7 +50,7 @@ interface KeywordManagementModalProps {
  * - "Save as Bundle" functionality pre-filled from current consultation data.
  * - Supports Telugu translation for advice/follow-up.
  */
-const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen, onClose, prefilledData }) => {
+const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen, onClose, prefilledData, consultantId }) => {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,7 +100,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
   const fetchKeywords = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.from('autofill_keywords').select('*');
+    const { data, error } = await supabase.from('autofill_keywords').select('*').eq('consultant_id', consultantId);
     if (error) {
       toast({ variant: 'destructive', title: 'Error fetching keywords', description: error.message });
     } else {
@@ -195,6 +196,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             investigations: investigations,
             followup: followup,
             followup_te: followupTe,
+            consultant_id: consultantId
           },
         });
         if (error) throw error;

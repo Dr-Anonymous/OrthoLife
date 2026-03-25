@@ -16,11 +16,14 @@ import UnsavedChangesModal from '@/components/consultation/UnsavedChangesModal';
 import PatientHistoryModal from '@/components/consultation/PatientHistoryModal';
 import TextShortcutManagementModal from '@/components/consultation/TextShortcutManagementModal';
 
+import { useLocation, Navigate, useNavigate } from "react-router-dom";
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
 import { MedicalCertificate, MedicalCertificateModal, CertificateData } from '@/components/consultation/MedicalCertificate';
 import { Receipt, ReceiptModal, ReceiptData } from '@/components/consultation/Receipt';
 import { useHospitals } from '@/context/HospitalsContext';
+import { useAuth } from "@/hooks/useAuth";
+import { useConsultant } from "@/context/ConsultantContext";
 import { getDistance } from '@/lib/geolocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import ReferralDoctorManagementModal from '@/components/consultation/ReferralDoctorManagementModal';
@@ -119,7 +122,18 @@ const arePatientsEqual = (p1: Patient | null, p2: Patient | null) => {
  */
 const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
   const { hospitals, isLoading: isHospitalsLoading } = useHospitals();
+
+  // Redirect to Auth if no active doctor session
+  useEffect(() => {
+    if (!isConsultantLoading && !consultant) {
+      console.warn("[Consultation] Unauthenticated or missing doctor profile. Redirecting...");
+      navigate('/auth');
+    }
+  }, [consultant, isConsultantLoading, navigate]);
 
   // --- Data State ---
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -564,6 +578,14 @@ const ConsultationPage = () => {
    * @param languageOverride - (Optional) Force a specific language for the consultation.
    */
   const fetchConsultations = useCallback(async (date: Date = selectedDate || new Date(), patientId?: string, consultationData?: any, languageOverride?: string) => {
+    // Security Guard: No active doctor profile = No data
+    if (!consultant && !patientId) {
+      console.warn("[Consultation] No consultant profile available. Aborting fetch.");
+      setAllConsultations([]);
+      setIsFetchingConsultations(false);
+      return;
+    }
+
     // Offline Guard
     if (!isOnline) {
       console.log("Offline mode: Skipping fetchConsultations");
@@ -577,7 +599,11 @@ const ConsultationPage = () => {
       const formattedDate = format(date, 'yyyy-MM-dd');
 
       const { data: consultations, error } = await supabase.functions.invoke('get-consultations', {
-        body: { date: formattedDate, hospital: selectedHospital.name }
+        body: { 
+          date: format(selectedDate, 'yyyy-MM-dd'), 
+          hospital: selectedHospital?.name,
+          consultant_id: consultant?.id
+        }
       });
 
       if (error) throw error;
@@ -1088,19 +1114,22 @@ const ConsultationPage = () => {
   }, []);
 
   const fetchAutofillKeywords = useCallback(async () => {
-    const { data } = await supabase.from('autofill_keywords').select('*');
+    if (!consultant) return;
+    const { data } = await supabase.from('autofill_keywords').select('*').eq('consultant_id', consultant.id);
     if (data) setAutofillKeywords(data);
-  }, []);
+  }, [consultant]);
 
   const fetchTextShortcuts = useCallback(async () => {
-    const { data } = await supabase.from('text_shortcuts').select('*');
+    if (!consultant) return;
+    const { data } = await supabase.from('text_shortcuts').select('*').eq('consultant_id', consultant.id);
     if (data) setTextShortcuts(data);
-  }, []);
+  }, [consultant]);
 
   const fetchReferralDoctors = useCallback(async () => {
-    const { data } = await supabase.from('referral_doctors').select('*').order('name');
+    if (!consultant) return;
+    const { data } = await supabase.from('referral_doctors').select('*').eq('consultant_id', consultant.id).order('name');
     if (data) setReferralDoctors(data);
-  }, []);
+  }, [consultant]);
 
   useEffect(() => {
     fetchSavedMedications();
@@ -2013,7 +2042,7 @@ const ConsultationPage = () => {
                   onSaveBundleClick={handleSaveBundleClick}
                   onMedicalCertificateClick={handleOpenMedicalCertificate}
                   onReceiptClick={() => setIsReceiptModalOpen(true)}
-                  onManageMedicationsClick={() => setIsMedicationsModalOpen(true)}
+                  onManageMedicationsClick={isMasterAdmin ? () => setIsMedicationsModalOpen(true) : undefined}
                   onManageKeywordsClick={() => setIsKeywordModalOpen(true)}
                   onManageShortcutsClick={() => setIsShortcutModalOpen(true)}
                   onManageReferralDoctorsClick={() => setIsReferralModalOpen(true)}
@@ -2056,6 +2085,7 @@ const ConsultationPage = () => {
               showDoctorProfile={showDoctorProfile}
               showSignSeal={showSignSeal}
               onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
+              consultant={consultant}
             />
           )}
         </div>
@@ -2077,7 +2107,7 @@ const ConsultationPage = () => {
 
       {/* Modals */}
       <SavedMedicationsModal isOpen={isMedicationsModalOpen} onClose={() => setIsMedicationsModalOpen(false)} onMedicationsUpdate={fetchSavedMedications} />
-      <KeywordManagementModal isOpen={isKeywordModalOpen} onClose={() => { setIsKeywordModalOpen(false); setKeywordModalPrefill(null); }} prefilledData={keywordModalPrefill} />
+      <KeywordManagementModal isOpen={isKeywordModalOpen} onClose={() => { setIsKeywordModalOpen(false); setKeywordModalPrefill(null); }} prefilledData={keywordModalPrefill} consultantId={consultant?.id} />
       <UnsavedChangesModal isOpen={isUnsavedModalOpen} onConfirm={handleConfirmSave} onDiscard={handleDiscardChanges} />
       <PatientHistoryModal
         isOpen={isHistoryModalOpen}
@@ -2128,8 +2158,8 @@ const ConsultationPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-      <TextShortcutManagementModal isOpen={isShortcutModalOpen} onClose={() => setIsShortcutModalOpen(false)} onUpdate={fetchTextShortcuts} />
-      <ReferralDoctorManagementModal isOpen={isReferralModalOpen} onClose={() => setIsReferralModalOpen(false)} onUpdate={fetchReferralDoctors} />
+      <TextShortcutManagementModal isOpen={isShortcutModalOpen} onClose={() => setIsShortcutModalOpen(false)} onUpdate={fetchTextShortcuts} consultantId={consultant?.id} />
+      <ReferralDoctorManagementModal isOpen={isReferralModalOpen} onClose={() => setIsReferralModalOpen(false)} onUpdate={fetchReferralDoctors} consultantId={consultant?.id} />
       {
         selectedConsultation && editablePatientDetails && (
           <MedicalCertificateModal
@@ -2172,6 +2202,7 @@ const ConsultationPage = () => {
             <ConsultationRegistration
               location={selectedHospital.name}
               onSuccess={handleRegistrationSuccess}
+              consultantId={consultant?.id}
             />
           </div>
         </DialogContent>

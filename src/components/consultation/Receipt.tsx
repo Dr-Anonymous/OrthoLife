@@ -42,7 +42,7 @@ interface ReceiptModalProps {
  * - Displays Amount Paid and Service Name.
  * - Includes clinic header and footer.
  */
-export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData }) => {
+export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consultant }) => {
   const { amountPaid, serviceName } = receiptData;
   const patientPrefix = patient.sex === 'M' ? 'Mr.' : 'Mrs.';
 
@@ -59,13 +59,13 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData }) => {
             <img src="/images/logos/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
           </div>
           <div className="text-right">
-            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
-            <p className="text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
-            <p className="text-muted-foreground">Orthopaedic Surgeon</p>
+            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultant?.name || ''}</h2>
+            <p className="text-muted-foreground">{consultant?.qualifications || ''}</p>
+            <p className="text-muted-foreground">{consultant?.specialization || ''}</p>
             <p className="mt-2 text-gray-700">
-              <span className="font-semibold">📞 98668 12555</span>
+              <span className="font-semibold">📞 {consultant?.phone || ''}</span>
               <span className="mx-2">|</span>
-              <span className="font-semibold">📧 info@ortho.life</span>
+              <span className="font-semibold">📧 {consultant?.email || ''}</span>
             </p>
           </div>
         </header>
@@ -89,9 +89,9 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData }) => {
           <div className="flex justify-between items-end">
             <div></div>
             <div className="text-center">
-              <img src="/images/assets/sign.png" alt="Doctor's Signature" className="h-20" />
+              {consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
               <div className="relative">
-                <img src="/images/assets/seal.png" alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />
+                {consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />}
               </div>
             </div>
           </div>

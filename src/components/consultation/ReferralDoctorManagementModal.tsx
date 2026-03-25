@@ -20,6 +20,7 @@ interface ReferralDoctorManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate?: () => void; // Optional callback to refresh the parent's list
+  consultantId?: string | number;
 }
 
 /**
@@ -32,7 +33,7 @@ interface ReferralDoctorManagementModalProps {
  * - Edit existing referral doctor details.
  * - Delete referral doctors.
  */
-const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps> = ({ isOpen, onClose, onUpdate }) => {
+const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps> = ({ isOpen, onClose, onUpdate, consultantId }) => {
   const [doctors, setDoctors] = useState<ReferralDoctor[]>([]);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +54,7 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
       const { data, error } = await supabase
         .from('referral_doctors')
         .select('*')
+        .eq('consultant_id', consultantId)
         .order('name');
       
       if (error) throw error;
@@ -99,7 +101,8 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
         name: name.trim(),
         specialization: specialization.trim() || null,
         phone: phone.trim() || null,
-        address: address.trim() || null
+        address: address.trim() || null,
+        consultant_id: consultantId
       };
 
       if (editingDoctor) {

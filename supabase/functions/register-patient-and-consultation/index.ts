@@ -90,7 +90,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { id, name, dob, sex, phone, secondary_phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days } = await req.json();
+    const { id, name, dob, sex, phone, secondary_phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days, consultant_id } = await req.json();
     const freeDuration = free_visit_duration_days ? Number(free_visit_duration_days) : 14;
 
     // Sanitize phone and support matching both full international form and legacy last-10 form.
@@ -284,7 +284,8 @@ serve(async (req: Request) => {
           location: location,
           visit_type: visitType,
           referred_by: referred_by,
-          language: finalLanguage
+          language: finalLanguage,
+          consultant_id: consultant_id
         })
         .select()
         .single();
@@ -363,7 +364,8 @@ serve(async (req: Request) => {
         // consultation_data: {}, // Allow default NULL or explicitly set null
         location: location,
         referred_by: referred_by,
-        language: language
+        language: language,
+        consultant_id: consultant_id
       })
       .select()
       .single();

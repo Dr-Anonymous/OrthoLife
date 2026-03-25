@@ -55,11 +55,12 @@ interface ConsultationRegistrationProps {
   onSuccess?: (newPatient: any, consultationData?: any) => void;
   location?: string;
   existingConsultations?: any[];
+  consultantId?: string | number;
 }
 
 /**
  * ConsultationRegistration Component
- * 
+ *
  * Handles the registration of new patients or selection of existing ones for a consultation.
  * Features:
  * - Patient Search (Name/Phone) via Supabase Edge Function `search-patients`.
@@ -68,7 +69,7 @@ interface ConsultationRegistrationProps {
  * - Auto-calc of visit type (Paid/Free) based on history (14-day rule).
  * - Duplicate check via backend logic.
  */
-const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location, existingConsultations = [] }) => {
+const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location, existingConsultations = [], consultantId }) => {
   const isOnline = useOnlineStatus();
   const { getHospitalByName } = useHospitals();
   const [formData, setFormData] = useState<FormData>({
@@ -504,7 +505,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               is_dob_estimated: formData.isDobEstimated,
               referred_by: formData.referred_by,
               language: formData.language,
-              free_visit_duration_days: location ? getHospitalByName(location)?.settings.free_visit_duration_days : 14
+              free_visit_duration_days: location ? getHospitalByName(location)?.settings.free_visit_duration_days : 14,
+              consultant_id: consultantId
             },
           });
 

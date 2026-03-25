@@ -25,16 +25,24 @@ const AuthPage = () => {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       if (user) {
-        const redirectUrl = searchParams.get('redirect');
+        // Handle redirect back to where we came from
+        const redirectParam = searchParams.get('redirect');
+        const stateFrom = (location.state as any)?.from;
+        const redirectUrl = redirectParam || stateFrom;
+        
+        console.log("[AuthPage] Auth success. Redirecting to:", redirectUrl || '/my');
+        
         if (redirectUrl) {
-          navigate(redirectUrl + location.hash);
+          // If redirectUrl doesn't start with /, make it start with /
+          const finalUrl = redirectUrl.startsWith('/') ? redirectUrl : `/${redirectUrl}`;
+          navigate(finalUrl + location.hash);
         } else {
           navigate('/my');
         }
       }
     });
     return () => unsubscribe();
-  }, [navigate, searchParams, location.hash]);
+  }, [navigate, searchParams, location.hash, location.state]);
 
   useEffect(() => {
     const phoneFromUrl = searchParams.get('phone') || phoneParam;

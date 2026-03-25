@@ -11,12 +11,14 @@ interface TextShortcut {
   id: string;
   shortcut: string;
   expansion: string;
+  consultant_id?: string | number; // Add consultant_id to the interface
 }
 
 interface TextShortcutManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: () => void; // Callback to refresh shortcuts in the parent component
+  consultantId?: string | number;
 }
 
 /**
@@ -27,7 +29,7 @@ interface TextShortcutManagementModalProps {
  * - Add/Edit/Delete shortcuts.
  * - Used globally across text areas in the application.
  */
-const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = ({ isOpen, onClose, onUpdate }) => {
+const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = ({ isOpen, onClose, onUpdate, consultantId }) => {
   const [shortcuts, setShortcuts] = useState<TextShortcut[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,6 +41,7 @@ const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = 
     const { data, error } = await supabase
       .from('text_shortcuts')
       .select('*')
+      .eq('consultant_id', consultantId)
       .order('shortcut', { ascending: true });
 
     if (error) {
@@ -85,7 +88,11 @@ const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = 
         // Create new shortcut
         ({ error } = await supabase
           .from('text_shortcuts')
-          .insert({ shortcut: formState.shortcut.trim(), expansion: formState.expansion.trim() }));
+          .insert({ 
+            shortcut: formState.shortcut.trim(), 
+            expansion: formState.expansion.trim(),
+            consultant_id: consultantId // Include consultant_id in the insert object
+          }));
       }
 
       if (error) throw error;

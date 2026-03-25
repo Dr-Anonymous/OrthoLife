@@ -44,6 +44,33 @@ export interface Patient {
     blood_group?: string;
 }
 
+export interface ConsultantBio {
+    en: string;
+    te: string;
+}
+
+export interface ConsultantService {
+    title: { en: string; te: string };
+    description: { en: string; te: string };
+    icon: string;
+}
+
+export interface Consultant {
+    id: string;
+    phone: string;
+    name: string;
+    qualifications?: string;
+    specialization?: string;
+    email?: string;
+    photo_url?: string;
+    sign_url?: string;
+    seal_url?: string;
+    bio?: ConsultantBio;
+    services?: ConsultantService[];
+    is_admin: boolean;
+    is_active: boolean;
+}
+
 export interface Consultation {
     id: string;
     status: string;
@@ -53,6 +80,7 @@ export interface Consultation {
     language?: string;
     patient: Patient;
     patient_id: string;
+    consultant_id?: string;
     consultation_data?: ExtraData;
     last_visit_date?: string;
     duration?: number;

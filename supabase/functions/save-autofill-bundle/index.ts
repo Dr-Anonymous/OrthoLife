@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { keywords, medications, advice, advice_te } = await req.json();
+    const { keywords, medications, advice, advice_te, consultant_id } = await req.json();
 
     if (!keywords || keywords.length === 0 || !medications || medications.length === 0) {
       return new Response(JSON.stringify({ error: 'Keywords and medications are required.' }), {
@@ -70,7 +70,8 @@ serve(async (req) => {
         keywords: keywords,
         medication_ids: savedMedicationIds,
         advice: advice,
-         advice_te: advice_te,
+        advice_te: advice_te,
+        consultant_id: consultant_id
       });
 
     if (error) throw error;

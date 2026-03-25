@@ -27,10 +27,10 @@ serve(async (req: any) => {
   }
 
   try {
-    const { date, patientId, action, hospital } = await req.json();
+    const { date, patientId, action, hospital, consultant_id: consultantId } = await req.json();
 
     // MODE 1 & 2: Fetch Consultations (List History or Daily List)
-    const result = await fetchConsultations(date, patientId, hospital);
+    const result = await fetchConsultations(date, patientId, hospital, consultantId);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
@@ -52,17 +52,29 @@ serve(async (req: any) => {
  * - autofilled consultation_data (if empty)
  * - optional hospital scoping in date mode
  */
-async function fetchConsultations(date?: string, patientId?: string, hospital?: string) {
+async function fetchConsultations(date?: string, patientId?: string, hospital?: string, consultantId?: string) {
+  if (!consultantId && !patientId) {
+    console.log('[get-consultations] No consultantId provided and no patientId - returning empty list');
+    return { consultations: [] };
+  }
+
   let query = supabase
     .from('consultations')
     .select(`
       id, status, consultation_data, visit_type, location, language, created_at, duration,
-      procedure_fee, procedure_consultant_cut, referral_amount, referred_by,
+      procedure_fee, procedure_consultant_cut, referral_amount, referred_by, consultant_id,
       patient:patients (
         id, name, dob, sex, phone, drive_id, is_dob_estimated, secondary_phone
       )
     `)
     .order('created_at', { ascending: false });
+
+  if (consultantId) {
+    query = query.eq('consultant_id', consultantId);
+  } else if (!patientId) {
+    // This part is now redundant due to the check at the top, but keeping it for safety
+    return { consultations: [] };
+  }
 
   if (patientId) {
     // query = query.eq('patient_id', patientId);

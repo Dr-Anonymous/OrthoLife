@@ -13,7 +13,7 @@ interface ConsultationActionsProps {
     onSaveBundleClick: () => void;
     onMedicalCertificateClick: () => void;
     onReceiptClick: () => void;
-    onManageMedicationsClick: () => void;
+    onManageMedicationsClick?: () => void;
     onManageKeywordsClick: () => void;
     onManageShortcutsClick: () => void;
     onManageReferralDoctorsClick: () => void;
@@ -108,10 +108,12 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                         <DropdownMenuSeparator className="my-2" />
 
                         <div className="space-y-1">
-                            <DropdownMenuItem onSelect={onManageMedicationsClick} className="flex items-center p-2 cursor-pointer">
-                                <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
-                                <span className="text-sm">Manage Saved Medications</span>
-                            </DropdownMenuItem>
+                            {onManageMedicationsClick && (
+                                <DropdownMenuItem onSelect={onManageMedicationsClick} className="flex items-center p-2 cursor-pointer">
+                                    <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
+                                    <span className="text-sm">Manage Saved Medications</span>
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onSelect={onManageKeywordsClick} className="flex items-center p-2 cursor-pointer">
                                 <PackagePlus className="w-4 h-4 mr-2 text-muted-foreground" />
                                 <span className="text-sm">Manage Keywords</span>

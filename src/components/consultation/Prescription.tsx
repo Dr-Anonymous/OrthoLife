@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { cleanAdviceLine } from '@/lib/utils';
 import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope } from 'lucide-react';
+import { Consultant } from '@/types/consultation';
 
 interface Medication {
   composition: string;
@@ -63,6 +64,7 @@ interface PrescriptionProps {
   showSignSeal?: boolean;
   onlyMedicationsAndFollowup?: boolean;
   showMargins?: boolean;
+  consultant?: Consultant | null;
 }
 
 /**
@@ -76,7 +78,7 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, onlyMedicationsAndFollowup = false, showMargins = true }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, onlyMedicationsAndFollowup = false, showMargins = true, consultant }, ref) => {
   const TRANSLATIONS = {
     en: {
       'prescription.advice': 'Advice',
@@ -119,8 +121,6 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
   return (
     <div ref={ref} className={cn("font-sans text-sm bg-background text-foreground", className)} style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
-
-      {/* Page 1: Prescription Details */}
       <div className={cn(
         "min-h-[296mm] py-8 flex flex-col relative box-border",
         showMargins ? "pl-16 pr-8" : "px-8"
@@ -137,13 +137,32 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
             <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", forceDesktop ? "h-20" : "h-16 sm:h-20", logoUrl !== '/images/logos/logo.png' && (forceDesktop ? "h-24" : "sm:h-24"))} />
           </div>
           <div className={cn(forceDesktop ? "text-right" : "text-center sm:text-right")}>
-            <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
-            <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>MBBS, MS Ortho (Manipal)</p>
-            <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>Orthopaedic Surgeon</p>
+            <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>
+              {consultant?.name || ''}
+            </h2>
+            <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
+              {consultant?.qualifications || ''}
+            </p>
+            <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
+              {consultant?.specialization || ''}
+            </p>
             <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
-              <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
-              <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
-              <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
+              {consultant?.phone && (
+                <a href={`tel:+91${consultant.phone}`} className="font-semibold hover:underline">📞 {consultant.phone.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
+              )}
+              {consultant?.email && (
+                <>
+                  <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
+                  <a href={`mailto:${consultant.email}`} className="font-semibold hover:underline">📧 {consultant.email}</a>
+                </>
+              )}
+              {!consultant && (
+                <>
+                  <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
+                  <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
+                  <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
+                </>
+              )}
             </p>
           </div>
         </header>
@@ -406,9 +425,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           {showSignSeal && (
             <div className="flex justify-end mb-2 mr-4">
               <div className="relative flex items-center justify-center">
-                <img src="/images/assets/sign.png" alt="Doctor's Signature" className="h-16 w-auto relative z-10" />
+                <img src={consultant?.sign_url || "/images/assets/sign.png"} alt="Doctor's Signature" className="h-16 w-auto relative z-10" />
                 <div className="absolute opacity-50 z-0" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-                  <img src="/images/assets/seal.png" alt="Doctor's Seal" className="h-24 w-32" />
+                  <img src={consultant?.seal_url || "/images/assets/seal.png"} alt="Doctor's Seal" className="h-24 w-32" />
                 </div>
               </div>
             </div>
@@ -447,24 +466,24 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     {/* Mobile Image */}
                     <div className="block sm:hidden print:hidden flex justify-center py-4">
                       <img
-                        src="/images/doctors/manojBW.jpg"
-                        alt="Dr. Samuel Manoj Cherukuri"
+                        src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
+                        alt={consultant?.name || "Doctor"}
                         className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">డాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి</h3>
-                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (మణిపాల్)</p>
-                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">కన్సల్టెంట్ ఆర్థోపెడిక్, జాయింట్ రీప్లేస్మెంట్ & స్పైన్ సర్జన్</p>
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{consultant?.name || ''}</h3>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{consultant?.qualifications || ''}</p>
+                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{consultant?.specialization || ''}</p>
                     </div>
                   </div>
 
                   {/* Right: Image */}
                   <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
                     <img
-                      src="/images/doctors/manojBW.jpg"
-                      alt="Dr. Samuel Manoj Cherukuri"
+                      src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
+                      alt={consultant?.name || "Doctor"}
                       className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
                     />
                   </div>
@@ -473,7 +492,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 {/* Middle: Full Width About Section */}
                 <div className="border-b-2 border-primary/10 pb-8">
                   <p className="text-lg leading-relaxed text-justify text-muted-foreground">
-                    డాక్టర్ మనోజ్ గారు మణిపాల్ హాస్పిటల్ నుండి ప్రత్యేక శిక్షణ పొంది, ఎముకలు మరియు కీళ్ల సమస్యలకు అత్యాధునిక చికిత్సను అందిస్తున్నారు. శస్త్రచికిత్స నైపుణ్యంతో పాటు ఆధునిక వైద్య పద్ధతుల కలయికతో మెరుగైన ఫలితాలను అందిస్తారు.
+                    {consultant?.bio?.te || ''}
                   </p>
                 </div>
 
@@ -483,55 +502,30 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <Activity className="h-5 w-5 text-primary" />
                     ప్రత్యేక సేవలు
                   </h3>
-                  <p className="text-base font-semibold text-primary/90 mb-3">8+ సంవత్సరాల అనుభవం మరియు 5000 పైగా శస్త్రచికిత్సలు</p>
-
+                  
                   <ul className="space-y-2 text-base">
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Bone className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">ట్రామా & ఫ్రాక్చర్ కేర్</strong>
-                        <span className="text-muted-foreground text-sm">క్లిష్టమైన ఎముకల విరుగుడుకు అధునాతన చికిత్స మరియు శస్త్రచికిత్సలు.</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Activity className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">ఆర్థ్రోస్కోపీ (కీహోల్ సర్జరీ)</strong>
-                        <span className="text-muted-foreground text-sm">లిగమెంట్ మరియు క్రీడా గాయాలకు అతి తక్కువ కోతతో చేసే అధునాతన శస్త్రచికిత్స.</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <User className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">జాయింట్ రీప్లేస్మెంట్</strong>
-                        <span className="text-muted-foreground text-sm">మోకాలి మరియు తుంటి కీళ్ల మార్పిడి శస్త్రచికిత్సలు (Total Knee & Hip Replacement).</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Stethoscope className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">వెన్నెముక (Spine) సంరక్షణ</strong>
-                        <span className="text-muted-foreground text-sm">నడుము మరియు మెడ నొప్పికి శస్త్రచికిత్స మరియు శస్త్రచికిత్స లేని పరిష్కారాలు.</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Syringe className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">రీజెనరేటివ్ మెడిసిన్</strong>
-                        <span className="text-muted-foreground text-sm">కీళ్ల నొప్పుల నివారణకు PRP (Platelet Rich Plasma) మరియు గుజ్జు (Visco) ఇంజెక్షన్లు.</span>
-                      </div>
-                    </li>
+                    {(consultant?.services || []).map((service, idx) => {
+                      const Icon = { Bone, Activity, User, Stethoscope, Syringe }[service.icon] || Activity;
+                      return (
+                        <li key={idx} className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                          <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                          <div>
+                            <strong className="block text-primary text-lg mb-0.5">{service.title.te}</strong>
+                            <span className="text-muted-foreground text-sm">{service.description.te}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {!consultant && (
+                      <li className="text-muted-foreground italic"> Loading services... </li>
+                    )}
                   </ul>
                 </div>
 
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
                   <p className="font-semibold text-primary">ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03</p>
-                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">99 838 49 838</strong></p>
+                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">{consultant?.phone || '99 838 49 838'}</strong></p>
                 </div>
               </div>
 
@@ -548,24 +542,24 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     {/* Mobile Image */}
                     <div className="block sm:hidden print:hidden flex justify-center py-4">
                       <img
-                        src="/images/doctors/manojBW.jpg"
-                        alt="Dr. Samuel Manoj Cherukuri"
+                        src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
+                        alt={consultant?.name || "Doctor"}
                         className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">Dr. Samuel Manoj Cherukuri</h3>
-                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
-                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">Consultant Orthopaedic, Joint Replacement & Spine Surgeon</p>
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{consultant?.name || ''}</h3>
+                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{consultant?.qualifications || ''}</p>
+                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{consultant?.specialization || ''}</p>
                     </div>
                   </div>
 
                   {/* Right: Image */}
                   <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
                     <img
-                      src="/images/doctors/manojBW.jpg"
-                      alt="Dr. Samuel Manoj Cherukuri"
+                      src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
+                      alt={consultant?.name || "Doctor"}
                       className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
                     />
                   </div>
@@ -574,7 +568,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 {/* Middle: Full Width About Section */}
                 <div className="border-b-2 border-primary/10 pb-8">
                   <p className="text-lg leading-relaxed text-justify text-muted-foreground">
-                    Dr. Manoj brings specialized training from Manipal Hospital to provide advanced musculoskeletal care. His practice blends surgical precision with modern biological treatments, focusing on restoring mobility and quality of life.
+                    {consultant?.bio?.en || 'Dr. Manoj brings specialized training from Manipal Hospital to provide advanced musculoskeletal care. His practice blends surgical precision with modern biological treatments, focusing on restoring mobility and quality of life.'}
                   </p>
                 </div>
 
@@ -584,55 +578,30 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <Activity className="h-5 w-5 text-primary" />
                     Specialized Services
                   </h3>
-                  <p className="text-base font-semibold text-primary/90 mb-3">8+ years and 5000+ surgeries experience</p>
 
                   <ul className="space-y-2 text-base">
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Bone className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">Trauma & Fracture Care</strong>
-                        <span className="text-muted-foreground text-sm">Advanced fixation techniques for complex injuries and fractures.</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Activity className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">Arthroscopy (Keyhole Surgery)</strong>
-                        <span className="text-muted-foreground text-sm">Minimally invasive ligament and sports injury repair for faster recovery.</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <User className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">Joint Replacement</strong>
-                        <span className="text-muted-foreground text-sm">Total Knee and Hip replacements ensuring lasting mobility.</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Stethoscope className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">Spine Care</strong>
-                        <span className="text-muted-foreground text-sm">Comprehensive surgical and non-surgical management of back and neck pain.</span>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
-                      <Syringe className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <div>
-                        <strong className="block text-primary text-lg mb-0.5">Regenerative Medicine</strong>
-                        <span className="text-muted-foreground text-sm">PRP (Platelet Rich Plasma) and Viscosupplementation for joint preservation.</span>
-                      </div>
-                    </li>
+                    {(consultant?.services || []).map((service, idx) => {
+                      const Icon = { Bone, Activity, User, Stethoscope, Syringe }[service.icon] || Activity;
+                      return (
+                        <li key={idx} className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                          <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                          <div>
+                            <strong className="block text-primary text-lg mb-0.5">{service.title.en}</strong>
+                            <span className="text-muted-foreground text-sm">{service.description.en}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {!consultant && (
+                      <li className="text-muted-foreground italic"> Loading services... </li>
+                    )}
                   </ul>
                 </div>
 
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
                   <p className="font-semibold text-primary">OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03</p>
-                  <p>For Appointments, Contact: <strong className="whitespace-nowrap">99 838 49 838</strong></p>
+                  <p>For Appointments, Contact: <strong className="whitespace-nowrap">{consultant?.phone || '99 838 49 838'}</strong></p>
                 </div>
 
               </div>
