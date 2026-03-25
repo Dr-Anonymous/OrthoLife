@@ -127,7 +127,7 @@ export default defineConfig(({ mode }) => ({
     }) : null,
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'favicon/apple-touch-icon.png', 'favicon/favicon-32x32.png', 'favicon/favicon-16x16.png'],
+      includeAssets: ['favicon.ico', 'logo.png', 'favicon/apple-touch-icon.png', 'favicon/favicon-32x32.png', 'favicon/favicon-16x16.png'],
       manifest: {
         name: 'OrthoLife',
         short_name: 'OrthoLife',
