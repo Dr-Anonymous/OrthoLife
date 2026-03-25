@@ -13,13 +13,13 @@ serve(async (req) => {
   }
 
   try {
-    const { month, year, day, dataType = 'day', includeMonthly = true } = await req.json();
+    const { month, year, day, dataType = 'day', includeMonthly = true, consultant_id } = await req.json();
 
     const monthStartDate = new Date(year, month, 1).toISOString();
     const monthEndDate = new Date(year, month + 1, 1).toISOString();
 
     if (dataType === 'month') {
-      const { data: monthlyData, error: monthlyDataError } = await supabase
+      let query = supabase
         .from('consultations')
         .select(`
           id,
@@ -32,6 +32,7 @@ serve(async (req) => {
           procedure_fee,
           procedure_consultant_cut,
           referral_amount,
+          consultant_id,
           patient:patients (
             id,
             name,
@@ -42,8 +43,13 @@ serve(async (req) => {
           )
         `)
         .gte('created_at', monthStartDate)
-        .lt('created_at', monthEndDate)
-        .order('created_at', { ascending: false });
+        .lt('created_at', monthEndDate);
+
+      if (consultant_id) {
+        query = query.eq('consultant_id', consultant_id);
+      }
+
+      const { data: monthlyData, error: monthlyDataError } = await query.order('created_at', { ascending: false });
 
       if (monthlyDataError) throw monthlyDataError;
 
@@ -62,18 +68,24 @@ serve(async (req) => {
     let monthlyAdmissions = null;
 
     if (includeMonthly) {
-      const { data: mData, error: monthlyError } = await supabase
+      let monthlyQuery = supabase
         .from('consultations')
-        .select('consultation_data, visit_type, location, language, procedure_fee, procedure_consultant_cut, referral_amount')
+        .select('consultation_data, visit_type, location, language, procedure_fee, procedure_consultant_cut, referral_amount, consultant_id')
         .gte('created_at', monthStartDate)
         .lt('created_at', monthEndDate);
+
+      if (consultant_id) {
+        monthlyQuery = monthlyQuery.eq('consultant_id', consultant_id);
+      }
+
+      const { data: mData, error: monthlyError } = await monthlyQuery;
 
       if (monthlyError) throw monthlyError;
       monthlyData = mData;
       monthlyCount = monthlyData.length;
 
       // Fetch Monthly Admissions
-      const { data: maData, error: maError } = await supabase
+      let maQuery = supabase
         .from('in_patients')
         .select(`
           id,
@@ -86,10 +98,17 @@ serve(async (req) => {
           total_bill,
           consultant_cut,
           referred_by,
-          referral_amount
+          referral_amount,
+          consultant_id
         `)
         .gte('admission_date', monthStartDate)
         .lt('admission_date', monthEndDate);
+
+      if (consultant_id) {
+        maQuery = maQuery.eq('consultant_id', consultant_id);
+      }
+
+      const { data: maData, error: maError } = await maQuery;
 
       if (maError) throw maError;
       monthlyAdmissions = maData;
@@ -99,7 +118,7 @@ serve(async (req) => {
     const dayStartDate = new Date(year, month, day).toISOString();
     const dayEndDate = new Date(year, month, day + 1).toISOString();
 
-    const { data: dailyData, error: dailyError } = await supabase
+    let dailyQuery = supabase
       .from('consultations')
       .select(`
         id,
@@ -112,6 +131,7 @@ serve(async (req) => {
         procedure_fee,
         procedure_consultant_cut,
         referral_amount,
+        consultant_id,
         patient:patients (
           id,
           name,
@@ -124,10 +144,16 @@ serve(async (req) => {
       .gte('created_at', dayStartDate)
       .lt('created_at', dayEndDate);
 
+    if (consultant_id) {
+      dailyQuery = dailyQuery.eq('consultant_id', consultant_id);
+    }
+
+    const { data: dailyData, error: dailyError } = await dailyQuery;
+
     if (dailyError) throw dailyError;
 
     // Fetch Daily Admissions
-    const { data: dailyAdmissions, error: daError } = await supabase
+    let daQuery = supabase
       .from('in_patients')
       .select(`
         id,
@@ -140,10 +166,17 @@ serve(async (req) => {
         total_bill,
         consultant_cut,
         referred_by,
-        referral_amount
+        referral_amount,
+        consultant_id
       `)
       .gte('admission_date', dayStartDate)
       .lt('admission_date', dayEndDate);
+
+    if (consultant_id) {
+      daQuery = daQuery.eq('consultant_id', consultant_id);
+    }
+
+    const { data: dailyAdmissions, error: daError } = await daQuery;
 
     if (daError) throw daError;
 

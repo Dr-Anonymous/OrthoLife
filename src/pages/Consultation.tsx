@@ -130,12 +130,23 @@ const ConsultationPage = () => {
 
   // Redirect to Auth if no active doctor session
   useEffect(() => {
+    // Only redirect if loading is finished AND there is no consultant
     if (!isConsultantLoading && !consultant) {
       console.warn("[Consultation] Unauthenticated or missing doctor profile. Redirecting...");
       const currentPath = window.location.pathname;
       navigate(`/auth?redirect=${encodeURIComponent(currentPath)}`);
     }
   }, [consultant, isConsultantLoading, navigate]);
+
+  // If loading, show a full-page spinner to prevent the redirect effect from triggering prematurely
+  if (isConsultantLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse">Initializing doctor workspace...</p>
+      </div>
+    );
+  }
 
   // --- Data State ---
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -1959,6 +1970,7 @@ const ConsultationPage = () => {
                   onAffordabilityChange={(val) => setExtraData(prev => ({ ...prev, affordabilityPreference: val }))}
                   medicationSuggestionMode={medicationSuggestionMode}
                   consultationId={selectedConsultation?.id}
+                  isMasterAdmin={isMasterAdmin}
                 />
 
                 <FollowUpSection

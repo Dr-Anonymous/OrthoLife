@@ -32,6 +32,7 @@ interface SortableMedicationItemProps {
     currentLocation?: string;
     affordabilityPreference?: string;
     medicationSuggestionMode?: 'composition' | 'brand';
+    isMasterAdmin?: boolean;
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -52,7 +53,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     handleManualAdd,
     currentLocation,
     affordabilityPreference,
-    medicationSuggestionMode = 'composition'
+    medicationSuggestionMode = 'composition',
+    isMasterAdmin = false
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof Medication, value: any) => {

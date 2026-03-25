@@ -32,6 +32,7 @@ interface MedicationManagerProps {
     onAffordabilityChange?: (val: string) => void;
     medicationSuggestionMode?: 'composition' | 'brand';
     consultationId?: string;
+    isMasterAdmin?: boolean;
 
     // Referred To Section (Keep passing props for now if colocated, or can separate)
     // Actually the plan said "MedicationManager" extracts the medication list.
@@ -72,7 +73,8 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     affordabilityPreference = 'none',
     onAffordabilityChange,
     medicationSuggestionMode = 'composition',
-    consultationId
+    consultationId,
+    isMasterAdmin = false
 }) => {
     // Track previous length to detect additions
     const prevMedicationsLength = React.useRef(medications.length);
@@ -287,6 +289,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 currentLocation={currentLocation}
                                 affordabilityPreference={affordabilityPreference}
                                 medicationSuggestionMode={medicationSuggestionMode}
+                                isMasterAdmin={isMasterAdmin}
                             />
                         ))}
                     </SortableContext>

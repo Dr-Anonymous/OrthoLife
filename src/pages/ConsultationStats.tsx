@@ -10,6 +10,7 @@ import { format, getMonth, getYear, parseISO, isValid } from 'date-fns';
 import { ConsultationDetailsTable } from '@/components/ConsultationDetailsTable';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
+import { useConsultant } from '@/context/ConsultantContext';
 
 interface Admission {
   id: string;
@@ -26,6 +27,7 @@ interface Admission {
 
 const ConsultationStats = () => {
   const { hospitals } = useHospitals();
+  const { consultant, isMasterAdmin } = useConsultant();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [currentViewMonth, setCurrentViewMonth] = useState<string | null>(null);
 
@@ -76,6 +78,7 @@ const ConsultationStats = () => {
           day: date.getDate(),
           dataType: 'day',
           includeMonthly,
+          consultant_id: isMasterAdmin ? undefined : consultant?.id
         },
       });
 
@@ -118,6 +121,7 @@ const ConsultationStats = () => {
           year: getYear(selectedDate),
           month: getMonth(selectedDate),
           dataType: 'month',
+          consultant_id: isMasterAdmin ? undefined : consultant?.id
         },
       });
       if (error) throw error;
