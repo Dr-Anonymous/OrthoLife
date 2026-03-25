@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MapPin, Search, UserPlus, RefreshCw, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass } from 'lucide-react';
+import { MapPin, Search, UserPlus, RefreshCw, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
+import { useConsultant } from '@/context/ConsultantContext';
 import { Input } from '@/components/ui/input';
 import { addSeconds } from 'date-fns';
 import { FamilyMemberManager } from './FamilyMemberManager';
@@ -62,6 +63,7 @@ interface ConsultationSidebarProps {
     onReferredByChange: (value: string) => void;
     referredByRef?: React.RefObject<HTMLInputElement>;
     initialReferredBy?: string;
+    onProfileClick?: () => void;
 }
 
 /**
@@ -109,9 +111,11 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     referredBy,
     onReferredByChange,
     referredByRef,
-    initialReferredBy
+    initialReferredBy,
+    onProfileClick
 }) => {
     const { hospitals } = useHospitals();
+    const { consultant } = useConsultant();
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
@@ -242,6 +246,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     <MapPin className={cn("h-4 w-4", isGpsEnabled ? "text-blue-500 fill-blue-200" : "text-muted-foreground")} />
                     <span className="sr-only">Toggle GPS selection</span>
                 </Button>
+                {onProfileClick && (
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={onProfileClick}>
+                        <UserCog className="h-4 w-4 text-primary" />
+                        <span className="sr-only">My Profile</span>
+                    </Button>
+                )}
             </div>
             <div>
                 <div className="flex justify-between items-center mb-2">

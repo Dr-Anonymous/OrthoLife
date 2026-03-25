@@ -29,9 +29,9 @@ const AuthPage = () => {
         const redirectParam = searchParams.get('redirect');
         const stateFrom = (location.state as any)?.from;
         const redirectUrl = redirectParam || stateFrom;
-        
+
         console.log("[AuthPage] Auth success. Redirecting to:", redirectUrl || '/my');
-        
+
         if (redirectUrl) {
           // If redirectUrl doesn't start with /, make it start with /
           const finalUrl = redirectUrl.startsWith('/') ? redirectUrl : `/${redirectUrl}`;

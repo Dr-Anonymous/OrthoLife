@@ -82,8 +82,8 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <HospitalsProvider>
-        <ConsultantProvider>
+      <ConsultantProvider>
+        <HospitalsProvider>
           <TooltipProvider>
             <ErrorBoundary>
               <Toaster />
@@ -164,13 +164,13 @@ const App = () => {
                     <Route path="/d" element={<DischargeSummaryDownload />} />
                     <Route path="/consent-verify/:id" element={<PublicConsentVerification />} />
                     <Route path="/smm" element={<SocialMediaManager />} />
-                    <Route 
-                      path="/consents" 
+                    <Route
+                      path="/consents"
                       element={
                         <ConsentAuthGuard>
                           <ConsentManagementPage />
                         </ConsentAuthGuard>
-                      } 
+                      }
                     />
 
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
@@ -180,8 +180,8 @@ const App = () => {
               </BrowserRouter>
             </ErrorBoundary>
           </TooltipProvider>
-        </ConsultantProvider>
-      </HospitalsProvider>
+        </HospitalsProvider>
+      </ConsultantProvider>
     </QueryClientProvider>
   );
 };

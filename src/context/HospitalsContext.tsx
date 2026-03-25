@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useConsultant } from './ConsultantContext';
 
 export interface HospitalSettings {
     op_fees: number;
@@ -30,10 +31,15 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const { consultant } = useConsultant();
+
     useEffect(() => {
         const fetchHospitals = async () => {
-            // 1. Try to load from cache first
-            const cached = localStorage.getItem('hospitals_cache');
+            if (!consultant) return;
+
+            // 1. Try to load from cache first (per-consultant cache)
+            const cacheKey = `hospitals_cache_${consultant.id}`;
+            const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 try {
                     setHospitals(JSON.parse(cached));
@@ -46,7 +52,8 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             try {
                 const { data, error } = await supabase
                     .from('hospitals')
-                    .select('*');
+                    .select('*')
+                    .eq('consultant_id', consultant.id);
 
                 if (error) throw error;
 
@@ -62,19 +69,18 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
                 setHospitals(transformed);
                 // 2. Update cache
-                localStorage.setItem('hospitals_cache', JSON.stringify(transformed));
+                localStorage.setItem(cacheKey, JSON.stringify(transformed));
 
             } catch (err: any) {
                 console.error('Error fetching hospitals:', err);
                 setError(err.message);
-                // If offline and no cache, error remains. If cache existed, we showed it.
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchHospitals();
-    }, []);
+    }, [consultant?.id]);
 
     const getHospitalByName = (name: string) => hospitals.find(h => h.name.toLowerCase() === name.toLowerCase());
 

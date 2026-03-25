@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
 import { LinkPatientModal } from '@/components/consultation/LinkPatientModal';
 import { CompletionMessageModal } from '@/components/consultation/CompletionMessageModal';
+import { ConsultantProfileModal } from '@/components/consultation/ConsultantProfileModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -131,7 +132,8 @@ const ConsultationPage = () => {
   useEffect(() => {
     if (!isConsultantLoading && !consultant) {
       console.warn("[Consultation] Unauthenticated or missing doctor profile. Redirecting...");
-      navigate('/auth');
+      const currentPath = window.location.pathname;
+      navigate(`/auth?redirect=${encodeURIComponent(currentPath)}`);
     }
   }, [consultant, isConsultantLoading, navigate]);
 
@@ -157,6 +159,7 @@ const ConsultationPage = () => {
     return '';
   });
   const [initialLanguage, setInitialLanguage] = useState<string>('te');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const [extraData, setExtraData] = useState<ExtraData>({
     complaints: '',
@@ -599,8 +602,8 @@ const ConsultationPage = () => {
       const formattedDate = format(date, 'yyyy-MM-dd');
 
       const { data: consultations, error } = await supabase.functions.invoke('get-consultations', {
-        body: { 
-          date: format(selectedDate, 'yyyy-MM-dd'), 
+        body: {
+          date: format(selectedDate, 'yyyy-MM-dd'),
           hospital: selectedHospital?.name,
           consultant_id: consultant?.id
         }
@@ -655,10 +658,12 @@ const ConsultationPage = () => {
   }, [selectedDate, selectedHospital, confirmSelection, isOnline]);
 
   useEffect(() => {
-    if (selectedHospital.name) { // Only fetch if a hospital is selected
+    // Only fetch if a hospital is selected AND the consultant profile is ready
+    if (selectedHospital.name && consultant) {
       fetchConsultations();
     }
-  }, [fetchConsultations, selectedHospital.name]);
+  }, [fetchConsultations, selectedHospital.name, consultant]);
+
 
   const hydrateInsertedConsultation = useCallback(async (
     id: string | number,
@@ -780,7 +785,7 @@ const ConsultationPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOnline, selectedHospital.name, hydrateInsertedConsultation]);
+  }, [isOnline, selectedHospital.name, consultant, hydrateInsertedConsultation]);
 
   /**
    * GPS Logic
@@ -1638,7 +1643,7 @@ const ConsultationPage = () => {
     const latestData = syncExtraDataFromRefs();
     // Ensure data is saved before printing certificate, to capture any ref-based changes
     await saveChanges({ extraDataOverride: latestData });
-    
+
     setCertificateData(data);
     setIsMedicalCertificateModalOpen(false);
     setIsReadyToPrintCertificate(true);
@@ -1864,6 +1869,7 @@ const ConsultationPage = () => {
             onReferredByChange={(val) => handleExtraChange('referred_by', val)}
             referredByRef={referredByRef}
             initialReferredBy={initialExtraData?.referred_by}
+            onProfileClick={() => setIsProfileModalOpen(true)}
           />
 
           <div className="lg:col-span-3 min-h-[calc(100vh-2rem)]">
@@ -2239,6 +2245,12 @@ const ConsultationPage = () => {
             // Refresh consultations to reflect merged history
             fetchConsultations();
           }}
+        />
+      )}
+      {isProfileModalOpen && (
+        <ConsultantProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
         />
       )}
     </>
