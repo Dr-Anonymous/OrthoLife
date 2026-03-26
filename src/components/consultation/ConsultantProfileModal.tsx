@@ -17,8 +17,10 @@ import { useConsultant } from '@/context/ConsultantContext';
 import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface ConsultantProfileModalProps {
   isOpen: boolean;
@@ -28,6 +30,8 @@ interface ConsultantProfileModalProps {
 export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ isOpen, onClose }) => {
   const { consultant, refreshConsultant } = useConsultant();
   const { refreshHospitals } = useHospitals();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -206,6 +210,16 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
       setIsSaving(false);
     }
   };
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      onClose();
+      toast({ title: 'Logged Out', description: 'Consultant session ended.' });
+      navigate('/auth?login=doctor');
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Logout Failed', description: err.message });
+    }
+  };
 
   // --- Services Management ---
   const addService = () => {
@@ -238,9 +252,19 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center gap-2">
-            <UserCog className="w-5 h-5" />
-            My Professional Profile
+          <DialogTitle className="flex items-center justify-between w-full pr-8">
+            <div className="flex items-center gap-2">
+              <UserCog className="w-5 h-5 text-primary" />
+              My Professional Profile
+            </div>
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold border border-destructive/20"
+                onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-2" /> Log Out
+            </Button>
           </DialogTitle>
           <DialogDescription>
             Manage your credentials, professional bio, and practice locations.

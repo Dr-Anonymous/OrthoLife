@@ -30,6 +30,30 @@ const ConsultationStats = () => {
   const { consultant, isMasterAdmin } = useConsultant();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [currentViewMonth, setCurrentViewMonth] = useState<string | null>(null);
+  const [selectedConsultantId, setSelectedConsultantId] = useState<string | null>(null);
+  const [consultantsList, setConsultantsList] = useState<{ id: string, name: string }[]>([]);
+
+  // Initialize selectedConsultantId once consultant profile is available
+  useEffect(() => {
+    if (consultant?.id && !selectedConsultantId) {
+      setSelectedConsultantId(consultant.id);
+    }
+  }, [consultant, selectedConsultantId]);
+
+  // Fetch consultants list for the filter (Admins only)
+  useEffect(() => {
+    if (isMasterAdmin) {
+      const fetchConsultants = async () => {
+        const { data } = await supabase
+          .from('consultants')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name');
+        if (data) setConsultantsList(data);
+      };
+      fetchConsultants();
+    }
+  }, [isMasterAdmin]);
 
   const [monthlyCount, setMonthlyCount] = useState<number | null>(null);
   const [dailyData, setDailyData] = useState<Consultation[]>([]);
@@ -53,7 +77,7 @@ const ConsultationStats = () => {
     if (selectedDate) {
       fetchStats(selectedDate);
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedConsultantId]);
 
   const fetchStats = async (date: Date) => {
     setShowDailyDetails(false);
@@ -78,7 +102,7 @@ const ConsultationStats = () => {
           day: date.getDate(),
           dataType: 'day',
           includeMonthly,
-          consultant_id: isMasterAdmin ? undefined : consultant?.id
+          consultant_id: selectedConsultantId
         },
       });
 
@@ -121,7 +145,7 @@ const ConsultationStats = () => {
           year: getYear(selectedDate),
           month: getMonth(selectedDate),
           dataType: 'month',
-          consultant_id: isMasterAdmin ? undefined : consultant?.id
+          consultant_id: selectedConsultantId
         },
       });
       if (error) throw error;
@@ -433,6 +457,29 @@ const ConsultationStats = () => {
             View consultation counts, collections, and admissions
           </p>
         </div>
+
+        {/* Filter Section (Admin Only) */}
+        {isMasterAdmin && (
+          <div className="flex justify-center items-center gap-4 bg-white/50 p-4 rounded-xl border border-primary/10 backdrop-blur max-w-md mx-auto">
+            <label className="text-sm font-semibold whitespace-nowrap">Filter by Doctor:</label>
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              value={selectedConsultantId || 'all'}
+              onChange={(e) => setSelectedConsultantId(e.target.value === 'all' ? null : e.target.value)}
+            >
+              <option value="all">Global View (All Doctors)</option>
+              {consultantsList.map((c) => {
+                // Handle multilingual name object
+                const nameStr = typeof c.name === 'object' && c.name !== null ? (c.name as any).en || (c.name as any).te : c.name;
+                return (
+                  <option key={c.id} value={c.id}>
+                    {nameStr}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
 
         {/* Main Grid: Calendar & Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
