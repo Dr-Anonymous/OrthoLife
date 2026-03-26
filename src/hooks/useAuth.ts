@@ -8,9 +8,10 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const phone = user.phoneNumber.slice(-10);
+    const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
+      // 1. Check Firebase (Standard Patient/Consultant OTP)
+      if (fbUser) {
+        const phone = fbUser.phoneNumber?.slice(-10) || "";
         const { data: patients } = await supabase
           .from('patients')
           .select('name')
@@ -18,12 +19,24 @@ export const useAuth = () => {
 
         if (patients && patients.length > 0) {
           setUser({
-            ...user,
+            ...fbUser,
             displayName: patients[0].name
           } as User);
         } else {
-          setUser(user);
+          setUser(fbUser);
         }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fallback to Manual Consultant Session (Phone + Password flow)
+      const manualPhone = localStorage.getItem('consultant_phone');
+      if (manualPhone) {
+        setUser({
+          phoneNumber: `+91${manualPhone}`,
+          displayName: localStorage.getItem('consultant_name') || 'Consultant',
+          uid: manualPhone, // Proxy UID
+        } as unknown as User);
       } else {
         setUser(null);
       }
@@ -35,6 +48,9 @@ export const useAuth = () => {
 
   const signOut = async () => {
     await auth.signOut();
+    localStorage.removeItem('consultant_phone');
+    localStorage.removeItem('consultant_name');
+    setUser(null);
   };
 
   return { user, loading, signOut };
