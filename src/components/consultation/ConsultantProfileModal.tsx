@@ -525,8 +525,9 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       <div className="space-y-2"><Label>Location Name</Label><Input value={hospital.name} onChange={e => handleUpdateHospitalUI(hospital.id, { name: e.target.value })} /></div>
                       <div className="space-y-2"><Label>Logo URL / Path</Label><Input value={hospital.logo_url} onChange={e => handleUpdateHospitalUI(hospital.id, { logo_url: e.target.value })} /></div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                        <div className="space-y-2"><Label>OP Fees (₹)</Label><Input type="number" value={hospital.settings?.op_fees || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, op_fees: parseInt(e.target.value) }})} /></div>
+                       <div className="space-y-2"><Label>Consultant Cut (₹)</Label><Input type="number" value={hospital.settings?.consultant_cut || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, consultant_cut: parseInt(e.target.value) }})} /></div>
                        <div className="space-y-2"><Label>Free Visit (Days)</Label><Input type="number" value={hospital.settings?.free_visit_duration_days || 14} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, free_visit_duration_days: parseInt(e.target.value) }})} /></div>
                        <div className="space-y-2"><Label>Lat</Label><Input type="number" step="any" value={hospital.lat || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lat: parseFloat(e.target.value) })} /></div>
                        <div className="space-y-2"><Label>Lng</Label><Input type="number" step="any" value={hospital.lng || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lng: parseFloat(e.target.value) })} /></div>

@@ -12,6 +12,8 @@ import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
 import { useConsultant } from '@/context/ConsultantContext';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
+import { TeamManagementModal } from '@/components/admin/TeamManagementModal';
+import { Settings, Users } from 'lucide-react';
 
 interface Admission {
   id: string;
@@ -33,6 +35,7 @@ const ConsultationStats = () => {
   const [currentViewMonth, setCurrentViewMonth] = useState<string | null>(null);
   const [selectedConsultantId, setSelectedConsultantId] = useState<string | null>(null);
   const [consultantsList, setConsultantsList] = useState<{ id: string, name: string }[]>([]);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
 
   // Initialize selectedConsultantId once consultant profile is available
   useEffect(() => {
@@ -482,6 +485,19 @@ const ConsultationStats = () => {
           <p className="text-lg text-muted-foreground">
             View consultation counts, collections, and admissions
           </p>
+          {isMasterAdmin && (
+            <div className="mt-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsTeamModalOpen(true)}
+                className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-semibold shadow-sm"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Manage Clinic Team
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Filter Section (Admin Only) */}
@@ -619,6 +635,15 @@ const ConsultationStats = () => {
           </Card>
         )}
       </div>
+
+      <TeamManagementModal 
+        isOpen={isTeamModalOpen} 
+        onClose={() => {
+          setIsTeamModalOpen(false);
+          // Refresh list if needed (though it fetches on mount)
+          window.location.reload(); 
+        }} 
+      />
     </div>
   );
 };
