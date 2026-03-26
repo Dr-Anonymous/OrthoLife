@@ -17,7 +17,7 @@ import { useConsultant } from '@/context/ConsultantContext';
 import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -50,7 +50,9 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     seal_url: consultant?.seal_url || '',
     bio: consultant?.bio || { en: '', te: '' },
     services: consultant?.services || [],
+    password: consultant?.password || '',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   // Locations State (fetched separately for editing)
   const [editableHospitals, setEditableHospitals] = useState<any[]>([]);
@@ -70,6 +72,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         seal_url: consultant.seal_url || '',
         bio: consultant.bio || { en: '', te: '' },
         services: consultant.services || [],
+        password: consultant.password || '',
       });
       fetchConsultantHospitals();
     }
@@ -106,6 +109,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           seal_url: formData.seal_url,
           bio: formData.bio,
           services: formData.services,
+          password: formData.password,
           updated_at: new Date().toISOString()
         })
         .eq('id', consultant.id);
@@ -215,7 +219,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
       await signOut();
       onClose();
       toast({ title: 'Logged Out', description: 'Consultant session ended.' });
-      navigate('/auth?login=doctor');
+      // Reload on the same page to let the Gate take over
+      window.location.reload();
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Logout Failed', description: err.message });
     }
@@ -252,19 +257,9 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center justify-between w-full pr-8">
-            <div className="flex items-center gap-2">
-              <UserCog className="w-5 h-5 text-primary" />
-              My Professional Profile
-            </div>
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold border border-destructive/20"
-                onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4 mr-2" /> Log Out
-            </Button>
+          <DialogTitle className="flex items-center gap-2">
+            <UserCog className="w-5 h-5 text-primary" />
+            My Professional Profile
           </DialogTitle>
           <DialogDescription>
             Manage your credentials, professional bio, and practice locations.
@@ -297,6 +292,29 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input id="email" type="email" value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} className="pl-9" placeholder="info@ortho.life" />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gate-password">Workspace Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        id="gate-password" 
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password} 
+                        onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))} 
+                        className="pl-9 pr-10" 
+                        placeholder="123456" 
+                        maxLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground outline-none"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Used for workspace login. Recommended 6 digits.</p>
                   </div>
                 </div>
 
@@ -471,8 +489,16 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-6 border-t sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10">
-                  <Button type="submit" disabled={isSaving || isUploading} className="w-full md:w-auto">
+                <div className="flex justify-between items-center pt-6 border-t sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10 px-0">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" 
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" /> Log Out
+                  </Button>
+                  <Button type="submit" disabled={isSaving || isUploading} className="w-full md:w-auto shadow-md">
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     Save All Profile Changes
                   </Button>
@@ -509,7 +535,15 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                 ))}
                 
                 {editableHospitals.length > 0 && (
-                    <div className="flex justify-end pt-6 sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10">
+                    <div className="flex justify-between items-center pt-6 sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" 
+                          onClick={handleLogout}
+                        >
+                          <LogOut className="w-4 h-4 mr-2" /> Log Out
+                        </Button>
                         <Button type="button" onClick={handleSaveAllLocations} disabled={isSaving} className="w-full md:w-auto bg-primary text-primary-foreground shadow-lg">
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                             Save All Location Changes

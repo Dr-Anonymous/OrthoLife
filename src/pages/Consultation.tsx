@@ -32,6 +32,7 @@ import { ConsultationSearchModal } from '@/components/consultation/ConsultationS
 import { LinkPatientModal } from '@/components/consultation/LinkPatientModal';
 import { CompletionMessageModal } from '@/components/consultation/CompletionMessageModal';
 import { ConsultantProfileModal } from '@/components/consultation/ConsultantProfileModal';
+import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -128,15 +129,7 @@ const ConsultationPage = () => {
   const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
   const { hospitals, isLoading: isHospitalsLoading } = useHospitals();
 
-  // Redirect to Auth if no active doctor session
-  useEffect(() => {
-    // Only redirect if loading is finished AND there is no consultant
-    if (!isConsultantLoading && !consultant) {
-      console.warn("[Consultation] Unauthenticated or missing doctor profile. Redirecting...");
-      const currentPath = window.location.pathname;
-      navigate(`/auth?login=doctor&redirect=${encodeURIComponent(currentPath)}`);
-    }
-  }, [consultant, isConsultantLoading, navigate]);
+  // (Redirect to Auth removed to support same-page login)
 
   // (Early return removed from here to top level to avoid hook order violation)
 
@@ -1825,8 +1818,26 @@ const ConsultationPage = () => {
 
 
 
-  if (isHospitalsLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  if (isHospitalsLoading || isConsultantLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse text-sm">Initializing workspace...</p>
+      </div>
+    );
+  }
+
+  // Doctor Auth Gate
+  if (!consultant) {
+    return (
+      <DoctorLoginGate 
+        onLogin={(phone, name) => {
+          localStorage.setItem('consultant_phone', phone);
+          localStorage.setItem('consultant_name', name);
+          window.location.reload();
+        }} 
+      />
+    );
   }
 
   return (

@@ -73,6 +73,7 @@ export interface Consultant {
     services?: ConsultantService[];
     is_admin: boolean;
     is_active: boolean;
+    password?: string;
 }
 
 export interface Consultation {
