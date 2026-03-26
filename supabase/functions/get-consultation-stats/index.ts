@@ -13,7 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    const { month, year, day, dataType = 'day', includeMonthly = true, consultant_id } = await req.json();
+    let { month, year, day, dataType = 'day', includeMonthly = true, consultant_id } = await req.json();
+
+    // Sanitize consultant_id (if passed as null string or empty)
+    if (consultant_id === 'null' || consultant_id === 'undefined') consultant_id = null;
+    if (consultant_id === '') consultant_id = null;
 
     const monthStartDate = new Date(year, month, 1).toISOString();
     const monthEndDate = new Date(year, month + 1, 1).toISOString();

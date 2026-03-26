@@ -58,14 +58,29 @@ const AuthPage = () => {
   };
 
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': () => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        }
-      });
+    // Standard initialization matches lab
+    if (!(window as any).recaptchaVerifier) {
+      try {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+          'callback': () => {
+            // reCAPTCHA solved
+          }
+        });
+      } catch (e) {
+        console.error("[AuthPage] Recaptcha init error:", e);
+      }
     }
+
+    // Cleanup on unmount to match lab
+    return () => {
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch (e) { /* ignore */ }
+        (window as any).recaptchaVerifier = null;
+      }
+    };
   }, []);
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -94,8 +109,17 @@ const AuthPage = () => {
       toast.error(err.message || 'Failed to send OTP. Please try again.', {
         description: err.stack,
       });
-      // Reset reCAPTCHA
-      window.recaptchaVerifier?.clear();
+      // CRITICAL: Reset reCAPTCHA and set to null to force re-init on next click
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch (e) { /* ignore */ }
+        (window as any).recaptchaVerifier = null;
+      }
+      // Re-init for next attempt
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible'
+      });
     } finally {
       setIsLoading(false);
     }
