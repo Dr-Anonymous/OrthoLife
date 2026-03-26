@@ -109,6 +109,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
         if (bundle.procedure_consultant_cut !== undefined) consultationUpdate.procedure_consultant_cut = bundle.procedure_consultant_cut;
         if (bundle.referred_by !== undefined) consultationUpdate.referred_by = bundle.referred_by;
         if (bundle.referral_amount !== undefined) consultationUpdate.referral_amount = bundle.referral_amount;
+        if (bundle.next_review_date !== undefined) consultationUpdate.next_review_date = bundle.next_review_date;
         return consultationUpdate;
     };
 
@@ -209,7 +210,8 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                         consultation_data: consultationPayload.consultation_data || offlineData.consultationData || {},
                                         status: consultationPayload.status || offlineData.status || 'pending',
                                         visit_type: consultationPayload.visit_type || 'paid',
-                                        location: location // Ensure location is updated if backend default differs
+                                        location: location, // Ensure location is updated if backend default differs
+                                        next_review_date: consultationPayload.next_review_date || offlineData.next_review_date || null
                                     }).eq('id', createdConsultationId);
 
                                     if (updateError) throw updateError;
@@ -281,7 +283,8 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                                     patient_id: patientDetails.id,
                                     consultation_data: extraData || {},
                                     status: 'pending',
-                                    visit_type: extraData.visit_type || 'paid'
+                                    visit_type: extraData.visit_type || 'paid',
+                                    next_review_date: offlineData.next_review_date || null
                                 }).select().single(); // select to ensure we wait? not needed if we trust insert
 
                                 if (consError) throw consError;

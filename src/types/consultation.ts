@@ -93,6 +93,7 @@ export interface Consultation {
     procedure_consultant_cut?: number | null;
     referred_by?: string | null;
     referral_amount?: number | null;
+    next_review_date?: string | null;
 }
 
 export interface Guide {

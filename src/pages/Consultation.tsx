@@ -6,7 +6,7 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } fr
 import { Loader2, IndianRupee, ChevronDown } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
-import { cleanConsultationData, pruneEmptyFields, cn } from '@/lib/utils';
+import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { fetchRecentHistory, generateAutofillData, calculateLastVisitString } from '@/lib/consultation-history';
@@ -994,11 +994,14 @@ const ConsultationPage = () => {
         ...jsonExtraData
       } = restExtraData;
 
+      const medications = (restExtraData.medications || []).map(cleanMedicationForSave);
+      const nextReviewDate = calculateFollowUpDate(activeExtraData.followup, new Date(selectedConsultation.created_at));
+
       const dataToSave = pruneEmptyFields({
         ...jsonExtraData,
         referred_to: referred_to_list && referred_to_list.length > 0 ? referred_to_list.join(', ') : '',
         referred_to_list: referred_to_list || [],
-        medications: (restExtraData.medications || []).map(cleanMedicationForSave)
+        medications
       });
 
       const parseConsultantCut = (val: any, fee: any) => {
@@ -1032,6 +1035,7 @@ const ConsultationPage = () => {
         procedure_consultant_cut: parseConsultantCut(procedure_consultant_cut, procedure_fee),
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
+        next_review_date: nextReviewDate,
       };
 
       // 2. PRIMARY WRITE: IndexedDB (offlineStore)
@@ -1056,6 +1060,7 @@ const ConsultationPage = () => {
         procedure_consultant_cut: parseConsultantCut(procedure_consultant_cut, procedure_fee),
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
+        next_review_date: nextReviewDate,
       };
 
       setSelectedConsultation(updatedConsultation);

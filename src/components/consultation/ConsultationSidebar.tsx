@@ -285,8 +285,11 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             <UserPlus className="h-4 w-4" />
                             <span className="sr-only">Register New Patient</span>
                         </Button>
-                        <Link to="/stats">
+                        <Link to="/stats" title="Consultation Statistics">
                             <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
+                        </Link>
+                        <Link to="/followups" title="Follow-up Dashboard">
+                            <CalendarIcon className="w-5 h-5 text-primary hover:text-primary/80" />
                         </Link>
                     </div>
                 </div>

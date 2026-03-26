@@ -127,3 +127,47 @@ export function pruneEmptyFields(data: any): any {
   }
   return data;
 }
+
+/**
+ * Calculates a future date based on follow-up instruction text.
+ * Supports patterns like "X days", "X weeks", "X months", "X years" in English and Telugu.
+ * Handles phrases like "వారం తర్వాత" (1 week after) without explicit digits.
+ */
+export function calculateFollowUpDate(message: string, baseDate: Date = new Date()): string | null {
+  if (!message) return null;
+
+  const text = message.toLowerCase();
+  
+  // Define patterns
+  const patterns = [
+    { regex: /(\d+)?\s*(year|years|సంవత్సరం|సంవత్సరాలు|సంవత్సరాల)/i, unit: 'years' },
+    { regex: /(\d+)?\s*(month|months|నెల|నెలలు|నెలల)/i, unit: 'months' },
+    { regex: /(\d+)?\s*(week|weeks|వారం|వారాలు|వారాల)/i, unit: 'weeks' },
+    { regex: /(\d+)?\s*(day|days|రోజు|రోజులు|రోజుల)/i, unit: 'days' }
+  ];
+
+  for (const { regex, unit } of patterns) {
+    const match = text.match(regex);
+    if (match) {
+      // If digit (\d+) is missing, assume 1 (e.g., "వారం తర్వాత")
+      const countString = match[1];
+      const count = countString ? parseInt(countString) : 1;
+      
+      const date = new Date(baseDate);
+      
+      if (unit === 'days') date.setDate(date.getDate() + count);
+      else if (unit === 'weeks') date.setDate(date.getDate() + count * 7);
+      else if (unit === 'months') date.setMonth(date.getMonth() + count);
+      else if (unit === 'years') date.setFullYear(date.getFullYear() + count);
+      
+      // Fix UTC shift: use local date components to build YYYY-MM-DD
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  return null;
+}

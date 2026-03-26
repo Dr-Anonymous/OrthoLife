@@ -18,6 +18,7 @@ const WhatsAppMe = lazy(() => import("./pages/WhatsAppMe"));
 const PatientRegistration = lazy(() => import("./pages/PatientRegistration"));
 const Consultation = lazy(() => import("./pages/Consultation"));
 const ConsultationStats = lazy(() => import("./pages/ConsultationStats"));
+const FollowUpDashboard = lazy(() => import("./pages/FollowUpDashboard"));
 const PharmacyPage = lazy(() => import("./pages/PharmacyPage"));
 const DiagnosticsPage = lazy(() => import("./pages/DiagnosticsPage"));
 const UploadPrescriptionPage = lazy(() => import("./pages/UploadPrescriptionPage"));
@@ -103,6 +104,7 @@ const App = () => {
                     <Route path="/ortholife" element={<PatientRegistration />} />
                     <Route path="/op" element={<Consultation />} />
                     <Route path="/stats" element={<ConsultationStats />} />
+                    <Route path="/followups" element={<FollowUpDashboard />} />
                     <Route path="/ip" element={<InPatientManagement />} />
 
                     {/* Pharmacy Routes */}
