@@ -51,6 +51,7 @@ interface ClinicalNotesFormProps {
     language: string;
     onLanguageChange: (lang: string) => void;
     initialData?: Partial<ClinicalNotesFormProps['extraData']>;
+    isReadOnly?: boolean;
 }
 
 /**
@@ -88,7 +89,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     referralDoctors,
     language,
     onLanguageChange,
-    initialData
+    initialData,
+    isReadOnly = false
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof ClinicalNotesFormProps['extraData'], value: any) => {
@@ -118,6 +120,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         onChange={e => onExtraChange('complaints', e.target.value, e.target.selectionStart)}
                         placeholder="Patient complaints..."
                         className={cn("min-h-[100px]", getStyle('complaints', extraData.complaints))}
+                        disabled={isReadOnly}
                     />
                 </div>
 
@@ -130,6 +133,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         onChange={e => onExtraChange('medicalHistory', e.target.value, e.target.selectionStart)}
                         placeholder="Previous history, chronic conditions..."
                         className={cn("min-h-[100px]", getStyle('medicalHistory', extraData.medicalHistory))}
+                        disabled={isReadOnly}
                     />
                 </div>
             </div>
@@ -144,6 +148,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         onChange={e => onExtraChange('findings', e.target.value, e.target.selectionStart)}
                         placeholder="Clinical findings..."
                         className={cn("min-h-[100px]", getStyle('findings', extraData.findings))}
+                        disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2">
@@ -155,6 +160,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         onChange={e => onExtraChange('diagnosis', e.target.value, e.target.selectionStart)}
                         placeholder="Clinical diagnosis..."
                         className={cn("min-h-[100px]", getStyle('diagnosis', extraData.diagnosis))}
+                        disabled={isReadOnly}
                     />
                 </div>
             </div>
@@ -164,7 +170,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                         <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
                         {suggestedInvestigations.map((investigation) => (
-                            <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onInvestigationSuggestionClick(investigation)}>
+                            <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onInvestigationSuggestionClick(investigation)} disabled={isReadOnly}>
                                 {investigation}
                             </Button>
                         ))}
@@ -176,6 +182,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         onChange={e => onExtraChange('investigations', e.target.value, e.target.selectionStart)}
                         placeholder="Investigations required..."
                         className={cn("min-h-[100px]", getStyle('investigations', extraData.investigations))}
+                        disabled={isReadOnly}
                     />
                 </div>
             </div>
@@ -200,6 +207,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         onChange={e => onExtraChange('procedure', e.target.value, e.target.selectionStart)}
                         placeholder="Procedure done..."
                         className={cn("min-h-[80px]", getStyle('procedure', extraData.procedure))}
+                        disabled={isReadOnly}
                         onBlur={() => {
                             if (!extraData.procedure || extraData.procedure.trim() === '') {
                                 setIsProcedureExpanded(false);
@@ -221,6 +229,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             size="sm"
                             className="h-6 px-2 text-xs"
                             onClick={() => onLanguageChange('en')}
+                            disabled={isReadOnly}
                         >
                             EN
                         </Button>
@@ -230,13 +239,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             size="sm"
                             className="h-6 px-2 text-xs"
                             onClick={() => onLanguageChange('te')}
+                            disabled={isReadOnly}
                         >
                             తె
                         </Button>
                     </div>
 
                     {suggestedAdvice.map((advice) => (
-                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)}>
+                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)} disabled={isReadOnly}>
                             {advice}
                         </Button>
                     ))}
@@ -248,6 +258,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     onChange={e => onExtraChange('advice', e.target.value, e.target.selectionStart)}
                     placeholder="Medical advice..."
                     className={cn("min-h-[80px]", getStyle('advice', extraData.advice))}
+                    disabled={isReadOnly}
                 />
 
                 {matchedGuides.length > 0 && (
@@ -346,6 +357,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             }
                                         }
                                     }}
+                                    disabled={isReadOnly}
                                 />
                             </div>
                             <div className="flex gap-1">
@@ -360,6 +372,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             newList.splice(index, 1);
                                             onExtraChange('referred_to_list', newList.length > 0 ? newList : ['']);
                                         }}
+                                        disabled={isReadOnly}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -375,6 +388,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             newList.push('');
                                             onExtraChange('referred_to_list', newList);
                                         }}
+                                        disabled={isReadOnly}
                                     >
                                         <Plus className="h-4 w-4" />
                                     </Button>

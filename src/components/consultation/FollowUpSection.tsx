@@ -11,6 +11,7 @@ interface FollowUpSectionProps {
     suggestedFollowup: string[];
     onFollowupSuggestionClick: (val: string) => void;
     initialFollowup?: string;
+    isReadOnly?: boolean;
 }
 
 /**
@@ -28,7 +29,8 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
     followupRef,
     suggestedFollowup,
     onFollowupSuggestionClick,
-    initialFollowup
+    initialFollowup,
+    isReadOnly = false
 }) => {
     // Highlighting logic
     const getStyle = () => {
@@ -74,6 +76,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                         variant="outline"
                         className="h-auto px-2 py-1 text-xs"
                         onClick={() => onFollowupSuggestionClick(item)}
+                        disabled={isReadOnly}
                     >
                         {item}
                     </Button>
@@ -86,6 +89,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                 onChange={e => onExtraChange('followup', e.target.value, e.target.selectionStart)}
                 placeholder="Follow-up instructions..."
                 className={cn("min-h-[80px]", getStyle())}
+                disabled={isReadOnly}
             />
         </div>
     );

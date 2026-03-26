@@ -33,6 +33,7 @@ interface MedicationManagerProps {
     medicationSuggestionMode?: 'composition' | 'brand';
     consultationId?: string;
     isMasterAdmin?: boolean;
+    isReadOnly?: boolean;
 
     // Referred To Section (Keep passing props for now if colocated, or can separate)
     // Actually the plan said "MedicationManager" extracts the medication list.
@@ -74,7 +75,8 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     onAffordabilityChange,
     medicationSuggestionMode = 'composition',
     consultationId,
-    isMasterAdmin = false
+    isMasterAdmin = false,
+    isReadOnly = false
 }) => {
     // Track previous length to detect additions
     const prevMedicationsLength = React.useRef(medications.length);
@@ -140,7 +142,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'm') {
                 e.preventDefault();
-                handleManualAdd();
+                if (!isReadOnly) handleManualAdd();
             }
         };
 
@@ -256,7 +258,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                         {suggestedMedications.map((med) => {
                             const displayName = medicationSuggestionMode === 'brand' && med.brandName ? med.brandName : med.composition;
                             return (
-                                <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)}>
+                                <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)} disabled={isReadOnly}>
                                     {displayName}
                                 </Button>
                             );
@@ -290,13 +292,14 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 affordabilityPreference={affordabilityPreference}
                                 medicationSuggestionMode={medicationSuggestionMode}
                                 isMasterAdmin={isMasterAdmin}
+                                isReadOnly={isReadOnly}
                             />
                         ))}
                     </SortableContext>
                 </DndContext>
             </div>
             <div className="flex justify-end items-center gap-2">
-                <Button type="button" onClick={handleManualAdd} variant="outline" size="icon" className="rounded-full">
+                <Button type="button" onClick={handleManualAdd} variant="outline" size="icon" className="rounded-full" disabled={isReadOnly}>
                     <Plus className="h-4 w-4" />
                     <span className="sr-only">Add Medication</span>
                 </Button>

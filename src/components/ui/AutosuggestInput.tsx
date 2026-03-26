@@ -18,6 +18,7 @@ interface AutosuggestInputProps {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  disabled?: boolean;
 }
 
 const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProps>(({
@@ -28,6 +29,7 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
   onKeyDown,
   placeholder = "Enter medicine name",
   inputProps,
+  disabled
 }, ref) => {
   const [filteredSuggestions, setFilteredSuggestions] = useState<Suggestion[]>([]);
   const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
@@ -113,6 +115,7 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        disabled={disabled}
         {...inputProps}
       />
       {isSuggestionsVisible && filteredSuggestions.length > 0 && (

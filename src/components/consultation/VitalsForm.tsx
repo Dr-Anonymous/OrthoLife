@@ -14,6 +14,7 @@ interface VitalsFormProps {
     allergy: string;
     onExtraChange: (field: string, value: string) => void;
     initialData?: any;
+    isReadOnly?: boolean;
 }
 
 /**
@@ -31,7 +32,8 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     temperature,
     allergy,
     onExtraChange,
-    initialData
+    initialData,
+    isReadOnly = false
 }) => {
     const handleBpPartChange = (part: 'systolic' | 'diastolic', value: string) => {
         const parts = bp ? bp.split('/') : ['', ''];
@@ -101,6 +103,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         onChange={e => onExtraChange('weight', e.target.value)} 
                         placeholder="e.g., 70" 
                         className={getStyle('weight', weight)}
+                        disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2">
@@ -111,6 +114,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         onChange={e => onExtraChange('height', e.target.value)} 
                         placeholder="e.g., 170" 
                         className={getStyle('height', height)}
+                        disabled={isReadOnly}
                     />
                 </div>
                 
@@ -140,6 +144,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             value={bp ? bp.split('/')[0] : ''}
                             onChange={e => handleBpPartChange('systolic', e.target.value)}
                             className={cn("text-center px-1", getStyle('bp', bp))}
+                            disabled={isReadOnly}
                         />
                         <span className="text-muted-foreground">/</span>
                         <Input
@@ -147,6 +152,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             value={bp ? bp.split('/')[1] || '' : ''}
                             onChange={e => handleBpPartChange('diastolic', e.target.value)}
                             className={cn("text-center px-1", getStyle('bp', bp))}
+                            disabled={isReadOnly}
                         />
                     </div>
                 </div>
@@ -159,6 +165,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         onChange={e => onExtraChange('pulse', e.target.value)} 
                         placeholder="e.g., 72" 
                         className={getStyle('pulse', pulse)}
+                        disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2">
@@ -169,6 +176,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         onChange={e => onExtraChange('spo2', e.target.value)} 
                         placeholder="e.g., 98" 
                         className={getStyle('spo2', spo2)}
+                        disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2">
@@ -179,6 +187,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         onChange={e => onExtraChange('temperature', e.target.value)} 
                         placeholder="98.6" 
                         className={getStyle('temperature', temperature)}
+                        disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2 col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1">
@@ -189,6 +198,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         onChange={e => onExtraChange('allergy', e.target.value)} 
                         placeholder="e.g., Penicillin" 
                         className={getStyle('allergy', allergy)}
+                        disabled={isReadOnly}
                     />
                 </div>
             </div>

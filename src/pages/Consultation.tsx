@@ -241,6 +241,7 @@ const ConsultationPage = () => {
   // --- Modals State ---
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<Consultation | null>(null);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -895,6 +896,13 @@ const ConsultationPage = () => {
 
 
   // Derived state to check for changes
+  const isReadOnly = useMemo(() => {
+    if (!selectedConsultation || !consultant) return false;
+    // New/Offline consultations are editable by the current session creator
+    if (String(selectedConsultation.id).startsWith('offline-')) return false;
+    return selectedConsultation.consultant_id !== consultant.id;
+  }, [selectedConsultation, consultant]);
+
   const hasChanges = useMemo(() => {
     if (!selectedConsultation || !editablePatientDetails || !initialPatientDetails) return false;
 
@@ -936,6 +944,11 @@ const ConsultationPage = () => {
    */
   const saveChanges = useCallback(async (options: { markAsCompleted?: boolean, skipToast?: boolean, extraDataOverride?: ExtraData } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
+ 
+    if (isReadOnly) {
+      toast({ variant: "destructive", title: "Read Only", description: "You cannot edit another consultant's record." });
+      return false;
+    }
 
     const activeExtraData = options.extraDataOverride || extraData;
 
@@ -1122,11 +1135,22 @@ const ConsultationPage = () => {
     // If passing from fetch logic, we might need to skip unsaved check or handle it
     if (hasChanges) {
       setPendingSelection(consultation);
+      setPendingPath(null);
       setIsUnsavedModalOpen(true);
     } else {
       confirmSelection(consultation);
     }
   };
+
+  const handleNavigate = useCallback((path: string) => {
+    if (hasChanges) {
+      setPendingPath(path);
+      setPendingSelection(null);
+      setIsUnsavedModalOpen(true);
+    } else {
+      navigate(path);
+    }
+  }, [hasChanges, navigate]);
 
 
 
@@ -1138,14 +1162,18 @@ const ConsultationPage = () => {
       return;
     }
     if (pendingSelection) confirmSelection(pendingSelection);
+    if (pendingPath) navigate(pendingPath);
     setPendingSelection(null);
+    setPendingPath(null);
   };
 
   const handleDiscardChanges = () => {
     setIsUnsavedModalOpen(false);
     // No need to setHasUnsavedChanges(false) as we are selecting new data which resets initial/current state MATCH
     if (pendingSelection) confirmSelection(pendingSelection);
+    if (pendingPath) navigate(pendingPath);
     setPendingSelection(null);
+    setPendingPath(null);
   };
 
   // Data Fetching
@@ -1196,13 +1224,15 @@ const ConsultationPage = () => {
    * Triggers autosave flag.
    */
   const handlePatientDetailsChange = useCallback((field: string, value: string) => {
+    if (isReadOnly) return;
     setEditablePatientDetails(prev => {
       if (!prev) return null;
       return { ...prev, [field]: value };
     });
-  }, []);
+  }, [isReadOnly]);
 
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isReadOnly) return;
     const val = e.target.value;
     setAge(val === '' ? '' : Number(val));
     if (val && editablePatientDetails) {
@@ -1218,6 +1248,7 @@ const ConsultationPage = () => {
   };
 
   const handleDateChange = (date: Date | undefined) => {
+    if (isReadOnly) return;
     setIsPatientDatePickerOpen(false);
     if (!editablePatientDetails) return;
     setEditablePatientDetails(prev => {
@@ -1230,18 +1261,21 @@ const ConsultationPage = () => {
   };
 
   const handleYearChange = (year: string) => {
+    if (isReadOnly) return;
     const newDate = new Date(calendarDate);
     newDate.setFullYear(parseInt(year));
     setCalendarDate(newDate);
   };
 
   const handleMonthChange = (month: string) => {
+    if (isReadOnly) return;
     const newDate = new Date(calendarDate);
     newDate.setMonth(parseInt(month));
     setCalendarDate(newDate);
   };
 
   const handleAppendSuggestion = (field: string, suggestion: string) => {
+    if (isReadOnly) return;
     setExtraData(prev => {
       const currentVal = prev[field as keyof typeof prev] as string || '';
       const separator = currentVal.trim() ? '\n' : '';
@@ -1420,8 +1454,9 @@ const ConsultationPage = () => {
       }
     }
 
+    if (isReadOnly) return;
     setExtraData(prev => ({ ...prev, [field]: value }));
-  }, [textShortcuts, consultationLanguage]);
+  }, [textShortcuts, consultationLanguage, isReadOnly]);
 
   /**
    * Adds a medication to the list from a suggestion.
@@ -1477,6 +1512,7 @@ const ConsultationPage = () => {
    * - Text shortcuts expansion for all text fields
    */
   const handleMedChange = useCallback((index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => {
+    if (isReadOnly) return;
     setExtraData(prev => {
       const newMeds = [...prev.medications];
       const currentVal = newMeds[index][field];
@@ -1519,23 +1555,25 @@ const ConsultationPage = () => {
       newMeds[index] = { ...newMeds[index], [field]: value };
       return { ...prev, medications: newMeds };
     });
-  }, [textShortcuts]);
+  }, [textShortcuts, isReadOnly]);
 
   const addMedication = useCallback(() => {
+    if (isReadOnly) return;
     const newMed: Medication = {
       id: crypto.randomUUID(),
       composition: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
       freqMorning: false, freqNoon: false, freqNight: false
     };
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-  }, []);
+  }, [isReadOnly]);
 
   const removeMedication = useCallback((index: number) => {
+    if (isReadOnly) return;
     setExtraData(prev => ({
       ...prev,
       medications: prev.medications.filter((_, i) => i !== index)
     }));
-  }, []);
+  }, [isReadOnly]);
 
 
   const sensors = useSensors(
@@ -1544,6 +1582,7 @@ const ConsultationPage = () => {
   );
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    if (isReadOnly) return;
     const { active, over } = event;
     if (active.id !== over?.id) {
       setExtraData((prev) => {
@@ -1555,7 +1594,7 @@ const ConsultationPage = () => {
         };
       });
     }
-  }, []);
+  }, [isReadOnly]);
 
   // Suggestions Helpers (Protocol Logic)
 
@@ -1670,6 +1709,10 @@ const ConsultationPage = () => {
   });
 
   const handleSaveAndPrint = useCallback(async () => {
+    if (isReadOnly) {
+      handlePrint();
+      return;
+    }
     const latestData = syncExtraDataFromRefs();
     const saved = await saveChanges({ markAsCompleted: true, extraDataOverride: latestData });
     if (saved) {
@@ -1932,6 +1975,8 @@ const ConsultationPage = () => {
             referredByRef={referredByRef}
             initialReferredBy={initialExtraData?.referred_by}
             onProfileClick={() => setIsProfileModalOpen(true)}
+            hasChanges={hasChanges}
+            onNavigate={handleNavigate}
           />
 
           <div className="lg:col-span-3 min-h-[calc(100vh-2rem)]">
@@ -1958,6 +2003,7 @@ const ConsultationPage = () => {
                   handleYearChange={handleYearChange}
                   handleMonthChange={handleMonthChange}
                   onLinkClick={() => setIsLinkPatientModalOpen(true)}
+                  isReadOnly={isReadOnly}
                 />
 
                 <VitalsForm
@@ -1970,6 +2016,7 @@ const ConsultationPage = () => {
                   allergy={extraData.allergy}
                   onExtraChange={handleExtraChange}
                   initialData={initialExtraData}
+                  isReadOnly={isReadOnly}
                 />
 
                 <ClinicalNotesForm
@@ -1996,6 +2043,7 @@ const ConsultationPage = () => {
                   language={consultationLanguage}
                   onLanguageChange={(lang) => setConsultationLanguage(lang)}
                   initialData={initialExtraData}
+                  isReadOnly={isReadOnly}
                 />
 
                 <MedicationManager
@@ -2023,6 +2071,7 @@ const ConsultationPage = () => {
                   medicationSuggestionMode={medicationSuggestionMode}
                   consultationId={selectedConsultation?.id}
                   isMasterAdmin={isMasterAdmin}
+                  isReadOnly={isReadOnly}
                 />
 
                 <FollowUpSection
@@ -2032,6 +2081,7 @@ const ConsultationPage = () => {
                   suggestedFollowup={suggestedFollowup}
                   onFollowupSuggestionClick={(val) => handleAppendSuggestion('followup', val)}
                   initialFollowup={initialExtraData?.followup}
+                  isReadOnly={isReadOnly}
                 />
 
                 {(extraData.procedure || extraData.referred_by) && (
@@ -2065,6 +2115,7 @@ const ConsultationPage = () => {
                                   placeholder="Enter fee amount"
                                   value={extraData.procedure_fee}
                                   onChange={(e) => handleExtraChange('procedure_fee', e.target.value)}
+                                  disabled={isReadOnly}
                                 />
                               </div>
                               <div className="space-y-2">
@@ -2074,6 +2125,7 @@ const ConsultationPage = () => {
                                   placeholder="Amount or %"
                                   value={extraData.procedure_consultant_cut}
                                   onChange={(e) => handleExtraChange('procedure_consultant_cut', e.target.value)}
+                                  disabled={isReadOnly}
                                 />
                                 {extraData.procedure_consultant_cut?.toString().endsWith('%') && extraData.procedure_fee && (
                                   <p className="text-[10px] text-primary font-bold mt-1 animate-pulse-soft">
@@ -2094,6 +2146,7 @@ const ConsultationPage = () => {
                                 placeholder="Amount to pay referrer"
                                 value={extraData.referral_amount}
                                 onChange={(e) => handleExtraChange('referral_amount', e.target.value)}
+                                disabled={isReadOnly}
                               />
                             </div>
                           )}
@@ -2127,6 +2180,7 @@ const ConsultationPage = () => {
                   onToggleOnlyMeds={setIsOnlyConsultation}
                   medicationSuggestionMode={medicationSuggestionMode}
                   onToggleMedicationSuggestionMode={toggleMedicationSuggestionMode}
+                  isReadOnly={isReadOnly}
                 />
               </div>
             ) : (

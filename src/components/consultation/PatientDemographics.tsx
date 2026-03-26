@@ -33,6 +33,7 @@ interface PatientDemographicsProps {
     handleYearChange: (year: string) => void;
     handleMonthChange: (month: string) => void;
     onLinkClick: () => void;
+    isReadOnly?: boolean;
 }
 
 
@@ -66,6 +67,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
     handleYearChange,
     handleMonthChange,
     onLinkClick,
+    isReadOnly = false,
 }) => {
     const [showSecondaryPhone, setShowSecondaryPhone] = React.useState(false);
 
@@ -88,6 +90,12 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                             {visitType === 'free' ? 'Free' : 'Paid'}
                         </Badge>
                     </h3>
+                    {isReadOnly && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
+                            <CalendarIcon className="w-3 h-3" />
+                            Read Only
+                        </Badge>
+                    )}
                     {lastVisitDate && (
                         <span className="text-sm text-muted-foreground">
                             {lastVisitDate}
@@ -113,7 +121,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" value={patient.name} onChange={e => onPatientDetailsChange('name', e.target.value)} />
+                    <Input id="name" value={patient.name} onChange={e => onPatientDetailsChange('name', e.target.value)} disabled={isReadOnly} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
@@ -139,6 +147,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                                 size="icon"
                                 onClick={() => setShowSecondaryPhone(true)}
                                 title="Add Secondary Phone"
+                                disabled={isReadOnly}
                             >
                                 <span className="text-lg">+</span>
                             </Button>
@@ -152,7 +161,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Popover open={isPatientDatePickerOpen} onOpenChange={setIsPatientDatePickerOpen}>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !patient.dob && "text-muted-foreground")}>
+                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !patient.dob && "text-muted-foreground")} disabled={isReadOnly}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {patient.dob ? format(new Date(patient.dob), "PPP") : <span>Select date</span>}
                                     {patient.is_dob_estimated && <span className="ml-2 text-xs opacity-70">(Est.)</span>}
@@ -200,12 +209,13 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                             value={age}
                             onChange={onAgeChange}
                             className="w-full sm:w-24"
+                            disabled={isReadOnly}
                         />
                     </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="sex">Sex</Label>
-                    <Select value={patient.sex} onValueChange={value => onPatientDetailsChange('sex', value)}>
+                    <Select value={patient.sex} onValueChange={value => onPatientDetailsChange('sex', value)} disabled={isReadOnly}>
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
@@ -218,7 +228,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="blood_group">Blood Group</Label>
-                    <Select value={patient.blood_group} onValueChange={value => onPatientDetailsChange('blood_group', value)}>
+                    <Select value={patient.blood_group} onValueChange={value => onPatientDetailsChange('blood_group', value)} disabled={isReadOnly}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select" />
                         </SelectTrigger>
@@ -231,7 +241,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="occupation">Occupation</Label>
-                    <Input id="occupation" value={patient.occupation || ''} onChange={e => onPatientDetailsChange('occupation', e.target.value)} placeholder="e.g., Software Engineer, Teacher" />
+                    <Input id="occupation" value={patient.occupation || ''} onChange={e => onPatientDetailsChange('occupation', e.target.value)} placeholder="e.g., Software Engineer, Teacher" disabled={isReadOnly} />
                 </div>
             </div>
         </div>

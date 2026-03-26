@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -64,6 +63,8 @@ interface ConsultationSidebarProps {
     referredByRef?: React.RefObject<HTMLInputElement>;
     initialReferredBy?: string;
     onProfileClick?: () => void;
+    hasChanges?: boolean;
+    onNavigate?: (path: string) => void;
 }
 
 /**
@@ -112,7 +113,9 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     onReferredByChange,
     referredByRef,
     initialReferredBy,
-    onProfileClick
+    onProfileClick,
+    hasChanges = false,
+    onNavigate
 }) => {
     const { hospitals } = useHospitals();
     const { consultant } = useConsultant();
@@ -277,20 +280,32 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 <div className="flex justify-between items-center mb-2">
                     <Label>Consultation Date</Label>
                     <div className="flex items-center gap-2">
-                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onSearchClick}>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onSearchClick} title="Search Consultations">
                             <Search className="h-4 w-4" />
                             <span className="sr-only">Search Consultations</span>
                         </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onRegisterClick}>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onRegisterClick} title="Register New Patient">
                             <UserPlus className="h-4 w-4" />
                             <span className="sr-only">Register New Patient</span>
                         </Button>
-                        <Link to="/stats" title="Consultation Statistics">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 p-0"
+                            title="Consultation Statistics"
+                            onClick={() => onNavigate ? onNavigate('/stats') : window.location.href = '/stats'}
+                        >
                             <BarChart className="w-5 h-5 text-primary hover:text-primary/80" />
-                        </Link>
-                        <Link to="/followups" title="Follow-up Dashboard">
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 p-0"
+                            title="Follow-up Dashboard"
+                            onClick={() => onNavigate ? onNavigate('/followups') : window.location.href = '/followups'}
+                        >
                             <CalendarIcon className="w-5 h-5 text-primary hover:text-primary/80" />
-                        </Link>
+                        </Button>
                     </div>
                 </div>
                 <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>

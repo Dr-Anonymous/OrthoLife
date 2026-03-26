@@ -32,17 +32,18 @@ const ConsultationStats = () => {
   const { hospitals } = useHospitals();
   const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [currentViewMonth, setCurrentViewMonth] = useState<string | null>(null);
-  const [selectedConsultantId, setSelectedConsultantId] = useState<string | null>(null);
+  const [lastFetchedKey, setLastFetchedKey] = useState<string | null>(null);
+  const [selectedConsultantId, setSelectedConsultantId] = useState<string | null | undefined>(undefined);
   const [consultantsList, setConsultantsList] = useState<{ id: string, name: string }[]>([]);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
 
   // Initialize selectedConsultantId once consultant profile is available
   useEffect(() => {
-    if (consultant?.id && !selectedConsultantId) {
-      setSelectedConsultantId(consultant.id);
+    if (consultant?.id && selectedConsultantId === undefined) {
+      // Admins start with Global View (null), non-admins start with their own ID
+      setSelectedConsultantId(isMasterAdmin ? null : consultant.id);
     }
-  }, [consultant, selectedConsultantId]);
+  }, [consultant, selectedConsultantId, isMasterAdmin]);
 
   // Fetch consultants list for the filter (Admins only)
   useEffect(() => {
@@ -80,12 +81,15 @@ const ConsultationStats = () => {
   useEffect(() => {
     // Prevent fetching Global stats for non-admins before their ID is wired
     if (isConsultantLoading) return;
-    if (!isMasterAdmin && !selectedConsultantId) return;
+    if (!isMasterAdmin && selectedConsultantId === undefined) return;
 
     if (selectedDate) {
       fetchStats(selectedDate);
+      if (showMonthlyDetails) {
+        fetchMonthlyDetails();
+      }
     }
-  }, [selectedDate, selectedConsultantId, isConsultantLoading, isMasterAdmin]);
+  }, [selectedDate, selectedConsultantId, isConsultantLoading, isMasterAdmin, showMonthlyDetails]);
 
   const fetchStats = async (date: Date) => {
     setShowDailyDetails(false);
@@ -95,7 +99,8 @@ const ConsultationStats = () => {
     const endOfMonth = new Date(getYear(date), getMonth(date) + 1, 0, 23, 59, 59, 999).toISOString();
 
     const monthKey = format(date, 'yyyy-MM');
-    const includeMonthly = monthKey !== currentViewMonth;
+    const viewKey = `${monthKey}_${selectedConsultantId}`;
+    const includeMonthly = viewKey !== lastFetchedKey;
 
     setIsDailyStatsLoading(true);
     if (includeMonthly) {
@@ -110,7 +115,7 @@ const ConsultationStats = () => {
           day: date.getDate(),
           dataType: 'day',
           includeMonthly,
-          consultant_id: selectedConsultantId
+          consultant_id: selectedConsultantId || undefined
         },
       });
 
@@ -122,7 +127,7 @@ const ConsultationStats = () => {
         // Set Monthly Admissions
         setMonthlyAdmissionsCount(data.monthlyAdmissionsCount);
         setMonthlyAdmissions(data.monthlyAdmissions || []);
-        setCurrentViewMonth(monthKey);
+        setLastFetchedKey(viewKey);
       }
       setDailyData(data.dailyData);
       // Set Daily Admissions
@@ -139,9 +144,6 @@ const ConsultationStats = () => {
 
   const handleMonthChange = (date: Date | undefined) => {
     setSelectedDate(date);
-    if (date) {
-      setCurrentViewMonth(format(date, 'yyyy-MM'));
-    }
   };
 
   const fetchMonthlyDetails = async () => {
@@ -153,7 +155,7 @@ const ConsultationStats = () => {
           year: getYear(selectedDate),
           month: getMonth(selectedDate),
           dataType: 'month',
-          consultant_id: selectedConsultantId
+          consultant_id: selectedConsultantId || undefined
         },
       });
       if (error) throw error;
@@ -485,55 +487,58 @@ const ConsultationStats = () => {
           <p className="text-lg text-muted-foreground">
             View consultation counts, collections, and admissions
           </p>
-          {isMasterAdmin && (
-            <div className="mt-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setIsTeamModalOpen(true)}
-                className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-semibold shadow-sm"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Manage Clinic Team
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Filter Section (Admin Only) */}
         {isMasterAdmin && (
-          <div className="flex justify-center items-center gap-4 bg-white/50 p-4 rounded-xl border border-primary/10 backdrop-blur max-w-lg mx-auto">
-            <div className="flex items-center gap-2 flex-grow">
-              <label className="text-sm font-semibold whitespace-nowrap">Filter by Doctor:</label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                value={selectedConsultantId || 'all'}
-                onChange={(e) => setSelectedConsultantId(e.target.value === 'all' ? null : e.target.value)}
-              >
-                <option value="all">Global View (All Doctors)</option>
-                {consultantsList.map((c) => {
-                  // Handle multilingual name object
-                  const nameStr = typeof c.name === 'object' && c.name !== null ? (c.name as any).en || (c.name as any).te : c.name;
-                  return (
-                    <option key={c.id} value={c.id}>
-                      {nameStr}
-                    </option>
-                  );
-                })}
-              </select>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/70 p-3 px-6 rounded-xl border border-primary/20 backdrop-blur mx-auto shadow-sm w-full">
+            <div className="flex items-center gap-4 flex-grow max-w-xl w-full">
+              <label className="text-sm font-bold whitespace-nowrap text-primary flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Filter by Doctor
+              </label>
+              <div className="flex items-center gap-2 flex-grow">
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all hover:border-primary/30"
+                  value={selectedConsultantId === undefined ? '' : (selectedConsultantId || 'all')}
+                  onChange={(e) => setSelectedConsultantId(e.target.value === 'all' ? null : e.target.value)}
+                >
+                  <option value="all">Global View (Everyone)</option>
+                  {consultantsList.map((c) => {
+                    const nameStr = typeof c.name === 'object' && c.name !== null ? (c.name as any).en || (c.name as any).te : c.name;
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {nameStr}
+                      </option>
+                    );
+                  })}
+                </select>
+                {selectedConsultantId && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                    onClick={() => setSelectedConsultantId(null)}
+                    title="Clear doctor filter"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-            {selectedConsultantId && (
+
+            <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+              <div className="h-8 w-px bg-border hidden md:block mx-2" />
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-10 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                onClick={() => setSelectedConsultantId(null)}
-                title="Clear doctor filter"
+                onClick={() => setIsTeamModalOpen(true)}
+                className="w-full md:w-auto bg-primary/5 hover:bg-primary/10 border-primary/30 text-primary font-bold transition-all shadow-sm"
               >
-                <X className="w-4 h-4 mr-1" />
-                Reset
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Team
               </Button>
-            )}
+            </div>
           </div>
         )}
 
@@ -552,7 +557,7 @@ const ConsultationStats = () => {
                   DayContent: (props) => {
                     const { date } = props;
                     const dayStr = format(date, 'yyyy-MM-dd');
-                    const stats = filteredMonthlyData.length > 0 || showMonthlyDetails ? filteredMonthlyData : [];
+                    const stats = monthlyStats || [];
 
                     const count = stats.filter(s => {
                       if (!s.created_at) return false;

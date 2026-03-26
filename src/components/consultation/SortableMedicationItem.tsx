@@ -33,6 +33,7 @@ interface SortableMedicationItemProps {
     affordabilityPreference?: string;
     medicationSuggestionMode?: 'composition' | 'brand';
     isMasterAdmin?: boolean;
+    isReadOnly?: boolean;
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -54,7 +55,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     currentLocation,
     affordabilityPreference,
     medicationSuggestionMode = 'composition',
-    isMasterAdmin = false
+    isMasterAdmin = false,
+    isReadOnly = false
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof Medication, value: any) => {
@@ -174,7 +176,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     return (
         <div ref={setNodeRef} style={style} {...attributes}>
             <Card className="p-4 border border-border relative">
-                <div {...listeners} className="absolute top-1/2 -left-6 -translate-y-1/2 p-2 cursor-grab text-muted-foreground">
+                <div {...(isReadOnly ? {} : listeners)} className={cn("absolute top-1/2 -left-6 -translate-y-1/2 p-2 text-muted-foreground", !isReadOnly && "cursor-grab")}>
                     <GripVertical className="h-5 w-5" />
                 </div>
                 <div className="space-y-3">
@@ -189,7 +191,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         size="icon"
                                         className="h-6 w-6 text-muted-foreground hover:text-yellow-500"
                                         onClick={handleFavoriteClick}
-                                        disabled={isSavingFavorite || isFavorite}
+                                        disabled={isSavingFavorite || isFavorite || isReadOnly}
                                     >
                                         {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
                                         <span className="sr-only">Save as favorite</span>
@@ -200,6 +202,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         size="icon"
                                         className="h-6 w-6 text-muted-foreground hover:text-destructive"
                                         onClick={() => removeMedication(index)}
+                                        disabled={isReadOnly}
                                     >
                                         <X className="h-4 w-4" />
                                         <span className="sr-only">Remove medication</span>
@@ -219,6 +222,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         handleMedChange(index, 'savedMedicationId', undefined);
                                     }
                                 }}
+                                disabled={isReadOnly}
                                 suggestions={savedMedications.flatMap(m => {
                                     const items: Suggestion[] = [];
                                     const hasBrands = m.brand_metadata && m.brand_metadata.length > 0;
@@ -310,6 +314,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 placeholder="e.g., 500mg"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                 className={getStyle('dose', med.dose)}
+                                disabled={isReadOnly}
                             />
                         </div>
                     </div>
@@ -325,6 +330,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             onChange={e => handleMedChange(index, 'freqMorning', e.target.checked)}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqMorning', !med.freqMorning))}
                                             className="rounded border-border"
+                                            disabled={isReadOnly}
                                         />
                                         <span className="text-sm">Morning</span>
                                     </label>
@@ -335,6 +341,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             onChange={e => handleMedChange(index, 'freqNoon', e.target.checked)}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNoon', !med.freqNoon))}
                                             className="rounded border-border"
+                                            disabled={isReadOnly}
                                         />
                                         <span className="text-sm">Noon</span>
                                     </label>
@@ -345,6 +352,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             onChange={e => handleMedChange(index, 'freqNight', e.target.checked)}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMedChange(index, 'freqNight', !med.freqNight))}
                                             className="rounded border-border"
+                                            disabled={isReadOnly}
                                         />
                                         <span className="text-sm">Night</span>
                                     </label>
@@ -366,6 +374,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         }
                                     }}
                                     className="rounded border-border"
+                                    disabled={isReadOnly}
                                 />
                                 <span className="text-sm">Custom</span>
                             </label>
@@ -379,6 +388,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     placeholder="e.g., once a week"
                                     onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                     className={getStyle('frequency', med.frequency)}
+                                    disabled={isReadOnly}
                                 />
                                 {(!med.frequency) && (
                                     <div className="flex flex-wrap gap-1 mt-1">
@@ -389,7 +399,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             <div
                                                 key={text}
                                                 className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
-                                                onClick={() => handleMedChange(index, 'frequency', text)}
+                                                onClick={() => !isReadOnly && handleMedChange(index, 'frequency', text)}
                                             >
                                                 {text}
                                             </div>
@@ -409,6 +419,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 placeholder="e.g., 7 days"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                 className={getStyle('duration', med.duration)}
+                                disabled={isReadOnly}
                             />
                             {/* Smart Duration Helpers */}
                             {(() => {
@@ -428,7 +439,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                                 <div
                                                     key={unit}
                                                     className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
-                                                    onClick={() => handleMedChange(index, 'duration', `${number} ${unit}`)}
+                                                    onClick={() => !isReadOnly && handleMedChange(index, 'duration', `${number} ${unit}`)}
                                                 >
                                                     {unit}
                                                 </div>
@@ -448,6 +459,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 placeholder="Special instructions"
                                 onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                 className={getStyle('instructions', med.instructions)}
+                                disabled={isReadOnly}
                             />
                             {(!med.instructions) && (
                                 <div className="flex flex-wrap gap-1 mt-1">
@@ -455,7 +467,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         <div
                                             key={text}
                                             className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
-                                            onClick={() => handleMedChange(index, 'instructions', text)}
+                                            onClick={() => !isReadOnly && handleMedChange(index, 'instructions', text)}
                                         >
                                             {text}
                                         </div>
@@ -473,6 +485,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                             placeholder="e.g., side effects"
                             onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                             className={getStyle('notes', med.notes)}
+                            disabled={isReadOnly}
                         />
                     </div>
                 </div>
