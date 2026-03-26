@@ -193,161 +193,175 @@ export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: 
     <div className="mt-8 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold">{title}</h3>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 border-dashed">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-              {activeFilterCount > 0 && (
-                <>
-                  <Separator orientation="vertical" className="mx-2 h-4" />
-                  <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
-                    {activeFilterCount}
-                  </Badge>
-                  <div className="hidden space-x-1 lg:flex">
-                    {activeFilterCount > 2 ? (
-                      <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                        {activeFilterCount} selected
-                      </Badge>
-                    ) : (
-                      <>
-                        {Object.entries(filters).flatMap(([category, values]) => {
-                          if (category === 'hasProcedure') {
-                            return values ? [
-                              <Badge variant="secondary" key="has-procedure" className="rounded-sm px-1 font-normal">
-                                With Procedure
-                              </Badge>
-                            ] : [];
-                          }
-                          return (values as string[]).map(value => (
-                            <Badge variant="secondary" key={`${category}-${value}`} className="rounded-sm px-1 font-normal">
-                              {value}
-                            </Badge>
-                          ));
-                        })}
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[240px] p-0" align="end">
-            <Command>
-              <CommandInput placeholder="Filter statistics..." />
-              <CommandList>
-                <CommandEmpty>No results found.</CommandEmpty>
-
-                <CommandGroup heading="Options">
-                  <CommandItem
-                    onSelect={toggleHasProcedure}
-                  >
-                    <div
-                      className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        filters.hasProcedure
-                          ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible"
-                      )}
-                    >
-                      <Check className={cn("h-4 w-4")} />
-                    </div>
-                    <span>With Procedure</span>
-                  </CommandItem>
-                </CommandGroup>
-
-                {filterOptions.location.length > 0 && (
-                  <CommandGroup heading="Location">
-                    {filterOptions.location.map(option => (
-                      <CommandItem
-                        key={`location-${option}`}
-                        onSelect={() => toggleFilter('location', option)}
-                      >
-                        <div
-                          className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                            filters.location.includes(option)
-                              ? "bg-primary text-primary-foreground"
-                              : "opacity-50 [&_svg]:invisible"
-                          )}
-                        >
-                          <Check className={cn("h-4 w-4")} />
-                        </div>
-                        <span>{option}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-
-                {filterOptions.visit_type.length > 0 && (
-                  <>
-                    <CommandSeparator />
-                    <CommandGroup heading="Visit Type">
-                      {filterOptions.visit_type.map(option => (
-                        <CommandItem
-                          key={`visit_type-${option}`}
-                          onSelect={() => toggleFilter('visit_type', option)}
-                        >
-                          <div
-                            className={cn(
-                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                              filters.visit_type.includes(option)
-                                ? "bg-primary text-primary-foreground"
-                                : "opacity-50 [&_svg]:invisible"
-                            )}
-                          >
-                            <Check className={cn("h-4 w-4")} />
-                          </div>
-                          <span className="capitalize">{option}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </>
-                )}
-
-                {filterOptions.status.length > 0 && (
-                  <>
-                    <CommandSeparator />
-                    <CommandGroup heading="Status">
-                      {filterOptions.status.map(option => (
-                        <CommandItem
-                          key={`status-${option}`}
-                          onSelect={() => toggleFilter('status', option)}
-                        >
-                          <div
-                            className={cn(
-                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                              filters.status.includes(option)
-                                ? "bg-primary text-primary-foreground"
-                                : "opacity-50 [&_svg]:invisible"
-                            )}
-                          >
-                            <Check className={cn("h-4 w-4")} />
-                          </div>
-                          <span className="capitalize">{option}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </>
-                )}
-
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 border-dashed">
+                <Filter className="mr-2 h-4 w-4" />
+                Filter
                 {activeFilterCount > 0 && (
                   <>
-                    <CommandSeparator />
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={resetFilters}
-                        className="justify-center text-center font-medium"
-                      >
-                        Clear filters
-                      </CommandItem>
-                    </CommandGroup>
+                    <Separator orientation="vertical" className="mx-2 h-4" />
+                    <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
+                      {activeFilterCount}
+                    </Badge>
+                    <div className="hidden space-x-1 lg:flex">
+                      {activeFilterCount > 2 ? (
+                        <Badge variant="secondary" className="rounded-sm px-1 font-normal">
+                          {activeFilterCount} selected
+                        </Badge>
+                      ) : (
+                        <>
+                          {Object.entries(filters).flatMap(([category, values]) => {
+                            if (category === 'hasProcedure') {
+                              return values ? [
+                                <Badge variant="secondary" key="has-procedure" className="rounded-sm px-1 font-normal">
+                                  With Procedure
+                                </Badge>
+                              ] : [];
+                            }
+                            return (values as string[]).map(value => (
+                              <Badge variant="secondary" key={`${category}-${value}`} className="rounded-sm px-1 font-normal">
+                                {value}
+                              </Badge>
+                            ));
+                          })}
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[240px] p-0" align="end">
+              <Command>
+                <CommandInput placeholder="Filter statistics..." />
+                <CommandList>
+                  <CommandEmpty>No results found.</CommandEmpty>
+
+                  <CommandGroup heading="Options">
+                    <CommandItem
+                      onSelect={toggleHasProcedure}
+                    >
+                      <div
+                        className={cn(
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                          filters.hasProcedure
+                            ? "bg-primary text-primary-foreground"
+                            : "opacity-50 [&_svg]:invisible"
+                        )}
+                      >
+                        <Check className={cn("h-4 w-4")} />
+                      </div>
+                      <span>With Procedure</span>
+                    </CommandItem>
+                  </CommandGroup>
+
+                  {filterOptions.location.length > 0 && (
+                    <CommandGroup heading="Location">
+                      {filterOptions.location.map(option => (
+                        <CommandItem
+                          key={`location-${option}`}
+                          onSelect={() => toggleFilter('location', option)}
+                        >
+                          <div
+                            className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              filters.location.includes(option)
+                                ? "bg-primary text-primary-foreground"
+                                : "opacity-50 [&_svg]:invisible"
+                            )}
+                          >
+                            <Check className={cn("h-4 w-4")} />
+                          </div>
+                          <span>{option}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+
+                  {filterOptions.visit_type.length > 0 && (
+                    <>
+                      <CommandSeparator />
+                      <CommandGroup heading="Visit Type">
+                        {filterOptions.visit_type.map(option => (
+                          <CommandItem
+                            key={`visit_type-${option}`}
+                            onSelect={() => toggleFilter('visit_type', option)}
+                          >
+                            <div
+                              className={cn(
+                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                filters.visit_type.includes(option)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible"
+                              )}
+                            >
+                              <Check className={cn("h-4 w-4")} />
+                            </div>
+                            <span className="capitalize">{option}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </>
+                  )}
+
+                  {filterOptions.status.length > 0 && (
+                    <>
+                      <CommandSeparator />
+                      <CommandGroup heading="Status">
+                        {filterOptions.status.map(option => (
+                          <CommandItem
+                            key={`status-${option}`}
+                            onSelect={() => toggleFilter('status', option)}
+                          >
+                            <div
+                              className={cn(
+                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                filters.status.includes(option)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible"
+                              )}
+                            >
+                              <Check className={cn("h-4 w-4")} />
+                            </div>
+                            <span className="capitalize">{option}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </>
+                  )}
+
+                  {activeFilterCount > 0 && (
+                    <>
+                      <CommandSeparator />
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={resetFilters}
+                          className="justify-center text-center font-medium"
+                        >
+                          Clear filters
+                        </CommandItem>
+                      </CommandGroup>
+                    </>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {activeFilterCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              onClick={resetFilters}
+            >
+              <X className="w-4 h-4 mr-1" />
+              Reset
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-md border">

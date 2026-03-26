@@ -1969,6 +1969,7 @@ const ConsultationPage = () => {
                   temperature={extraData.temperature}
                   allergy={extraData.allergy}
                   onExtraChange={handleExtraChange}
+                  initialData={initialExtraData}
                 />
 
                 <ClinicalNotesForm

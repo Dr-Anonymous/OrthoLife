@@ -13,6 +13,7 @@ interface VitalsFormProps {
     temperature: string;
     allergy: string;
     onExtraChange: (field: string, value: string) => void;
+    initialData?: any;
 }
 
 /**
@@ -29,7 +30,8 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     bp,
     temperature,
     allergy,
-    onExtraChange
+    onExtraChange,
+    initialData
 }) => {
     const handleBpPartChange = (part: 'systolic' | 'diastolic', value: string) => {
         const parts = bp ? bp.split('/') : ['', ''];
@@ -41,6 +43,22 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
         } else {
             onExtraChange('bp', `${newSystolic}/${newDiastolic}`);
         }
+    };
+
+    // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
+    const getStyle = (field: string, value: any) => {
+        if (!initialData) return "bg-background/50";
+
+        const initialValue = (initialData as any)[field];
+        // Check if value equals initial value AND value is not empty/falsy
+        // We trim strings to be safe
+        const isUnchanged = String(value).trim() === String(initialValue || '').trim();
+        const hasContent = value && String(value).trim().length > 0;
+
+        if (isUnchanged && hasContent) {
+            return "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40";
+        }
+        return "bg-background/50"; // Default style
     };
 
     // Auto-calculate BMI
@@ -77,11 +95,23 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 <div className="space-y-2">
                     <Label htmlFor="weight" className="text-sm font-medium">Weight (kg)</Label>
-                    <Input id="weight" value={weight} onChange={e => onExtraChange('weight', e.target.value)} placeholder="e.g., 70" />
+                    <Input 
+                        id="weight" 
+                        value={weight} 
+                        onChange={e => onExtraChange('weight', e.target.value)} 
+                        placeholder="e.g., 70" 
+                        className={getStyle('weight', weight)}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="height" className="text-sm font-medium">Height (cm)</Label>
-                    <Input id="height" value={height} onChange={e => onExtraChange('height', e.target.value)} placeholder="e.g., 170" />
+                    <Input 
+                        id="height" 
+                        value={height} 
+                        onChange={e => onExtraChange('height', e.target.value)} 
+                        placeholder="e.g., 170" 
+                        className={getStyle('height', height)}
+                    />
                 </div>
                 
                 {/* BMI only shown if both height and weight are entered */}
@@ -89,7 +119,13 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">BMI</Label>
                         <div className={cn(
-                            "h-10 px-3 py-2 rounded-md border bg-primary/5 flex items-center justify-center font-bold text-primary animate-in fade-in zoom-in duration-300",
+                            "h-10 px-3 py-2 rounded-md border flex items-center justify-center font-bold animate-in fade-in zoom-in duration-300",
+                            // If both weight and height are unchanged and have content, highlight BMI container too?
+                            // Usually BMI is derived, but if it was in initialData, we might highlight.
+                            // However, BMI is calculated above. Let's just use the default style or primary/5.
+                            getStyle('bmi', bmiValue) !== "bg-background/50" 
+                                ? getStyle('bmi', bmiValue) 
+                                : "bg-primary/5 text-primary"
                         )}>
                             {bmiValue || '--'}
                         </div>
@@ -103,33 +139,57 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             placeholder="Sys"
                             value={bp ? bp.split('/')[0] : ''}
                             onChange={e => handleBpPartChange('systolic', e.target.value)}
-                            className="text-center px-1"
+                            className={cn("text-center px-1", getStyle('bp', bp))}
                         />
                         <span className="text-muted-foreground">/</span>
                         <Input
                             placeholder="Dia"
                             value={bp ? bp.split('/')[1] || '' : ''}
                             onChange={e => handleBpPartChange('diastolic', e.target.value)}
-                            className="text-center px-1"
+                            className={cn("text-center px-1", getStyle('bp', bp))}
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="pulse" className="text-sm font-medium">Pulse (bpm)</Label>
-                    <Input id="pulse" value={pulse} onChange={e => onExtraChange('pulse', e.target.value)} placeholder="e.g., 72" />
+                    <Input 
+                        id="pulse" 
+                        value={pulse} 
+                        onChange={e => onExtraChange('pulse', e.target.value)} 
+                        placeholder="e.g., 72" 
+                        className={getStyle('pulse', pulse)}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="spo2" className="text-sm font-medium">SpO2 (%)</Label>
-                    <Input id="spo2" value={spo2} onChange={e => onExtraChange('spo2', e.target.value)} placeholder="e.g., 98" />
+                    <Input 
+                        id="spo2" 
+                        value={spo2} 
+                        onChange={e => onExtraChange('spo2', e.target.value)} 
+                        placeholder="e.g., 98" 
+                        className={getStyle('spo2', spo2)}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="temperature" className="text-sm font-medium">Temp (F)</Label>
-                    <Input id="temperature" value={temperature} onChange={e => onExtraChange('temperature', e.target.value)} placeholder="98.6" />
+                    <Input 
+                        id="temperature" 
+                        value={temperature} 
+                        onChange={e => onExtraChange('temperature', e.target.value)} 
+                        placeholder="98.6" 
+                        className={getStyle('temperature', temperature)}
+                    />
                 </div>
                 <div className="space-y-2 col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1">
                     <Label htmlFor="allergy" className="text-sm font-medium">Allergy</Label>
-                    <Input id="allergy" value={allergy} onChange={e => onExtraChange('allergy', e.target.value)} placeholder="e.g., Penicillin" />
+                    <Input 
+                        id="allergy" 
+                        value={allergy} 
+                        onChange={e => onExtraChange('allergy', e.target.value)} 
+                        placeholder="e.g., Penicillin" 
+                        className={getStyle('allergy', allergy)}
+                    />
                 </div>
             </div>
         </div>

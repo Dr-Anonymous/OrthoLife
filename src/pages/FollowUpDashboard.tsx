@@ -6,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, User, Phone, MessageSquare, Calendar as CalendarIcon, MapPin, ClipboardList } from 'lucide-react';
+import { Loader2, User, Phone, MessageSquare, Calendar as CalendarIcon, MapPin, ClipboardList, IndianRupee } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useConsultant } from '@/context/ConsultantContext';
@@ -17,21 +17,46 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ConsultationCard from '@/components/consultation/ConsultationCard';
+import { useHospitals } from '@/context/HospitalsContext';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Filter, Check, X } from 'lucide-react';
+import { cn, stripFollowUpPrefix } from '@/lib/utils';
+import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 
 const FollowUpDashboard = () => {
-  const { consultant, isMasterAdmin } = useConsultant();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(addDays(new Date(), 7)); // Default to 1 week from now
+  const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
+  const { hospitals } = useHospitals();
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [selectedVisitType, setSelectedVisitType] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(startOfToday());
   const [followUpList, setFollowUpList] = useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
+  const [whatsappPreviewVisible, setWhatsappPreviewVisible] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState('');
+  const [targetConsultation, setTargetConsultation] = useState<Consultation | null>(null);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
   useEffect(() => {
     if (selectedDate && (consultant || isMasterAdmin)) {
-      fetchFollowUps(selectedDate);
+      fetchFollowUps(selectedDate, selectedLocation, selectedVisitType);
     }
-  }, [selectedDate, consultant, isMasterAdmin]);
+  }, [selectedDate, selectedLocation, selectedVisitType, consultant, isMasterAdmin]);
 
-  const fetchFollowUps = async (date: Date) => {
+  const fetchFollowUps = async (date: Date, location: string, visitType: string) => {
     setIsLoading(true);
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
@@ -43,6 +68,14 @@ const FollowUpDashboard = () => {
 
       if (!isMasterAdmin && consultant?.id) {
         query = query.eq('consultant_id', consultant.id);
+      }
+
+      if (location && location !== 'all') {
+        query = query.eq('location', location);
+      }
+
+      if (visitType && visitType !== 'all') {
+        query = query.eq('visit_type', visitType);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -57,33 +90,74 @@ const FollowUpDashboard = () => {
     }
   };
 
-  const handleWhatsAppReminder = async (consultation: Consultation) => {
+  const handleWhatsAppReminder = (consultation: Consultation) => {
     const phone = consultation.patient.phone;
     if (!phone) {
       toast.error('Patient phone number missing.');
       return;
     }
 
-    const message = `Hello ${consultation.patient.name}, this is a reminder regarding your scheduled follow-up review on ${format(selectedDate!, 'PPP')} at OrthoLife. Please contact us to confirm your visit.`;
+    const isTelugu = consultation.language === 'te';
+    const formattedDate = format(selectedDate!, 'PPP');
+    
+    const defaultMessage = isTelugu
+      ? `నమస్కారం ${consultation.patient.name} గారు, 🙏\n\nOrthoLife నుండి మీకు చిన్న రిమైండర్. 🏥\n\n🗓️ మీ రివ్యూ పర్యవేక్షణ (follow-up): ${formattedDate}\n\nదయచేసి మీ రాకను ఖరారు (confirm) చేసుకోవడానికి మమ్మల్ని సంప్రదించండి. 📞\n\nధన్యవాదాలు!`
+      : `Hello ${consultation.patient.name}, 👋\n\nThis is a reminder from OrthoLife regarding your scheduled follow-up. 🏥\n\n🗓️ Scheduled Review: ${formattedDate}\n\nPlease contact us to confirm your visit. 📞\n\nThank you!`;
+    
+    setWhatsappMessage(defaultMessage);
+    setTargetConsultation(consultation);
+    setWhatsappPreviewVisible(true);
+  };
+
+  const confirmAndSendWhatsApp = async () => {
+    if (!targetConsultation) return;
+    
+    const phone = targetConsultation.patient.phone;
+    setIsSendingWhatsApp(true);
     
     try {
       const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: { number: phone, message },
+        body: { number: phone, message: whatsappMessage },
       });
 
       if (error) throw error;
-      toast.success(`Reminder sent to ${consultation.patient.name}`);
+      toast.success(`Reminder sent to ${targetConsultation.patient.name}`);
+      setWhatsappPreviewVisible(false);
     } catch (error: any) {
+      console.error('WhatsApp Error:', error);
       toast.error(error.message || 'Failed to send WhatsApp reminder.');
       // Fallback: Open WhatsApp Web
-      const encodedMsg = encodeURIComponent(message);
+      const encodedMsg = encodeURIComponent(whatsappMessage);
       window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+    } finally {
+      setIsSendingWhatsApp(false);
     }
   };
 
   const handleCallPatient = (phone: string) => {
     window.location.href = `tel:${phone}`;
   };
+
+  if (isConsultantLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse text-sm">Validating session...</p>
+      </div>
+    );
+  }
+
+  if (!consultant) {
+    return (
+      <DoctorLoginGate 
+        onLogin={(phone, name) => {
+          localStorage.setItem('consultant_phone', phone);
+          localStorage.setItem('consultant_name', name);
+          window.location.reload();
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
@@ -103,11 +177,19 @@ const FollowUpDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           {/* Calendar Picker */}
           <Card className="lg:col-span-1 shadow-md border-0 bg-card/95 backdrop-blur">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4" />
                 Select Review Date
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-[10px] text-muted-foreground hover:text-primary"
+                onClick={() => setSelectedDate(new Date())}
+              >
+                Today
+              </Button>
             </CardHeader>
             <CardContent className="p-4 flex justify-center">
               <Calendar
@@ -122,15 +204,135 @@ const FollowUpDashboard = () => {
 
           {/* Follow-up List */}
           <Card className="lg:col-span-3 shadow-md border-0 bg-card/95 backdrop-blur h-full min-h-[500px]">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Due for Review</CardTitle>
-                <CardDescription>
-                  {selectedDate ? format(selectedDate, 'PPP') : 'Select a date'}
-                </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <div className="flex items-center gap-4">
+                <div>
+                  <CardTitle className="text-xl font-bold">Due for Review</CardTitle>
+                  <CardDescription className="text-xs">
+                    {selectedDate ? format(selectedDate, 'PPP') : 'Select a date'}
+                  </CardDescription>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+                  {followUpList.length}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-primary">
-                {followUpList.length}
+
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 border-dashed bg-background/50">
+                      <Filter className="mr-2 h-3.5 w-3.5" />
+                      Filter
+                      {(selectedLocation !== 'all' || selectedVisitType !== 'all') && (
+                        <>
+                          <Separator orientation="vertical" className="mx-2 h-4" />
+                          <div className="flex space-x-1">
+                            {selectedLocation !== 'all' && (
+                              <Badge variant="secondary" className="rounded-sm px-1 font-normal text-[10px]">
+                                {selectedLocation}
+                              </Badge>
+                            )}
+                            {selectedVisitType !== 'all' && (
+                              <Badge variant="secondary" className="rounded-sm px-1 font-normal text-[10px] capitalize">
+                                {selectedVisitType}
+                              </Badge>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="end">
+                    <Command>
+                      <CommandList>
+                        <CommandGroup heading="Location">
+                          <CommandItem onSelect={() => setSelectedLocation('all')}>
+                            <div className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              selectedLocation === 'all' ? "bg-primary text-primary-foreground" : "opacity-50"
+                            )}>
+                              {selectedLocation === 'all' && <Check className="h-3 w-3" />}
+                            </div>
+                            <span>All Locations</span>
+                          </CommandItem>
+                          {hospitals.map((h) => (
+                            <CommandItem key={h.name} onSelect={() => setSelectedLocation(h.name)}>
+                              <div className={cn(
+                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                selectedLocation === h.name ? "bg-primary text-primary-foreground" : "opacity-50"
+                              )}>
+                                {selectedLocation === h.name && <Check className="h-3 w-3" />}
+                              </div>
+                              <span className="truncate">{h.name}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        <CommandSeparator />
+                        <CommandGroup heading="Visit Type">
+                          <CommandItem onSelect={() => setSelectedVisitType('all')}>
+                            <div className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              selectedVisitType === 'all' ? "bg-primary text-primary-foreground" : "opacity-50"
+                            )}>
+                              {selectedVisitType === 'all' && <Check className="h-3 w-3" />}
+                            </div>
+                            <span>All Visits</span>
+                          </CommandItem>
+                          <CommandItem onSelect={() => setSelectedVisitType('paid')}>
+                            <div className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              selectedVisitType === 'paid' ? "bg-primary text-primary-foreground" : "opacity-50"
+                            )}>
+                              {selectedVisitType === 'paid' && <Check className="h-3 w-3" />}
+                            </div>
+                            <span>Paid Visit</span>
+                          </CommandItem>
+                          <CommandItem onSelect={() => setSelectedVisitType('free')}>
+                            <div className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              selectedVisitType === 'free' ? "bg-primary text-primary-foreground" : "opacity-50"
+                            )}>
+                              {selectedVisitType === 'free' && <Check className="h-3 w-3" />}
+                            </div>
+                            <span>Free Visit</span>
+                          </CommandItem>
+                        </CommandGroup>
+                        {(selectedLocation !== 'all' || selectedVisitType !== 'all') && (
+                          <>
+                            <CommandSeparator />
+                            <CommandGroup>
+                              <CommandItem
+                                onSelect={() => {
+                                  setSelectedLocation('all');
+                                  setSelectedVisitType('all');
+                                }}
+                                className="justify-center text-center text-xs font-medium text-destructive hover:text-destructive"
+                              >
+                                Clear filters
+                              </CommandItem>
+                            </CommandGroup>
+                          </>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {(selectedLocation !== 'all' || selectedVisitType !== 'all') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setSelectedLocation('all');
+                      setSelectedVisitType('all');
+                    }}
+                    title="Clear all filters"
+                  >
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    Reset
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -174,7 +376,7 @@ const FollowUpDashboard = () => {
                             </div>
                           </TableCell>
                           <TableCell className="max-w-[200px] truncate text-sm italic text-muted-foreground">
-                            {c.consultation_data?.followup || '-'}
+                            {stripFollowUpPrefix(c.consultation_data?.followup)}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -242,6 +444,48 @@ const FollowUpDashboard = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* WhatsApp Preview Dialog */}
+      <Dialog open={whatsappPreviewVisible} onOpenChange={setWhatsappPreviewVisible}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-green-600" />
+              Edit WhatsApp Reminder
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="text-sm text-muted-foreground">
+              To: <span className="font-semibold text-foreground">{targetConsultation?.patient.name}</span> ({targetConsultation?.patient.phone})
+            </div>
+            
+            <textarea
+              className="w-full min-h-[150px] p-3 text-sm rounded-md border border-input focus:ring-1 focus:ring-primary outline-none resize-none bg-muted/50"
+              value={whatsappMessage}
+              onChange={(e) => setWhatsappMessage(e.target.value)}
+              placeholder="Type your message..."
+            />
+          </div>
+          
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setWhatsappPreviewVisible(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-green-600 hover:bg-green-700" 
+              onClick={confirmAndSendWhatsApp}
+              disabled={isSendingWhatsApp}
+            >
+              {isSendingWhatsApp ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+              ) : (
+                <><MessageSquare className="w-4 h-4 mr-2" /> Send via WhatsApp</>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

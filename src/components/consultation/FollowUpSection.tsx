@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { cn, calculateFollowUpDate } from '@/lib/utils';
 
 interface FollowUpSectionProps {
     followup: string;
@@ -43,10 +43,29 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
         return "";
     };
 
+    const calculatedDate = calculateFollowUpDate(followup);
+
     return (
         <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-                <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                <div className="flex items-center gap-2">
+                    <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
+                    {calculatedDate && (() => {
+                        const dateObj = new Date(calculatedDate);
+                        const isSunday = dateObj.getDay() === 0;
+                        const dayName = dateObj.toLocaleDateString('en-IN', { weekday: 'long' });
+                        return (
+                            <span className={cn(
+                                "text-[11px] font-bold px-2 py-0.5 rounded-full border animate-in fade-in slide-in-from-left-1 duration-300",
+                                isSunday
+                                    ? "text-red-600 bg-red-100 border-red-200"
+                                    : "text-primary bg-primary/10 border-primary/20"
+                            )}>
+                                → Due: {dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ({dayName})
+                            </span>
+                        );
+                    })()}
+                </div>
                 {suggestedFollowup.map((item) => (
                     <Button
                         key={item}

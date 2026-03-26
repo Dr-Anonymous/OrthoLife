@@ -72,6 +72,8 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useConsultant } from '@/context/ConsultantContext';
+import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 
 // --- Types ---
 
@@ -93,6 +95,8 @@ interface AutofillProtocol {
 // --- Main Component ---
 
 const InPatientManagement = () => {
+    const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
+
     const [searchTerm, setSearchTerm] = useState('');
     const [dischargeDateStart, setDischargeDateStart] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
     const [dischargeDateEnd, setDischargeDateEnd] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -112,6 +116,27 @@ const InPatientManagement = () => {
     const [printDate, setPrintDate] = useState<string | undefined>(undefined);
     const [isReadyToPrint, setIsReadyToPrint] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
+
+    if (isConsultantLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground animate-pulse text-sm">Validating session...</p>
+            </div>
+        );
+    }
+
+    if (!consultant) {
+        return (
+            <DoctorLoginGate 
+                onLogin={(phone, name) => {
+                    localStorage.setItem('consultant_phone', phone);
+                    localStorage.setItem('consultant_name', name);
+                    window.location.reload();
+                }} 
+            />
+        );
+    }
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
@@ -225,26 +250,7 @@ const InPatientManagement = () => {
 
     // --- Queries ---
     const { data: admittedInPatients, isLoading: isLoadingAdmitted } = useQuery({
-        queryKey: ['in-patients', 'admitted'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('in_patients')
-                .select(`
-          *,
-          patient:patients(name, phone, dob, sex, drive_id),
-          surgical_consents(id)
-        `)
-                .eq('status', 'admitted')
-                .order('admission_date', { ascending: false });
-
-            if (error) throw error;
-            return data as InPatient[];
-        },
-        placeholderData: keepPreviousData
-    });
-
-    const { data: dischargedInPatients, isLoading: isLoadingDischarged } = useQuery({
-        queryKey: ['in-patients', 'discharged', dischargeDateStart, dischargeDateEnd, paymentFilter],
+        queryKey: ['in-patients', 'admitted', consultant?.id],
         queryFn: async () => {
             let query = supabase
                 .from('in_patients')
@@ -253,8 +259,38 @@ const InPatientManagement = () => {
           patient:patients(name, phone, dob, sex, drive_id),
           surgical_consents(id)
         `)
-                .eq('status', 'discharged')
-                .order('discharge_date', { ascending: false });
+                .eq('status', 'admitted');
+
+            if (!isMasterAdmin && consultant?.id) {
+                query = query.eq('consultant_id', consultant.id);
+            }
+
+            const { data, error } = await query.order('admission_date', { ascending: false });
+
+            if (error) throw error;
+            return data as InPatient[];
+        },
+        enabled: !!consultant || isMasterAdmin,
+        placeholderData: keepPreviousData
+    });
+
+    const { data: dischargedInPatients, isLoading: isLoadingDischarged } = useQuery({
+        queryKey: ['in-patients', 'discharged', dischargeDateStart, dischargeDateEnd, paymentFilter, consultant?.id],
+        queryFn: async () => {
+            let query = supabase
+                .from('in_patients')
+                .select(`
+          *,
+          patient:patients(name, phone, dob, sex, drive_id),
+          surgical_consents(id)
+        `)
+                .eq('status', 'discharged');
+
+            if (!isMasterAdmin && consultant?.id) {
+                query = query.eq('consultant_id', consultant.id);
+            }
+
+            query = query.order('discharge_date', { ascending: false });
 
             if (dischargeDateStart) {
                 query = query.gte('discharge_date', startOfDay(new Date(dischargeDateStart)).toISOString());
@@ -281,6 +317,7 @@ const InPatientManagement = () => {
         mutationFn: async (vars: any) => {
             const { error } = await supabase.from('in_patients').insert([{
                 patient_id: vars.patient_id,
+                consultant_id: consultant?.id,
                 diagnosis: vars.diagnosis,
                 procedure: vars.procedure,
                 admission_date: new Date(vars.admission_date).toISOString(),
@@ -310,7 +347,7 @@ const InPatientManagement = () => {
 
     const editMutation = useMutation({
         mutationFn: async (vars: any) => {
-            const { error } = await supabase.from('in_patients').update({
+            let query = supabase.from('in_patients').update({
                 diagnosis: vars.diagnosis,
                 procedure: vars.procedure,
                 admission_date: new Date(vars.admission_date).toISOString(),
@@ -324,6 +361,12 @@ const InPatientManagement = () => {
                 payment_mode: vars.payment_mode || 'Cash',
                 language: vars.language || 'en',
             }).eq('id', vars.id);
+
+            if (!isMasterAdmin && consultant?.id) {
+                query = query.eq('consultant_id', consultant.id);
+            }
+
+            const { error } = await query;
             if (error) throw error;
         },
         onSuccess: () => {
@@ -339,7 +382,7 @@ const InPatientManagement = () => {
 
     const dischargeMutation = useMutation({
         mutationFn: async ({ id, summary, language, dischargeDate, isDraft }: { id: string, summary: DischargeSummary, language: string, dischargeDate?: string, isDraft?: boolean }) => {
-            const { error } = await supabase
+            let query = supabase
                 .from('in_patients')
                 .update({
                     status: isDraft ? 'admitted' : 'discharged',
@@ -348,6 +391,12 @@ const InPatientManagement = () => {
                     language: language
                 })
                 .eq('id', id);
+
+            if (!isMasterAdmin && consultant?.id) {
+                query = query.eq('consultant_id', consultant.id);
+            }
+
+            const { error } = await query;
             if (error) throw error;
         },
         onSuccess: (_data, variables) => {
@@ -410,7 +459,13 @@ const InPatientManagement = () => {
                 }
             }
 
-            const { error } = await supabase.from('in_patients').delete().eq('id', id);
+            let deleteQuery = supabase.from('in_patients').delete().eq('id', id);
+            
+            if (!isMasterAdmin && consultant?.id) {
+                deleteQuery = deleteQuery.eq('consultant_id', consultant.id);
+            }
+
+            const { error } = await deleteQuery;
             if (error) throw error;
         },
         onSuccess: () => {

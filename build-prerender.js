@@ -69,7 +69,11 @@ const generateSitemap = () => {
     '/symptom-checker',
     '/services/joint-replacement',
     '/services/arthroscopy',
-    '/services/fracture-care'
+    '/services/fracture-care',
+    '/op',
+    '/stats',
+    '/followups',
+    '/ip'
   ];
 
   const baseUrl = 'https://ortho.life';

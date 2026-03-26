@@ -5,12 +5,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, User, ChevronsRight, IndianRupee, BedDouble } from 'lucide-react';
+import { Loader2, User, ChevronsRight, IndianRupee, BedDouble, X } from 'lucide-react';
 import { format, getMonth, getYear, parseISO, isValid } from 'date-fns';
 import { ConsultationDetailsTable } from '@/components/ConsultationDetailsTable';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
 import { useConsultant } from '@/context/ConsultantContext';
+import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 
 interface Admission {
   id: string;
@@ -133,11 +134,11 @@ const ConsultationStats = () => {
     }
   };
 
-  const handleMonthChange = (month: Date) => {
-    setSelectedDate(month);
-    setMonthlyData([]);
-    setFilteredMonthlyData([]);
-    setShowMonthlyDetails(false);
+  const handleMonthChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    if (date) {
+      setCurrentViewMonth(format(date, 'yyyy-MM'));
+    }
   };
 
   const fetchMonthlyDetails = async () => {
@@ -447,6 +448,27 @@ const ConsultationStats = () => {
     );
   };
 
+  if (isConsultantLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse text-sm">Validating session...</p>
+      </div>
+    );
+  }
+
+  if (!consultant) {
+    return (
+      <DoctorLoginGate 
+        onLogin={(phone, name) => {
+          localStorage.setItem('consultant_phone', phone);
+          localStorage.setItem('consultant_name', name);
+          window.location.reload();
+        }} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="container mx-auto max-w-7xl space-y-8">
@@ -464,24 +486,38 @@ const ConsultationStats = () => {
 
         {/* Filter Section (Admin Only) */}
         {isMasterAdmin && (
-          <div className="flex justify-center items-center gap-4 bg-white/50 p-4 rounded-xl border border-primary/10 backdrop-blur max-w-md mx-auto">
-            <label className="text-sm font-semibold whitespace-nowrap">Filter by Doctor:</label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={selectedConsultantId || 'all'}
-              onChange={(e) => setSelectedConsultantId(e.target.value === 'all' ? null : e.target.value)}
-            >
-              <option value="all">Global View (All Doctors)</option>
-              {consultantsList.map((c) => {
-                // Handle multilingual name object
-                const nameStr = typeof c.name === 'object' && c.name !== null ? (c.name as any).en || (c.name as any).te : c.name;
-                return (
-                  <option key={c.id} value={c.id}>
-                    {nameStr}
-                  </option>
-                );
-              })}
-            </select>
+          <div className="flex justify-center items-center gap-4 bg-white/50 p-4 rounded-xl border border-primary/10 backdrop-blur max-w-lg mx-auto">
+            <div className="flex items-center gap-2 flex-grow">
+              <label className="text-sm font-semibold whitespace-nowrap">Filter by Doctor:</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={selectedConsultantId || 'all'}
+                onChange={(e) => setSelectedConsultantId(e.target.value === 'all' ? null : e.target.value)}
+              >
+                <option value="all">Global View (All Doctors)</option>
+                {consultantsList.map((c) => {
+                  // Handle multilingual name object
+                  const nameStr = typeof c.name === 'object' && c.name !== null ? (c.name as any).en || (c.name as any).te : c.name;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {nameStr}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            {selectedConsultantId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setSelectedConsultantId(null)}
+                title="Clear doctor filter"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Reset
+              </Button>
+            )}
           </div>
         )}
 

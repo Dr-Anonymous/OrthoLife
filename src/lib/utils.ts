@@ -171,3 +171,29 @@ export function calculateFollowUpDate(message: string, baseDate: Date = new Date
 
   return null;
 }
+
+/**
+ * Trims standard follow-up prefixes to show only patient-specific notes.
+ * Eg: "5 రోజుల తర్వాత / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే for injection" -> "for injection"
+ */
+export function stripFollowUpPrefix(text: string | null | undefined): string {
+  if (!text) return '-';
+  
+  // Standard templates from Consultation.tsx
+  // EN: after {{count}} {{unit}}, or immediately if symptoms worsen.
+  // TE: {{count}} {{unit}} / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే.
+  
+  // Regex to match the common prefix patterns
+  // Telugu pattern: \d+ (unit name) (after/later) / immediately...
+  const teluguPrefixRegex = /^\d+\s*(రోజు|రోజుల|వారం|వారాల|నెల|నెలల|సంవత్సరం|సంవత్సరాల)?\s*(తర్వాత)?\s*\/\s*వెంటనే-\s*ఏవైనా\s*లక్షణాలు\s*తీవ్రమైతే\.?\s*/i;
+  
+  // English pattern: after \d+ (units), or immediately...
+  const englishPrefixRegex = /^after\s*\d+\s*(day|days|week|weeks|month|months|year|years),?\s*or\s*immediately\s*if\s*symptoms\s*worsen\.?\s*/i;
+
+  let stripped = text.replace(teluguPrefixRegex, '').replace(englishPrefixRegex, '');
+  
+  // Also handle cases where there might be a trailing dot or space left over
+  stripped = stripped.trim();
+  
+  return stripped || '-';
+}

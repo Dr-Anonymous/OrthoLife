@@ -34,7 +34,11 @@ const staticRoutes = [
   '/symptom-checker',
   '/services/joint-replacement',
   '/services/arthroscopy',
-  '/services/fracture-care'
+  '/services/fracture-care',
+  '/op',
+  '/stats',
+  '/followups',
+  '/ip'
 ];
 
 // https://vitejs.dev/config/

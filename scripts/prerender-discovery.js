@@ -149,6 +149,26 @@ const discoverDynamicRoutes = async () => {
     } catch (error) {
       console.warn('Could not fetch guides:', error.message);
     }
+    
+    // 4. Add static doctor-workspace routes to discovery (to ensure they get metadata)
+    const doctorRoutes = [
+      { route: '/op', title: 'Doctor Workspace', description: 'Secure professional portal for OrthoLife consultants to manage patient consultations and medicine prescriptions.' },
+      { route: '/stats', title: 'Consultation Statistics', description: 'Analyze consultation trends, patient demographics, and department-wise statistics.' },
+      { route: '/followups', title: 'Follow-up Dashboard', description: 'Manage upcoming reviews and send reminders to patients scheduled for follow-up visits.' },
+      { route: '/ip', title: 'In-Patient Portal', description: 'Secure portal for doctors to manage in-patient surgical care, hospital rounds, and patient recovery tracking.' }
+    ];
+
+    doctorRoutes.forEach(dr => {
+      if (!dynamicRoutes.includes(dr.route)) {
+        dynamicRoutes.push(dr.route);
+        metadata.push({ 
+          route: dr.route, 
+          title: dr.title, 
+          description: dr.description, 
+          image: 'https://ortho.life/logo.png' 
+        });
+      }
+    });
 
     // Write discovered routes to a file for react-snap
     const routesFile = path.join(__dirname, '../public/discovered-routes.json');
