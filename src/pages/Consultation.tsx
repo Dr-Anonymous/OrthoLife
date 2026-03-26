@@ -157,6 +157,49 @@ const ConsultationPage = () => {
   const [initialLanguage, setInitialLanguage] = useState<string>('te');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
+  // SEO & Page Title - Optimise for link sharing
+  useEffect(() => {
+    const originalTitle = document.title;
+    document.title = "Doctor Workspace | OrthoLife";
+    
+    // Create or update meta description
+    let metaDescription = document.querySelector('meta[name="description"]');
+    const originalDescription = metaDescription?.getAttribute('content') || '';
+    
+    if (!metaDescription) {
+      metaDescription = document.createElement('meta');
+      metaDescription.setAttribute('name', 'description');
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.setAttribute('content', 'Secure professional workspace for OrthoLife consultants. Manage patient consultations, digital prescriptions, and medical records.');
+
+    // Add OG tags for link previews (WhatsApp/FB/Twitter)
+    const createOrUpdateMeta = (property: string, content: string, isProperty = true) => {
+      const attr = isProperty ? 'property' : 'name';
+      let element = document.querySelector(`meta[${attr}="${property}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attr, property);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    createOrUpdateMeta('og:title', 'OrthoLife Doctor Workspace');
+    createOrUpdateMeta('og:description', 'Professional portal for managing orthopedic consultations and digital health records.');
+    createOrUpdateMeta('og:url', window.location.href);
+    createOrUpdateMeta('og:type', 'website');
+    createOrUpdateMeta('og:image', 'https://ortho.life/logo.png');
+    createOrUpdateMeta('twitter:card', 'summary_large_image');
+
+    return () => {
+      document.title = originalTitle;
+      if (metaDescription) {
+        metaDescription.setAttribute('content', originalDescription);
+      }
+    };
+  }, []);
+
   const [extraData, setExtraData] = useState<ExtraData>({
     complaints: '',
     medicalHistory: '',

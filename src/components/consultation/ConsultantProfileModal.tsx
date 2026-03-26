@@ -255,7 +255,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+      <DialogContent className="w-[98vw] md:max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <UserCog className="w-5 h-5 text-primary" />
@@ -489,16 +489,16 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-6 border-t sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10 px-0">
+                <div className="flex flex-col-reverse md:flex-row justify-between items-stretch md:items-center gap-3 pt-6 border-t sticky bottom-0 bg-background py-4 z-20 mt-auto">
                   <Button 
                     type="button" 
                     variant="ghost" 
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" 
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold h-10 px-4 shrink-0 transition-colors" 
                     onClick={handleLogout}
                   >
                     <LogOut className="w-4 h-4 mr-2" /> Log Out
                   </Button>
-                  <Button type="submit" disabled={isSaving || isUploading} className="w-full md:w-auto shadow-md">
+                  <Button type="submit" disabled={isSaving || isUploading} className="flex-grow shadow-lg h-10 px-6 font-semibold">
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     Save All Profile Changes
                   </Button>
@@ -535,20 +535,20 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                 ))}
                 
                 {editableHospitals.length > 0 && (
-                    <div className="flex justify-between items-center pt-6 sticky bottom-0 bg-background/95 backdrop-blur py-4 z-10">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" 
-                          onClick={handleLogout}
-                        >
-                          <LogOut className="w-4 h-4 mr-2" /> Log Out
-                        </Button>
-                        <Button type="button" onClick={handleSaveAllLocations} disabled={isSaving} className="w-full md:w-auto bg-primary text-primary-foreground shadow-lg">
-                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                            Save All Location Changes
-                        </Button>
-                    </div>
+                  <div className="flex flex-col-reverse md:flex-row justify-between items-stretch md:items-center gap-3 pt-6 border-t sticky bottom-0 bg-background py-4 z-20 mt-auto">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold h-10 px-4 shrink-0 transition-colors" 
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" /> Log Out
+                    </Button>
+                    <Button type="button" onClick={handleSaveAllLocations} disabled={isSaving} className="flex-grow bg-primary text-primary-foreground shadow-lg h-10 px-6 font-semibold">
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                        Save All Location Changes
+                    </Button>
+                  </div>
                 )}
 
                 {editableHospitals.length === 0 && (

@@ -27,7 +27,7 @@ interface Admission {
 
 const ConsultationStats = () => {
   const { hospitals } = useHospitals();
-  const { consultant, isMasterAdmin } = useConsultant();
+  const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [currentViewMonth, setCurrentViewMonth] = useState<string | null>(null);
   const [selectedConsultantId, setSelectedConsultantId] = useState<string | null>(null);
@@ -74,10 +74,14 @@ const ConsultationStats = () => {
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(false);
 
   useEffect(() => {
+    // Prevent fetching Global stats for non-admins before their ID is wired
+    if (isConsultantLoading) return;
+    if (!isMasterAdmin && !selectedConsultantId) return;
+
     if (selectedDate) {
       fetchStats(selectedDate);
     }
-  }, [selectedDate, selectedConsultantId]);
+  }, [selectedDate, selectedConsultantId, isConsultantLoading, isMasterAdmin]);
 
   const fetchStats = async (date: Date) => {
     setShowDailyDetails(false);

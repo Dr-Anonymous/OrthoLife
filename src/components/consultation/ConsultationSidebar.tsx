@@ -228,6 +228,32 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
 
     return (
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)] lg:overflow-y-auto pr-2">
+            {/* Consultant Profile Header */}
+            {consultant && (
+                <div className="flex items-center justify-between pb-2 border-b">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Welcome,</span>
+                        <span className="text-sm font-bold text-primary">
+                            {typeof consultant.name === 'object'
+                                ? consultant.name.en || consultant.name.te
+                                : consultant.name}
+                        </span>
+                    </div>
+                    {onProfileClick && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-primary hover:bg-primary/10"
+                            onClick={onProfileClick}
+                        >
+                            <UserCog className="h-5 w-5" />
+                            <span className="sr-only">My Profile</span>
+                        </Button>
+                    )}
+                </div>
+            )}
+
             <div className="flex items-center gap-2">
                 <Label htmlFor="location-select" className="flex-shrink-0">Location</Label>
                 <Select value={selectedHospitalName} onValueChange={(value) => onHospitalSelect(value)}>
@@ -246,12 +272,6 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     <MapPin className={cn("h-4 w-4", isGpsEnabled ? "text-blue-500 fill-blue-200" : "text-muted-foreground")} />
                     <span className="sr-only">Toggle GPS selection</span>
                 </Button>
-                {onProfileClick && (
-                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={onProfileClick}>
-                        <UserCog className="h-4 w-4 text-primary" />
-                        <span className="sr-only">My Profile</span>
-                    </Button>
-                )}
             </div>
             <div>
                 <div className="flex justify-between items-center mb-2">
