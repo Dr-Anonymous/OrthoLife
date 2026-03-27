@@ -72,7 +72,7 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consulta
             <p className="text-muted-foreground">{consultantQualifications}</p>
             <p className="text-muted-foreground">{consultantSpecialization}</p>
             {(consultant?.phone || consultant?.email) && (
-              <p className="mt-2 text-gray-700">
+              <p className="mt-2 text-gray-700 whitespace-nowrap">
                 {consultant?.phone && <span className="font-semibold">📞 {consultant.phone}</span>}
                 {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
                 {consultant?.email && <span className="font-semibold">📧 {consultant.email}</span>}

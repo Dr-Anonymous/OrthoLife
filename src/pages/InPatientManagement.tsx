@@ -56,6 +56,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { calculateAge } from "@/lib/age";
+import { Switch } from "@/components/ui/switch";
 import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { Medication } from '@/types/consultation';
 import { DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
@@ -1713,6 +1714,9 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     const [isDobPickerOpen, setIsDobPickerOpen] = useState(false);
     const [isAdmissionDatePickerOpen, setIsAdmissionDatePickerOpen] = useState(false);
     const [isProcedureDatePickerOpen, setIsProcedureDatePickerOpen] = useState(false);
+    const [medicationSuggestionMode, setMedicationSuggestionMode] = useState<'composition' | 'brand'>(
+        (localStorage.getItem('medicationSuggestionMode') as 'composition' | 'brand') || 'composition'
+    );
 
     // -- Medication Manager Refs --
     const medicationNameInputRef = useRef<HTMLInputElement>(null);
@@ -2254,7 +2258,23 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     medNotesRefs={medNotesRefs}
                                     suggestedMedications={suggestedMedications} // Pass parsed suggestions
                                     handleMedicationSuggestionClick={handleMedicationSuggestionClick}
+                                    medicationSuggestionMode={medicationSuggestionMode}
                                 />
+                                <div className="mt-4 flex items-center justify-end gap-2 px-6">
+                                    <Label htmlFor="brand-mode-toggle" className="text-xs font-semibold text-primary/80">
+                                        {medicationSuggestionMode === 'brand' ? "Show Generic Composition" : "Show Brand Names"}
+                                    </Label>
+                                    <Switch
+                                        id="brand-mode-toggle"
+                                        checked={medicationSuggestionMode === 'brand'}
+                                        onCheckedChange={(checked) => {
+                                            const newMode = checked ? 'brand' : 'composition';
+                                            setMedicationSuggestionMode(newMode);
+                                            localStorage.setItem('medicationSuggestionMode', newMode);
+                                        }}
+                                        className="scale-90"
+                                    />
+                                </div>
                             </div>
 
                             <div className="space-y-2">

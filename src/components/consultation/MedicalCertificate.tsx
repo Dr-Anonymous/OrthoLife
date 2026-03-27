@@ -92,7 +92,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
             <p className="text-muted-foreground">{consultantQualifications}</p>
             <p className="text-muted-foreground">{consultantSpecialization}</p>
             {(consultant?.phone || consultant?.email) && (
-              <p className="mt-2 text-gray-700">
+              <p className="mt-2 text-gray-700 whitespace-nowrap">
                 {consultant?.phone && <span className="font-semibold">📞 {consultant.phone}</span>}
                 {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
                 {consultant?.email && <span className="font-semibold">📧 {consultant.email}</span>}
@@ -107,7 +107,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
 
         <main className="flex-grow">
           <h2 className="text-2xl font-bold text-center underline mb-12">
-            Medical certificate
+            Medical Certificate
           </h2>
           {customContent ? (
             <div className="text-lg leading-relaxed space-y-6 prose max-w-none" dangerouslySetInnerHTML={{ __html: customContent }} />

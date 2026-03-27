@@ -91,9 +91,9 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
 
     const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
-    const cName = typeof consultant?.name === 'object' ? (consultant?.name?.[language === 'te' ? 'te' : 'en'] || consultant?.name?.en) : (consultant?.name || 'Dr Samuel Manoj Cherukuri');
-    const cQuals = typeof consultant?.qualifications === 'object' ? (consultant?.qualifications?.[language === 'te' ? 'te' : 'en'] || consultant?.qualifications?.en) : (consultant?.qualifications || 'MBBS, MS Ortho (Manipal)');
-    const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || 'Orthopaedic Surgeon');
+    const cName = typeof consultant?.name === 'object' ? (consultant?.name?.[language === 'te' ? 'te' : 'en'] || consultant?.name?.en) : (consultant?.name || '');
+    const cQuals = typeof consultant?.qualifications === 'object' ? (consultant?.qualifications?.[language === 'te' ? 'te' : 'en'] || consultant?.qualifications?.en) : (consultant?.qualifications || '');
+    const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
 
     return (
         <div
@@ -135,11 +135,11 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>{cName}</h2>
                                     <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cQuals}</p>
                                     <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cSpec}</p>
-                                    <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
+                                    <p className={cn("mt-2 text-gray-700 whitespace-nowrap", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
                                         {consultant?.phone ? (
                                             <a href={`tel:+91${consultant.phone}`} className="font-semibold hover:underline">📞 {consultant.phone.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
                                         ) : (
-                                            <a href="tel:+919983849838" className="font-semibold hover:underline">📞 99 838 49 838</a>
+                                            <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
                                         )}
                                         <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
                                         {consultant?.email ? (
