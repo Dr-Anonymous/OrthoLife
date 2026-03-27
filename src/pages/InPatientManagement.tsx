@@ -78,6 +78,7 @@ import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 // --- Types ---
 
 import { InPatient, DischargeSummary, DischargeData } from '@/types/inPatients';
+import { Consultant } from '@/types/consultation';
 
 
 interface AutofillProtocol {
@@ -114,29 +115,10 @@ const InPatientManagement = () => {
     // Printing
     const [printData, setPrintData] = useState<DischargeSummary | null>(null);
     const [printDate, setPrintDate] = useState<string | undefined>(undefined);
+    const [printConsultant, setPrintConsultant] = useState<Consultant | null>(null);
     const [isReadyToPrint, setIsReadyToPrint] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
-    if (isConsultantLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-                <p className="text-muted-foreground animate-pulse text-sm">Validating session...</p>
-            </div>
-        );
-    }
-
-    if (!consultant) {
-        return (
-            <DoctorLoginGate 
-                onLogin={(phone, name) => {
-                    localStorage.setItem('consultant_phone', phone);
-                    localStorage.setItem('consultant_name', name);
-                    window.location.reload();
-                }} 
-            />
-        );
-    }
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
@@ -160,16 +142,17 @@ const InPatientManagement = () => {
             }
         `
     });
-
+    // After all hooks to follow rules
     React.useEffect(() => {
         if (isReadyToPrint && printRef.current) {
             handlePrint();
         }
     }, [isReadyToPrint]);
 
-    const triggerPrint = (summary: DischargeSummary, date?: string) => {
+    const triggerPrint = (summary: DischargeSummary, consultantData?: Consultant | null, date?: string) => {
         setPrintData(summary);
         setPrintDate(date);
+        setPrintConsultant(consultantData || null);
         setIsReadyToPrint(true);
     };
 
@@ -257,6 +240,7 @@ const InPatientManagement = () => {
                 .select(`
           *,
           patient:patients(name, phone, dob, sex, drive_id),
+          consultant:consultants(*),
           surgical_consents(id)
         `)
                 .eq('status', 'admitted');
@@ -282,6 +266,7 @@ const InPatientManagement = () => {
                 .select(`
           *,
           patient:patients(name, phone, dob, sex, drive_id),
+          consultant:consultants(*),
           surgical_consents(id)
         `)
                 .eq('status', 'discharged');
@@ -823,6 +808,29 @@ const InPatientManagement = () => {
         document.body.removeChild(link);
     };
 
+
+    // Early returns moved after hook declarations to follow Rules of Hooks
+    if (isConsultantLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground animate-pulse text-sm">Validating session...</p>
+            </div>
+        );
+    }
+
+    if (!consultant) {
+        return (
+            <DoctorLoginGate 
+                onLogin={(phone, name) => {
+                    localStorage.setItem('consultant_phone', phone);
+                    localStorage.setItem('consultant_name', name);
+                    window.location.reload();
+                }} 
+            />
+        );
+    }
+
     // Only show full page loader if we have NO data at all on first entry
     const isFirstEverLoad = !admittedInPatients && !dischargedInPatients && (isLoadingAdmitted || isLoadingDischarged);
 
@@ -1026,7 +1034,7 @@ const InPatientManagement = () => {
                                 onSendWhatsApp={initWhatsApp}
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
-                                onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary, p.discharge_date || undefined)}
+                                onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary, (p as any).consultant, p.discharge_date || undefined)}
                                 onConsents={(p.surgical_consents && p.surgical_consents.length > 0) ? () => openConsentModal(p) : undefined}
                             />
                         )) : (
@@ -1351,9 +1359,7 @@ const InPatientManagement = () => {
                             }}
                             isSaving={dischargeMutation.isPending}
                             onPrint={(summary: DischargeSummary, date: string) => {
-                                setPrintData(summary);
-                                setPrintDate(date);
-                                setIsReadyToPrint(true);
+                                triggerPrint(summary, (selectedPatientForDischarge as any)?.consultant, date);
                             }}
                         />
                     )}
@@ -1368,9 +1374,10 @@ const InPatientManagement = () => {
                         patientSnapshot={printData.patient_snapshot}
                         courseDetails={printData.course_details}
                         dischargeData={printData.discharge_data}
-                        language={i18n.language}
-                        logoUrl="/images/logos/logo.png"
+                        language={printData?.language || i18n.language}
+                        logoUrl={printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"}
                         dischargeDate={printDate}
+                        consultant={printConsultant || consultant}
                     />
                 )}
             </div>

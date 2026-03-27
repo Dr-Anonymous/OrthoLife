@@ -461,14 +461,14 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
           style={{ pageBreakBefore: 'always' }}
         >
-          <div className="border-4 border-primary/20 rounded-xl p-6 flex flex-col justify-start bg-white h-full relative overflow-hidden">
+          <div className="border-4 border-primary/20 rounded-xl p-4 flex flex-col justify-start bg-white h-full relative overflow-hidden">
 
             {language === 'te' ? (
               // Telugu Content
-              <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
+              <div className="text-foreground relative z-10 flex flex-col gap-3 h-full">
 
                 {/* Top Section: Split Layout (Name & Image) */}
-                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 pb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-3 pb-3">
                   {/* Left: Text Info */}
                   <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
                     <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
@@ -485,10 +485,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     )}
 
                     <div className="space-y-1">
-                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{cName}</h3>
-                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{cQuals}</p>
-                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{cSpec}</p>
-                      {cExp && <p className="text-base font-semibold text-primary/90 mt-2">{cExp}</p>}
+                      <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-none mb-2">{cName}</h3>
+                      <p className="text-lg sm:text-xl font-bold text-primary/80">{cQuals}</p>
                     </div>
                   </div>
 
@@ -504,8 +502,27 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   )}
                 </div>
 
+                {/* Specialty Section (Full Width) */}
+                {cSpec && (
+                  <p className="text-lg sm:text-2xl font-medium text-foreground/80 leading-tight text-center sm:text-left -mt-1 mb-2">
+                    {cSpec}
+                  </p>
+                )}
+
+                {/* Experience Banner */}
+                {cExp && (
+                  <div className="w-full bg-gradient-to-r from-primary/5 via-primary/[0.08] to-primary/5 border-y border-primary/20 py-2.5 px-6 -mx-4 mb-3 relative">
+                    <div className="absolute left-0 top-0 w-1.5 h-full bg-primary" />
+                    <div className="flex items-center justify-center">
+                      <span className="text-lg sm:text-2xl font-black text-primary tracking-tighter text-center leading-tight">
+                        {cExp}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Middle: Full Width About Section */}
-                <div className="border-b-2 border-primary/10 pb-8">
+                <div className="border-b-2 border-primary/10 pb-3">
                   <p className="text-lg leading-relaxed text-justify text-muted-foreground">
                     {consultant?.bio?.te || ''}
                   </p>
@@ -513,16 +530,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
                 {/* Bottom Section: Full Width Services */}
                 <div className="flex-grow">
-                  <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2 border-b border-primary/10 pb-1">
-                    <Activity className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
+                    <Activity className="h-4 w-4 text-primary" />
                     ప్రత్యేక సేవలు
                   </h3>
                   
-                  <ul className="space-y-2 text-base">
+                  <ul className="space-y-1.5 text-base">
                     {(consultant?.services || []).map((service, idx) => {
                       const Icon = { Bone, Activity, User, Stethoscope, Syringe }[service.icon] || Activity;
                       return (
-                        <li key={idx} className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                        <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
                           <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
                           <div>
                             <strong className="block text-primary text-lg mb-0.5">{service.title.te}</strong>
@@ -546,10 +563,10 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
             ) : (
               // English Content
-              <div className="text-foreground relative z-10 flex flex-col gap-5 h-full">
+              <div className="text-foreground relative z-10 flex flex-col gap-3 h-full">
 
                 {/* Top Section: Split Layout (Name & Image) */}
-                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 pb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-3 pb-3">
                   {/* Left: Text Info */}
                   <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
                     <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
@@ -565,11 +582,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                       </div>
                     )}
 
-                    <div className="space-y-1">
-                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">{cName}</h3>
-                      <p className="text-base sm:text-lg font-semibold text-muted-foreground">{cQuals}</p>
-                      <p className="text-base sm:text-lg font-medium text-foreground/80 leading-snug">{cSpec}</p>
-                      {cExp && <p className="text-base font-semibold text-primary/90 mt-2">{cExp}</p>}
+                    <div className="space-y-0.5">
+                      <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-none mb-2">{cName}</h3>
+                      <p className="text-lg sm:text-xl font-bold text-primary/80">{cQuals}</p>
                     </div>
                   </div>
 
@@ -585,8 +600,27 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   )}
                 </div>
 
+                {/* Specialty Section (Full Width) */}
+                {cSpec && (
+                  <p className="text-lg sm:text-2xl font-medium text-foreground/80 leading-tight text-center sm:text-left -mt-1 mb-2">
+                    {cSpec}
+                  </p>
+                )}
+
+                {/* Experience Banner */}
+                {cExp && (
+                  <div className="w-full bg-gradient-to-r from-primary/5 via-primary/[0.08] to-primary/5 border-y border-primary/20 py-2.5 px-6 -mx-4 mb-3 relative">
+                    <div className="absolute left-0 top-0 w-1.5 h-full bg-primary" />
+                    <div className="flex items-center justify-center">
+                      <span className="text-lg sm:text-2xl font-black text-primary tracking-tighter text-center leading-tight">
+                        {cExp}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Middle: Full Width About Section */}
-                <div className="border-b-2 border-primary/10 pb-8">
+                <div className="border-b-2 border-primary/10 pb-3">
                   <p className="text-lg leading-relaxed text-justify text-muted-foreground">
                     {consultant?.bio?.en || 'Dr. Manoj brings specialized training from Manipal Hospital to provide advanced musculoskeletal care. His practice blends surgical precision with modern biological treatments, focusing on restoring mobility and quality of life.'}
                   </p>
@@ -594,16 +628,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
                 {/* Bottom Section: Full Width Services */}
                 <div className="flex-grow">
-                  <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2 border-b border-primary/10 pb-1">
-                    <Activity className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
+                    <Activity className="h-4 w-4 text-primary" />
                     Specialized Services
                   </h3>
 
-                  <ul className="space-y-2 text-base">
+                  <ul className="space-y-1.5 text-base">
                     {(consultant?.services || []).map((service, idx) => {
                       const Icon = { Bone, Activity, User, Stethoscope, Syringe }[service.icon] || Activity;
                       return (
-                        <li key={idx} className="flex items-start gap-3 p-2 rounded-lg bg-muted/20 border border-primary/5">
+                        <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
                           <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
                           <div>
                             <strong className="block text-primary text-lg mb-0.5">{service.title.en}</strong>

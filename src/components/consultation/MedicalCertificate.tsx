@@ -9,6 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Loader2, Printer, FileEdit, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import RichTextEditor from '@/components/RichTextEditor';
+import { Consultant, ConsultantText } from '@/types/consultation';
 
 // --- Interfaces ---
 
@@ -33,6 +35,7 @@ interface MedicalCertificateProps {
   patient: Patient;
   diagnosis: string;
   certificateData: CertificateData;
+  consultant?: Consultant | null;
 }
 
 interface MedicalCertificateModalProps {
@@ -57,11 +60,19 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   patient,
   diagnosis,
   certificateData,
+  consultant,
 }) => {
   const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity, certificateDate, consultationDate, customContent } = certificateData;
   const restPeriodEndDate = addDays(restPeriodStartDate, restPeriodDays - 1);
   const patientPrefix = patient.sex === 'M' ? 'Mr.' : 'Mrs.';
   const pronounHeShe = patient.sex === 'M' ? 'He' : 'She';
+  const getConsultantText = (value?: string | ConsultantText) => {
+    if (!value) return '';
+    return typeof value === 'string' ? value : value.en || value.te || '';
+  };
+  const consultantName = getConsultantText(consultant?.name);
+  const consultantQualifications = getConsultantText(consultant?.qualifications);
+  const consultantSpecialization = getConsultantText(consultant?.specialization);
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
@@ -77,14 +88,16 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
             <img src="/images/logos/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
           </div>
           <div className="text-right">
-            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>Dr Samuel Manoj Cherukuri</h2>
-            <p className="text-muted-foreground">MBBS, MS Ortho (Manipal)</p>
-            <p className="text-muted-foreground">Orthopaedic Surgeon</p>
-            <p className="mt-2 text-gray-700">
-              <span className="font-semibold">📞 98668 12555</span>
-              <span className="mx-2">|</span>
-              <span className="font-semibold">📧 info@ortho.life</span>
-            </p>
+            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultantName}</h2>
+            <p className="text-muted-foreground">{consultantQualifications}</p>
+            <p className="text-muted-foreground">{consultantSpecialization}</p>
+            {(consultant?.phone || consultant?.email) && (
+              <p className="mt-2 text-gray-700">
+                {consultant?.phone && <span className="font-semibold">📞 {consultant.phone}</span>}
+                {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
+                {consultant?.email && <span className="font-semibold">📧 {consultant.email}</span>}
+              </p>
+            )}
           </div>
         </header>
 
@@ -126,9 +139,9 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           <div className="flex justify-between items-end">
             <div></div>
             <div className="text-center">
-              <img src="/images/assets/sign.png" alt="Doctor's Signature" className="h-20" />
+              {consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
               <div className="relative">
-                <img src="/images/assets/seal.png" alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />
+                {consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />}
               </div>
             </div>
           </div>
@@ -199,9 +212,6 @@ const generateDefaultCertificateHtml = (
 };
 
 // --- MedicalCertificateModal Component (Data Entry) ---
-
-// Import RichTextEditor dynamically or normally
-import RichTextEditor from '@/components/RichTextEditor';
 
 /**
  * MedicalCertificateModal Component

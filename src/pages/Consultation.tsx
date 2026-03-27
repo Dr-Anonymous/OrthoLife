@@ -1509,7 +1509,7 @@ const ConsultationPage = () => {
   /**
    * Handles changes to individual medication fields.
    * Includes logic for:
-   * - 'name' field shortcuts: '//' for Modal, '@' for Bundle
+   * - 'composition' field shortcuts: '//' for Keyword, '@' for Medication Manager (Admin only)
    * - Text shortcuts expansion for all text fields
    */
   const handleMedChange = useCallback((index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => {
@@ -1518,16 +1518,17 @@ const ConsultationPage = () => {
       const newMeds = [...prev.medications];
       const currentVal = newMeds[index][field];
 
-      if (field === 'composition' && typeof value === 'string' && value.includes('//')) {
-        setIsMedicationsModalOpen(true);
-        newMeds[index] = { ...newMeds[index], composition: value.replace('//', '') };
-        return { ...prev, medications: newMeds };
+      if (field === 'composition' && typeof value === 'string' && value.includes('@')) {
+        if (isMasterAdmin) {
+          setIsMedicationsModalOpen(true);
+          newMeds[index] = { ...newMeds[index], composition: value.replace('@', '') };
+          return { ...prev, medications: newMeds };
+        }
       }
 
-      if (field === 'composition' && typeof value === 'string' && value.includes('@')) {
+      if (field === 'composition' && typeof value === 'string' && value.includes('//')) {
         setIsKeywordModalOpen(true);
-        const med = newMeds[index];
-        newMeds[index] = { ...med, composition: med.composition.replace('@', '') };
+        newMeds[index] = { ...newMeds[index], composition: value.replace('//', '') };
         return { ...prev, medications: newMeds };
       }
 
@@ -2218,14 +2219,14 @@ const ConsultationPage = () => {
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={certificatePrintRef}>
           {selectedConsultation && editablePatientDetails && certificateData && (
-            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} />
+            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} consultant={consultant} />
           )}
         </div>
       </div>
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={receiptPrintRef}>
           {selectedConsultation && editablePatientDetails && receiptData && (
-            <Receipt patient={editablePatientDetails} receiptData={receiptData} />
+            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} />
           )}
         </div>
       </div>

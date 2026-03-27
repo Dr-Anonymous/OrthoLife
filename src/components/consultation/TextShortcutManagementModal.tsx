@@ -137,9 +137,9 @@ const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] overflow-y-auto max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Manage Text Shortcuts</DialogTitle>
+          <DialogTitle>Quick Text Shortcuts</DialogTitle>
           <DialogDescription>
-            Create and manage shortcuts that expand into full text in the Complaints and Diagnosis fields.
+            Quickly expand abbreviations like 'bp' to 'Blood Pressure' as you type in any medical note field. Shortcuts are triggered by typing a dot (.) followed by space (or pressing space twice).
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-6">

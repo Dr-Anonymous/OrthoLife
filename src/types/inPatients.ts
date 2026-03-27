@@ -32,6 +32,7 @@ export interface DischargeSummary {
     patient_snapshot: PatientSnapshot;
     course_details: CourseDetails;
     discharge_data: DischargeData;
+    language?: string;
 }
 
 export interface InPatient {

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
+import { Consultant, ConsultantText } from '@/types/consultation';
 
 // --- Interfaces ---
 
@@ -23,6 +24,7 @@ export interface ReceiptData {
 interface ReceiptProps {
   patient: Patient;
   receiptData: ReceiptData;
+  consultant?: Consultant | null;
 }
 
 interface ReceiptModalProps {
@@ -45,6 +47,13 @@ interface ReceiptModalProps {
 export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consultant }) => {
   const { amountPaid, serviceName } = receiptData;
   const patientPrefix = patient.sex === 'M' ? 'Mr.' : 'Mrs.';
+  const getConsultantText = (value?: string | ConsultantText) => {
+    if (!value) return '';
+    return typeof value === 'string' ? value : value.en || value.te || '';
+  };
+  const consultantName = getConsultantText(consultant?.name);
+  const consultantQualifications = getConsultantText(consultant?.qualifications);
+  const consultantSpecialization = getConsultantText(consultant?.specialization);
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
@@ -59,14 +68,16 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consulta
             <img src="/images/logos/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
           </div>
           <div className="text-right">
-            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultant?.name || ''}</h2>
-            <p className="text-muted-foreground">{consultant?.qualifications || ''}</p>
-            <p className="text-muted-foreground">{consultant?.specialization || ''}</p>
-            <p className="mt-2 text-gray-700">
-              <span className="font-semibold">📞 {consultant?.phone || ''}</span>
-              <span className="mx-2">|</span>
-              <span className="font-semibold">📧 {consultant?.email || ''}</span>
-            </p>
+            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultantName}</h2>
+            <p className="text-muted-foreground">{consultantQualifications}</p>
+            <p className="text-muted-foreground">{consultantSpecialization}</p>
+            {(consultant?.phone || consultant?.email) && (
+              <p className="mt-2 text-gray-700">
+                {consultant?.phone && <span className="font-semibold">📞 {consultant.phone}</span>}
+                {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
+                {consultant?.email && <span className="font-semibold">📧 {consultant.email}</span>}
+              </p>
+            )}
           </div>
         </header>
 

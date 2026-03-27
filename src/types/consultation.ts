@@ -69,6 +69,7 @@ export interface Consultant {
     photo_url?: string;
     sign_url?: string;
     seal_url?: string;
+    logo_url?: string;
     bio?: ConsultantBio;
     services?: ConsultantService[];
     is_admin: boolean;

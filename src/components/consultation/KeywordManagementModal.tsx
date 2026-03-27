@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, X, Plus, Edit, Save, Search } from 'lucide-react';
@@ -65,7 +65,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
-  const filteredMeds = medications.filter(med => 
+  const filteredMeds = medications.filter(med =>
     med.composition.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -133,18 +133,9 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         if (prefilledData.investigations) setInvestigations(prefilledData.investigations);
         if (prefilledData.followup) setFollowup(prefilledData.followup);
         if (prefilledData.followup_te) setFollowupTe(prefilledData.followup_te);
-
-        // Match medications by name to get IDs
-        // We need to wait for medications to be fetched or simpler: assume we have them or will have them.
-        // fetchMedications is async. We might need to run this logic AFTER fetchMedications completes.
-        // Or simply do it here relying on eventual consistency if meds are already loaded or load fast?
-        // Better: do this logic inside fetchMedications or dependent on medications state change?
-        // PRE-EXISTING medications state might be empty on first open.
       }
     }
   }, [isOpen]);
-
-
 
   const hasPrefilledRef = React.useRef(false);
 
@@ -247,7 +238,10 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl overflow-y-auto max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Manage Autofill Keywords</DialogTitle>
+          <DialogTitle>Keyword-Based Protocols</DialogTitle>
+          <DialogDescription>
+            Automatically populate medications and advice based on complaints, diagnosis or procedure names. When you type matching keywords, relevant clinical protocols will be suggested for one-click entry.
+          </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-6">
           <div className="space-y-4">
@@ -273,25 +267,25 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                 </div>
                 <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
                   {filteredMeds.map((med, idx) => (
-                      <div 
-                        key={med.id} 
-                        className={`flex items-center gap-2 p-1 rounded-sm transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          id={`med-${med.id}`}
-                          checked={selectedMeds.includes(med.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedMeds(prev => [...prev, med.id]);
-                            } else {
-                              setSelectedMeds(prev => prev.filter(id => id !== med.id));
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`med-${med.id}`}>{med.composition}</Label>
-                      </div>
-                    ))}
+                    <div
+                      key={med.id}
+                      className={`flex items-center gap-2 p-1 rounded-sm transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        id={`med-${med.id}`}
+                        checked={selectedMeds.includes(med.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedMeds(prev => [...prev, med.id]);
+                          } else {
+                            setSelectedMeds(prev => prev.filter(id => id !== med.id));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`med-${med.id}`}>{med.composition}</Label>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

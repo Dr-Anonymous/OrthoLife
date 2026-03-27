@@ -134,7 +134,11 @@
     "/te/guides/11",
     "/te/guides/బరువు-తగ్గడం",
     "/te/guides/weight-loss-guide",
-    "/te/guides/17"
+    "/te/guides/17",
+    "/op",
+    "/stats",
+    "/followups",
+    "/ip"
   ],
   "metadata": [
     {
@@ -946,6 +950,30 @@
       "title": "బరువు తగ్గడం: ఆరోగ్యకరమైన కీళ్లు మరియు జీవనశైలి కోసం మార్గదర్శిని",
       "description": "అధిక బరువు మీ మోకాళ్లు మరియు వెన్నెముకపై విపరీతమైన ఒత్తిడిని కలిగిస్తుంది. ఆంధ్ర రుచులకు తగిన 7 రోజుల ఆహార ప్రణాళికతో సురక్షితంగా బరువు తగ్గడం ఎలాగో నేర్చుకోండి.",
       "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
+    },
+    {
+      "route": "/op",
+      "title": "Doctor Workspace",
+      "description": "Secure professional portal for OrthoLife consultants to manage patient consultations and medicine prescriptions.",
+      "image": "https://ortho.life/logo.png"
+    },
+    {
+      "route": "/stats",
+      "title": "Consultation Statistics",
+      "description": "Analyze consultation trends, patient demographics, and department-wise statistics.",
+      "image": "https://ortho.life/logo.png"
+    },
+    {
+      "route": "/followups",
+      "title": "Follow-up Dashboard",
+      "description": "Manage upcoming reviews and send reminders to patients scheduled for follow-up visits.",
+      "image": "https://ortho.life/logo.png"
+    },
+    {
+      "route": "/ip",
+      "title": "In-Patient Portal",
+      "description": "Secure portal for doctors to manage in-patient surgical care, hospital rounds, and patient recovery tracking.",
+      "image": "https://ortho.life/logo.png"
     }
   ]
 }
