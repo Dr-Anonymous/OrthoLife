@@ -359,15 +359,21 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                 )}
 
                                 {/* Signature Block */}
-                                <div className="mt-8 flex justify-between items-end px-8 break-inside-avoid relative z-[60]" style={{ pageBreakInside: 'avoid' }}>
-                                    <div></div>
-                                    <div className="text-center">
-                                        <img src={consultant?.sign_url || "/images/assets/sign.png"} alt="Doctor's Signature" className="h-16" />
-                                        <div className="relative">
-                                            <img src={consultant?.seal_url || "/images/assets/seal.png"} alt="Doctor's Seal" className="h-20 absolute -top-12 left-1/2 -translate-x-1/2 opacity-50" />
+                                {(consultant?.sign_url || consultant?.seal_url) && (
+                                    <div className="mt-8 flex justify-between items-end px-8 break-inside-avoid relative z-[60]" style={{ pageBreakInside: 'avoid' }}>
+                                        <div></div>
+                                        <div className="text-center">
+                                            {consultant?.sign_url && (
+                                                <img src={consultant.sign_url} alt="Doctor's Signature" className="h-16" />
+                                            )}
+                                            <div className="relative">
+                                                {consultant?.seal_url && (
+                                                    <img src={consultant.seal_url} alt="Doctor's Seal" className="h-20 absolute -top-12 left-1/2 -translate-x-1/2 opacity-40 z-[-1]" />
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </main>
                         </td>
                     </tr>

@@ -428,12 +428,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
         {/* Footer Group */}
         <div className="mt-auto break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-          {showSignSeal && (
+          {showSignSeal && (consultant?.sign_url || consultant?.seal_url) && (
             <div className="flex justify-end mb-2 mr-4">
               <div className="relative flex items-center justify-center">
-                <img src={consultant?.sign_url || "/images/assets/sign.png"} alt="Doctor's Signature" className="h-16 w-auto relative z-10" />
+                {consultant?.sign_url && (
+                  <img src={consultant.sign_url} alt="Doctor's Signature" className="h-16 w-auto relative z-10" />
+                )}
                 <div className="absolute opacity-50 z-0" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-                  <img src={consultant?.seal_url || "/images/assets/seal.png"} alt="Doctor's Seal" className="h-24 w-32" />
+                  {consultant?.seal_url && (
+                    <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 w-32" />
+                  )}
                 </div>
               </div>
             </div>
@@ -470,13 +474,15 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
 
                     {/* Mobile Image */}
-                    <div className="block sm:hidden print:hidden flex justify-center py-4">
-                      <img
-                        src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                        alt={cName || "Doctor"}
-                        className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
-                      />
-                    </div>
+                    {consultant?.photo_url && (
+                      <div className="block sm:hidden print:hidden flex justify-center py-4">
+                        <img
+                          src={consultant.photo_url}
+                          alt={cName || "Doctor"}
+                          className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
+                        />
+                      </div>
+                    )}
 
                     <div className="space-y-1">
                       <h3 className="text-xl sm:text-2xl font-bold text-foreground">{cName}</h3>
@@ -487,13 +493,15 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   </div>
 
                   {/* Right: Image */}
-                  <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
-                    <img
-                      src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                      alt={cName || "Doctor"}
-                      className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
-                    />
-                  </div>
+                  {consultant?.photo_url && (
+                    <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
+                      <img
+                        src={consultant.photo_url}
+                        alt={cName || "Doctor"}
+                        className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Middle: Full Width About Section */}
@@ -547,13 +555,15 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
 
                     {/* Mobile Image */}
-                    <div className="block sm:hidden print:hidden flex justify-center py-4">
-                      <img
-                        src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                        alt={cName || "Doctor"}
-                        className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
-                      />
-                    </div>
+                    {consultant?.photo_url && (
+                      <div className="block sm:hidden print:hidden flex justify-center py-4">
+                        <img
+                          src={consultant.photo_url}
+                          alt={cName || "Doctor"}
+                          className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
+                        />
+                      </div>
+                    )}
 
                     <div className="space-y-1">
                       <h3 className="text-xl sm:text-2xl font-bold text-foreground">{cName}</h3>
@@ -564,13 +574,15 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   </div>
 
                   {/* Right: Image */}
-                  <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
-                    <img
-                      src={consultant?.photo_url || "/images/doctors/manojBW.jpg"}
-                      alt={cName || "Doctor"}
-                      className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
-                    />
-                  </div>
+                  {consultant?.photo_url && (
+                    <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
+                      <img
+                        src={consultant.photo_url}
+                        alt={cName || "Doctor"}
+                        className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Middle: Full Width About Section */}
