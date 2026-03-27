@@ -341,74 +341,131 @@ const FollowUpDashboard = () => {
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : followUpList.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Patient</TableHead>
-                        <TableHead>Last Visit</TableHead>
-                        <TableHead>Instruction</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {followUpList.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <button 
-                                onClick={() => setSelectedConsultation(c)}
-                                className="font-medium text-left hover:underline text-primary"
-                              >
-                                {c.patient.name}
-                              </button>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Phone className="w-3 h-3" /> {c.patient.phone}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col text-xs">
-                              <span>{format(new Date(c.created_at), 'MMM d, yyyy')}</span>
-                              <span className="flex items-center gap-1 text-muted-foreground">
-                                <MapPin className="w-3 h-3" /> {c.location}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate text-sm italic text-muted-foreground">
-                            {stripFollowUpPrefix(c.consultation_data?.followup)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0 border-green-200 text-green-600 hover:bg-green-50"
-                                onClick={() => handleWhatsAppReminder(c)}
-                                title="Send WhatsApp Reminder"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0 border-blue-200 text-blue-600 hover:bg-blue-50"
-                                onClick={() => handleCallPatient(c.patient.phone)}
-                                title="Call Patient"
-                              >
-                                <Phone className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Patient</TableHead>
+                          <TableHead>Last Visit</TableHead>
+                          <TableHead>Instruction</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {followUpList.map((c) => (
+                          <TableRow key={c.id}>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <button 
+                                  onClick={() => setSelectedConsultation(c)}
+                                  className="font-medium text-left hover:underline text-primary"
+                                >
+                                  {c.patient.name}
+                                </button>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Phone className="w-3 h-3" /> {c.patient.phone}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col text-xs">
+                                <span>{format(new Date(c.created_at), 'MMM d, yyyy')}</span>
+                                <span className="flex items-center gap-1 text-muted-foreground">
+                                  <MapPin className="w-3 h-3" /> {c.location}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate text-sm italic text-muted-foreground">
+                              {stripFollowUpPrefix(c.consultation_data?.followup)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 border-green-200 text-green-600 hover:bg-green-50"
+                                  onClick={() => handleWhatsAppReminder(c)}
+                                  title="Send WhatsApp Reminder"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 border-blue-200 text-blue-600 hover:bg-blue-50"
+                                  onClick={() => handleCallPatient(c.patient.phone)}
+                                  title="Call Patient"
+                                >
+                                  <Phone className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile List View */}
+                  <div className="md:hidden space-y-4">
+                    {followUpList.map((c) => (
+                      <div key={c.id} className="p-4 rounded-lg bg-card shadow-sm border space-y-3">
+                        <div className="flex justify-between items-start">
+                          <button 
+                            onClick={() => setSelectedConsultation(c)}
+                            className="font-bold text-left hover:underline text-primary text-lg transition-colors"
+                          >
+                            {c.patient.name}
+                          </button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 p-0 rounded-full border-green-200 text-green-600 bg-green-50/50"
+                              onClick={() => handleWhatsAppReminder(c)}
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 p-0 rounded-full border-blue-200 text-blue-600 bg-blue-50/50"
+                              onClick={() => handleCallPatient(c.patient.phone)}
+                            >
+                              <Phone className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Phone</span>
+                            <span className="flex items-center gap-1 font-medium"><Phone className="w-3 h-3" /> {c.patient.phone}</span>
+                          </div>
+                          <div className="flex flex-col gap-1 text-right">
+                            <span className="text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Last Visit</span>
+                            <span className="font-medium">{format(new Date(c.created_at), 'MMM d, yyyy')}</span>
+                          </div>
+                        </div>
+
+                        {c.consultation_data?.followup && (
+                          <div className="p-3 rounded bg-muted/50 border border-muted-foreground/10">
+                             <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Instruction</div>
+                             <p className="text-sm text-muted-foreground italic line-clamp-3">
+                               {stripFollowUpPrefix(c.consultation_data.followup)}
+                             </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                   <User className="w-12 h-12 mb-4 opacity-20" />
-                  <p>No patients scheduled for review on this date.</p>
+                  <p className="text-center px-4">No patients scheduled for review on this date.</p>
                 </div>
               )}
             </CardContent>
@@ -423,16 +480,33 @@ const FollowUpDashboard = () => {
             </DialogHeader>
             {selectedConsultation && (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 pb-4 border-b">
-                  <div>
-                    <label className="text-xs text-muted-foreground uppercase font-semibold">Patient</label>
-                    <p className="font-medium text-lg">{selectedConsultation.patient.name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedConsultation.patient.phone}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Patient Details</label>
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <User className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg leading-none">{selectedConsultation.patient.name}</p>
+                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> {selectedConsultation.patient.phone}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <label className="text-xs text-muted-foreground uppercase font-semibold">Last Visit</label>
-                    <p className="font-medium">{format(new Date(selectedConsultation.created_at), 'PPP')}</p>
-                    <p className="text-sm text-muted-foreground">{selectedConsultation.location}</p>
+                  <div className="sm:text-right space-y-1">
+                    <label className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Last Visit</label>
+                    <div className="flex flex-col sm:items-end">
+                      <p className="font-semibold flex items-center gap-2 text-foreground">
+                        <CalendarIcon className="w-4 h-4 text-primary sm:order-last" />
+                        {format(new Date(selectedConsultation.created_at), 'PPP')}
+                      </p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                        <MapPin className="w-3.5 h-3.5 text-primary sm:order-last" />
+                        {selectedConsultation.location}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
