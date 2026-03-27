@@ -16,6 +16,7 @@ const DischargeSummaryDownload = () => {
     const navigate = useNavigate();
     const { i18n } = useTranslation();
     const [summaryData, setSummaryData] = useState<any>(null);
+    const [consultationConsultant, setConsultationConsultant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -86,10 +87,22 @@ const DischargeSummaryDownload = () => {
             if (inPatientData && inPatientData.discharge_summary) {
                 setSummaryData({
                     ...inPatientData.discharge_summary,
-                    ...inPatientData.discharge_summary,
                     language: inPatientData.language, // Use saved language preference
                     savedDischargeDate: inPatientData.discharge_date
                 });
+
+                // 3. Fetch consultant details if available
+                if (inPatientData.consultant_id) {
+                    const { data: consultantData, error: consultantError } = await supabase
+                        .from('consultants')
+                        .select('*')
+                        .eq('id', inPatientData.consultant_id)
+                        .maybeSingle();
+
+                    if (!consultantError && consultantData) {
+                        setConsultationConsultant(consultantData);
+                    }
+                }
             } else {
                 setError("No discharge summary found for this patient");
             }
@@ -202,10 +215,11 @@ const DischargeSummaryDownload = () => {
                         courseDetails={summaryData.course_details}
                         dischargeData={summaryData.discharge_data}
                         language={summaryData.language || i18n.language}
-                        logoUrl="/images/logos/logo.png"
+                        logoUrl={consultationConsultant?.logo_url || "/images/logos/logo.png"}
                         className="min-h-[297mm]"
                         dischargeDate={summaryData.savedDischargeDate}
                         showMargins={false}
+                        consultant={consultationConsultant}
                     />
                 )}
             </div>
@@ -250,10 +264,11 @@ const DischargeSummaryDownload = () => {
                             courseDetails={summaryData.course_details}
                             dischargeData={summaryData.discharge_data}
                             language={summaryData.language || i18n.language}
-                            logoUrl="/images/logos/logo.png"
+                            logoUrl={consultationConsultant?.logo_url || "/images/logos/logo.png"}
                             forceDesktop={true}
                             dischargeDate={summaryData.savedDischargeDate}
                             showMargins={false}
+                            consultant={consultationConsultant}
                         />
                     )}
                 </div>

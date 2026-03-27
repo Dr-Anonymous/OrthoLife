@@ -864,16 +864,17 @@ const ConsultationPage = () => {
     }
   }, [isGpsEnabled, selectedHospital.name, hospitals]);
 
-  // Use useCallback to access latest state if needed, or pass args
+  // State for auto-sending WhatsApp messages
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(() => {
     const stored = localStorage.getItem('isAutoSendEnabled');
     return stored !== null ? JSON.parse(stored) : true;
   });
 
-  const generateCompletionMessage = useCallback((patient: any, guidesMatched: any[]) => {
-    // Use selected consultation language
-    return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage);
-  }, [consultationLanguage]);
+  // Modification: Added consultant dependency for scoped messaging
+  const generateCompletionMessage = useCallback((patient: Patient, guidesMatched: any[]) => {
+    // Pass consultant profile for personalized messages
+    return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage, consultant?.name);
+  }, [consultationLanguage, consultant]);
 
   // --- Completion Message Logic ---
   const handleOpenCompletionModal = useCallback(() => {

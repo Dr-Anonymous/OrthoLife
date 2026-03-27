@@ -5,7 +5,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +15,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useConsultant } from '@/context/ConsultantContext';
 import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
+import { compressImage } from '@/lib/image-utils';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -84,7 +83,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
       .from('hospitals')
       .select('*')
       .eq('consultant_id', consultant.id);
-    
+
     if (data) setEditableHospitals(data);
   };
 
@@ -115,7 +114,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         .eq('id', consultant.id);
 
       if (error) throw error;
-      
+
       await refreshConsultant();
       toast({ title: 'Profile Updated', description: 'Your professional profile has been saved successfully.' });
     } catch (err: any) {
@@ -131,21 +130,49 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
     setIsUploading(true);
     try {
+      // 1. Capture old URL for cleanup after successful upload
+      const oldUrl = formData[`${type}_url` as keyof typeof formData] as string;
+
+      // 2. Compress image before upload
+      const compressionToastId = toast({
+        title: 'Processing...',
+        description: 'Optimizing image for better performance.'
+      });
+
+      const compressedFile = await compressImage(file, {
+        maxSizeKB: 100,
+        maxWidthOrHeight: 1024
+      });
+
+      compressionToastId.dismiss();
+
+      // 3. Prepare upload
       const fileExt = file.name.split('.').pop();
       const fileName = `${consultant.id}/${type}_${Date.now()}.${fileExt}`;
       const filePath = `consultants/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('consultant-assets')
-        .upload(filePath, file);
+        .upload(filePath, compressedFile);
 
       if (uploadError) throw uploadError;
 
+      // 4. Get new public URL
       const { data: { publicUrl } } = supabase.storage
         .from('consultant-assets')
         .getPublicUrl(filePath);
 
       setFormData(prev => ({ ...prev, [`${type}_url`]: publicUrl }));
+
+      // 5. Cleanup old file NOW that new one is safe
+      if (oldUrl && oldUrl.includes('consultant-assets/')) {
+        const oldFileName = oldUrl.split('consultant-assets/').pop();
+        if (oldFileName) {
+          // Fire and forget cleanup - don't let it block completion
+          supabase.storage.from('consultant-assets').remove([oldFileName]).catch(console.error);
+        }
+      }
+
       toast({ title: 'Upload Successful', description: `${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully.` });
     } catch (err: any) {
       console.error('Upload error:', err);
@@ -161,13 +188,13 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     const tempId = `temp_${Date.now()}`;
     const newHospital = {
       id: tempId,
-      name: 'New Clinic/Hospital',
+      name: 'My Hospital',
       consultant_id: consultant.id,
       logo_url: '/logo.png',
-      lat: 17.3850,
-      lng: 78.4867,
+      lat: 16.9836,
+      lng: 82.2527,
       is_new: true,
-      settings: { op_fees: 0, free_visit_duration_days: 14 }
+      settings: { op_fees: 400, consultant_cut: 400, free_visit_duration_days: 14 }
     };
     setEditableHospitals(prev => [...prev, newHospital]);
   };
@@ -178,8 +205,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
   const handleDeleteHospitalUI = async (id: string) => {
     if (typeof id === 'string' && id.startsWith('temp_')) {
-        setEditableHospitals(prev => prev.filter(h => h.id !== id));
-        return;
+      setEditableHospitals(prev => prev.filter(h => h.id !== id));
+      return;
     }
 
     const { error } = await supabase.from('hospitals').delete().eq('id', id);
@@ -229,8 +256,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
   // --- Services Management ---
   const addService = () => {
     setFormData(prev => ({
-        ...prev,
-        services: [...prev.services, { title: { en: '', te: '' }, description: { en: '', te: '' }, icon: 'Bone' }]
+      ...prev,
+      services: [...prev.services, { title: { en: '', te: '' }, description: { en: '', te: '' }, icon: 'Bone' }]
     }));
   };
 
@@ -239,17 +266,17 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     // Cast to any to handle dynamic keys safely
     const currentService = newServices[index] as any;
     if (lang && (field === 'title' || field === 'description')) {
-        currentService[field][lang] = value;
+      currentService[field][lang] = value;
     } else {
-        currentService[field] = value;
+      currentService[field] = value;
     }
     setFormData(prev => ({ ...prev, services: newServices }));
   };
 
   const deleteService = (index: number) => {
     setFormData(prev => ({
-        ...prev,
-        services: prev.services.filter((_, i) => i !== index)
+      ...prev,
+      services: prev.services.filter((_, i) => i !== index)
     }));
   };
 
@@ -297,13 +324,13 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                     <Label htmlFor="gate-password">Workspace Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="gate-password" 
+                      <Input
+                        id="gate-password"
                         type={showPassword ? "text" : "password"}
-                        value={formData.password} 
-                        onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))} 
-                        className="pl-9 pr-10" 
-                        placeholder="123456" 
+                        value={formData.password}
+                        onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                        className="pl-9 pr-10"
+                        placeholder="123456"
                         maxLength={6}
                       />
                       <button
@@ -326,15 +353,24 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="name_en">Full Name (English)</Label>
-                      <Input id="name_en" value={formData.name.en} onChange={e => setFormData(prev => ({ ...prev, name: { ...prev.name, en: e.target.value } }))} placeholder="Dr. Samuel Manoj" required />
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input id="name_en" value={formData.name.en} onChange={e => setFormData(prev => ({ ...prev, name: { ...prev.name, en: e.target.value } }))} className="pl-9" placeholder="Dr. Samuel Manoj" required />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="quals_en">Qualifications (English)</Label>
-                      <Input id="quals_en" value={formData.qualifications.en} onChange={e => setFormData(prev => ({ ...prev, qualifications: { ...prev.qualifications, en: e.target.value } }))} placeholder="MBBS, MS Ortho (Manipal)" />
+                      <div className="relative">
+                        <Award className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input id="quals_en" value={formData.qualifications.en} onChange={e => setFormData(prev => ({ ...prev, qualifications: { ...prev.qualifications, en: e.target.value } }))} className="pl-9" placeholder="MBBS, MS Ortho (Manipal)" />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="spec_en">Primary Specialization (English)</Label>
-                      <Input id="spec_en" value={formData.specialization.en} onChange={e => setFormData(prev => ({ ...prev, specialization: { ...prev.specialization, en: e.target.value } }))} placeholder="Orthopaedic Surgeon" />
+                      <div className="relative">
+                        <Stethoscope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input id="spec_en" value={formData.specialization.en} onChange={e => setFormData(prev => ({ ...prev, specialization: { ...prev.specialization, en: e.target.value } }))} className="pl-9" placeholder="Orthopaedic Surgeon" />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="exp_en">Experience Tagline (English)</Label>
@@ -343,10 +379,10 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="addr_en">Complete Address (English)</Label>
-                    <Textarea 
-                      id="addr_en" 
-                      className="h-20" 
-                      value={formData.address.en} 
+                    <Textarea
+                      id="addr_en"
+                      className="h-20"
+                      value={formData.address.en}
                       onChange={e => setFormData(prev => ({ ...prev, address: { ...prev.address, en: e.target.value } }))}
                       placeholder="OrthoLife, Kakinada..."
                     />
@@ -361,15 +397,24 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="name_te">Full Name (Telugu)</Label>
-                      <Input id="name_te" value={formData.name.te} onChange={e => setFormData(prev => ({ ...prev, name: { ...prev.name, te: e.target.value } }))} placeholder="డాక్టర్ మనోజ్ గారు" />
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input id="name_te" value={formData.name.te} onChange={e => setFormData(prev => ({ ...prev, name: { ...prev.name, te: e.target.value } }))} className="pl-9" placeholder="డాక్టర్ మనోజ్ గారు" />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="quals_te">Qualifications (Telugu)</Label>
-                      <Input id="quals_te" value={formData.qualifications.te} onChange={e => setFormData(prev => ({ ...prev, qualifications: { ...prev.qualifications, te: e.target.value } }))} placeholder="MBBS, MS Ortho (మణిపాల్)" />
+                      <div className="relative">
+                        <Award className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input id="quals_te" value={formData.qualifications.te} onChange={e => setFormData(prev => ({ ...prev, qualifications: { ...prev.qualifications, te: e.target.value } }))} className="pl-9" placeholder="MBBS, MS Ortho (మణిపాల్)" />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="spec_te">Primary Specialization (Telugu)</Label>
-                      <Input id="spec_te" value={formData.specialization.te} onChange={e => setFormData(prev => ({ ...prev, specialization: { ...prev.specialization, te: e.target.value } }))} placeholder="ఆర్థోపెడిక్ సర్జన్" />
+                      <div className="relative">
+                        <Stethoscope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input id="spec_te" value={formData.specialization.te} onChange={e => setFormData(prev => ({ ...prev, specialization: { ...prev.specialization, te: e.target.value } }))} className="pl-9" placeholder="ఆర్థోపెడిక్ సర్జన్" />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="exp_te">Experience Tagline (Telugu)</Label>
@@ -378,10 +423,10 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="addr_te">Complete Address (Telugu)</Label>
-                    <Textarea 
-                      id="addr_te" 
-                      className="h-20" 
-                      value={formData.address.te} 
+                    <Textarea
+                      id="addr_te"
+                      className="h-20"
+                      value={formData.address.te}
                       onChange={e => setFormData(prev => ({ ...prev, address: { ...prev.address, te: e.target.value } }))}
                       placeholder="ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్..."
                     />
@@ -390,71 +435,76 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
                 {/* Biography Section */}
                 <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Professional Biography</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label>Bio (English)</Label>
-                            <Textarea 
-                                className="h-32 text-sm leading-relaxed" 
-                                value={formData.bio.en} 
-                                onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, en: e.target.value } }))}
-                                placeholder="Write your professional bio in English..."
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Bio (Telugu / తెలుగు)</Label>
-                            <Textarea 
-                                className="h-32 text-sm leading-relaxed" 
-                                value={formData.bio.te} 
-                                onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, te: e.target.value } }))}
-                                placeholder="మీ వృత్తిపరమైన వివరాలను తెలుగులో వ్రాయండి..."
-                            />
-                        </div>
+                  <h3 className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Professional Biography</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Bio (English)</Label>
+                      <Textarea
+                        className="h-32 text-sm leading-relaxed"
+                        value={formData.bio.en}
+                        onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, en: e.target.value } }))}
+                        placeholder="Write your professional bio in English..."
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Bio (Telugu / తెలుగు)</Label>
+                      <Textarea
+                        className="h-32 text-sm leading-relaxed"
+                        value={formData.bio.te}
+                        onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, te: e.target.value } }))}
+                        placeholder="మీ వృత్తిపరమైన వివరాలను తెలుగులో వ్రాయండి..."
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Services Section */}
                 <div className="space-y-4 pt-4 border-t">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-sm font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4 text-primary" /> Specializations & Services</h3>
-                        <Button type="button" variant="outline" size="sm" onClick={addService}><Plus className="w-4 h-4 mr-1" /> Add Service</Button>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                        {formData.services.map((service: any, idx: number) => (
-                            <div key={idx} className="border rounded-lg p-4 bg-secondary/5 relative group">
-                                <Button type="button" variant="ghost" size="icon" className="absolute right-2 top-2 h-7 w-7 text-destructive opacity-0 group-hover:opacity-100" onClick={() => deleteService(idx)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-xs">Title (EN)</Label>
-                                            <Input value={service.title.en} onChange={e => updateService(idx, 'title', e.target.value, 'en')} className="h-8 text-sm" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-xs">Title (TE)</Label>
-                                            <Input value={service.title.te} onChange={e => updateService(idx, 'title', e.target.value, 'te')} className="h-8 text-sm" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-xs">Description (EN)</Label>
-                                            <Input value={service.description.en} onChange={e => updateService(idx, 'description', e.target.value, 'en')} className="h-8 text-sm" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-xs">Description (TE)</Label>
-                                            <Input value={service.description.te} onChange={e => updateService(idx, 'description', e.target.value, 'te')} className="h-8 text-sm" />
-                                        </div>
-                                    </div>
-                                </div>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4 text-primary" /> Specializations & Services</h3>
+                    <Button type="button" variant="outline" size="sm" onClick={addService}><Plus className="w-4 h-4 mr-1" /> Add Service</Button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    {formData.services.map((service: any, idx: number) => (
+                      <div key={idx} className="border rounded-lg p-4 bg-secondary/5 relative group">
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-2 top-2 h-7 w-7 text-destructive opacity-0 group-hover:opacity-100" onClick={() => deleteService(idx)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs">Title (EN)</Label>
+                              <Input value={service.title.en} onChange={e => updateService(idx, 'title', e.target.value, 'en')} className="h-8 text-sm" />
                             </div>
-                        ))}
-                    </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Title (TE)</Label>
+                              <Input value={service.title.te} onChange={e => updateService(idx, 'title', e.target.value, 'te')} className="h-8 text-sm" />
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs">Description (EN)</Label>
+                              <Input value={service.description.en} onChange={e => updateService(idx, 'description', e.target.value, 'en')} className="h-8 text-sm" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Description (TE)</Label>
+                              <Input value={service.description.te} onChange={e => updateService(idx, 'description', e.target.value, 'te')} className="h-8 text-sm" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Assets Section */}
                 <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-sm font-semibold">Digital Assets (Sign, Seal, Photo)</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <h3 className="text-sm font-semibold">Digital Assets (Sign, Seal, Photo)</h3>
+                    <p className="text-[10px] text-muted-foreground italic bg-secondary/10 px-2 py-0.5 rounded-full">
+                      Images are automatically compressed & old versions deleted.
+                    </p>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-3">
                       <Label className="flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Profile Photo</Label>
@@ -490,10 +540,10 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                 </div>
 
                 <div className="flex flex-col-reverse md:flex-row justify-between items-stretch md:items-center gap-3 pt-6 border-t sticky bottom-0 bg-background py-4 z-20 mt-auto">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold h-10 px-4 shrink-0 transition-colors" 
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold h-10 px-4 shrink-0 transition-colors"
                     onClick={handleLogout}
                   >
                     <LogOut className="w-4 h-4 mr-2" /> Log Out
@@ -526,28 +576,28 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       <div className="space-y-2"><Label>Logo URL / Path</Label><Input value={hospital.logo_url} onChange={e => handleUpdateHospitalUI(hospital.id, { logo_url: e.target.value })} /></div>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                       <div className="space-y-2"><Label>OP Fees (₹)</Label><Input type="number" value={hospital.settings?.op_fees || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, op_fees: parseInt(e.target.value) }})} /></div>
-                       <div className="space-y-2"><Label>Consultant Cut (₹)</Label><Input type="number" value={hospital.settings?.consultant_cut || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, consultant_cut: parseInt(e.target.value) }})} /></div>
-                       <div className="space-y-2"><Label>Free Visit (Days)</Label><Input type="number" value={hospital.settings?.free_visit_duration_days || 14} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, free_visit_duration_days: parseInt(e.target.value) }})} /></div>
-                       <div className="space-y-2"><Label>Lat</Label><Input type="number" step="any" value={hospital.lat || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lat: parseFloat(e.target.value) })} /></div>
-                       <div className="space-y-2"><Label>Lng</Label><Input type="number" step="any" value={hospital.lng || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lng: parseFloat(e.target.value) })} /></div>
+                      <div className="space-y-2"><Label>OP Fees (₹)</Label><Input type="number" value={hospital.settings?.op_fees || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, op_fees: parseInt(e.target.value) } })} /></div>
+                      <div className="space-y-2"><Label>Consultant Cut (₹)</Label><Input type="number" value={hospital.settings?.consultant_cut || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, consultant_cut: parseInt(e.target.value) } })} /></div>
+                      <div className="space-y-2"><Label>Free Visit (Days)</Label><Input type="number" value={hospital.settings?.free_visit_duration_days || 14} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, free_visit_duration_days: parseInt(e.target.value) } })} /></div>
+                      <div className="space-y-2"><Label>Lat</Label><Input type="number" step="any" value={hospital.lat || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lat: parseFloat(e.target.value) })} /></div>
+                      <div className="space-y-2"><Label>Lng</Label><Input type="number" step="any" value={hospital.lng || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lng: parseFloat(e.target.value) })} /></div>
                     </div>
                   </div>
                 ))}
-                
+
                 {editableHospitals.length > 0 && (
                   <div className="flex flex-col-reverse md:flex-row justify-between items-stretch md:items-center gap-3 pt-6 border-t sticky bottom-0 bg-background py-4 z-20 mt-auto">
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold h-10 px-4 shrink-0 transition-colors" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold h-10 px-4 shrink-0 transition-colors"
                       onClick={handleLogout}
                     >
                       <LogOut className="w-4 h-4 mr-2" /> Log Out
                     </Button>
                     <Button type="button" onClick={handleSaveAllLocations} disabled={isSaving} className="flex-grow bg-primary text-primary-foreground shadow-lg h-10 px-6 font-semibold">
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                        Save All Location Changes
+                      {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                      Save All Location Changes
                     </Button>
                   </div>
                 )}

@@ -20,6 +20,7 @@ const PrescriptionDownload = () => {
     const { i18n } = useTranslation();
     const { getHospitalByName } = useHospitals();
     const [consultation, setConsultation] = useState<any>(null);
+    const [consultationConsultant, setConsultationConsultant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -88,7 +89,21 @@ const PrescriptionDownload = () => {
                     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                 );
 
-                setConsultation(sorted[0]);
+                const currentConsultation = sorted[0];
+                setConsultation(currentConsultation);
+
+                // 3. Fetch consultant details if available
+                if (currentConsultation.consultant_id) {
+                    const { data: consultantData, error: consultantError } = await supabase
+                        .from('consultants')
+                        .select('*')
+                        .eq('id', currentConsultation.consultant_id)
+                        .maybeSingle();
+
+                    if (!consultantError && consultantData) {
+                        setConsultationConsultant(consultantData);
+                    }
+                }
             } else {
                 setError("No consultations found for this patient");
             }
@@ -202,9 +217,11 @@ const PrescriptionDownload = () => {
                         consultationDate={new Date(consultation.created_at)}
                         age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                         language={consultation.language || i18n.language}
-                        logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                        logoUrl={getHospitalByName(consultation.location)?.logoUrl || consultationConsultant?.logo_url || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                         className="min-h-[297mm]"
                         showMargins={false}
+                        consultant={consultationConsultant}
+                        showSignSeal={true}
                     />
                 )}
             </div>
@@ -251,12 +268,14 @@ const PrescriptionDownload = () => {
                             consultationDate={new Date(consultation.created_at)}
                             age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                             language={consultation.language || i18n.language}
-                            logoUrl={getHospitalByName(consultation.location)?.logoUrl || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                            logoUrl={getHospitalByName(consultation.location)?.logoUrl || consultationConsultant?.logo_url || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                             qrCodeUrl="/images/assets/qr-code.png"
                             noBackground={true}
                             forceDesktop={true}
                             visitType={consultation.visit_type}
                             showMargins={false}
+                            consultant={consultationConsultant}
+                            showSignSeal={true}
                         />
                     )}
                 </div>

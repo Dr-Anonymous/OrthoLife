@@ -32,6 +32,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [printingConsultation, setPrintingConsultation] = useState<any>(null);
+  const [printingConsultant, setPrintingConsultant] = useState<any>(null);
   const printRef = useRef(null);
 
   const fetchRecords = async () => {
@@ -86,10 +87,42 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
   });
 
   useEffect(() => {
-    if (printingConsultation) {
+    if (printingConsultation && printingConsultant) {
       handlePrint();
     }
-  }, [printingConsultation, handlePrint]);
+  }, [printingConsultation, printingConsultant, handlePrint]);
+
+  const onDownloadClick = async (consultation: any) => {
+    try {
+      setLoading(true);
+      // Fetch consultant details first
+      if (consultation.consultant_id) {
+        const { data: consultantData, error: consultantError } = await supabase
+          .from('consultants')
+          .select('*')
+          .eq('id', consultation.consultant_id)
+          .maybeSingle();
+
+        if (!consultantError && consultantData) {
+          setPrintingConsultant(consultantData);
+        } else {
+          setPrintingConsultant(null);
+        }
+      } else {
+        setPrintingConsultant(null);
+      }
+      setPrintingConsultation(consultation);
+
+      // If no consultant_id, we can print immediately (if logic allowed it, but useEffect handles it better)
+      if (!consultation.consultant_id) {
+        setPrintingConsultant({}); // Empty object to trigger useEffect
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileUpload = async (retryCount = 1) => {
     if (!selectedFile || !patientId) return;
@@ -156,7 +189,7 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                   <p className="font-medium text-gray-800">Consultation</p>
                   <p className="text-sm text-gray-600">{format(new Date(consultation.created_at), 'PPP')}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setPrintingConsultation(consultation)}>
+                <Button variant="outline" size="sm" onClick={() => onDownloadClick(consultation)}>
                   <Download className="mr-2 h-4 w-4" />
                   {t('prescriptionsCard.download')}
                 </Button>
@@ -290,11 +323,13 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                 consultation={cleanConsultationData(printingConsultation.consultation_data)}
                 consultationDate={new Date(printingConsultation.created_at)}
                 age={printingConsultation.patient.dob ? Math.floor((new Date().getTime() - new Date(printingConsultation.patient.dob).getTime()) / 31557600000) : ''}
-                language={i18n.language}
-                logoUrl={getHospitalByName(printingConsultation.location || 'OrthoLife')?.logoUrl}
+                language={printingConsultation.language || i18n.language}
+                logoUrl={getHospitalByName(printingConsultation.location)?.logoUrl || (printingConsultant && printingConsultant.id ? printingConsultant.logo_url : null) || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
                 className="min-h-[297mm]"
                 forceDesktop={true}
                 showMargins={false}
+                consultant={printingConsultant && printingConsultant.id ? printingConsultant : null}
+                showSignSeal={true}
               />
             )}
           </div>
