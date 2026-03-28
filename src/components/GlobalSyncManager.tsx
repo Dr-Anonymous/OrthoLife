@@ -17,7 +17,7 @@ export const GlobalSyncManager = () => {
     // Whitelist paths where we show the sync status (mainly admin/staff pages)
     // Hiding it on public pages to avoid confusion
     const showSyncStatus = [
-        '/op', '/badam', '/laxmi', '/ortholife', '/ip', '/pharmacy', '/diagnostics', '/admin'
+        '/op', '/registration', '/ip', '/pharmacy', '/diagnostics', '/admin'
     ].some(path => location.pathname.toLowerCase().includes(path));
 
     const {

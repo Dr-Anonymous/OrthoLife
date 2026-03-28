@@ -99,9 +99,6 @@ const App = () => {
                     <Route path="/appointment/:serviceType" element={<AppointmentPage />} />
                     <Route path="/legal" element={<LegalPoliciesPage />} />
                     <Route path="/wa" element={<WhatsAppMe />} />
-                    <Route path="/badam" element={<PatientRegistration />} />
-                    <Route path="/laxmi" element={<PatientRegistration />} />
-                    <Route path="/ortholife" element={<PatientRegistration />} />
                     <Route path="/registration" element={<PatientRegistration />} />
                     <Route path="/op" element={<Consultation />} />
                     <Route path="/stats" element={<ConsultationStats />} />

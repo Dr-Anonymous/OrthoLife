@@ -2,7 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { cleanAdviceLine } from '@/lib/utils';
-import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope } from 'lucide-react';
+import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope, Heart, Brain, Eye, FlaskConical, Thermometer, Baby, BriefcaseMedical } from 'lucide-react';
 import { Consultant } from '@/types/consultation';
 
 interface Medication {
@@ -537,7 +537,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   
                   <ul className="space-y-1.5 text-base">
                     {(consultant?.services || []).map((service, idx) => {
-                      const Icon = { Bone, Activity, User, Stethoscope, Syringe }[service.icon] || Activity;
+                      const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
                       return (
                         <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
                           <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
@@ -635,7 +635,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
                   <ul className="space-y-1.5 text-base">
                     {(consultant?.services || []).map((service, idx) => {
-                      const Icon = { Bone, Activity, User, Stethoscope, Syringe }[service.icon] || Activity;
+                      const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
                       return (
                         <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
                           <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />

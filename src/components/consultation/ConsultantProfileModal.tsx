@@ -17,7 +17,8 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { compressImage } from '@/lib/image-utils';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff, Bone, Activity, Syringe, ChevronUp, ChevronDown, Heart, Brain, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -54,6 +55,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     reception_password: (consultant as any)?.reception_password || '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showReceptionPassword, setShowReceptionPassword] = useState(false);
 
   // Locations State (fetched separately for editing)
   const [editableHospitals, setEditableHospitals] = useState<any[]>([]);
@@ -285,6 +287,17 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
       services: prev.services.filter((_, i) => i !== index)
     }));
   };
+  
+  const moveService = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === formData.services.length - 1) return;
+    
+    const newServices = [...formData.services];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newServices[index], newServices[targetIndex]] = [newServices[targetIndex], newServices[index]];
+    
+    setFormData(prev => ({ ...prev, services: newServices }));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -379,13 +392,20 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="reception_password"
-                          type={showPassword ? "text" : "password"}
+                          type={showReceptionPassword ? "text" : "password"}
                           value={formData.reception_password}
                           onChange={e => setFormData(prev => ({ ...prev, reception_password: e.target.value }))}
                           className="pl-9 pr-10"
                           placeholder="Default: 123456"
                           maxLength={10}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowReceptionPassword(!showReceptionPassword)}
+                          className="absolute right-3 top-3 text-muted-foreground hover:text-foreground outline-none"
+                        >
+                          {showReceptionPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -508,38 +528,114 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                 <div className="space-y-4 pt-4 border-t">
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4 text-primary" /> Specializations & Services</h3>
-                    <Button type="button" variant="outline" size="sm" onClick={addService}><Plus className="w-4 h-4 mr-1" /> Add Service</Button>
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     {formData.services.map((service: any, idx: number) => (
-                      <div key={idx} className="border rounded-lg p-4 bg-secondary/5 relative group">
-                        <Button type="button" variant="ghost" size="icon" className="absolute right-2 top-2 h-7 w-7 text-destructive opacity-0 group-hover:opacity-100" onClick={() => deleteService(idx)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div key={idx} className="border rounded-lg p-4 bg-secondary/5 relative group transition-all hover:bg-secondary/10">
+                        {/* Reorder/Delete Toolbar (Moved to bottom right to avoid overlap) */}
+                        <div className="absolute right-3 bottom-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded-md border shadow-sm z-20">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-muted-foreground hover:text-primary transition-colors disabled:opacity-30" 
+                            disabled={idx === 0}
+                            onClick={() => moveService(idx, 'up')}
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-muted-foreground hover:text-primary transition-colors disabled:opacity-30" 
+                            disabled={idx === formData.services.length - 1}
+                            onClick={() => moveService(idx, 'down')}
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                          <div className="w-px h-4 bg-border mx-0.5" />
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10 transition-colors" 
+                            onClick={() => deleteService(idx)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Top Row: Icon Selector */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pb-3 mb-3 border-b border-primary/10">
+                            <Label className="text-[10px] uppercase text-muted-foreground font-bold whitespace-nowrap">Service Icon</Label>
+                            <div className="flex flex-wrap gap-1 p-0.5 w-full">
+                                {[
+                                    { key: 'Bone', icon: Bone },
+                                    { key: 'Activity', icon: Activity },
+                                    { key: 'User', icon: User },
+                                    { key: 'Stethoscope', icon: Stethoscope },
+                                    { key: 'Syringe', icon: Syringe },
+                                    { key: 'Heart', icon: Heart },
+                                    { key: 'Brain', icon: Brain },
+                                    { key: 'Eye', icon: Eye },
+                                    { key: 'Pill', icon: Pill },
+                                    { key: 'FlaskConical', icon: FlaskConical },
+                                    { key: 'Thermometer', icon: Thermometer },
+                                    { key: 'Baby', icon: Baby },
+                                    { key: 'BriefcaseMedical', icon: BriefcaseMedical },
+                                ].map(({ key, icon: IconComp }) => (
+                                    <Button
+                                        key={key}
+                                        type="button"
+                                        variant={service.icon === key ? 'default' : 'ghost'}
+                                        size="icon"
+                                        className={cn(
+                                            "h-8 w-8 transition-all shrink-0",
+                                            service.icon === key ? "shadow-md scale-110 z-10" : "hover:bg-primary/10 text-muted-foreground"
+                                        )}
+                                        onClick={() => updateService(idx, 'icon', key)}
+                                    >
+                                        <IconComp className="h-4 w-4" />
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label className="text-xs">Title (EN)</Label>
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground font-bold">Title (EN)</Label>
                               <Input value={service.title.en} onChange={e => updateService(idx, 'title', e.target.value, 'en')} className="h-8 text-sm" />
                             </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs">Title (TE)</Label>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground font-bold">Title (TE)</Label>
                               <Input value={service.title.te} onChange={e => updateService(idx, 'title', e.target.value, 'te')} className="h-8 text-sm" />
                             </div>
                           </div>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label className="text-xs">Description (EN)</Label>
-                              <Input value={service.description.en} onChange={e => updateService(idx, 'description', e.target.value, 'en')} className="h-8 text-sm" />
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground font-bold">Description (EN)</Label>
+                                <Textarea value={service.description.en} onChange={e => updateService(idx, 'description', e.target.value, 'en')} className="h-20 text-sm py-2" />
                             </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs">Description (TE)</Label>
-                              <Input value={service.description.te} onChange={e => updateService(idx, 'description', e.target.value, 'te')} className="h-8 text-sm" />
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground font-bold">Description (TE)</Label>
+                                <Textarea value={service.description.te} onChange={e => updateService(idx, 'description', e.target.value, 'te')} className="h-20 text-sm py-2" />
                             </div>
                           </div>
                         </div>
                       </div>
                     ))}
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full border-dashed border-2 py-8 hover:bg-secondary/10 hover:border-primary/50 transition-all flex flex-col gap-2 rounded-xl group"
+                      onClick={addService}
+                    >
+                      <Plus className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="font-semibold text-primary">Add Another Service</span>
+                    </Button>
                   </div>
                 </div>
 

@@ -109,12 +109,8 @@ const PatientRegistration = () => {
     // 2. Manual override (persisted)
     if (manualLocation) return manualLocation;
 
-    // 3. Fallback to URL path
-    const path = location.pathname.toLowerCase();
-    if (path.includes('/badam')) return 'Badam';
-    if (path.includes('/laxmi')) return 'Laxmi';
-    if (path.includes('/ortholife')) return 'OrthoLife';
-    return 'OrthoLife'; // Default fallback
+    // 3. Default fallback
+    return 'OrthoLife';
   };
 
   const locationName = getLocationName();
