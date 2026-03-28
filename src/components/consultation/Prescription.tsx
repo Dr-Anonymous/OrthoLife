@@ -557,7 +557,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
                   <p className="font-semibold text-primary">{cAddress || 'ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03'}</p>
-                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">{consultant?.phone || '99 838 49 838'}</strong></p>
+                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">{(consultant?.reception_phone || consultant?.phone || '99 838 49 838').replace(/(\d{5})(\d{5})/, '$1 $2')}</strong></p>
                 </div>
               </div>
 
@@ -655,7 +655,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
                   <p className="font-semibold text-primary">{cAddress || 'OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03'}</p>
-                  <p>For Appointments, Contact: <strong className="whitespace-nowrap">{consultant?.phone || '99 838 49 838'}</strong></p>
+                  <p>For Appointments, Contact: <strong className="whitespace-nowrap">{(consultant?.reception_phone || consultant?.phone || '99 838 49 838').replace(/(\d{5})(\d{5})/, '$1 $2')}</strong></p>
                 </div>
 
               </div>

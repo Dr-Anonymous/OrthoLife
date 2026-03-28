@@ -50,6 +50,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     bio: consultant?.bio || { en: '', te: '' },
     services: consultant?.services || [],
     password: consultant?.password || '',
+    reception_phone: (consultant as any)?.reception_phone || '',
+    reception_password: (consultant as any)?.reception_password || '',
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -72,6 +74,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         bio: consultant.bio || { en: '', te: '' },
         services: consultant.services || [],
         password: consultant.password || '',
+        reception_phone: (consultant as any).reception_phone || '',
+        reception_password: (consultant as any).reception_password || '',
       });
       fetchConsultantHospitals();
     }
@@ -109,6 +113,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           bio: formData.bio,
           services: formData.services,
           password: formData.password,
+          reception_phone: formData.reception_phone,
+          reception_password: formData.reception_password,
           updated_at: new Date().toISOString()
         })
         .eq('id', consultant.id);
@@ -342,6 +348,46 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       </button>
                     </div>
                     <p className="text-[10px] text-muted-foreground">Used for workspace login. Recommended 6 digits.</p>
+                  </div>
+                </div>
+
+                {/* Receptionist Access Section */}
+                <div className="space-y-6 pt-6 border-t bg-secondary/10 p-4 rounded-lg">
+                  <h3 className="text-sm font-semibold flex items-center gap-2 text-primary uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4" /> Receptionist / Assistant Access
+                  </h3>
+                  <p className="text-xs text-muted-foreground -mt-4">
+                    Allow staff to log in with their own phone number and password to book/manage consultations and followups for your profile.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="reception_phone">Receptionist Phone (Login)</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="reception_phone"
+                          value={formData.reception_phone}
+                          onChange={e => setFormData(prev => ({ ...prev, reception_phone: e.target.value }))}
+                          className="pl-9"
+                          placeholder="Reception Phone Number"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reception_password">Receptionist Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="reception_password"
+                          type={showPassword ? "text" : "password"}
+                          value={formData.reception_password}
+                          onChange={e => setFormData(prev => ({ ...prev, reception_password: e.target.value }))}
+                          className="pl-9 pr-10"
+                          placeholder="Default: 123456"
+                          maxLength={10}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

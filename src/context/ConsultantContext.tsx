@@ -9,6 +9,7 @@ interface ConsultantContextType {
     isLoading: boolean;
     error: string | null;
     isMasterAdmin: boolean;
+    isReceptionist: boolean;
     refreshConsultant: () => Promise<void>;
 }
 
@@ -19,12 +20,14 @@ export const ConsultantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [consultant, setConsultant] = useState<Consultant | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isReceptionMode, setIsReceptionMode] = useState(false);
 
     const fetchConsultant = useCallback(async () => {
         if (authLoading) return;
         if (!user?.phoneNumber) {
             setConsultant(null);
             setIsLoading(false);
+            setIsReceptionMode(false);
             return;
         }
 
@@ -35,12 +38,18 @@ export const ConsultantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const { data, error: fetchError } = await supabase
                 .from('consultants')
                 .select('*')
-                .ilike('phone', `%${formattedPhone}`)
+                .or(`phone.ilike.%${formattedPhone},reception_phone.ilike.%${formattedPhone}`)
                 .eq('is_active', true)
                 .maybeSingle();
 
             if (fetchError) throw fetchError;
-            if (data) setConsultant(data as unknown as Consultant);
+            
+            if (data) {
+                setConsultant(data as unknown as Consultant);
+                // Check if the current phone matches the reception_phone
+                const matchedReception = data.reception_phone && data.reception_phone.replace(/\D/g, '').includes(formattedPhone);
+                setIsReceptionMode(!!matchedReception);
+            }
         } catch (err: any) {
             console.error('Error fetching consultant profile:', err);
             setError(err.message);
@@ -62,6 +71,7 @@ export const ConsultantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         isLoading: authLoading || isLoading,
         error,
         isMasterAdmin: consultant?.is_admin || false,
+        isReceptionist: isReceptionMode,
         refreshConsultant
     };
 

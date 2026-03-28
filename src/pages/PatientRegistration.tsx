@@ -22,6 +22,17 @@ import { Patient } from '@/types/consultation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useConsultant } from '@/context/ConsultantContext';
+import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
+import { getDistance } from '@/lib/geolocation';
+import { MapPin } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const PatientRegistration = () => {
   const isOnline = useOnlineStatus();
@@ -39,7 +50,66 @@ const PatientRegistration = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const recentlyHandledIds = useRef<Set<string | number>>(new Set());
 
+  const { consultant, isLoading: isConsultantLoading } = useConsultant();
+  const [manualLocation, setManualLocation] = useState<string | null>(() => localStorage.getItem('manualHospitalRegistration'));
+  const [autoLocation, setAutoLocation] = useState<string | null>(null);
+  const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
+    const stored = localStorage.getItem('registrationGpsEnabled');
+    return stored !== null ? JSON.parse(stored) : true;
+  });
+
+  const toggleGps = () => {
+    const newValue = !isGpsEnabled;
+    setIsGpsEnabled(newValue);
+    localStorage.setItem('registrationGpsEnabled', JSON.stringify(newValue));
+    if (newValue) {
+      setManualLocation(null);
+      localStorage.removeItem('manualHospitalRegistration');
+    }
+  };
+
+  const handleManualLocationChange = (name: string | null) => {
+    setManualLocation(name);
+    if (name) {
+      localStorage.setItem('manualHospitalRegistration', name);
+      setIsGpsEnabled(false);
+      localStorage.setItem('registrationGpsEnabled', JSON.stringify(false));
+    } else {
+      localStorage.removeItem('manualHospitalRegistration');
+    }
+  };
+
+  // GPS Logic - runs once on mount to detect location
+  useEffect(() => {
+    if (isGpsEnabled && navigator.geolocation && hospitals.length > 0) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          let closest = hospitals[0];
+          let minDistance = Infinity;
+
+          hospitals.forEach(hospital => {
+            const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closest = hospital;
+            }
+          });
+          setAutoLocation(closest.name);
+        },
+        (error) => console.error("Geolocation error:", error)
+      );
+    }
+  }, [isGpsEnabled, hospitals]);
+
   const getLocationName = () => {
+    // 1. GPS Auto-detected (highest priority if enabled)
+    if (isGpsEnabled && autoLocation) return autoLocation;
+
+    // 2. Manual override (persisted)
+    if (manualLocation) return manualLocation;
+
+    // 3. Fallback to URL path
     const path = location.pathname.toLowerCase();
     if (path.includes('/badam')) return 'Badam';
     if (path.includes('/laxmi')) return 'Laxmi';
@@ -161,10 +231,10 @@ const PatientRegistration = () => {
       if (isOnline) {
         // 2. Fetch Fresh Server Data
         const { data, error } = await supabase.functions.invoke('get-consultations', {
-          body: { 
-            date: selectedDateStr, 
+          body: {
+            date: selectedDateStr,
             hospital: locationName,
-            consultant_id: 'fdeaf68e-251c-4ffc-a7c1-6bc574657729'
+            consultant_id: consultant?.id || 'fdeaf68e-251c-4ffc-a7c1-6bc574657729'
           },
         });
 
@@ -195,7 +265,7 @@ const PatientRegistration = () => {
     } finally {
       setIsFetchingConsultations(false);
     }
-  }, [selectedDate, isOnline, locationName]);
+  }, [selectedDate, isOnline, locationName, consultant?.id]);
 
   useEffect(() => {
     fetchTodaysConsultations();
@@ -213,10 +283,10 @@ const PatientRegistration = () => {
       // Clean up after 10 seconds
       setTimeout(() => recentlyHandledIds.current.delete(id), 10000);
     }
-    
+
     // We can't check todaysConsultations without it being a dependency, 
     // but the ID set check usually covers the race condition.
-    
+
     try {
       const { data, error } = await supabase
         .from('consultations')
@@ -236,9 +306,9 @@ const PatientRegistration = () => {
         const newList = exists
           ? prev.map(c => (c.id === data.id ? data : c))
           : [data, ...prev];
-        
+
         // Keep sorted by created_at DESC
-        return [...newList].sort((a, b) => 
+        return [...newList].sort((a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       });
@@ -249,7 +319,7 @@ const PatientRegistration = () => {
 
   const handleRegistrationSuccess = useCallback(async (newConsultation: any) => {
     if (!newConsultation) return;
-    
+
     // If we don't have patient data, hydrate first to avoid null access
     if (newConsultation?.id && !newConsultation.patient && !String(newConsultation.patient_id).startsWith('offline-')) {
       await hydrateInsertedConsultation(newConsultation.id, { force: true });
@@ -273,10 +343,10 @@ const PatientRegistration = () => {
       if (exists) {
         return prev.map(c => (c.id === newConsultation.id ? newConsultation : c));
       }
-      
+
       const newList = [newConsultation, ...prev];
       // Keep sorted by created_at DESC
-      return [...newList].sort((a, b) => 
+      return [...newList].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     });
@@ -297,10 +367,10 @@ const PatientRegistration = () => {
         },
         (payload: any) => {
           const { eventType, new: newRow, old: oldRow } = payload;
-          
+
           // Guard for location
-          const locationMatch = 
-            (newRow?.location === locationName) || 
+          const locationMatch =
+            (newRow?.location === locationName) ||
             (oldRow?.location === locationName);
 
           // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
@@ -314,15 +384,15 @@ const PatientRegistration = () => {
               console.log(`Realtime ${eventType} detected in Registration, handling...`);
               hydrateInsertedConsultation(newRow.id);
             }
-          } 
+          }
           else if (eventType === 'UPDATE') {
             // Status changed or data updated: update local state instantly to save egress
             if (newRow?.id != null && recentlyHandledIds.current.has(newRow.id)) return;
             console.log(`Realtime ${eventType} detected in Registration, handling...`);
-            setTodaysConsultations(prev => prev.map(c => 
+            setTodaysConsultations(prev => prev.map(c =>
               c.id === newRow.id ? { ...c, ...newRow } : c
             ));
-          } 
+          }
           else if (eventType === 'DELETE') {
             // Record removed: filter out locally
             console.log(`Realtime ${eventType} detected in Registration, handling...`);
@@ -341,162 +411,213 @@ const PatientRegistration = () => {
     c => c.location?.toLowerCase() === locationName.toLowerCase()
   );
 
+  if (isConsultantLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground animate-pulse text-sm">Validating session...</p>
+      </div>
+    );
+  }
+
+  if (!consultant) {
+    return (
+      <DoctorLoginGate
+        onLogin={(phone, name) => {
+          localStorage.setItem('consultant_phone', phone);
+          localStorage.setItem('consultant_name', name);
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-      <div className="container mx-auto max-w-4xl">
-        <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <CardHeader className="text-center pb-8">
-            <CardTitle className="flex flex-col sm:flex-row items-center justify-center gap-4 text-2xl sm:text-3xl font-bold text-primary">
-              {hospital && <img src={hospital.logoUrl} alt={`${locationName} Logo`} className="h-24 sm:h-32 object-contain" />}
-              <span>Patient Registration</span>
-            </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">
-              Register new patients and create consultations for {locationName}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <ConsultationRegistration 
-              onSuccess={handleRegistrationSuccess} 
-              location={locationName} 
-              existingConsultations={filteredConsultations} 
-              consultantId="fdeaf68e-251c-4ffc-a7c1-6bc574657729"
-            />
-          </CardContent>
-        </Card>
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="shadow-lg border-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+            <CardHeader className="text-center pb-8 border-b bg-muted/30 rounded-t-xl mb-6">
+              <CardTitle className="flex flex-col sm:flex-row items-center justify-center gap-4 text-2xl sm:text-3xl font-bold text-primary">
+                {hospital && (
+                  <div className="relative group">
+                    <img src={hospital.logoUrl} alt={`${locationName} Logo`} className="h-20 sm:h-24 object-contain transition-transform group-hover:scale-105" />
+                  </div>
+                )}
+                <span className="mt-2 sm:mt-0">Patient Registration</span>
+              </CardTitle>
+              <CardDescription className="text-sm mt-4 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-muted-foreground">Registering patients at</span>
+                <div className="flex items-center gap-1 bg-background/50 p-1 rounded-lg border shadow-sm">
+                  <Select value={locationName} onValueChange={handleManualLocationChange}>
+                    <SelectTrigger className="w-[160px] h-7 text-xs font-bold border-none bg-transparent hover:bg-muted/50 transition-colors focus:ring-0">
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hospitals.map(h => (
+                        <SelectItem key={h.name} value={h.name} className="text-xs">
+                          {h.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 transition-colors flex-shrink-0"
+                    onClick={toggleGps}
+                    title={isGpsEnabled ? "GPS Auto-detect ON" : "GPS Auto-detect OFF"}
+                  >
+                    <MapPin className={cn("h-3.5 w-3.5", isGpsEnabled ? "text-blue-500 fill-blue-200" : "text-muted-foreground")} />
+                  </Button>
+                </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <ConsultationRegistration
+                onSuccess={handleRegistrationSuccess}
+                location={locationName}
+                existingConsultations={filteredConsultations}
+                consultantId={consultant.id}
+              />
+            </CardContent>
+          </Card>
 
-        <div className="mt-8">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-            <h3 className="text-xl font-semibold text-center">
-              Consultations at {locationName} ({filteredConsultations.length})
-            </h3>
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[240px] pl-3 text-left font-normal", !selectedDate && "text-muted-foreground")}>
-                  {selectedDate ? (format(selectedDate, "PPP")) : (<span>Pick a date</span>)}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setSelectedDate(date);
-                      setIsCalendarOpen(false);
-                    }
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          {isFetchingConsultations ? (
-            <div className="flex justify-center items-center h-32">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="mt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+              <h3 className="text-xl font-semibold text-center">
+                Consultations at {locationName} ({filteredConsultations.length})
+              </h3>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[240px] pl-3 text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                    {selectedDate ? (format(selectedDate, "PPP")) : (<span>Pick a date</span>)}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(date);
+                        setIsCalendarOpen(false);
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-          ) : filteredConsultations.length > 0 ? (
-            <div className="flex flex-wrap justify-center gap-3">
-              {filteredConsultations.map(c => (
-                <div key={c.id} className="bg-card border p-3 rounded-lg shadow-sm w-full max-w-sm">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-lg">{c.patient.name}</p>
-                      <div className="text-sm text-muted-foreground">
-                        <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex}</div>
-                        <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
-                        {c.patient.secondary_phone && (
-                          <a href={`tel:${c.patient.secondary_phone}`} className="hover:underline block text-xs mt-1 text-muted-foreground">Alt: {c.patient.secondary_phone}</a>
-                        )}
+            {isFetchingConsultations ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredConsultations.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-3">
+                {filteredConsultations.map(c => (
+                  <div key={c.id} className="bg-card border p-3 rounded-lg shadow-sm w-full max-w-sm">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-lg">{c.patient.name}</p>
+                        <div className="text-sm text-muted-foreground">
+                          <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex}</div>
+                          <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
+                          {c.patient.secondary_phone && (
+                            <a href={`tel:${c.patient.secondary_phone}`} className="hover:underline block text-xs mt-1 text-muted-foreground">Alt: {c.patient.secondary_phone}</a>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            setEditingPatient(c.patient);
-                            setIsEditModalOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit Patient</span>
-                        </Button>
-
-                        {c.status === 'pending' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                            onClick={() => handleDelete(c)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete Consultation</span>
-                          </Button>
-                        )}
-
-                        {c.status === 'completed' && (
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => setPrintingConsultation(c)}
-                            disabled={!!printingConsultation}
+                            onClick={() => {
+                              setEditingPatient(c.patient);
+                              setIsEditModalOpen(true);
+                            }}
                           >
-                            {printingConsultation?.id === c.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Printer className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">Print Prescription</span>
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit Patient</span>
                           </Button>
-                        )}
-                      </div>
-                      <div className="flex gap-2 mt-1">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "capitalize border-transparent",
-                            c.visit_type === 'free'
-                              ? "bg-white text-black border border-gray-200 hover:bg-gray-50"
-                              : "bg-green-600 text-white hover:bg-green-700"
+
+                          {c.status === 'pending' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                              onClick={() => handleDelete(c)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete Consultation</span>
+                            </Button>
                           )}
-                        >
-                          {c.visit_type}
-                        </Badge>
-                        <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
-                          {c.status}
-                        </Badge>
+
+                          {c.status === 'completed' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setPrintingConsultation(c)}
+                              disabled={!!printingConsultation}
+                            >
+                              {printingConsultation?.id === c.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Printer className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">Print Prescription</span>
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex gap-2 mt-1">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "capitalize border-transparent",
+                              c.visit_type === 'free'
+                                ? "bg-white text-black border border-gray-200 hover:bg-gray-50"
+                                : "bg-green-600 text-white hover:bg-green-700"
+                            )}
+                          >
+                            {c.visit_type}
+                          </Badge>
+                          <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
+                            {c.status}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground">No consultations scheduled.</p>
-          )}
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">No consultations scheduled.</p>
+            )}
+          </div>
         </div>
-      </div>
-      <div style={{ position: 'absolute', left: '-9999px' }}>
-        <div ref={printRef}>
-          {printingConsultation ? (
-            <Prescription
-              patient={printingConsultation.patient}
-              consultation={cleanConsultationData(printingConsultation.consultation_data)}
-              consultationDate={new Date(printingConsultation.created_at)}
-              age={calculateAge(new Date(printingConsultation.patient.dob))}
-              language={printingConsultation.language || i18n.language}
-              logoUrl={hospital?.logoUrl}
-              visitType={printingConsultation.visit_type}
-              className="min-h-[297mm]"
-              forceDesktop={true}
-            />
-          ) : (
-            <div />
-          )}
+        <div style={{ position: 'absolute', left: '-9999px' }}>
+          <div ref={printRef}>
+            {printingConsultation ? (
+              <Prescription
+                patient={printingConsultation.patient}
+                consultation={cleanConsultationData(printingConsultation.consultation_data)}
+                consultationDate={new Date(printingConsultation.created_at)}
+                age={calculateAge(new Date(printingConsultation.patient.dob))}
+                language={printingConsultation.language || i18n.language}
+                logoUrl={hospital?.logoUrl}
+                visitType={printingConsultation.visit_type}
+                className="min-h-[297mm]"
+                forceDesktop={true}
+              />
+            ) : (
+              <div />
+            )}
+          </div>
         </div>
       </div>
       <PatientEditModal
@@ -506,7 +627,7 @@ const PatientRegistration = () => {
         onSave={(updatedPatient) => {
           // Optimization: Update local state instead of full re-fetch
           if (updatedPatient) {
-            setTodaysConsultations(prev => prev.map(c => 
+            setTodaysConsultations(prev => prev.map(c =>
               c.patient?.id === updatedPatient.id ? { ...c, patient: updatedPatient } : c
             ));
           } else {
@@ -514,7 +635,7 @@ const PatientRegistration = () => {
           }
         }}
       />
-    </div >
+    </>
   );
 };
 

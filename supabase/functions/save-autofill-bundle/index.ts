@@ -13,53 +13,64 @@ serve(async (req) => {
   }
 
   try {
-    const { keywords, medications, advice, advice_te, consultant_id } = await req.json();
+    const { 
+      keywords, 
+      medications, 
+      advice, 
+      advice_te, 
+      investigations, 
+      followup, 
+      followup_te, 
+      consultant_id 
+    } = await req.json();
 
-    if (!keywords || keywords.length === 0 || !medications || medications.length === 0) {
-      return new Response(JSON.stringify({ error: 'Keywords and medications are required.' }), {
+    if (!keywords || keywords.length === 0) {
+      return new Response(JSON.stringify({ error: 'Keywords are required.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // First, save the medications and get their IDs
+    // First, save the medications and get their IDs if any are provided
     const savedMedicationIds = [];
-    for (const med of medications) {
-      // Check if the medication already exists
-      let { data: existingMed, error: selectError } = await supabase
-        .from('saved_medications')
-        .select('id')
-        .eq('composition', med.composition || med.name)
-        .single();
-
-      if (selectError && selectError.code !== 'PGRST116') { // PGRST116: Not found
-        throw selectError;
-      }
-
-      if (existingMed) {
-        savedMedicationIds.push(existingMed.id);
-      } else {
-        const { data: newMed, error: insertError } = await supabase
+    if (medications && medications.length > 0) {
+      for (const med of medications) {
+        // Check if the medication already exists
+        let { data: existingMed, error: selectError } = await supabase
           .from('saved_medications')
-          .insert({
-            composition: med.composition || med.name,
-            dose: med.dose,
-            freq_morning: med.freqMorning,
-            freq_noon: med.freqNoon,
-            freq_night: med.freqNight,
-            frequency: med.frequency,
-            duration: med.duration,
-            instructions: med.instructions,
-            notes: med.notes,
-            instructions_te: med.instructions_te,
-            frequency_te: med.frequency_te,
-            notes_te: med.notes_te,
-          })
           .select('id')
+          .eq('composition', med.composition || med.name)
           .single();
 
-        if (insertError) throw insertError;
-        savedMedicationIds.push(newMed.id);
+        if (selectError && selectError.code !== 'PGRST116') { // PGRST116: Not found
+          throw selectError;
+        }
+
+        if (existingMed) {
+          savedMedicationIds.push(existingMed.id);
+        } else {
+          const { data: newMed, error: insertError } = await supabase
+            .from('saved_medications')
+            .insert({
+              composition: med.composition || med.name,
+              dose: med.dose,
+              freq_morning: med.freqMorning,
+              freq_noon: med.freqNoon,
+              freq_night: med.freqNight,
+              frequency: med.frequency,
+              duration: med.duration,
+              instructions: med.instructions,
+              notes: med.notes,
+              instructions_te: med.instructions_te,
+              frequency_te: med.frequency_te,
+              notes_te: med.notes_te,
+            })
+            .select('id')
+            .single();
+
+          if (insertError) throw insertError;
+          savedMedicationIds.push(newMed.id);
+        }
       }
     }
 
@@ -71,10 +82,16 @@ serve(async (req) => {
         medication_ids: savedMedicationIds,
         advice: advice,
         advice_te: advice_te,
+        investigations: investigations,
+        followup: followup,
+        followup_te: followup_te,
         consultant_id: consultant_id
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database Error in save-autofill-bundle insert:', error);
+      throw error;
+    }
 
     return new Response(JSON.stringify({ success: true, data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

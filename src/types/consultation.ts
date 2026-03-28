@@ -75,6 +75,8 @@ export interface Consultant {
     is_admin: boolean;
     is_active: boolean;
     password?: string;
+    reception_phone?: string;
+    reception_password?: string;
 }
 
 export interface Consultation {

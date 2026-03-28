@@ -126,7 +126,7 @@ const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
+  const { consultant, isReceptionist, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
   const { hospitals, isLoading: isHospitalsLoading } = useHospitals();
 
   // (Redirect to Auth removed to support same-page login)
@@ -1921,9 +1921,10 @@ const ConsultationPage = () => {
   }
 
   // Doctor Auth Gate
-  if (!consultant) {
+  if (!consultant || isReceptionist) {
     return (
       <DoctorLoginGate 
+        restrictToDoctor={true}
         onLogin={(phone, name) => {
           localStorage.setItem('consultant_phone', phone);
           localStorage.setItem('consultant_name', name);

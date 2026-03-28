@@ -9,9 +9,10 @@ import { Lock, Phone, Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface DoctorLoginGateProps {
   onLogin: (phone: string, name: string, id: string) => void;
+  restrictToDoctor?: boolean;
 }
 
-export const DoctorLoginGate: React.FC<DoctorLoginGateProps> = ({ onLogin }) => {
+export const DoctorLoginGate: React.FC<DoctorLoginGateProps> = ({ onLogin, restrictToDoctor = false }) => {
   const [phone, setPhone] = useState(() => localStorage.getItem('last_phone_attempt') || '');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,18 +47,25 @@ export const DoctorLoginGate: React.FC<DoctorLoginGateProps> = ({ onLogin }) => 
       const sanitizedPhone = phone.replace(/\D/g, '').slice(-10);
       localStorage.setItem('last_phone_attempt', sanitizedPhone);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('consultants')
         .select('*')
-        .ilike('phone', `%${sanitizedPhone}`)
-        .eq('password', password)
-        .eq('is_active', true)
-        .maybeSingle();
+        .eq('is_active', true);
+
+      if (restrictToDoctor) {
+        // Strict check: only primary phone and primary password
+        query = query.ilike('phone', `%${sanitizedPhone}`).eq('password', password);
+      } else {
+        // Dual check: primary OR reception
+        query = query.or(`and(phone.ilike.%${sanitizedPhone},password.eq.${password}),and(reception_phone.ilike.%${sanitizedPhone},reception_password.eq.${password})`);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
 
       if (!data) {
-        toast.error('Invalid phone number or password');
+        toast.error(restrictToDoctor ? 'Doctor login required' : 'Invalid phone number or password');
         setIsLoading(false);
         isSubmittingRef.current = false;
         return;
@@ -82,9 +90,14 @@ export const DoctorLoginGate: React.FC<DoctorLoginGateProps> = ({ onLogin }) => 
               <Lock className="w-6 h-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Doctor Workspace</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            {restrictToDoctor ? 'Doctor Room Login' : 'Doctor Workspace'}
+          </CardTitle>
           <CardDescription>
-            Enter your credentials to access the consultation portal
+            {restrictToDoctor 
+              ? 'Please login with the Primary Doctor phone number to access the Consultation Room'
+              : 'Enter your credentials to access the consultation portal'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -127,14 +140,14 @@ export const DoctorLoginGate: React.FC<DoctorLoginGateProps> = ({ onLogin }) => 
                 </button>
               </div>
               <p className="text-[10px] text-muted-foreground ml-1">
-                New profile default: 123456
+                {restrictToDoctor ? 'Doctor credentials required for this area.' : 'New profile default: 123456'}
               </p>
             </div>
             {isLoading && (
               <div className="flex justify-center py-4 animate-in fade-in duration-300">
                 <div className="flex items-center gap-3 text-primary font-semibold">
                   <Loader2 className="h-6 w-6 animate-spin" />
-                  <span>Authenticating Doctor...</span>
+                  <span>{restrictToDoctor ? 'Verifying Doctor...' : 'Authenticating...'}</span>
                 </div>
               </div>
             )}
