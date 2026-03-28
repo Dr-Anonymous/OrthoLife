@@ -161,11 +161,11 @@ const ConsultationPage = () => {
   useEffect(() => {
     const originalTitle = document.title;
     document.title = "Doctor Workspace | OrthoLife";
-    
+
     // Create or update meta description
     let metaDescription = document.querySelector('meta[name="description"]');
     const originalDescription = metaDescription?.getAttribute('content') || '';
-    
+
     if (!metaDescription) {
       metaDescription = document.createElement('meta');
       metaDescription.setAttribute('name', 'description');
@@ -338,6 +338,7 @@ const ConsultationPage = () => {
     };
 
     syncField('complaints', complaintsRef);
+    syncField('medicalHistory', medicalHistoryRef);
     syncField('findings', findingsRef);
     syncField('investigations', investigationsRef);
     syncField('diagnosis', diagnosisRef);
@@ -353,6 +354,7 @@ const ConsultationPage = () => {
     return currentExtraData;
   }, [
     complaintsRef,
+    medicalHistoryRef,
     findingsRef,
     investigationsRef,
     diagnosisRef,
@@ -945,7 +947,7 @@ const ConsultationPage = () => {
    */
   const saveChanges = useCallback(async (options: { markAsCompleted?: boolean, skipToast?: boolean, extraDataOverride?: ExtraData } = {}) => {
     if (!selectedConsultation || !editablePatientDetails) throw new Error("No consultation selected");
- 
+
     if (isReadOnly) {
       toast({ variant: "destructive", title: "Read Only", description: "You cannot edit another consultant's record." });
       return false;
@@ -1390,7 +1392,7 @@ const ConsultationPage = () => {
         }
       }
 
-      // Special Followup Shortcuts (Restored)
+      // Special Followup Shortcuts
       if (field === 'followup') {
         const textBeforeCursor = value.substring(0, newCursor);
         const shortcutRegex = /(\d+)([dwmy])\.\s$/i;
@@ -1608,7 +1610,7 @@ const ConsultationPage = () => {
       medicationIds: new Set<number>()
     };
 
-    const inputText = `${extraData.complaints} ${extraData.diagnosis} ${extraData.procedure}`.toLowerCase();
+    const inputText = `${extraData.complaints} ${extraData.medicalHistory} ${extraData.diagnosis} ${extraData.procedure}`.toLowerCase();
     const isTelugu = consultationLanguage === 'te';
 
     autofillKeywords.forEach(protocol => {
@@ -1686,7 +1688,7 @@ const ConsultationPage = () => {
           return med;
         })
     };
-  }, [autofillKeywords, extraData.complaints, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications, medicationSuggestionMode, selectedLocation, extraData.affordabilityPreference]);
+  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications, medicationSuggestionMode, selectedLocation, extraData.affordabilityPreference]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -1923,13 +1925,13 @@ const ConsultationPage = () => {
   // Doctor Auth Gate
   if (!consultant || isReceptionist) {
     return (
-      <DoctorLoginGate 
+      <DoctorLoginGate
         restrictToDoctor={true}
         onLogin={(phone, name) => {
           localStorage.setItem('consultant_phone', phone);
           localStorage.setItem('consultant_name', name);
           window.location.reload();
-        }} 
+        }}
       />
     );
   }
