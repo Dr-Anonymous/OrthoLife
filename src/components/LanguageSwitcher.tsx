@@ -27,25 +27,24 @@ export const LanguageSwitcher = () => {
       if (!lowerPath.startsWith('/te')) {
         if (lowerPath.startsWith('/blog') || lowerPath.startsWith('/guides')) {
           newPath = `/te${currentPath}`;
-          // Also set the lang param just in case
-          searchParams.set('lang', 'te');
-          newPath += `?${searchParams.toString()}`;
-        } else {
-          // For all other pages (homepage, etc), use query parameter
-          searchParams.set('lang', 'te');
-          newPath = `${currentPath}?${searchParams.toString()}`;
+          // Preserve any existing search parameters (except ?lang=te parameter)
+          searchParams.delete('lang');
+          const qs = searchParams.toString();
+          if (qs) {
+            newPath += `?${qs}`;
+          }
         }
       }
     } else { // lng === 'en'
       // Handle prefix-based Telugu URLs
       if (lowerPath.startsWith('/te')) {
         newPath = currentPath.substring(3); // Remove /te
-      }
-
-      // Remove lang parameter if switching back to English
-      if (searchParams.has('lang')) {
+        // Ensure no redundant lang param exists
         searchParams.delete('lang');
-        newPath = (newPath || currentPath) + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+        const qs = searchParams.toString();
+        if (qs) {
+          newPath += `?${qs}`;
+        }
       }
     }
 

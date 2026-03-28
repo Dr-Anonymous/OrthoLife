@@ -108,6 +108,7 @@ const InPatientManagement = () => {
     const [isProcedureDatePickerOpen, setIsProcedureDatePickerOpen] = useState(false);
     const [paymentFilter, setPaymentFilter] = useState<string>('all');
     const [activeTab, setActiveTab] = useState('admitted');
+    const [fetchAll, setFetchAll] = useState(false);
     const { i18n } = useTranslation();
 
     // Refs
@@ -234,7 +235,7 @@ const InPatientManagement = () => {
 
     // --- Queries ---
     const { data: admittedInPatients, isLoading: isLoadingAdmitted } = useQuery({
-        queryKey: ['in-patients', 'admitted', consultant?.id],
+        queryKey: ['in-patients', 'admitted', consultant?.id, fetchAll],
         queryFn: async () => {
             let query = supabase
                 .from('in_patients')
@@ -246,7 +247,7 @@ const InPatientManagement = () => {
         `)
                 .eq('status', 'admitted');
 
-            if (!isMasterAdmin && consultant?.id) {
+            if (!fetchAll && consultant?.id) {
                 query = query.eq('consultant_id', consultant.id);
             }
 
@@ -260,7 +261,7 @@ const InPatientManagement = () => {
     });
 
     const { data: dischargedInPatients, isLoading: isLoadingDischarged } = useQuery({
-        queryKey: ['in-patients', 'discharged', dischargeDateStart, dischargeDateEnd, paymentFilter, consultant?.id],
+        queryKey: ['in-patients', 'discharged', dischargeDateStart, dischargeDateEnd, paymentFilter, consultant?.id, fetchAll],
         queryFn: async () => {
             let query = supabase
                 .from('in_patients')
@@ -272,7 +273,7 @@ const InPatientManagement = () => {
         `)
                 .eq('status', 'discharged');
 
-            if (!isMasterAdmin && consultant?.id) {
+            if (!fetchAll && consultant?.id) {
                 query = query.eq('consultant_id', consultant.id);
             }
 
@@ -446,7 +447,7 @@ const InPatientManagement = () => {
             }
 
             let deleteQuery = supabase.from('in_patients').delete().eq('id', id);
-            
+
             if (!isMasterAdmin && consultant?.id) {
                 deleteQuery = deleteQuery.eq('consultant_id', consultant.id);
             }
@@ -822,12 +823,12 @@ const InPatientManagement = () => {
 
     if (!consultant) {
         return (
-            <DoctorLoginGate 
+            <DoctorLoginGate
                 onLogin={(phone, name) => {
                     localStorage.setItem('consultant_phone', phone);
                     localStorage.setItem('consultant_name', name);
                     window.location.reload();
-                }} 
+                }}
             />
         );
     }
@@ -857,7 +858,18 @@ const InPatientManagement = () => {
                     <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage admissions, procedures, and patient updates.</p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
+                    {isMasterAdmin && (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 border rounded-lg mr-2">
+                            <Label htmlFor="global-fetch-all" className="text-[10px] font-bold uppercase tracking-tight text-primary/70 whitespace-nowrap">Show All</Label>
+                            <Switch
+                                id="global-fetch-all"
+                                checked={fetchAll}
+                                onCheckedChange={setFetchAll}
+                                className="scale-75 data-[state=checked]:bg-primary"
+                            />
+                        </div>
+                    )}
                     <div className="relative w-full md:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input

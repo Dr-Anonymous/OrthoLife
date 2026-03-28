@@ -12,13 +12,15 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchParams] = useSearchParams();
-  const lang = searchParams.get('lang');
   const { user, signOut } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const withLang = (path: string) => {
-    return lang ? `${path}?lang=${lang}` : path;
+    // Prefix /te only for blog and guides when Telugu is active
+    if (i18n.language === 'te' && (path.startsWith('/blog') || path.startsWith('/guides'))) {
+        return `/te${path}`;
+    }
+    return path;
   };
 
   useEffect(() => {

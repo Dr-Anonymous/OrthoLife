@@ -35,6 +35,9 @@ import { Separator } from '@/components/ui/separator';
 import { Filter, Check, X } from 'lucide-react';
 import { cn, stripFollowUpPrefix } from '@/lib/utils';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+
 
 const FollowUpDashboard = () => {
   const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
@@ -49,12 +52,15 @@ const FollowUpDashboard = () => {
   const [whatsappMessage, setWhatsappMessage] = useState('');
   const [targetConsultation, setTargetConsultation] = useState<Consultation | null>(null);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [fetchAll, setFetchAll] = useState(false);
+
 
   useEffect(() => {
     if (selectedDate && (consultant || isMasterAdmin)) {
       fetchFollowUps(selectedDate, selectedLocation, selectedVisitType);
     }
-  }, [selectedDate, selectedLocation, selectedVisitType, consultant, isMasterAdmin]);
+  }, [selectedDate, selectedLocation, selectedVisitType, consultant, isMasterAdmin, fetchAll]);
+
 
   const fetchFollowUps = async (date: Date, location: string, visitType: string) => {
     setIsLoading(true);
@@ -66,9 +72,10 @@ const FollowUpDashboard = () => {
         .select('*, patient:patients(*)')
         .eq('next_review_date', formattedDate);
 
-      if (!isMasterAdmin && consultant?.id) {
+      if (!fetchAll && consultant?.id) {
         query = query.eq('consultant_id', consultant.id);
       }
+
 
       if (location && location !== 'all') {
         query = query.eq('location', location);
@@ -218,6 +225,20 @@ const FollowUpDashboard = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                {isMasterAdmin && (
+                  <div className="flex items-center space-x-2 bg-background/50 px-3 py-1.5 rounded-md border border-dashed hover:border-primary/50 transition-colors h-8">
+                    <Switch
+                      id="fetch-all"
+                      checked={fetchAll}
+                      onCheckedChange={setFetchAll}
+                      className="scale-75 data-[state=checked]:bg-primary"
+                    />
+                    <Label htmlFor="fetch-all" className="text-[10px] font-bold cursor-pointer whitespace-nowrap uppercase tracking-wider text-muted-foreground">
+                      Show All
+                    </Label>
+                  </div>
+                )}
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm" className="h-8 border-dashed bg-background/50">
