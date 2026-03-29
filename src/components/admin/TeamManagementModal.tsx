@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2, Plus, UserPlus, Phone, Lock, User, Trash2, Shield, Building2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 interface TeamManagementModalProps {
@@ -103,6 +104,21 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
     }
   };
 
+  const toggleLegacyStatus = async (id: string, current: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('consultants')
+        .update({ is_legacy_handler: !current })
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchConsultants();
+      toast({ title: 'Success', description: 'Legacy handler status updated.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error', description: err.message });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
@@ -128,34 +144,34 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                 <Label htmlFor="name_en">Name (English) *</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    id="name_en" 
-                    placeholder="Dr. John Doe" 
+                  <Input
+                    id="name_en"
+                    placeholder="Dr. John Doe"
                     className="pl-9"
                     value={newDoctor.name_en}
-                    onChange={(e) => setNewDoctor({...newDoctor, name_en: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, name_en: e.target.value })}
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="name_te">Name (Telugu)</Label>
-                <Input 
-                  id="name_te" 
-                  placeholder="డాక్టర్ జాన్ డో" 
+                <Input
+                  id="name_te"
+                  placeholder="డాక్టర్ జాన్ డో"
                   value={newDoctor.name_te}
-                  onChange={(e) => setNewDoctor({...newDoctor, name_te: e.target.value})}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, name_te: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone / Login ID *</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    id="phone" 
-                    placeholder="9876543210" 
+                  <Input
+                    id="phone"
+                    placeholder="9876543210"
                     className="pl-9"
                     value={newDoctor.phone}
-                    onChange={(e) => setNewDoctor({...newDoctor, phone: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, phone: e.target.value })}
                   />
                 </div>
               </div>
@@ -163,13 +179,13 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                 <Label htmlFor="password">Password *</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    id="password" 
+                  <Input
+                    id="password"
                     type="password"
-                    placeholder="Set login password" 
+                    placeholder="Set login password"
                     className="pl-9"
                     value={newDoctor.password}
-                    onChange={(e) => setNewDoctor({...newDoctor, password: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, password: e.target.value })}
                   />
                 </div>
               </div>
@@ -177,19 +193,19 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                 <Label htmlFor="spec">Specialization</Label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    id="spec" 
-                    placeholder="Orthopedic Surgeon" 
+                  <Input
+                    id="spec"
+                    placeholder="Orthopedic Surgeon"
                     className="pl-9"
                     value={newDoctor.specialization_en}
-                    onChange={(e) => setNewDoctor({...newDoctor, specialization_en: e.target.value})}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, specialization_en: e.target.value })}
                   />
                 </div>
               </div>
               <div className="md:col-span-2 pt-2">
-                <Button 
-                  className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20" 
-                  type="submit" 
+                <Button
+                  className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20"
+                  type="submit"
                   disabled={isAdding}
                 >
                   {isAdding ? (
@@ -215,20 +231,21 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                     <TableHead className="font-semibold">Doctor Name</TableHead>
                     <TableHead className="font-semibold">Phone/ID</TableHead>
                     <TableHead className="font-semibold text-center">Status</TableHead>
+                    <TableHead className="font-semibold text-center">Clinic Whatsapp</TableHead>
                     <TableHead className="font-semibold text-right text-muted-foreground pr-6">Management</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-32 text-center">
+                      <TableCell colSpan={5} className="h-32 text-center">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
                         <p className="mt-2 text-sm text-muted-foreground">Loading team records...</p>
                       </TableCell>
                     </TableRow>
                   ) : consultants.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                         No team members registered yet.
                       </TableCell>
                     </TableRow>
@@ -247,9 +264,15 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                               {c.is_active ? 'Active' : 'Inactive'}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={c.is_legacy_handler}
+                              onCheckedChange={() => toggleLegacyStatus(c.id, c.is_legacy_handler)}
+                            />
+                          </TableCell>
                           <TableCell className="text-right pr-4">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               className={cn(
                                 "h-8 px-3 transition-all",
@@ -269,7 +292,7 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
             </div>
           </div>
         </div>
-        
+
         <DialogFooter className="p-6 border-t bg-muted/20">
           <Button variant="outline" onClick={onClose}>Close Management Panel</Button>
         </DialogFooter>

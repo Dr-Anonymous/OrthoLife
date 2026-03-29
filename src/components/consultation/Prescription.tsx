@@ -124,6 +124,10 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   const cExp = typeof consultant?.experience === 'object' ? (consultant?.experience?.[language === 'te' ? 'te' : 'en'] || consultant?.experience?.en) : (consultant?.experience || '');
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
+  
+  const activeServices = (consultant?.services || []).filter(s => 
+    s.title?.en?.trim() || s.title?.te?.trim()
+  );
 
   return (
     <div ref={ref} className={cn("font-sans text-sm bg-background text-foreground", className)} style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
@@ -522,37 +526,38 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 )}
 
                 {/* Middle: Full Width About Section */}
-                <div className="border-b-2 border-primary/10 pb-3">
-                  <p className="text-lg leading-relaxed text-justify text-muted-foreground">
-                    {consultant?.bio?.te || ''}
-                  </p>
-                </div>
+                {consultant?.bio?.te && (
+                  <div className="border-b-2 border-primary/10 pb-3">
+                    <p className="text-lg leading-relaxed text-justify text-muted-foreground whitespace-pre-wrap">
+                      {consultant.bio.te}
+                    </p>
+                  </div>
+                )}
 
                 {/* Bottom Section: Full Width Services */}
-                <div className="flex-grow">
-                  <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
-                    <Activity className="h-4 w-4 text-primary" />
-                    ప్రత్యేక సేవలు
-                  </h3>
-                  
-                  <ul className="space-y-1.5 text-base">
-                    {(consultant?.services || []).map((service, idx) => {
-                      const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
-                      return (
-                        <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
-                          <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                          <div>
-                            <strong className="block text-primary text-lg mb-0.5">{service.title.te}</strong>
-                            <span className="text-muted-foreground text-sm">{service.description.te}</span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                    {!consultant && (
-                      <li className="text-muted-foreground italic"> Loading services... </li>
-                    )}
-                  </ul>
-                </div>
+                {activeServices.some(s => s.title?.te?.trim()) && (
+                  <div className="flex-grow">
+                    <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
+                      <Activity className="h-4 w-4 text-primary" />
+                      ప్రత్యేక సేవలు
+                    </h3>
+                    
+                    <ul className="space-y-1.5 text-base">
+                      {activeServices.filter(s => s.title?.te?.trim()).map((service, idx) => {
+                        const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
+                        return (
+                          <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
+                            <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                            <div>
+                              <strong className="block text-primary text-lg mb-0.5">{service.title.te}</strong>
+                              <span className="text-muted-foreground text-sm">{service.description.te}</span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
@@ -620,37 +625,45 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 )}
 
                 {/* Middle: Full Width About Section */}
-                <div className="border-b-2 border-primary/10 pb-3">
-                  <p className="text-lg leading-relaxed text-justify text-muted-foreground">
-                    {consultant?.bio?.en || 'Dr. Manoj brings specialized training from Manipal Hospital to provide advanced musculoskeletal care. His practice blends surgical precision with modern biological treatments, focusing on restoring mobility and quality of life.'}
-                  </p>
-                </div>
+                {consultant?.bio?.en && (
+                  <div className="border-b-2 border-primary/10 pb-3">
+                    <p className="text-lg leading-relaxed text-justify text-muted-foreground whitespace-pre-wrap">
+                      {consultant.bio.en}
+                    </p>
+                  </div>
+                )}
+                {!consultant?.bio?.en && !consultant && (
+                  <div className="border-b-2 border-primary/10 pb-3">
+                    <p className="text-lg leading-relaxed text-justify text-muted-foreground italic">
+                      Doctor profile is being optimized for clinical excellence...
+                    </p>
+                  </div>
+                )}
 
                 {/* Bottom Section: Full Width Services */}
-                <div className="flex-grow">
-                  <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
-                    <Activity className="h-4 w-4 text-primary" />
-                    Specialized Services
-                  </h3>
+                {activeServices.some(s => s.title?.en?.trim()) && (
+                  <div className="flex-grow">
+                    <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
+                      <Activity className="h-4 w-4 text-primary" />
+                      Specialized Services
+                    </h3>
 
-                  <ul className="space-y-1.5 text-base">
-                    {(consultant?.services || []).map((service, idx) => {
-                      const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
-                      return (
-                        <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
-                          <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                          <div>
-                            <strong className="block text-primary text-lg mb-0.5">{service.title.en}</strong>
-                            <span className="text-muted-foreground text-sm">{service.description.en}</span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                    {!consultant && (
-                      <li className="text-muted-foreground italic"> Loading services... </li>
-                    )}
-                  </ul>
-                </div>
+                    <ul className="space-y-1.5 text-base">
+                      {activeServices.filter(s => s.title?.en?.trim()).map((service, idx) => {
+                        const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
+                        return (
+                          <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
+                            <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                            <div>
+                              <strong className="block text-primary text-lg mb-0.5">{service.title.en}</strong>
+                              <span className="text-muted-foreground text-sm">{service.description.en}</span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Footer Note */}
                 <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">

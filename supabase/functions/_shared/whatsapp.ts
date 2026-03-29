@@ -4,7 +4,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-export async function sendWhatsAppMessage(number: string, message: string) {
+export async function sendWhatsAppMessage(number: string, message: string, consultantId: string = "legacy") {
   try {
     if (!number || !message) {
       throw new Error('Missing number or message')
@@ -24,7 +24,9 @@ export async function sendWhatsAppMessage(number: string, message: string) {
 
     const uniqueId = Date.now().toString()
     const firebaseDbUrl = "https://whatsauto-9cf91-default-rtdb.firebaseio.com"
-    const url = `${firebaseDbUrl}/${uniqueId}.json`
+    
+    // SCOPED PATH: /{consultant_id}/{unique_id}
+    const url = `${firebaseDbUrl}/${consultantId}/${uniqueId}.json`
 
     const payload = {
       number: formattedNumber,
