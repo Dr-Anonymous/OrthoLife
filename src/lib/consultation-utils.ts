@@ -13,11 +13,20 @@ export const generateCompletionMessage = (
 
     // Use provided consultant name or fallback to default
     const defaultConsultantName = {
-        en: "Dr Samuel Manoj Cherukuri",
-        te: "డాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి"
+        en: "OrthoLife",
+        te: "ఆర్థోలైఫ్"
     };
 
-    const docName = consultantName ? (isTelugu ? consultantName.te : consultantName.en) : (isTelugu ? defaultConsultantName.te : defaultConsultantName.en);
+    let docName = isTelugu ? defaultConsultantName.te : defaultConsultantName.en;
+    if (consultantName) {
+        if (typeof consultantName === 'string') {
+            docName = consultantName;
+        } else if (isTelugu) {
+            docName = (consultantName as any).te || (consultantName as any).en || defaultConsultantName.te;
+        } else {
+            docName = (consultantName as any).en || (consultantName as any).te || defaultConsultantName.en;
+        }
+    }
 
     const guideLinks = matchedGuides
         .filter(mg => mg.guideLink)

@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send, Users } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface ConsultationActionsProps {
     isOnline: boolean;
@@ -29,6 +31,7 @@ interface ConsultationActionsProps {
     medicationSuggestionMode?: 'composition' | 'brand';
     onToggleMedicationSuggestionMode?: (checked: boolean) => void;
     isReadOnly?: boolean;
+    isWhatsAppEnabled?: boolean;
 }
 
 /**
@@ -65,7 +68,8 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onToggleOnlyMeds,
     medicationSuggestionMode = 'composition',
     onToggleMedicationSuggestionMode,
-    isReadOnly = false
+    isReadOnly = false,
+    isWhatsAppEnabled = true
 }) => {
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
@@ -97,9 +101,22 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                                 <FileText className="w-5 h-5 text-primary" />
                                 <span className="text-xs font-medium">Receipt</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={onSendCompletionClick} className="flex flex-col items-center justify-center h-20 text-center gap-1 cursor-pointer border rounded-md hover:bg-accent/50 focus:bg-accent/50">
-                                <Send className="w-5 h-5 text-green-600" />
-                                <span className="text-xs font-medium">Send Msg</span>
+                            <DropdownMenuItem
+                                onSelect={() => {
+                                    if (isWhatsAppEnabled) {
+                                        onSendCompletionClick();
+                                    } else {
+                                        toast({
+                                            title: "Feature Unavailable",
+                                            description: "WhatsApp not active for your profile. Please contact admin to enable this feature.",
+                                            variant: "default"
+                                        });
+                                    }
+                                }}
+                                className="flex flex-col items-center justify-center h-20 text-center gap-1 cursor-pointer border rounded-md hover:bg-accent/50 focus:bg-accent/50"
+                            >
+                                <Send className={cn("w-5 h-5", isWhatsAppEnabled ? "text-green-600" : "text-muted-foreground")} />
+                                <span className={cn("text-xs font-medium", !isWhatsAppEnabled && "text-muted-foreground")}>Send Msg</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={onSaveBundleClick} className="flex flex-col items-center justify-center h-20 text-center gap-1 cursor-pointer border rounded-md hover:bg-accent/50 focus:bg-accent/50">
                                 <PackagePlus className="w-5 h-5 text-orange-500" />
@@ -216,19 +233,28 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors"
                             onClick={(e) => {
                                 e.preventDefault();
-                                onToggleAutoSend?.();
+                                if (isWhatsAppEnabled) {
+                                    onToggleAutoSend?.();
+                                } else {
+                                    toast({
+                                        title: "Auto-send Unavailable",
+                                        description: "WhatsApp bot registration is required. Contact admin to activate.",
+                                    });
+                                }
                             }}
                         >
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Auto-send WhatsApp</span>
+                                <span className={cn("text-sm font-medium", !isWhatsAppEnabled && "text-muted-foreground")}>Auto-send WhatsApp</span>
                                 <Switch
-                                    checked={isAutoSendEnabled}
+                                    checked={isWhatsAppEnabled && isAutoSendEnabled}
                                     onCheckedChange={() => { }} // Handled by parent div click
                                     className="scale-75"
                                 />
                             </div>
                             <p className="text-[10px] text-muted-foreground mt-1">
-                                Auto-send consultation completed notification.
+                                {isWhatsAppEnabled
+                                    ? "Auto-send consultation completed notification."
+                                    : "Personalize your patient experience. Contact admin to activate."}
                             </p>
                         </div>
                     </DropdownMenuContent>

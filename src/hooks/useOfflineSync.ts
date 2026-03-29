@@ -9,6 +9,8 @@ import { OfflineConsultationBundle } from '@/types/offline-sync';
 
 interface UseOfflineSyncProps {
     isOnline: boolean;
+    consultantName?: { en: string; te: string };
+    consultantId?: string;
 }
 
 type OfflinePatientDetails = {
@@ -75,7 +77,7 @@ export const searchLocalPatients = async (term: string, type: 'name' | 'phone') 
  * 
  * @param isOnline Boolean indicating network status.
  */
-export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
+export const useOfflineSync = ({ isOnline, consultantName, consultantId }: UseOfflineSyncProps) => {
     const [pendingSyncIds, setPendingSyncIds] = useState<string[]>([]);
     const [conflictData, setConflictData] = useState<{ local: any, server: any, consultationId: string } | null>(null);
     const [patientConflictData, setPatientConflictData] = useState<{ consultationId: string, offlinePatient: any, conflictingPatients: any[] } | null>(null);
@@ -134,10 +136,14 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
         try {
             const advice = consultationData.advice || '';
             const matchedGuides = getMatchingGuides(advice, guides, language);
-            const message = generateCompletionMessage(patient, matchedGuides, language);
+            const message = generateCompletionMessage(patient, matchedGuides, language, consultantName);
 
             const { error } = await supabase.functions.invoke('send-whatsapp', {
-                body: { number: patient.phone, message: message },
+                body: { 
+                    number: patient.phone, 
+                    message: message,
+                    consultant_id: consultantId
+                },
             });
             if (error) throw error;
             console.log('Offline sync notification sent');
@@ -394,7 +400,7 @@ export const useOfflineSync = ({ isOnline }: UseOfflineSyncProps) => {
                 window.removeEventListener(SYNC_NOW_EVENT, syncOfflineData);
             }
         };
-    }, [isOnline, conflictData, patientConflictData, guides]);
+    }, [isOnline, conflictData, patientConflictData, guides, consultantName, consultantId]);
 
     // Conflict Resolvers
     const resolveConflict = async (resolution: 'local' | 'server') => {

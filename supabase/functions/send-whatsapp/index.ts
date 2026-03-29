@@ -11,6 +11,8 @@ serve(async (req) => {
   try {
     const { number, message, consultant_id } = await req.json()
 
+    // 1. Proceed with Realtime DB write directly
+    // (UI logic handles the enabled/disabled state for practitioners)
     const result = await sendWhatsAppMessage(number, message, consultant_id)
 
     if (!result) {
@@ -26,6 +28,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error("send-whatsapp error:", error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

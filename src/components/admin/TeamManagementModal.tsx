@@ -119,6 +119,21 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
     }
   };
 
+  const toggleWhatsAutoStatus = async (id: string, current: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('consultants')
+        .update({ is_whatsauto_active: !current })
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchConsultants();
+      toast({ title: 'Success', description: 'WhatsAuto registration updated.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error', description: err.message });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
@@ -231,21 +246,22 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                     <TableHead className="font-semibold">Doctor Name</TableHead>
                     <TableHead className="font-semibold">Phone/ID</TableHead>
                     <TableHead className="font-semibold text-center">Status</TableHead>
-                    <TableHead className="font-semibold text-center">Clinic Whatsapp</TableHead>
+                    <TableHead className="font-semibold text-center">Clinic Phone</TableHead>
+                    <TableHead className="font-semibold text-center">Has WhatsAuto</TableHead>
                     <TableHead className="font-semibold text-right text-muted-foreground pr-6">Management</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-32 text-center">
+                      <TableCell colSpan={6} className="h-32 text-center">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
                         <p className="mt-2 text-sm text-muted-foreground">Loading team records...</p>
                       </TableCell>
                     </TableRow>
                   ) : consultants.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         No team members registered yet.
                       </TableCell>
                     </TableRow>
@@ -268,6 +284,12 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                             <Switch
                               checked={c.is_legacy_handler}
                               onCheckedChange={() => toggleLegacyStatus(c.id, c.is_legacy_handler)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={c.is_whatsauto_active}
+                              onCheckedChange={() => toggleWhatsAutoStatus(c.id, c.is_whatsauto_active)}
                             />
                           </TableCell>
                           <TableCell className="text-right pr-4">

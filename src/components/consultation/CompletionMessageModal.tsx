@@ -20,9 +20,10 @@ interface CompletionMessageModalProps {
     patientPhone: string;
     initialMessage: string;
     onMessageChange?: (message: string) => void;
+    consultantId?: string;
 }
 
-export const CompletionMessageModal = ({ isOpen, onClose, patientPhone, initialMessage, onMessageChange }: CompletionMessageModalProps) => {
+export const CompletionMessageModal = ({ isOpen, onClose, patientPhone, initialMessage, onMessageChange, consultantId }: CompletionMessageModalProps) => {
     const [message, setMessage] = useState(initialMessage);
     const [isSending, setIsSending] = useState(false);
     const { toast } = useToast();
@@ -55,7 +56,11 @@ export const CompletionMessageModal = ({ isOpen, onClose, patientPhone, initialM
         setIsSending(true);
         try {
             const { error } = await supabase.functions.invoke('send-whatsapp', {
-                body: { number: patientPhone, message: message },
+                body: { 
+                    number: patientPhone, 
+                    message: message,
+                    consultant_id: consultantId
+                },
             });
 
             if (error) throw error;

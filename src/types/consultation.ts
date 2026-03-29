@@ -77,6 +77,8 @@ export interface Consultant {
     password?: string;
     reception_phone?: string;
     reception_password?: string;
+    is_legacy_handler?: boolean;
+    is_whatsauto_active?: boolean;
 }
 
 export interface Consultation {
