@@ -884,10 +884,12 @@ const InPatientManagement = () => {
                             <UserPlus className="w-4 h-4 mr-2" />
                             Admit
                         </Button>
-                        <Button variant="outline" onClick={() => setIsTemplateManagerOpen(true)} className="flex-1 sm:flex-none">
-                            <FileText className="w-4 h-4 mr-2" />
-                            Templates
-                        </Button>
+                        {isMasterAdmin && (
+                            <Button variant="outline" onClick={() => setIsTemplateManagerOpen(true)} className="flex-1 sm:flex-none">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Templates
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>

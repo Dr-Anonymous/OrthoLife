@@ -45,19 +45,19 @@ const ConsultationStats = () => {
     }
   }, [consultant, selectedConsultantId, isMasterAdmin]);
 
+  const fetchConsultantsList = async () => {
+    if (!isMasterAdmin) return;
+    const { data } = await supabase
+      .from('consultants')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+    if (data) setConsultantsList(data);
+  };
+
   // Fetch consultants list for the filter (Admins only)
   useEffect(() => {
-    if (isMasterAdmin) {
-      const fetchConsultants = async () => {
-        const { data } = await supabase
-          .from('consultants')
-          .select('id, name')
-          .eq('is_active', true)
-          .order('name');
-        if (data) setConsultantsList(data);
-      };
-      fetchConsultants();
-    }
+    fetchConsultantsList();
   }, [isMasterAdmin]);
 
   const [monthlyCount, setMonthlyCount] = useState<number | null>(null);
@@ -645,8 +645,8 @@ const ConsultationStats = () => {
         isOpen={isTeamModalOpen} 
         onClose={() => {
           setIsTeamModalOpen(false);
-          // Refresh list if needed (though it fetches on mount)
-          window.location.reload(); 
+          // Refresh consultants list to reflect any changes/additions
+          fetchConsultantsList();
         }} 
       />
     </div>
