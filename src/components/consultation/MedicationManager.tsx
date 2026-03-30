@@ -242,7 +242,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                     </div>
                     {onAffordabilityChange && (
                         <div className="flex items-center gap-2 ml-4">
-                            <Select value={affordabilityPreference} onValueChange={onAffordabilityChange}>
+                            <Select value={affordabilityPreference} onValueChange={onAffordabilityChange} disabled={isReadOnly}>
                                 <SelectTrigger className="w-[120px] h-8 text-xs">
                                     <SelectValue placeholder="Cost pref." />
                                 </SelectTrigger>

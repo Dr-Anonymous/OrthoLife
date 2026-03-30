@@ -903,10 +903,15 @@ const ConsultationPage = () => {
     if (!selectedConsultation || !consultant) return false;
     // New/Offline consultations are editable by the current session creator
     if (String(selectedConsultation.id).startsWith('offline-')) return false;
-    return selectedConsultation.consultant_id !== consultant.id;
+
+    // Use robust comparison to handle possible missing fields from search results or type mismatches
+    if (!selectedConsultation.consultant_id) return false;
+
+    return String(selectedConsultation.consultant_id) !== String(consultant.id);
   }, [selectedConsultation, consultant]);
 
   const hasChanges = useMemo(() => {
+    if (isReadOnly) return false;
     if (!selectedConsultation || !editablePatientDetails || !initialPatientDetails) return false;
 
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);

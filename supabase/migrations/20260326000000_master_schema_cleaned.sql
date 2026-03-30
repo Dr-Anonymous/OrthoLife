@@ -614,7 +614,8 @@ BEGIN
                 c.patient_id,
                 c.location,
                 c.visit_type,
-                c.referred_by
+                c.referred_by,
+                c.consultant_id
             FROM consultations c
             INNER JOIN patients p ON c.patient_id = p.id
             WHERE
@@ -657,7 +658,8 @@ BEGIN
                     'created_at', mc.created_at,
                     'location', mc.location,
                     'visit_type', mc.visit_type,
-                    'referred_by', mc.referred_by
+                    'referred_by', mc.referred_by,
+                    'consultant_id', mc.consultant_id
                 ))
                 FROM matching_consultations mc
                 WHERE mc.patient_id = p.id
