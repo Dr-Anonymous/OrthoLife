@@ -26,6 +26,7 @@ export interface DischargeData {
     activity?: string;
     dama_clause?: boolean;
     dama_description?: string;
+    affordabilityPreference?: string;
 }
 
 export interface DischargeSummary {

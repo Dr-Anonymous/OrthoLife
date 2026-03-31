@@ -369,14 +369,20 @@ const InPatientManagement = () => {
 
     const dischargeMutation = useMutation({
         mutationFn: async ({ id, summary, language, dischargeDate, isDraft }: { id: string, summary: DischargeSummary, language: string, dischargeDate?: string, isDraft?: boolean }) => {
+            const updateData: any = {
+                status: isDraft ? 'admitted' : 'discharged',
+                discharge_date: dischargeDate || (isDraft ? null : new Date().toISOString()),
+                discharge_summary: summary,
+                language: language,
+                // Sync main columns with refined data from summary if available
+                diagnosis: summary.course_details.diagnosis,
+                procedure: summary.course_details.procedure,
+                procedure_date: summary.course_details.procedure_date || null
+            };
+
             let query = supabase
                 .from('in_patients')
-                .update({
-                    status: isDraft ? 'admitted' : 'discharged',
-                    discharge_date: dischargeDate || (isDraft ? null : new Date().toISOString()),
-                    discharge_summary: summary,
-                    language: language
-                })
+                .update(updateData)
                 .eq('id', id);
 
             if (!isMasterAdmin && consultant?.id) {
@@ -1717,7 +1723,8 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         wound_care: '',
         activity: '',
         dama_clause: false,
-        dama_description: ''
+        dama_description: '',
+        affordabilityPreference: 'none'
     });
 
     // State for Suture Removal Date
@@ -1760,9 +1767,9 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                 duration: item.duration || '',
                 instructions: item.instructions || '',
                 notes: item.notes || '',
-                freqMorning: item.freq_morning || '',
-                freqNoon: item.freq_noon || '',
-                freqNight: item.freq_night || ''
+                freqMorning: item.freq_morning ?? false,
+                freqNoon: item.freq_noon ?? false,
+                freqNight: item.freq_night ?? false
             }));
             setSavedMedications(mappedData as Medication[]);
         }
@@ -1809,7 +1816,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                 setDischarge({
                     medications: (s.discharge_data.medications || []).map(m => ({
                         ...m,
-                        composition: m.composition || '',
+                        composition: m.composition || (m as any).name || '',
                         dose: m.dose || '',
                         frequency: m.frequency || '',
                         duration: m.duration || '',
@@ -1826,7 +1833,8 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     wound_care: s.discharge_data.wound_care || '',
                     activity: s.discharge_data.activity || '',
                     dama_clause: s.discharge_data.dama_clause || false,
-                    dama_description: s.discharge_data.dama_description || ''
+                    dama_description: s.discharge_data.dama_description || '',
+                    affordabilityPreference: s.discharge_data.affordabilityPreference || 'none'
                 });
             } else {
                 // Initialize from Admission Record
@@ -1925,9 +1933,26 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
     const handleMedicationSuggestionClick = (med: Medication) => {
         const isTelugu = currentLanguage === 'te';
+
+        let finalBrandName: string | undefined = med.brandName; // Use pre-calculated brand if exists
+
+        // If no pre-calculated brand but in brand mode, apply logic here as fallback
+        const affordabilityPreference = discharge.affordabilityPreference || 'none';
+        if (!finalBrandName && medicationSuggestionMode === 'brand' && med.brand_metadata && med.brand_metadata.length > 0) {
+            let validBrands = [...med.brand_metadata];
+            if (affordabilityPreference === 'cheap') {
+                validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
+            } else if (affordabilityPreference === 'costly') {
+                validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+            }
+            finalBrandName = validBrands[0].name;
+        }
+
         const newMed: Medication = {
             id: crypto.randomUUID(),
-            composition: med.composition || '',
+            composition: med.composition || (med as any).name || '',
+            brandName: finalBrandName,
+            savedMedicationId: (med as any).id,
             dose: med.dose || '',
             freqMorning: med.freqMorning || false,
             freqNoon: med.freqNoon || false,
@@ -1935,13 +1960,17 @@ const DischargeForm = forwardRef<{ print: () => void }, {
             frequency: (isTelugu && med.frequency_te) ? med.frequency_te : (med.frequency || ''),
             duration: (isTelugu && med.duration_te) ? med.duration_te : (med.duration || ''),
             instructions: (isTelugu && med.instructions_te) ? med.instructions_te : (med.instructions || ''),
-            notes: (isTelugu && med.notes_te) ? med.notes_te : (med.notes || '')
+            notes: (isTelugu && med.notes_te) ? med.notes_te : (med.notes || ''),
+            frequency_te: isTelugu ? (med.frequency || '') : (med.frequency_te || ''),
+            duration_te: isTelugu ? (med.duration || '') : (med.duration_te || ''),
+            instructions_te: isTelugu ? (med.instructions || '') : (med.instructions_te || ''),
+            notes_te: isTelugu ? (med.notes || '') : (med.notes_te || '')
         };
         setDischarge(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
     };
 
     // -- Generic Shortcut Handler for TextAreas --
-    const handleTextChange = (field: 'operation_notes' | 'post_op_care' | 'clinical_notes', value: string, cursorPosition?: number) => {
+    const handleTextChange = (field: 'operation_notes' | 'post_op_care' | 'clinical_notes' | 'activity' | 'red_flags' | 'wound_care', value: string, cursorPosition?: number) => {
         const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
 
         // Helper to update state based on field
@@ -1988,9 +2017,27 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         const currentNames = new Set(discharge.medications.map(m => ((m as any).composition || (m as any).name || '').toLowerCase()));
 
         return {
-            suggestedMedications: meds.filter(m => !currentNames.has((m.composition || '').toLowerCase()))
+            suggestedMedications: meds.filter(m => !currentNames.has(((m as any).composition || (m as any).name || '').toLowerCase()))
+                .map(med => {
+                    const affordabilityPreference = discharge.affordabilityPreference || 'none';
+                    if (medicationSuggestionMode === 'brand' && med.brand_metadata && med.brand_metadata.length > 0) {
+                        let validBrands = [...med.brand_metadata];
+
+                        if (affordabilityPreference === 'cheap') {
+                            validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
+                        } else if (affordabilityPreference === 'costly') {
+                            validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+                        }
+
+                        return {
+                            ...med,
+                            brandName: validBrands[0].name
+                        };
+                    }
+                    return med;
+                })
         };
-    }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications]);
+    }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications, medicationSuggestionMode, discharge.affordabilityPreference]);
 
 
     const isTelugu = currentLanguage === 'te';
@@ -2273,6 +2320,8 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     suggestedMedications={suggestedMedications} // Pass parsed suggestions
                                     handleMedicationSuggestionClick={handleMedicationSuggestionClick}
                                     medicationSuggestionMode={medicationSuggestionMode}
+                                    affordabilityPreference={discharge.affordabilityPreference || 'none'}
+                                    onAffordabilityChange={(val) => setDischarge(prev => ({ ...prev, affordabilityPreference: val }))}
                                 />
                                 <div className="mt-4 flex items-center justify-end gap-2 px-6">
                                     <Label htmlFor="brand-mode-toggle" className="text-xs font-semibold text-primary/80">
@@ -2358,7 +2407,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     </div>
                                     <Textarea
                                         value={discharge.wound_care || ''}
-                                        onChange={e => setDischarge({ ...discharge, wound_care: e.target.value })}
+                                        onChange={e => handleTextChange('wound_care', e.target.value, e.target.selectionStart)}
                                         rows={4}
                                     />
                                 </div>
@@ -2367,7 +2416,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     <Label className="flex items-center gap-2"><Activity className="w-4 h-4" /> Activity / Physio Instructions</Label>
                                     <Textarea
                                         value={discharge.activity || ''}
-                                        onChange={e => setDischarge({ ...discharge, activity: e.target.value })}
+                                        onChange={e => handleTextChange('activity', e.target.value, e.target.selectionStart)}
                                         rows={6}
                                     />
                                 </div>
@@ -2380,7 +2429,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                             <Label className="text-red-700 font-semibold">Red Flags / Emergency Instructions</Label>
                                             <Textarea
                                                 value={discharge.red_flags || ''}
-                                                onChange={e => setDischarge({ ...discharge, red_flags: e.target.value })}
+                                                onChange={e => handleTextChange('red_flags', e.target.value, e.target.selectionStart)}
                                                 className="bg-white border-red-200"
                                                 rows={5}
                                             />
@@ -2614,7 +2663,7 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                                 <span className="font-bold uppercase block mb-1">Meds ({summary.discharge_data.medications.length})</span>
                                 <ul className="list-disc pl-3 space-y-0.5">
                                     {summary.discharge_data.medications.slice(0, 3).map((m, i) => (
-                                        <li key={i}>{m.brandName || m.composition} - {m.frequency} x {m.duration}</li>
+                                        <li key={i}>{m.brandName || m.composition || (m as any).name || ''} - {m.frequency} x {m.duration}</li>
                                     ))}
                                     {summary.discharge_data.medications.length > 3 && <li>...</li>}
                                 </ul>

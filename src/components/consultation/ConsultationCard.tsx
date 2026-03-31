@@ -177,11 +177,6 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                                             <span className="font-medium text-primary/90">
                                                 {renderText(med.brandName || med.composition || med.name || '')}
                                             </span>
-                                            {med.notes && (
-                                                <p className="text-[10px] text-muted-foreground mt-0.5 italic">
-                                                    {renderText(med.notes)}
-                                                </p>
-                                            )}
                                         </div>
                                         <div className="flex flex-wrap gap-2 items-center">
                                             {freqDisplay && (
