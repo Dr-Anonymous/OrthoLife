@@ -35,10 +35,10 @@ interface ClinicalNotesFormProps {
 
     // Suggestions
     suggestedInvestigations: string[];
-    suggestedAdvice: string[];
+    suggestedAdvice: (string | { text: string; translatedText?: string })[];
 
     onInvestigationSuggestionClick: (val: string) => void;
-    onAdviceSuggestionClick: (val: string) => void;
+    onAdviceSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
 
     matchedGuides: MatchedGuide[];
 
@@ -53,6 +53,7 @@ interface ClinicalNotesFormProps {
     initialData?: Partial<ClinicalNotesFormProps['extraData']>;
     isReadOnly?: boolean;
 }
+
 
 /**
  * ClinicalNotesForm Component
@@ -245,11 +246,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         </Button>
                     </div>
 
-                    {suggestedAdvice.map((advice) => (
-                        <Button key={advice} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)} disabled={isReadOnly}>
-                            {advice}
-                        </Button>
-                    ))}
+                    {suggestedAdvice.map((advice) => {
+                        const text = typeof advice === 'string' ? advice : advice.text;
+                        return (
+                            <Button key={text} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)} disabled={isReadOnly}>
+                                {text}
+                            </Button>
+                        );
+                    })}
                 </div>
                 <Textarea
                     ref={adviceRef}

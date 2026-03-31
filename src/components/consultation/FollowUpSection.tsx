@@ -8,8 +8,8 @@ interface FollowUpSectionProps {
     followup: string;
     onExtraChange: (field: string, value: string, cursorPosition?: number | null) => void;
     followupRef: React.RefObject<HTMLTextAreaElement>;
-    suggestedFollowup: string[];
-    onFollowupSuggestionClick: (val: string) => void;
+    suggestedFollowup: (string | { text: string; translatedText?: string })[];
+    onFollowupSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
     initialFollowup?: string;
     isReadOnly?: boolean;
 }
@@ -68,19 +68,22 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                         );
                     })()}
                 </div>
-                {suggestedFollowup.map((item) => (
-                    <Button
-                        key={item}
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-auto px-2 py-1 text-xs"
-                        onClick={() => onFollowupSuggestionClick(item)}
-                        disabled={isReadOnly}
-                    >
-                        {item}
-                    </Button>
-                ))}
+                {suggestedFollowup.map((item) => {
+                    const text = typeof item === 'string' ? item : item.text;
+                    return (
+                        <Button
+                            key={text}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-auto px-2 py-1 text-xs"
+                            onClick={() => onFollowupSuggestionClick(item)}
+                            disabled={isReadOnly}
+                        >
+                            {text}
+                        </Button>
+                    );
+                })}
             </div>
             <Textarea
                 ref={followupRef}

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ArrowUpDown, ArrowUp, ArrowDown, Filter, Check, X, Calendar, MapPin } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Filter, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -438,31 +438,16 @@ export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: 
 
           {selectedConsultation && (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-4 border-b">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <p className="font-semibold">{format(new Date(selectedConsultation.created_at), 'PPP')}</p>
-                </div>
-                {selectedConsultation.location && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">{selectedConsultation.location}</p>
-                  </div>
-                )}
-                <span className={`px-2 py-0.5 text-xs rounded-full ${selectedConsultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                  {selectedConsultation.status}
-                </span>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-lg">{selectedConsultation.patient.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedConsultation.patient.phone}
-                </p>
-              </div>
-
               {selectedConsultation.consultation_data && (
-                <ConsultationCard data={selectedConsultation.consultation_data} />
+                <ConsultationCard 
+                  data={{ 
+                    ...selectedConsultation.consultation_data,
+                    created_at: selectedConsultation.created_at,
+                    location: selectedConsultation.location,
+                    visit_type: selectedConsultation.visit_type,
+                    status: selectedConsultation.status
+                  }} 
+                />
               )}
             </div>
           )}

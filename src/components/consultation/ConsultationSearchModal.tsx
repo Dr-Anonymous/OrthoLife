@@ -127,28 +127,14 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                   <AccordionContent>
                     {patient.consultations.map(consultation => (
                       <div key={consultation.id} className="border-b last:border-b-0 p-3 mb-2 cursor-pointer hover:bg-muted/50 rounded-md" onClick={() => handleSelect(consultation, patient)}>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <p className="font-semibold">
-                              {formatDistanceToNow(new Date(consultation.created_at), { addSuffix: true })} ({format(new Date(consultation.created_at), 'PPP')})
-                            </p>
-                          </div>
-                          {(consultation.location || consultation.visit_type) && (
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <p className="text-sm text-muted-foreground">
-                                {consultation.location}
-                                {consultation.location && consultation.visit_type && ' - '}
-                                {consultation.visit_type}
-                              </p>
-                            </div>
-                          )}
-                        </div>
                         <ConsultationCard
                           data={{
                             ...consultation.consultation_data,
-                            referred_by: consultation.referred_by
+                            referred_by: consultation.referred_by,
+                            created_at: consultation.created_at,
+                            location: consultation.location,
+                            visit_type: consultation.visit_type,
+                            status: consultation.status
                           }}
                           highlightKeyword={highlightKeyword}
                         />

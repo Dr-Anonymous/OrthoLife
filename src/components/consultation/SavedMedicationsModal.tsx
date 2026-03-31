@@ -201,7 +201,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const fetchMedications = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.from('saved_medications').select('*').order('composition');
+    const { data, error } = await supabase.from('saved_medications').select('*').order('created_at', { ascending: false });
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch saved medications.' });
     } else {

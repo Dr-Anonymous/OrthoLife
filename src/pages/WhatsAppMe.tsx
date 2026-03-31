@@ -363,26 +363,14 @@ const WhatsAppMe = () => {
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clipboard className="w-4 h-4" /> Prescription Details
                 </CardTitle>
-                {(prescription.created_at || prescription.location) && (
-                  <CardDescription className="flex items-center gap-1 flex-wrap">
-                    {prescription.created_at && (
-                      <span>
-                        {formatDistanceToNow(new Date(prescription.created_at), { addSuffix: true })} ({format(new Date(prescription.created_at), 'dd.MM.yyyy')})
-                      </span>
-                    )}
-                    {prescription.created_at && prescription.location && <span> at </span>}
-                    {prescription.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {prescription.location}
-                      </span>
-                    )}
-                  </CardDescription>
-                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 <p><strong>Name:</strong> {prescription.name}</p>
-                <ConsultationCard data={prescription} />
+                <ConsultationCard data={{
+                  ...prescription,
+                  created_at: prescription.created_at,
+                  location: prescription.location
+                }} />
               </CardContent>
             </Card>
           ))}

@@ -40,10 +40,10 @@ const ConsultationStats = () => {
   // Initialize selectedConsultantId once consultant profile is available
   useEffect(() => {
     if (consultant?.id && selectedConsultantId === undefined) {
-      // Admins start with Global View (null), non-admins start with their own ID
-      setSelectedConsultantId(isMasterAdmin ? null : consultant.id);
+      // DEFAULT: Everyone starts with their own ID. Admins can toggle to Global View (null) manually.
+      setSelectedConsultantId(consultant.id);
     }
-  }, [consultant, selectedConsultantId, isMasterAdmin]);
+  }, [consultant, selectedConsultantId]);
 
   const fetchConsultantsList = async () => {
     if (!isMasterAdmin) return;

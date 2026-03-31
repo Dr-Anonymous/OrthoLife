@@ -283,16 +283,22 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             composition: savedMed.composition,
                                             savedMedicationId: savedMed.id,
                                             brandName: finalBrandName,
-                                            instructions: savedMed.instructions_te || savedMed.instructions,
+                                            // English/Primary text moved to _te slots for swapping
+                                            frequency_te: savedMed.frequency || '',
+                                            duration_te: savedMed.duration || '',
+                                            instructions_te: savedMed.instructions || '',
+                                            notes_te: savedMed.notes || '',
+                                            // Telugu text to active fields
                                             frequency: savedMed.frequency_te || savedMed.frequency,
                                             duration: savedMed.duration_te || savedMed.duration,
+                                            instructions: savedMed.instructions_te || savedMed.instructions,
                                             notes: savedMed.notes_te || savedMed.notes,
                                         } : {
                                             ...savedMed,
                                             id: crypto.randomUUID(),
                                             composition: savedMed.composition,
                                             savedMedicationId: savedMed.id,
-                                            brandName: finalBrandName
+                                            brandName: finalBrandName,
                                         };
 
                                         setExtraData(prev => {

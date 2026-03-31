@@ -88,29 +88,17 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                 >
                   <div className="absolute -left-5 top-1.5 h-4 w-4 rounded-full bg-primary"></div>
                   <div className="pl-4">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <p className="font-semibold">
-                          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })} ({format(new Date(item.created_at), 'PPP')})
-                        </p>
-                      </div>
-                      {item.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">
-                            {item.location}
-                            {item.visit_type && ` - ${item.visit_type}`}
-                          </p>
-                        </div>
-                      )}
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${item.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                        {item.status}
-                      </span>
-                    </div>
-
                     <div className="p-4 bg-muted/50 rounded-lg">
-                      <ConsultationCard data={{ ...item.consultation_data, referred_by: item.referred_by }} />
+                      <ConsultationCard 
+                        data={{ 
+                          ...item.consultation_data, 
+                          referred_by: item.referred_by,
+                          created_at: item.created_at,
+                          location: item.location,
+                          visit_type: item.visit_type,
+                          status: item.status
+                        }} 
+                      />
                     </div>
                   </div>
                 </div>

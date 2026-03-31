@@ -999,6 +999,13 @@ const ConsultationPage = () => {
         delete cleaned.freq_night;
         delete cleaned.created_at;
         delete cleaned.updated_at;
+        
+        // Remove backup language fields before saving
+        delete cleaned.frequency_te;
+        delete cleaned.duration_te;
+        delete cleaned.instructions_te;
+        delete cleaned.notes_te;
+
         if (!cleaned.freqMorning) delete cleaned.freqMorning;
         if (!cleaned.freqNoon) delete cleaned.freqNoon;
         if (!cleaned.freqNight) delete cleaned.freqNight;
@@ -1012,6 +1019,9 @@ const ConsultationPage = () => {
         referral_amount,
         referred_to,
         referred_to_list,
+        // Destructure backup fields to exclude them from the saved JSON
+        advice_te,
+        followup_te,
         ...jsonExtraData
       } = restExtraData;
 
@@ -1282,12 +1292,26 @@ const ConsultationPage = () => {
     setCalendarDate(newDate);
   };
 
-  const handleAppendSuggestion = (field: string, suggestion: string) => {
+  const handleAppendSuggestion = (field: string, suggestion: string | { text: string; translatedText?: string }) => {
     if (isReadOnly) return;
+    const text = typeof suggestion === 'string' ? suggestion : suggestion.text;
+    const translatedText = typeof suggestion === 'string' ? undefined : suggestion.translatedText;
+
     setExtraData(prev => {
       const currentVal = prev[field as keyof typeof prev] as string || '';
       const separator = currentVal.trim() ? '\n' : '';
-      return { ...prev, [field]: currentVal + separator + suggestion };
+      
+      const newState = { ...prev, [field]: currentVal + separator + text };
+
+      // If there's a translation, also append it to the corresponding _te field
+      const teField = `${field}_te`;
+      if (translatedText && teField in prev) {
+        const currentTeVal = (prev as any)[teField] || '';
+        const teSeparator = currentTeVal.trim() ? '\n' : '';
+        (newState as any)[teField] = currentTeVal + teSeparator + translatedText;
+      }
+
+      return newState;
     });
   };
 
@@ -1504,10 +1528,16 @@ const ConsultationPage = () => {
       freqMorning: med.freqMorning || false,
       freqNoon: med.freqNoon || false,
       freqNight: med.freqNight || false,
+      // Active field based on language
       frequency: (isTelugu && med.frequency_te) ? med.frequency_te : (med.frequency || ''),
       duration: (isTelugu && med.duration_te) ? med.duration_te : (med.duration || ''),
       instructions: (isTelugu && med.instructions_te) ? med.instructions_te : (med.instructions || ''),
-      notes: (isTelugu && med.notes_te) ? med.notes_te : (med.notes || '')
+      notes: (isTelugu && med.notes_te) ? med.notes_te : (med.notes || ''),
+      // Backup field (always the text for the *other* language)
+      frequency_te: isTelugu ? (med.frequency || '') : (med.frequency_te || ''),
+      duration_te: isTelugu ? (med.duration || '') : (med.duration_te || ''),
+      instructions_te: isTelugu ? (med.instructions || '') : (med.instructions_te || ''),
+      notes_te: isTelugu ? (med.notes || '') : (med.notes_te || '')
     };
 
     setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
@@ -1566,6 +1596,43 @@ const ConsultationPage = () => {
     });
   }, [textShortcuts, isReadOnly]);
 
+  /**
+   * Handles language change for the entire consultation.
+   * Swaps medication fields (frequency, duration, instructions, notes) with their Telugu counterparts.
+   */
+  const handleLanguageChange = useCallback((newLang: string) => {
+    if (newLang === consultationLanguage || isReadOnly) return;
+    
+    setConsultationLanguage(newLang);
+    
+    setExtraData(prev => ({
+      ...prev,
+      // Two-way swap of clinical notes (only translated fields)
+      advice: prev.advice_te || '',
+      advice_te: prev.advice || '',
+      followup: prev.followup_te || '',
+      followup_te: prev.followup || '',
+      
+      // Two-way swap of medications
+      medications: prev.medications.map(med => ({
+        ...med,
+        frequency: med.frequency_te || '',
+        frequency_te: med.frequency || '',
+        duration: med.duration_te || '',
+        duration_te: med.duration || '',
+        instructions: med.instructions_te || '',
+        instructions_te: med.instructions || '',
+        notes: med.notes_te || '',
+        notes_te: med.notes || '',
+      }))
+    }));
+    
+    toast({
+      title: "Language Switched",
+      description: `Consultation switched to ${newLang === 'te' ? 'Telugu' : 'English'}. Text fields have been swapped.`,
+    });
+  }, [consultationLanguage, isReadOnly]);
+
   const addMedication = useCallback(() => {
     if (isReadOnly) return;
     const newMed: Medication = {
@@ -1609,9 +1676,9 @@ const ConsultationPage = () => {
 
   const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications } = useMemo(() => {
     const inputDerivedSuggestions = {
-      advice: new Set<string>(),
+      advice: new Set<{ text: string; translatedText?: string }>(),
       investigations: new Set<string>(),
-      followup: new Set<string>(),
+      followup: new Set<{ text: string; translatedText?: string }>(),
       medicationIds: new Set<number>()
     };
 
@@ -1625,14 +1692,36 @@ const ConsultationPage = () => {
           protocol.investigations.split('\n').filter(Boolean).forEach(s => inputDerivedSuggestions.investigations.add(s.trim()));
         }
 
-        const adviceText = (isTelugu && protocol.advice_te) ? protocol.advice_te : protocol.advice;
-        if (adviceText) {
-          adviceText.split('\n').filter(Boolean).forEach(s => inputDerivedSuggestions.advice.add(s.trim()));
+        if (protocol.advice || protocol.advice_te) {
+          const en = protocol.advice || '';
+          const te = protocol.advice_te || '';
+          const active = isTelugu ? te : en;
+          const backup = isTelugu ? en : te;
+          if (active) {
+            active.split('\n').filter(Boolean).forEach((s, idx) => {
+              const translatedLines = backup.split('\n').filter(Boolean);
+              inputDerivedSuggestions.advice.add({ 
+                text: s.trim(), 
+                translatedText: translatedLines[idx]?.trim() 
+              });
+            });
+          }
         }
 
-        const followupText = (isTelugu && protocol.followup_te) ? protocol.followup_te : protocol.followup;
-        if (followupText) {
-          followupText.split('\n').filter(Boolean).forEach(s => inputDerivedSuggestions.followup.add(s.trim()));
+        if (protocol.followup || protocol.followup_te) {
+          const en = protocol.followup || '';
+          const te = protocol.followup_te || '';
+          const active = isTelugu ? te : en;
+          const backup = isTelugu ? en : te;
+          if (active) {
+            active.split('\n').filter(Boolean).forEach((s, idx) => {
+              const translatedLines = backup.split('\n').filter(Boolean);
+              inputDerivedSuggestions.followup.add({ 
+                text: s.trim(), 
+                translatedText: translatedLines[idx]?.trim() 
+              });
+            });
+          }
         }
 
         if (protocol.medication_ids) {
@@ -1662,9 +1751,9 @@ const ConsultationPage = () => {
     const currentlyAddedMedNames = new Set(extraData.medications.map(m => cleanMedName(m.brandName || m.composition || '')));
 
     return {
-      suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s)),
+      suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s.text)),
       suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.includes(s)),
-      suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s)),
+      suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s.text)),
       suggestedMedications: finalMedications
         .filter(m => {
           const isAddedById = currentlyAddedMedIds.has(m.id) || currentlyAddedMedIds.has(String(m.id) as any);
@@ -2051,7 +2140,7 @@ const ConsultationPage = () => {
                   setIsReferredToExpanded={setIsReferredToExpanded}
                   referralDoctors={referralDoctors}
                   language={consultationLanguage}
-                  onLanguageChange={(lang) => setConsultationLanguage(lang)}
+                  onLanguageChange={handleLanguageChange}
                   initialData={initialExtraData}
                   isReadOnly={isReadOnly}
                 />

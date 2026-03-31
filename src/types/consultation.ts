@@ -126,7 +126,9 @@ export interface ExtraData {
     investigations: string;
     diagnosis: string;
     advice: string;
+    advice_te?: string;
     followup: string;
+    followup_te?: string;
     medications: Medication[];
     weight: string;
     bp: string;

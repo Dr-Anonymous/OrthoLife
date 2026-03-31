@@ -5,7 +5,6 @@ import {
     FileText,
     NotebookText,
     Syringe,
-    Share,
     Activity,
     Scale,
     Thermometer,
@@ -14,10 +13,19 @@ import {
     Microscope,
     Clock,
     Undo2,
-    ArrowRightCircle
+    ArrowRightCircle,
+    Calendar,
+    MapPin,
+    Tag,
+    CheckCircle2
 } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
 
 export interface ConsultationData {
+    created_at?: string;
+    location?: string;
+    visit_type?: string;
+    status?: string;
     bp?: string;
     weight?: string;
     temperature?: string;
@@ -52,13 +60,51 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
 
     return (
         <div className="space-y-4">
+            {/* Meta Information Section */}
+            {(data.created_at || data.location || data.visit_type || data.status) && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 bg-primary/5 rounded-lg border border-primary/10 mb-2 shadow-sm">
+                    {data.created_at && (
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-primary" />
+                            <p className="font-semibold text-sm">
+                                {formatDistanceToNow(new Date(data.created_at), { addSuffix: true })} ({format(new Date(data.created_at), 'PPP')})
+                            </p>
+                        </div>
+                    )}
+                    {data.location && (
+                        <div className="flex items-center gap-2 border-l pl-4 border-border/50 first:border-0 first:pl-0">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <p className="text-sm font-medium">
+                                {renderText(data.location)}
+                            </p>
+                        </div>
+                    )}
+                    {data.visit_type && (
+                        <div className="flex items-center gap-2 border-l pl-4 border-border/50">
+                            <Tag className="w-4 h-4 text-primary" />
+                            <p className="text-sm capitalize font-medium">
+                                {renderText(data.visit_type)}
+                            </p>
+                        </div>
+                    )}
+                    {data.status && (
+                        <div className="flex items-center gap-2 border-l pl-4 border-border/50">
+                            <CheckCircle2 className={`w-4 h-4 ${data.status === 'completed' ? 'text-green-500' : 'text-amber-500'}`} />
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                                {data.status}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Vitals Section */}
             {(data.bp || data.weight || data.temperature) && (
-                <div className="flex items-start gap-3 p-3 bg-white rounded border border-border/50">
+                <div className="flex items-start gap-3 p-3 bg-white rounded border border-border/50 shadow-sm">
                     <Activity className="w-5 h-5 mt-0.5 text-primary" />
                     <div className="flex-1">
-                        <h4 className="font-semibold text-sm mb-2">Vitals</h4>
-                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        <h4 className="font-semibold text-[10px] mb-2 uppercase tracking-widest text-muted-foreground">Patient Vitals</h4>
+                        <div className="flex flex-wrap gap-4 text-sm">
                             {data.bp && (
                                 <span className="flex items-center gap-1.5" title="Blood Pressure">
                                     <span className="font-medium">BP:</span> {renderText(data.bp)}
@@ -66,12 +112,12 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                             )}
                             {data.weight && (
                                 <span className="flex items-center gap-1.5" title="Weight">
-                                    <Scale className="w-3.5 h-3.5" /> {renderText(data.weight)}
+                                    <Scale className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.weight)}
                                 </span>
                             )}
                             {data.temperature && (
                                 <span className="flex items-center gap-1.5" title="Temperature">
-                                    <Thermometer className="w-3.5 h-3.5" /> {renderText(data.temperature)}
+                                    <Thermometer className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.temperature)}
                                 </span>
                             )}
                         </div>
@@ -79,148 +125,124 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                 </div>
             )}
 
-            {/* Allergies - Important to show prominently */}
-            {data.allergy && (
-                <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 mt-1 text-destructive" />
-                    <div>
-                        <h4 className="font-semibold text-destructive">Allergies</h4>
-                        <p className="text-sm text-muted-foreground">{renderText(data.allergy)}</p>
+            {/* Content Sections */}
+            {[
+                { label: "Allergies", value: data.allergy, icon: AlertCircle, color: "text-destructive" },
+                { label: "Doctor's Note", value: data.personalNote || data.personal_note, icon: NotebookText },
+                { label: "Complaints", value: data.complaints, icon: Stethoscope },
+                { label: "Clinical Findings", value: data.findings, icon: Eye },
+                { label: "Investigations", value: data.investigations, icon: Microscope },
+                { label: "Diagnosis", value: data.diagnosis, icon: Activity },
+            ].map((section, idx) => section.value && (
+                <div key={idx} className="flex items-start gap-3 p-1">
+                    <section.icon className={`w-5 h-5 mt-1 ${section.color || 'text-primary'}`} />
+                    <div className="flex-1">
+                        <h4 className={`font-semibold text-sm ${section.color || ''}`}>{section.label}</h4>
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-0.5 leading-relaxed">{renderText(section.value)}</p>
                     </div>
                 </div>
-            )}
-
-            {/* Doctor's Note */}
-            {(data.personalNote || data.personal_note) && (
-                <div className="flex items-start gap-3">
-                    <NotebookText className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Doctor's Personal Note</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.personalNote || data.personal_note || '')}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Complaints */}
-            {data.complaints && (
-                <div className="flex items-start gap-3">
-                    <Stethoscope className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Complaints</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.complaints)}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Findings */}
-            {data.findings && (
-                <div className="flex items-start gap-3">
-                    <Eye className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Clinical Findings</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.findings)}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Investigations */}
-            {data.investigations && (
-                <div className="flex items-start gap-3">
-                    <Microscope className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Investigations</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.investigations)}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Diagnosis */}
-            {data.diagnosis && (
-                <div className="flex items-start gap-3">
-                    <Activity className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Diagnosis</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.diagnosis)}</p>
-                    </div>
-                </div>
-            )}
+            ))}
 
             {/* Medications */}
             {data.medications && data.medications.length > 0 && (
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 p-1">
                     <Pill className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Medications</h4>
-                        <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                            {data.medications.map((med: any, index: number) => (
-                                <li key={index}>
-                                    {renderText(`${med.brandName || med.composition || med.name || ''}${med.duration ? ` - ${med.duration}` : ''} - ${med.dose || ''}`)}
-                                </li>
-                            ))}
-                        </ul>
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-sm">Medications</h4>
+                        <div className="mt-2 space-y-2">
+                            {data.medications.map((med: any, index: number) => {
+                                // Format frequency from structured data or custom string
+                                const getFrequencyDisplay = () => {
+                                    const parts = [];
+                                    if (med.freqMorning !== undefined || med.freqNoon !== undefined || med.freqNight !== undefined) {
+                                        const m = med.freqMorning ? '1' : '0';
+                                        const n = med.freqNoon ? '1' : '0';
+                                        const ni = med.freqNight ? '1' : '0';
+                                        // Only show if at least one is true
+                                        if (med.freqMorning || med.freqNoon || med.freqNight) {
+                                            parts.push(`${m}-${n}-${ni}`);
+                                        }
+                                    }
+                                    if (med.frequency && !parts.includes(med.frequency)) {
+                                        parts.push(med.frequency);
+                                    }
+                                    return parts.join(' ');
+                                };
+
+                                const freqDisplay = getFrequencyDisplay();
+
+                                return (
+                                    <div key={index} className="text-sm bg-muted/40 p-2.5 rounded border border-border/10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 group hover:bg-muted/60 transition-colors">
+                                        <div className="flex-1">
+                                            <span className="font-medium text-primary/90">
+                                                {renderText(med.brandName || med.composition || med.name || '')}
+                                            </span>
+                                            {med.notes && (
+                                                <p className="text-[10px] text-muted-foreground mt-0.5 italic">
+                                                    {renderText(med.notes)}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            {freqDisplay && (
+                                                <span className="text-[10px] uppercase font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20" title="Frequency">
+                                                    {freqDisplay}
+                                                </span>
+                                            )}
+                                            {med.dose && (
+                                                <span className="text-[10px] uppercase font-bold text-muted-foreground bg-background px-1.5 py-0.5 rounded border border-border/50" title="Dose">
+                                                    {med.dose}
+                                                </span>
+                                            )}
+                                            {med.duration && (
+                                                <span className="text-xs text-muted-foreground italic font-medium" title="Duration">
+                                                    {med.duration}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Procedure */}
-            {data.procedure && (
-                <div className="flex items-start gap-3">
-                    <Syringe className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Procedure Done</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.procedure)}</p>
+            {/* Bottom Sections */}
+            {[
+                { label: "Procedure Done", value: data.procedure, icon: Syringe },
+                { label: "Advice", value: data.advice, icon: FileText },
+                { label: "Follow Up", value: data.followup, icon: Clock },
+                { label: "Referred By", value: data.referred_by, icon: Undo2 },
+            ].map((section, idx) => section.value && (
+                <div key={idx} className="flex items-start gap-3 p-1">
+                    <section.icon className="w-5 h-5 mt-1 text-primary" />
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-sm">{section.label}</h4>
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-0.5 leading-relaxed">{renderText(section.value)}</p>
                     </div>
                 </div>
-            )}
-
-            {/* Advice */}
-            {data.advice && (
-                <div className="flex items-start gap-3">
-                    <FileText className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Advice</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.advice)}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Follow Up */}
-            {data.followup && (
-                <div className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Follow Up</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.followup)}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Referred By */}
-            {data.referred_by && (
-                <div className="flex items-start gap-3">
-                    <Undo2 className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Referred By</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.referred_by)}</p>
-                    </div>
-                </div>
-            )}
+            ))}
 
             {/* Referred To */}
             {(data.referred_to_list?.length > 0 || data.referred_to) && (
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 p-1">
                     <ArrowRightCircle className="w-5 h-5 mt-1 text-primary" />
-                    <div>
-                        <h4 className="font-semibold">Referred To</h4>
-                        {data.referred_to_list && data.referred_to_list.length > 0 ? (
-                            <ul className="list-disc list-inside text-sm text-muted-foreground">
-                                {data.referred_to_list.map((name, i) => (
-                                    <li key={i}>{renderText(name)}</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{renderText(data.referred_to)}</p>
-                        )}
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-sm">Referred To</h4>
+                        <div className="mt-2">
+                            {data.referred_to_list && data.referred_to_list.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {data.referred_to_list.map((name, i) => (
+                                        <span key={i} className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-2.5 py-1 rounded border border-primary/20">
+                                            {renderText(name)}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-foreground/90 whitespace-pre-wrap">{renderText(data.referred_to)}</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

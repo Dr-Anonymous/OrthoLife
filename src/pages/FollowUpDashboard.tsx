@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, User, Phone, MessageSquare, Calendar as CalendarIcon, MapPin, ClipboardList, IndianRupee } from 'lucide-react';
-import { format, addDays, startOfToday } from 'date-fns';
+import { format, formatDistanceToNow, addDays, startOfToday } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useConsultant } from '@/context/ConsultantContext';
 import {
@@ -211,7 +211,7 @@ const FollowUpDashboard = () => {
 
           {/* Follow-up List */}
           <Card className="lg:col-span-3 shadow-md border-0 bg-card/95 backdrop-blur h-full min-h-[500px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0 pb-4">
               <div className="flex items-center gap-4">
                 <div>
                   <CardTitle className="text-xl font-bold">Due for Review</CardTitle>
@@ -399,7 +399,7 @@ const FollowUpDashboard = () => {
                               </div>
                             </TableCell>
                             <TableCell className="max-w-[200px] truncate text-sm italic text-muted-foreground">
-                              {stripFollowUpPrefix(c.consultation_data?.followup)}
+                              {stripFollowUpPrefix(c.consultation_data?.followup) || ''}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
@@ -471,14 +471,18 @@ const FollowUpDashboard = () => {
                           </div>
                         </div>
 
-                        {c.consultation_data?.followup && (
-                          <div className="p-3 rounded bg-muted/50 border border-muted-foreground/10">
-                             <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Instruction</div>
-                             <p className="text-sm text-muted-foreground italic line-clamp-3">
-                               {stripFollowUpPrefix(c.consultation_data.followup)}
-                             </p>
-                          </div>
-                        )}
+                        {(() => {
+                          const instructionText = stripFollowUpPrefix(c.consultation_data?.followup);
+                          if (!instructionText || instructionText === '-') return null;
+                          return (
+                            <div className="p-3 rounded bg-muted/50 border border-muted-foreground/10">
+                              <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Instruction</div>
+                              <p className="text-sm text-muted-foreground italic line-clamp-3">
+                                {instructionText}
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -495,44 +499,36 @@ const FollowUpDashboard = () => {
 
         {/* Details Modal */}
         <Dialog open={!!selectedConsultation} onOpenChange={(open) => !open && setSelectedConsultation(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle>Last Consultation Summary</DialogTitle>
+              <DialogTitle>Consulation Summary</DialogTitle>
             </DialogHeader>
             {selectedConsultation && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b">
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Patient Details</label>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                        <User className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-lg leading-none">{selectedConsultation.patient.name}</p>
-                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> {selectedConsultation.patient.phone}
-                        </p>
-                      </div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-1 border-b">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <User className="w-6 h-6" />
                     </div>
-                  </div>
-                  <div className="sm:text-right space-y-1">
-                    <label className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Last Visit</label>
-                    <div className="flex flex-col sm:items-end">
-                      <p className="font-semibold flex items-center gap-2 text-foreground">
-                        <CalendarIcon className="w-4 h-4 text-primary sm:order-last" />
-                        {format(new Date(selectedConsultation.created_at), 'PPP')}
-                      </p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                        <MapPin className="w-3.5 h-3.5 text-primary sm:order-last" />
-                        {selectedConsultation.location}
+                    <div>
+                      <p className="font-bold text-xl leading-none">{selectedConsultation.patient.name}</p>
+                      <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1 font-medium">
+                        <Phone className="w-3.5 h-3.5" /> {selectedConsultation.patient.phone}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {selectedConsultation.consultation_data && (
-                  <ConsultationCard data={selectedConsultation.consultation_data} />
+                  <ConsultationCard 
+                    data={{ 
+                      ...selectedConsultation.consultation_data,
+                      created_at: selectedConsultation.created_at,
+                      location: selectedConsultation.location,
+                      visit_type: selectedConsultation.visit_type,
+                      status: selectedConsultation.status
+                    }} 
+                  />
                 )}
               </div>
             )}
