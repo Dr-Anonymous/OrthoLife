@@ -43,13 +43,15 @@ export function cleanConsultationData(data: any): any {
     notes: removeBracketedText(med.notes),
   });
 
-  const referredToList = data.referred_to_list && Array.isArray(data.referred_to_list)
+  const hasReferredToListField = 'referred_to_list' in data && Array.isArray(data.referred_to_list);
+  const referredToList = hasReferredToListField
     ? data.referred_to_list.map((s: string) => removeBracketedText(s)).filter((s: string) => s && s.trim().length > 0)
     : [];
 
-  // Use the list to populate the string if the list has content, otherwise use the existing string (cleaned)
-  const referredToString = referredToList.length > 0
-    ? referredToList.map((s: string) => `• ${s}`).join('\n')
+  // Use the list to populate the string if the list field exists, otherwise use the existing string (cleaned)
+  // This prevents resurrection of deleted fields when the user clears the list.
+  const referredToString = hasReferredToListField
+    ? (referredToList.length > 0 ? referredToList.map((s: string) => `• ${s}`).join('\n') : '')
     : removeBracketedText(data.referred_to);
 
   return {

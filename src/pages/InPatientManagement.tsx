@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { format, differenceInDays, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import {
     Users,
@@ -65,7 +66,7 @@ import { processTextShortcuts } from '@/lib/textShortcuts';
 import { useTranslation } from 'react-i18next';
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
 import { ConsentManagementModal } from '@/components/inpatient/ConsentManagementModal';
-import { ConsentTemplateManager } from '@/components/inpatient/ConsentTemplateManager';
+// Removed ConsentTemplateManager import
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -163,7 +164,7 @@ const InPatientManagement = () => {
     const [isAdmitModalOpen, setIsAdmitModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
-    const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+    // Removed isTemplateManagerOpen state
 
     const [isDischargeModalOpen, setIsDischargeModalOpen] = useState(false);
     const [transientDischargeLanguage, setTransientDischargeLanguage] = useState('en');
@@ -891,10 +892,20 @@ const InPatientManagement = () => {
                             Admit
                         </Button>
                         {isMasterAdmin && (
-                            <Button variant="outline" onClick={() => setIsTemplateManagerOpen(true)} className="flex-1 sm:flex-none">
-                                <FileText className="w-4 h-4 mr-2" />
-                                Templates
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button variant="outline" asChild className="flex-1 sm:flex-none">
+                                    <Link to="/consents">
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Consents
+                                    </Link>
+                                </Button>
+                                <Button variant="outline" asChild className="flex-1 sm:flex-none">
+                                    <Link to="/ot-notes">
+                                        <BookOpen className="w-4 h-4 mr-2" />
+                                        OT Notes
+                                    </Link>
+                                </Button>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -1480,11 +1491,7 @@ const InPatientManagement = () => {
                 patient={selectedPatientForConsent}
             />
 
-            {/* Consent Templates Manager Modal */}
-            <ConsentTemplateManager
-                isOpen={isTemplateManagerOpen}
-                onClose={() => setIsTemplateManagerOpen(false)}
-            />
+            {/* Consent Templates Bank is now a separate page */}
         </div >
     );
 };

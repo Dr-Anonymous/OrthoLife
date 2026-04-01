@@ -220,7 +220,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             ))}
 
             {/* Referred To */}
-            {(data.referred_to_list?.length > 0 || data.referred_to) && (
+            {(data.referred_to_list?.length > 0 || (!('referred_to_list' in data) && data.referred_to)) && (
                 <div className="flex items-start gap-3 p-1">
                     <ArrowRightCircle className="w-5 h-5 mt-1 text-primary" />
                     <div className="flex-1">

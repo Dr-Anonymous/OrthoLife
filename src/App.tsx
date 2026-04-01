@@ -53,6 +53,7 @@ const ArthroscopyPage = lazy(() => import("./pages/services/ArthroscopyPage"));
 const FractureCarePage = lazy(() => import("./pages/services/FractureCarePage"));
 const SocialMediaManager = lazy(() => import("./pages/SocialMediaManager"));
 const ConsentManagementPage = lazy(() => import("./pages/ConsentManagementPage"));
+const OTNotesManagementPage = lazy(() => import("./pages/OTNotesManagementPage"));
 
 const queryClient = new QueryClient();
 
@@ -169,6 +170,14 @@ const App = () => {
                       element={
                         <ConsentAuthGuard>
                           <ConsentManagementPage />
+                        </ConsentAuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/ot-notes"
+                      element={
+                        <ConsentAuthGuard>
+                          <OTNotesManagementPage />
                         </ConsentAuthGuard>
                       }
                     />

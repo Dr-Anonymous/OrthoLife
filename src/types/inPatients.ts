@@ -74,6 +74,14 @@ export interface SurgicalConsentTemplate {
     updated_at: string;
 }
 
+export interface OTNotesTemplate {
+    id: string;
+    name: string;
+    content: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface SurgicalConsent {
     id: string;
     in_patient_id: string;
