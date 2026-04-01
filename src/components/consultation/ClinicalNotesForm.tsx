@@ -5,9 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 import AutosuggestInput from '@/components/ui/AutosuggestInput';
-import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown, FileUp, BrainCircuit, Loader2, X, Download, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MatchedGuide } from '@/types/consultation';
+import { MatchedGuide, InvestigationReport } from '@/types/consultation';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ClinicalNotesFormProps {
     extraData: {
@@ -18,9 +20,12 @@ interface ClinicalNotesFormProps {
         diagnosis: string;
         procedure: string;
         advice: string;
+        orthotics?: string;
         referred_to: string;
         referred_to_list?: string[];
+        investigation_reports?: InvestigationReport[];
     };
+    patientId?: string;
     onExtraChange: (field: string, value: any, cursorPosition?: number | null) => void;
 
     // Refs
@@ -31,6 +36,7 @@ interface ClinicalNotesFormProps {
     diagnosisRef: React.RefObject<HTMLTextAreaElement>;
     procedureRef: React.RefObject<HTMLTextAreaElement>;
     adviceRef: React.RefObject<HTMLTextAreaElement>;
+    orthoticsRef: React.RefObject<HTMLTextAreaElement>;
     referredToRef: React.RefObject<any>; // Typings for AutosuggestInput ref might be tricky
 
     // Suggestions
@@ -77,6 +83,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     diagnosisRef,
     procedureRef,
     adviceRef,
+    orthoticsRef,
     referredToRef,
     suggestedInvestigations,
     suggestedAdvice,
@@ -91,8 +98,83 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     language,
     onLanguageChange,
     initialData,
+    patientId,
     isReadOnly = false
 }) => {
+    const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
+    const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
+
+    const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !patientId) return;
+
+        setUploadingReport(true);
+        const reader = new FileReader();
+
+        reader.onloadend = async () => {
+            try {
+                const fileContent = reader.result as string;
+                const { data, error } = await supabase.functions.invoke('upload-file-to-drive', {
+                    body: {
+                        patientId,
+                        fileName: file.name,
+                        fileContent,
+                        mimeType: file.type
+                    }
+                });
+
+                if (error) throw error;
+
+                const newReport: InvestigationReport = {
+                    fileId: data.file.id,
+                    fileName: file.name,
+                    gist: '',
+                    mimeType: file.type
+                };
+
+                const currentReports = extraData.investigation_reports || [];
+                onExtraChange('investigation_reports', [...currentReports, newReport]);
+                toast.success('Report uploaded successfully');
+            } catch (error: any) {
+                console.error('Upload error:', error);
+                toast.error('Failed to upload report');
+            } finally {
+                setUploadingReport(false);
+                // Reset input
+                e.target.value = '';
+            }
+        };
+
+        reader.readAsDataURL(file);
+    };
+
+    const generateAISummary = async (report: InvestigationReport, index: number) => {
+        if (!report.fileId) return;
+
+        setGeneratingSummaryId(report.fileId);
+        try {
+            const { data, error } = await supabase.functions.invoke('summarize-report', {
+                body: {
+                    fileId: report.fileId,
+                    mimeType: report.mimeType
+                }
+            });
+
+            if (error) throw error;
+            if (data.error) throw new Error(data.error);
+
+            const newList = [...(extraData.investigation_reports || [])];
+            newList[index] = { ...report, gist: data.summary };
+            onExtraChange('investigation_reports', newList);
+            toast.success('AI summary generated');
+        } catch (error: any) {
+            console.error('AI Summary error:', error);
+            toast.error(error.message || 'Failed to generate summary');
+        } finally {
+            setGeneratingSummaryId(null);
+        }
+    };
+
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof ClinicalNotesFormProps['extraData'], value: any) => {
         if (!initialData) return "bg-background/50";
@@ -110,7 +192,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     };
 
     return (
-        <>
+        <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
@@ -185,6 +267,140 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         className={cn("min-h-[100px]", getStyle('investigations', extraData.investigations))}
                         disabled={isReadOnly}
                     />
+                </div>
+
+                {/* Investigation Reports Section */}
+                <div className="space-y-3 mt-4 p-4 border rounded-lg bg-slate-50/50">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <FileUp className="w-5 h-5 text-primary" />
+                            <h3 className="text-sm font-semibold">Attached Investigation Reports</h3>
+                        </div>
+                        {!isReadOnly && (
+                            <div className="relative">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 gap-2 bg-white"
+                                    disabled={uploadingReport}
+                                    onClick={() => document.getElementById('report-upload')?.click()}
+                                >
+                                    {uploadingReport ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Plus className="w-4 h-4" />
+                                    )}
+                                    Attach Report
+                                </Button>
+                                <input
+                                    id="report-upload"
+                                    type="file"
+                                    className="hidden"
+                                    accept=".pdf,image/*"
+                                    onChange={handleReportUpload}
+                                    disabled={uploadingReport}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-3">
+                        {(!extraData.investigation_reports || extraData.investigation_reports.length === 0) ? (
+                            <p className="text-xs text-muted-foreground italic py-2">No reports attached yet. Attach PDF or Image reports to see AI gists.</p>
+                        ) : (
+                            extraData.investigation_reports.map((report, idx) => (
+                                <div key={report.fileId || idx} className="bg-white p-3 rounded-md border shadow-sm space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <FileText className="w-4 h-4 text-slate-500 shrink-0" />
+                                            <span className="text-sm font-medium truncate max-w-[200px]">{report.fileName}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700"
+                                                onClick={() => window.open(`https://drive.google.com/file/d/${report.fileId}/view`, '_blank')}
+                                            >
+                                                <Download className="w-3 h-3 mr-1" /> View
+                                            </Button>
+                                            {!isReadOnly && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 text-destructive"
+                                                    onClick={async () => {
+                                                        const confirmDelete = window.confirm(`Confirm deletion of ${report.fileName} from patient's consultation?`);
+                                                        if (!confirmDelete) return;
+
+                                                        // If we have a fileId, delete it from Drive
+                                                        if (report.fileId) {
+                                                            try {
+                                                                toast.promise(
+                                                                    supabase.functions.invoke('delete-file-from-drive', {
+                                                                        body: { fileId: report.fileId }
+                                                                    }),
+                                                                    {
+                                                                        loading: 'Deleting file from Drive...',
+                                                                        success: 'File deleted from Drive',
+                                                                        error: 'Failed to delete file from Drive'
+                                                                    }
+                                                                );
+                                                            } catch (err) {
+                                                                console.error('Delete error:', err);
+                                                            }
+                                                        }
+
+                                                        const newList = [...(extraData.investigation_reports || [])];
+                                                        newList.splice(idx, 1);
+                                                        onExtraChange('investigation_reports', newList);
+                                                    }}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <Textarea
+                                            value={report.gist}
+                                            onChange={(e) => {
+                                                const newList = [...(extraData.investigation_reports || [])];
+                                                newList[idx] = { ...report, gist: e.target.value };
+                                                onExtraChange('investigation_reports', newList);
+                                            }}
+                                            placeholder="Gist of report (e.g. Normal MRI, Fracture noted...)"
+                                            className="text-xs min-h-[60px] pr-10"
+                                            disabled={isReadOnly}
+                                        />
+                                        {!isReadOnly && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className={cn(
+                                                    "absolute right-2 top-2 h-7 w-7 text-primary hover:bg-primary/10",
+                                                    generatingSummaryId === report.fileId && "animate-pulse"
+                                                )}
+                                                onClick={() => generateAISummary(report, idx)}
+                                                disabled={generatingSummaryId !== null}
+                                                title="Summarize with AI"
+                                            >
+                                                {generatingSummaryId === report.fileId ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <BrainCircuit className="w-4 h-4" />
+                                                )}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -288,7 +504,20 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 )}
             </div>
 
-            {/* Referred To and Followup - keeping in ClinicalNotes as implied by "Notes" structure */}
+            <div className="space-y-2">
+                <Label htmlFor="orthotics" className="text-sm font-medium">Orthotics</Label>
+                <Textarea
+                    ref={orthoticsRef}
+                    id="orthotics"
+                    value={extraData.orthotics || ''}
+                    onChange={e => onExtraChange('orthotics', e.target.value, e.target.selectionStart)}
+                    placeholder="Enter details about braces, splints, or plaster..."
+                    className={cn("min-h-[100px]", getStyle('orthotics', extraData.orthotics))}
+                    disabled={isReadOnly}
+                />
+            </div>
+
+            {/* Referred To keeping in ClinicalNotes as implied by "Notes" structure */}
             <div className="space-y-2">
                 <Label
                     htmlFor="referred_to"
@@ -401,6 +630,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         </div>
                     )))}
             </div>
-        </>
+        </div>
     );
 };

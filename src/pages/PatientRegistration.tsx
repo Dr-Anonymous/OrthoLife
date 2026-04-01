@@ -58,6 +58,11 @@ const PatientRegistration = () => {
     return stored !== null ? JSON.parse(stored) : true;
   });
 
+  // Print settings (mirrored from Consultation.tsx)
+  const [showDoctorProfile, setShowDoctorProfile] = useState<boolean>(true);
+  const [showSignSeal, setShowSignSeal] = useState<boolean>(false);
+  const [onlyMedicationsAndFollowup, setOnlyMedicationsAndFollowup] = useState<boolean>(false);
+
   const toggleGps = () => {
     const newValue = !isGpsEnabled;
     setIsGpsEnabled(newValue);
@@ -115,6 +120,23 @@ const PatientRegistration = () => {
 
   const locationName = getLocationName();
   const hospital = hospitals.find(h => h.name === locationName);
+
+  // Sync print settings from localStorage per hospital (consistency with Consultation.tsx)
+  useEffect(() => {
+    if (locationName) {
+      const profileKey = `showDoctorProfile_${locationName}`;
+      const signSealKey = `showSignSeal_${locationName}`;
+      const onlyMedsKey = `onlyMedicationsAndFollowup_${locationName}`;
+
+      const storedProfile = localStorage.getItem(profileKey);
+      const storedSignSeal = localStorage.getItem(signSealKey);
+      const storedOnlyMeds = localStorage.getItem(onlyMedsKey);
+
+      setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
+      setShowSignSeal(storedSignSeal !== null ? JSON.parse(storedSignSeal) : false);
+      setOnlyMedicationsAndFollowup(storedOnlyMeds !== null ? JSON.parse(storedOnlyMeds) : false);
+    }
+  }, [locationName]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -605,10 +627,14 @@ const PatientRegistration = () => {
                 consultationDate={new Date(printingConsultation.created_at)}
                 age={calculateAge(new Date(printingConsultation.patient.dob))}
                 language={printingConsultation.language || i18n.language}
-                logoUrl={hospital?.logoUrl}
+                logoUrl={hospital?.logoUrl || '/images/logos/logo.png'}
                 visitType={printingConsultation.visit_type}
                 className="min-h-[297mm]"
                 forceDesktop={true}
+                consultant={consultant}
+                showDoctorProfile={showDoctorProfile}
+                showSignSeal={showSignSeal}
+                onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
               />
             ) : (
               <div />

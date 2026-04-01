@@ -40,7 +40,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
         const hasContent = followup && String(followup).trim().length > 0;
 
         if (isUnchanged && hasContent) {
-            return "bg-amber-100/60 border-amber-300 focus-visible:ring-amber-500 placeholder:text-amber-900/50";
+            return "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40";
         }
         return "";
     };

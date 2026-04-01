@@ -46,6 +46,7 @@ interface ConsultationData {
   pulse?: string;
   spo2?: string;
   allergy?: string;
+  orthotics?: string;
 }
 
 interface PrescriptionProps {
@@ -404,6 +405,17 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   </tbody>
                 </table>
               </div>
+            </section>
+          )}
+
+          {/* Orthotics (Braces / Splints / Plaster) */}
+          {consultation.orthotics && (
+            <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+              <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
+                <Bone className="h-4 w-4" />
+                <span>Braces / Splints / Plaster:</span>
+              </h3>
+              <p className="whitespace-pre-wrap">{consultation.orthotics}</p>
             </section>
           )}
 

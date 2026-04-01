@@ -119,6 +119,13 @@ export interface MatchedGuide {
     guideLink?: string;
 }
 
+export interface InvestigationReport {
+    fileId: string;
+    fileName: string;
+    gist: string;
+    mimeType?: string;
+}
+
 export interface ExtraData {
     complaints: string;
     medicalHistory: string;
@@ -148,6 +155,8 @@ export interface ExtraData {
     referral_amount: string;
     visit_type: string;
     affordabilityPreference: string;
+    orthotics?: string;
+    investigation_reports?: InvestigationReport[];
 }
 
 export interface AutofillProtocol {

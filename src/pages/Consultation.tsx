@@ -227,6 +227,7 @@ const ConsultationPage = () => {
     referral_amount: '',
     visit_type: 'paid', // default
     affordabilityPreference: 'none',
+    orthotics: '',
   });
 
   const extraDataRef = useRef(extraData);
@@ -316,6 +317,7 @@ const ConsultationPage = () => {
   const referredToRef = useRef<HTMLInputElement>(null);
   const personalNoteRef = useRef<HTMLTextAreaElement>(null);
   const referredByRef = useRef<HTMLInputElement>(null);
+  const orthoticsRef = useRef<HTMLTextAreaElement>(null);
 
   // Med Refs
   const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
@@ -345,6 +347,7 @@ const ConsultationPage = () => {
     syncField('advice', adviceRef);
     syncField('followup', followupRef);
     syncField('procedure', procedureRef);
+    syncField('orthotics', orthoticsRef);
 
     if (Object.keys(updates).length > 0) {
       const nextData = { ...currentExtraData, ...updates };
@@ -547,6 +550,8 @@ const ConsultationPage = () => {
 
       visit_type: savedData.visit_type || consultation.visit_type || 'paid',
       affordabilityPreference: savedData.affordabilityPreference || 'none',
+      orthotics: savedData.orthotics || '',
+      investigation_reports: savedData.investigation_reports || [],
     };
     setExtraData(newExtraData);
     setInitialExtraData(newExtraData);
@@ -999,7 +1004,7 @@ const ConsultationPage = () => {
         delete cleaned.freq_night;
         delete cleaned.created_at;
         delete cleaned.updated_at;
-        
+
         // Remove backup language fields before saving
         delete cleaned.frequency_te;
         delete cleaned.duration_te;
@@ -1300,7 +1305,7 @@ const ConsultationPage = () => {
     setExtraData(prev => {
       const currentVal = prev[field as keyof typeof prev] as string || '';
       const separator = currentVal.trim() ? '\n' : '';
-      
+
       const newState = { ...prev, [field]: currentVal + separator + text };
 
       // If there's a translation, also append it to the corresponding _te field
@@ -1490,6 +1495,7 @@ const ConsultationPage = () => {
     setExtraData(prev => ({ ...prev, [field]: value }));
   }, [textShortcuts, consultationLanguage, isReadOnly]);
 
+
   /**
    * Adds a medication to the list from a suggestion.
    * Handles language-specific fields (Telugu support) if applicable.
@@ -1602,9 +1608,9 @@ const ConsultationPage = () => {
    */
   const handleLanguageChange = useCallback((newLang: string) => {
     if (newLang === consultationLanguage || isReadOnly) return;
-    
+
     setConsultationLanguage(newLang);
-    
+
     setExtraData(prev => ({
       ...prev,
       // Two-way swap of clinical notes (only translated fields)
@@ -1612,7 +1618,7 @@ const ConsultationPage = () => {
       advice_te: prev.advice || '',
       followup: prev.followup_te || '',
       followup_te: prev.followup || '',
-      
+
       // Two-way swap of medications
       medications: prev.medications.map(med => ({
         ...med,
@@ -1626,7 +1632,7 @@ const ConsultationPage = () => {
         notes_te: med.notes || '',
       }))
     }));
-    
+
     toast({
       title: "Language Switched",
       description: `Consultation switched to ${newLang === 'te' ? 'Telugu' : 'English'}. Text fields have been swapped.`,
@@ -1700,9 +1706,9 @@ const ConsultationPage = () => {
           if (active) {
             active.split('\n').filter(Boolean).forEach((s, idx) => {
               const translatedLines = backup.split('\n').filter(Boolean);
-              inputDerivedSuggestions.advice.add({ 
-                text: s.trim(), 
-                translatedText: translatedLines[idx]?.trim() 
+              inputDerivedSuggestions.advice.add({
+                text: s.trim(),
+                translatedText: translatedLines[idx]?.trim()
               });
             });
           }
@@ -1716,9 +1722,9 @@ const ConsultationPage = () => {
           if (active) {
             active.split('\n').filter(Boolean).forEach((s, idx) => {
               const translatedLines = backup.split('\n').filter(Boolean);
-              inputDerivedSuggestions.followup.add({ 
-                text: s.trim(), 
-                translatedText: translatedLines[idx]?.trim() 
+              inputDerivedSuggestions.followup.add({
+                text: s.trim(),
+                translatedText: translatedLines[idx]?.trim()
               });
             });
           }
@@ -2128,6 +2134,7 @@ const ConsultationPage = () => {
                   diagnosisRef={diagnosisRef}
                   procedureRef={procedureRef}
                   adviceRef={adviceRef}
+                  orthoticsRef={orthoticsRef}
                   referredToRef={referredToRef}
                   suggestedInvestigations={suggestedInvestigations}
                   suggestedAdvice={suggestedAdvice}
@@ -2143,6 +2150,7 @@ const ConsultationPage = () => {
                   onLanguageChange={handleLanguageChange}
                   initialData={initialExtraData}
                   isReadOnly={isReadOnly}
+                  patientId={selectedConsultation?.patient?.id}
                 />
 
                 <MedicationManager
