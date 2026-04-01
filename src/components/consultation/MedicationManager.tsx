@@ -7,6 +7,7 @@ import { SortableMedicationItem } from '@/components/consultation/SortableMedica
 import { Medication } from '@/types/consultation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MedicationManagerProps {
     medications: Medication[];
@@ -34,11 +35,6 @@ interface MedicationManagerProps {
     consultationId?: string;
     isMasterAdmin?: boolean;
     isReadOnly?: boolean;
-
-    // Referred To Section (Keep passing props for now if colocated, or can separate)
-    // Actually the plan said "MedicationManager" extracts the medication list.
-    // Referred To is separate in UI but adjacent.
-    // I will extraction ONLY medications here as per name.
 }
 
 /**
@@ -78,6 +74,22 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     isMasterAdmin = false,
     isReadOnly = false
 }) => {
+    const [pharmacyMeds, setPharmacyMeds] = React.useState<any[]>([]);
+
+    // Fetch pharmacy meds dynamically
+    React.useEffect(() => {
+        const loadPharmacyData = async () => {
+            try {
+                const { data, error } = await supabase.functions.invoke('fetch-pharmacy-data');
+                if (!error && data?.medicines) {
+                    setPharmacyMeds(data.medicines);
+                }
+            } catch (err) {
+                console.error('Error loading pharmacy suggestions:', err);
+            }
+        };
+        loadPharmacyData();
+    }, []);
     // Track previous length to detect additions
     const prevMedicationsLength = React.useRef(medications.length);
     const shouldFocusNewMedication = React.useRef(false);
@@ -293,6 +305,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 medicationSuggestionMode={medicationSuggestionMode}
                                 isMasterAdmin={isMasterAdmin}
                                 isReadOnly={isReadOnly}
+                                pharmacyMeds={pharmacyMeds}
                             />
                         ))}
                     </SortableContext>

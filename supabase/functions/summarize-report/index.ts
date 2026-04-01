@@ -63,7 +63,7 @@ serve(async (req: Request) => {
 Analyze the provided medical report (X-ray, blood test, MRI, etc.) and provide a very concise gist (2-3 sentences).
 Focus on findings and abnormalities. Be strictly factual and concise.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,8 +83,11 @@ Focus on findings and abnormalities. Be strictly factual and concise.`;
           }
         ],
         generationConfig: {
-          maxOutputTokens: 200,
-          temperature: 0.1
+          maxOutputTokens: 400,
+          temperature: 0.1,
+          thinkingConfig: {
+            thinkingBudget: 0
+          }
         }
       }),
     });

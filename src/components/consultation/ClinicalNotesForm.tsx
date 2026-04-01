@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-import AutosuggestInput from '@/components/ui/AutosuggestInput';
 import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown, FileUp, BrainCircuit, Loader2, X, Download, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchedGuide, InvestigationReport } from '@/types/consultation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 
 interface ClinicalNotesFormProps {
     extraData: {
@@ -103,6 +103,57 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 }) => {
     const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
     const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
+    const [pendingDeletions, setPendingDeletions] = React.useState<string[]>([]);
+    const [labSuggestions, setLabSuggestions] = React.useState<any[]>([]);
+
+    // Fetch lab data dynamically since it's in the public directory and can be refreshed
+    React.useEffect(() => {
+        const fetchLabData = async () => {
+            try {
+                const response = await fetch('/lab-data.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data?.medicines) {
+                        setLabSuggestions(data.medicines);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching lab data suggestions:', err);
+            }
+        };
+        fetchLabData();
+    }, []);
+
+    // We use a ref to track the last saved consultation ID to know when a "save" happened
+    const lastSavedIdRef = React.useRef<string | number | null | undefined>(initialData?.investigation_reports ? 'initialized' : null);
+
+    // Effect to handle actual deletions from Drive ONLY after a save is detected
+    // We detect a "save" by checking if the current extraData.investigation_reports
+    // is now the "initial" content (meaning saveChanges synced them)
+    React.useEffect(() => {
+        if (pendingDeletions.length === 0) return;
+
+        // Check if the current report list in extraData matches the "initial" list
+        // (meaning Consultation.tsx has completed its save/sync cycle)
+        const currentReports = extraData.investigation_reports || [];
+        const initialReports = initialData?.investigation_reports || [];
+        
+        const isSynced = JSON.stringify(currentReports) === JSON.stringify(initialReports);
+
+        if (isSynced && lastSavedIdRef.current !== 'initialized') {
+            console.log('Save detected, executing pending Drive deletions:', pendingDeletions);
+            
+            pendingDeletions.forEach(fileId => {
+                supabase.functions.invoke('delete-file-from-drive', {
+                    body: { fileId }
+                }).catch(err => console.error('Delayed delete error:', err));
+            });
+            
+            setPendingDeletions([]);
+        }
+        
+        lastSavedIdRef.current = 'active';
+    }, [extraData.investigation_reports, initialData?.investigation_reports, pendingDeletions]);
 
     const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -252,64 +303,105 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                         <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                        {!isReadOnly && (!extraData.investigation_reports || extraData.investigation_reports.length === 0) && (
+                            <div className="relative">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 py-0 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
+                                    disabled={uploadingReport}
+                                    onClick={() => document.getElementById('report-upload')?.click()}
+                                >
+                                    {uploadingReport ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <FileUp className="w-3.5 h-3.5 text-primary" />
+                                    )}
+                                    Attach Report
+                                </Button>
+                            </div>
+                        )}
                         {suggestedInvestigations.map((investigation) => (
                             <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onInvestigationSuggestionClick(investigation)} disabled={isReadOnly}>
                                 {investigation}
                             </Button>
                         ))}
                     </div>
-                    <Textarea
-                        ref={investigationsRef}
-                        id="investigations"
-                        value={extraData.investigations}
-                        onChange={e => onExtraChange('investigations', e.target.value, e.target.selectionStart)}
-                        placeholder="Investigations required..."
-                        className={cn("min-h-[100px]", getStyle('investigations', extraData.investigations))}
-                        disabled={isReadOnly}
-                    />
+                    <div className="relative w-full">
+                        <AutosuggestInput
+                            ref={investigationsRef as any}
+                            multiline
+                            value={extraData.investigations}
+                            onChange={value => onExtraChange('investigations', value)}
+                            onSuggestionSelected={suggestion => {
+                                const current = extraData.investigations;
+                                const lines = current.split('\n');
+                                
+                                // Replace the LAST line (the one currently being typed) with the suggestion
+                                // And add a newline to prepare for the NEXT entry
+                                lines[lines.length - 1] = suggestion.name;
+                                
+                                onExtraChange('investigations', lines.join('\n') + '\n');
+                            }}
+                            suggestions={labSuggestions.map(m => ({
+                                id: m.id,
+                                name: m.name,
+                                label: m.name,
+                                searchTerms: m.category + ' ' + m.description
+                            }))}
+                            placeholder="Investigations required..."
+                            inputProps={{
+                                className: cn("min-h-[100px] w-full", getStyle('investigations', extraData.investigations))
+                            }}
+                            disabled={isReadOnly}
+                        />
+                    </div>
                 </div>
 
-                {/* Investigation Reports Section */}
-                <div className="space-y-3 mt-4 p-4 border rounded-lg bg-slate-50/50">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <FileUp className="w-5 h-5 text-primary" />
-                            <h3 className="text-sm font-semibold">Attached Investigation Reports</h3>
-                        </div>
-                        {!isReadOnly && (
-                            <div className="relative">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 gap-2 bg-white"
-                                    disabled={uploadingReport}
-                                    onClick={() => document.getElementById('report-upload')?.click()}
-                                >
-                                    {uploadingReport ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Plus className="w-4 h-4" />
-                                    )}
-                                    Attach Report
-                                </Button>
-                                <input
-                                    id="report-upload"
-                                    type="file"
-                                    className="hidden"
-                                    accept=".pdf,image/*"
-                                    onChange={handleReportUpload}
-                                    disabled={uploadingReport}
-                                />
-                            </div>
-                        )}
-                    </div>
+                {/* Hidden File Input (Always present) */}
+                {!isReadOnly && (
+                    <input
+                        id="report-upload"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,image/*"
+                        onChange={handleReportUpload}
+                        disabled={uploadingReport}
+                    />
+                )}
 
-                    <div className="space-y-3">
-                        {(!extraData.investigation_reports || extraData.investigation_reports.length === 0) ? (
-                            <p className="text-xs text-muted-foreground italic py-2">No reports attached yet. Attach PDF or Image reports to see AI gists.</p>
-                        ) : (
-                            extraData.investigation_reports.map((report, idx) => (
+                {/* Investigation Reports Section (Only visible if reports present) */}
+                {extraData.investigation_reports && extraData.investigation_reports.length > 0 && (
+                    <div className="space-y-3 mt-4 p-4 border rounded-lg bg-slate-50/50">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <FileUp className="w-5 h-5 text-primary" />
+                                <h3 className="text-sm font-semibold">Attached Investigation Reports</h3>
+                            </div>
+                            {!isReadOnly && (
+                                <div className="relative">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 gap-2 bg-white"
+                                        disabled={uploadingReport}
+                                        onClick={() => document.getElementById('report-upload')?.click()}
+                                    >
+                                        {uploadingReport ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Plus className="w-4 h-4" />
+                                        )}
+                                        Attach Report
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-3">
+                            {extraData.investigation_reports.map((report, idx) => (
                                 <div key={report.fileId || idx} className="bg-white p-3 rounded-md border shadow-sm space-y-2">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 overflow-hidden">
@@ -332,31 +424,20 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-7 w-7 text-destructive"
-                                                    onClick={async () => {
-                                                        const confirmDelete = window.confirm(`Confirm deletion of ${report.fileName} from patient's consultation?`);
+                                                    onClick={() => {
+                                                        const confirmDelete = window.confirm(`Remove ${report.fileName} from this consultation?`);
                                                         if (!confirmDelete) return;
 
-                                                        // If we have a fileId, delete it from Drive
+                                                        // Add to pending deletions for actual cleanup after save
                                                         if (report.fileId) {
-                                                            try {
-                                                                toast.promise(
-                                                                    supabase.functions.invoke('delete-file-from-drive', {
-                                                                        body: { fileId: report.fileId }
-                                                                    }),
-                                                                    {
-                                                                        loading: 'Deleting file from Drive...',
-                                                                        success: 'File deleted from Drive',
-                                                                        error: 'Failed to delete file from Drive'
-                                                                    }
-                                                                );
-                                                            } catch (err) {
-                                                                console.error('Delete error:', err);
-                                                            }
+                                                            setPendingDeletions(prev => [...prev, report.fileId]);
                                                         }
 
                                                         const newList = [...(extraData.investigation_reports || [])];
                                                         newList.splice(idx, 1);
                                                         onExtraChange('investigation_reports', newList);
+                                                        
+                                                        toast.info('Report removed from list. Changes will be permanent after saving.');
                                                     }}
                                                 >
                                                     <X className="w-4 h-4" />
@@ -398,10 +479,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         )}
                                     </div>
                                 </div>
-                            ))
-                        )}
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             <div className="space-y-2">

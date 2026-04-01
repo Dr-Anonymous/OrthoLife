@@ -34,6 +34,7 @@ interface SortableMedicationItemProps {
     medicationSuggestionMode?: 'composition' | 'brand';
     isMasterAdmin?: boolean;
     isReadOnly?: boolean;
+    pharmacyMeds?: any[];
 }
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
@@ -56,7 +57,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     affordabilityPreference,
     medicationSuggestionMode = 'composition',
     isMasterAdmin = false,
-    isReadOnly = false
+    isReadOnly = false,
+    pharmacyMeds = []
 }) => {
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
     const getStyle = (field: keyof Medication, value: any) => {
@@ -223,89 +225,109 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     }
                                 }}
                                 disabled={isReadOnly}
-                                suggestions={savedMedications.flatMap(m => {
+                                suggestions={(() => {
                                     const items: Suggestion[] = [];
-                                    const hasBrands = m.brand_metadata && m.brand_metadata.length > 0;
 
-                                    // If in 'composition' mode, always add the generic name
-                                    if (medicationSuggestionMode === 'composition') {
-                                        items.push({ id: m.id!, name: m.composition, label: m.composition });
-                                    }
-                                    // If in 'brand' mode
-                                    else if (medicationSuggestionMode === 'brand') {
-                                        if (hasBrands) {
-                                            m.brand_metadata!.forEach(brand => {
-                                                const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
-                                                const costLabel = unitPrice ? `₹${unitPrice}/u` : brand.cost ? `₹${brand.cost}` : '';
-                                                items.push({
-                                                    id: m.id!,
-                                                    name: brand.name,
-                                                    label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
-                                                    isBrand: true,
-                                                    searchTerms: m.composition
-                                                });
-                                            });
-                                        } else {
-                                            // Fallback to composition if no brands are available
+                                    // 1. Add Saved Medications (Favorites) first
+                                    savedMedications.forEach(m => {
+                                        const hasBrands = m.brand_metadata && m.brand_metadata.length > 0;
+                                        if (medicationSuggestionMode === 'composition') {
                                             items.push({ id: m.id!, name: m.composition, label: m.composition });
-                                        }
-                                    }
-                                    return items;
-                                })}
-                                onSuggestionSelected={suggestion => {
-                                    const savedMed = savedMedications.find(m => m.id === suggestion.id);
-                                    if (savedMed) {
-                                        const isBrand = suggestion.name !== savedMed.composition;
-                                        let finalBrandName = isBrand ? suggestion.name : undefined;
-
-                                        // Auto-swap logic for generics at the moment of selection
-                                        if (!isBrand && (currentLocation || affordabilityPreference !== 'none')) {
-                                            let validBrands = savedMed.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation || '')) || [];
-                                            // Fallback to all brands if no matching locations
-                                            if (validBrands.length === 0 && savedMed.brand_metadata) {
-                                                validBrands = [...savedMed.brand_metadata];
-                                            }
-
-                                            // Sort by unit cost based on preference
-                                            if (validBrands.length > 0) {
-                                                if (affordabilityPreference === 'cheap') {
-                                                    validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
-                                                } else if (affordabilityPreference === 'costly') {
-                                                    validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
-                                                }
-                                                finalBrandName = validBrands[0].name;
+                                        } else if (medicationSuggestionMode === 'brand') {
+                                            if (hasBrands) {
+                                                m.brand_metadata!.forEach(brand => {
+                                                    const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
+                                                    const costLabel = unitPrice ? `₹${unitPrice}/u` : brand.cost ? `₹${brand.cost}` : '';
+                                                    items.push({
+                                                        id: m.id!,
+                                                        name: brand.name,
+                                                        label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
+                                                        isBrand: true,
+                                                        searchTerms: m.composition
+                                                    });
+                                                });
+                                            } else {
+                                                items.push({ id: m.id!, name: m.composition, label: m.composition, searchTerms: "" });
                                             }
                                         }
+                                    });
 
-                                        const medToAdd = language === 'te' ? {
-                                            ...savedMed,
-                                            id: crypto.randomUUID(),
-                                            composition: savedMed.composition,
-                                            savedMedicationId: savedMed.id,
-                                            brandName: finalBrandName,
-                                            // English/Primary text moved to _te slots for swapping
-                                            frequency_te: savedMed.frequency || '',
-                                            duration_te: savedMed.duration || '',
-                                            instructions_te: savedMed.instructions || '',
-                                            notes_te: savedMed.notes || '',
-                                            // Telugu text to active fields
-                                            frequency: savedMed.frequency_te || savedMed.frequency,
-                                            duration: savedMed.duration_te || savedMed.duration,
-                                            instructions: savedMed.instructions_te || savedMed.instructions,
-                                            notes: savedMed.notes_te || savedMed.notes,
-                                        } : {
-                                            ...savedMed,
-                                            id: crypto.randomUUID(),
-                                            composition: savedMed.composition,
-                                            savedMedicationId: savedMed.id,
-                                            brandName: finalBrandName,
-                                        };
-
-                                        setExtraData(prev => {
-                                            const newMeds = [...prev.medications];
-                                            newMeds[index] = medToAdd;
-                                            return { ...prev, medications: newMeds };
+                                    // 2. Add Pharmacy Medications as fallback
+                                    const savedNamesLower = new Set(savedMedications.map(s => s.composition.toLowerCase()));
+                                    if (pharmacyMeds) {
+                                        pharmacyMeds.forEach(pm => {
+                                            if (!savedNamesLower.has(pm.name.toLowerCase())) {
+                                                const categoryPrefix = pm.category ? `${pm.category.substring(0, 3)}. ` : '';
+                                                const fullName = categoryPrefix + pm.name;
+                                                items.push({
+                                                    id: `pharmacy-${pm.id}`,
+                                                    name: fullName,
+                                                    label: `${fullName} (Pharmacy)`,
+                                                    searchTerms: fullName
+                                                });
+                                            }
                                         });
+                                    }
+
+                                    return items;
+                                })()}
+                                onSuggestionSelected={suggestion => {
+                                    const isPharmacy = String(suggestion.id).startsWith('pharmacy-');
+                                    const realId = isPharmacy ? String(suggestion.id).replace('pharmacy-', '') : suggestion.id;
+                                    
+                                    if (!isPharmacy) {
+                                        const savedMed = savedMedications.find(m => m.id === realId);
+                                        if (savedMed) {
+                                            const isBrand = suggestion.name !== savedMed.composition;
+                                            let finalBrandName = isBrand ? suggestion.name : undefined;
+
+                                            if (!isBrand && (currentLocation || affordabilityPreference !== 'none')) {
+                                                let validBrands = savedMed.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation || '')) || [];
+                                                if (validBrands.length === 0 && savedMed.brand_metadata) {
+                                                    validBrands = [...savedMed.brand_metadata];
+                                                }
+
+                                                if (validBrands.length > 0) {
+                                                    if (affordabilityPreference === 'cheap') {
+                                                        validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
+                                                    } else if (affordabilityPreference === 'costly') {
+                                                        validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+                                                    }
+                                                    finalBrandName = validBrands[0].name;
+                                                }
+                                            }
+
+                                            const medToAdd = language === 'te' ? {
+                                                ...savedMed,
+                                                id: crypto.randomUUID(),
+                                                composition: savedMed.composition,
+                                                savedMedicationId: savedMed.id,
+                                                brandName: finalBrandName,
+                                                frequency_te: savedMed.frequency || '',
+                                                duration_te: savedMed.duration || '',
+                                                instructions_te: savedMed.instructions || '',
+                                                notes_te: savedMed.notes || '',
+                                                frequency: savedMed.frequency_te || savedMed.frequency,
+                                                duration: savedMed.duration_te || savedMed.duration,
+                                                instructions: savedMed.instructions_te || savedMed.instructions,
+                                                notes: savedMed.notes_te || savedMed.notes,
+                                            } : {
+                                                ...savedMed,
+                                                id: crypto.randomUUID(),
+                                                composition: savedMed.composition,
+                                                savedMedicationId: savedMed.id,
+                                                brandName: finalBrandName,
+                                            };
+
+                                            setExtraData(prev => ({
+                                                ...prev,
+                                                medications: prev.medications.map((m, i) => i === index ? medToAdd : m)
+                                            }));
+                                        }
+                                    } else {
+                                        // Selected from Pharmacy (Not in favorites)
+                                        // Use suggestion.name instead of pm.name because it has the category prefix (Tab., Cap., etc.)
+                                        handleMedChange(index, 'composition', suggestion.name);
                                     }
                                     if (handleManualAdd) handleManualAdd();
                                 }}
@@ -427,7 +449,6 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 className={getStyle('duration', med.duration)}
                                 disabled={isReadOnly}
                             />
-                            {/* Smart Duration Helpers */}
                             {(() => {
                                 const val = (med.duration || '').trim();
                                 const match = val.match(/^(\d+)/);

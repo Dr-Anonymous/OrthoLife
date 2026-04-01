@@ -1,6 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 export interface Suggestion {
   id: string;
@@ -15,13 +17,14 @@ interface AutosuggestInputProps {
   onChange: (value: string) => void;
   onSuggestionSelected: (suggestion: Suggestion) => void;
   suggestions: Suggestion[];
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<any>) => void;
   placeholder?: string;
-  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  inputProps?: any;
   disabled?: boolean;
+  multiline?: boolean;
 }
 
-const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProps>(({
+const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
   value,
   onChange,
   onSuggestionSelected,
@@ -29,42 +32,50 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
   onKeyDown,
   placeholder = "Enter medicine name",
   inputProps,
-  disabled
+  disabled,
+  multiline = false
 }, ref) => {
   const [filteredSuggestions, setFilteredSuggestions] = useState<Suggestion[]>([]);
   const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<any>) => {
     const inputValue = e.target.value;
     onChange(inputValue);
 
     if (inputValue.length > 0) {
+      // In multiline mode, we only want to search using the current line being typed
+      const currentToken = multiline ? inputValue.split('\n').pop() || '' : inputValue;
+
+      if (!currentToken.trim()) {
+        setFilteredSuggestions([]);
+        setIsSuggestionsVisible(false);
+        return;
+      }
+
       const cleanSearch = (text: string) => {
         if (!text) return '';
-        const prefixes = ['t\\.', 'cap\\.', 'syr\\.', 'tab\\.', 'inj\\.', 'crm\\.', 'gel\\.', 'oint\\.', 'tab', 'cap', 'syr', 'inj', 'crm', 'gel', 'oint', 'syp', 'caps', 'tabs', 'pint', 'p\\.int', 'p\\.inj', 'supp', 'susp', 'lot', 'pdr'];
-        const regex = new RegExp(`^(${prefixes.join('|')})\\s*`, 'i');
+        const prefixes = ['t\\. ', 'cap\\. ', 'syr\\. ', 'tab\\. ', 'inj\\. ', 'crm\\. ', 'gel\\. ', 'oint\\. ', 'tab ', 'cap ', 'syr ', 'inj ', 'crm ', 'gel ', 'oint ', 'syp ', 'caps ', 'tabs '];
+        const prefixRegex = new RegExp(`^(${prefixes.join('|')})`, 'i');
+        
         return text.toLowerCase()
-          .replace(regex, '')
+          .replace(prefixRegex, '')
+          .replace(/[.()]/g, '')
+          .replace(/\s+/g, ' ')
           .trim();
       };
 
-      const searchVal = cleanSearch(inputValue);
+      const searchVal = cleanSearch(currentToken);
       
       const filtered = suggestions.filter(suggestion => {
-        const name = suggestion.name || '';
-        const label = suggestion.label || '';
-        const searchTerms = suggestion.searchTerms || '';
-        
-        const cleanName = cleanSearch(name);
-        const cleanLabel = cleanSearch(label);
-        const cleanTerms = cleanSearch(searchTerms);
+        const cleanName = cleanSearch(suggestion.name || '');
+        const cleanLabel = cleanSearch(suggestion.label || '');
+        const cleanTerms = cleanSearch(suggestion.searchTerms || '');
+        const searchValLower = searchVal.toLowerCase();
 
-        return cleanName.includes(searchVal) || 
-               cleanLabel.includes(searchVal) || 
-               cleanTerms.includes(searchVal) ||
-               name.toLowerCase().includes(inputValue.toLowerCase()) ||
-               label.toLowerCase().includes(inputValue.toLowerCase());
+        return cleanName.includes(searchValLower) || 
+               cleanLabel.includes(searchValLower) || 
+               cleanTerms.includes(searchValLower);
       });
       setFilteredSuggestions(filtered);
       setIsSuggestionsVisible(true);
@@ -76,40 +87,41 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
 
   const handleSuggestionClick = (suggestion: Suggestion) => {
     onSuggestionSelected(suggestion);
-    onChange(suggestion.name);
     setFilteredSuggestions([]);
     setIsSuggestionsVisible(false);
     setActiveSuggestionIndex(0);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (onKeyDown) {
-      onKeyDown(e);
-    }
+  const handleKeyDown = (e: React.KeyboardEvent<any>) => {
+    if (onKeyDown) onKeyDown(e);
 
     if (e.key === 'ArrowDown') {
-      if (activeSuggestionIndex < filteredSuggestions.length - 1) {
-        setActiveSuggestionIndex(activeSuggestionIndex + 1);
-      } else {
-        setActiveSuggestionIndex(0);
+      if (filteredSuggestions.length > 0) {
+        e.preventDefault();
+        setIsSuggestionsVisible(true);
+        setActiveSuggestionIndex(prev => (prev < filteredSuggestions.length - 1 ? prev + 1 : 0));
       }
     } else if (e.key === 'ArrowUp') {
-      if (activeSuggestionIndex > 0) {
-        setActiveSuggestionIndex(activeSuggestionIndex - 1);
-      } else {
-        setActiveSuggestionIndex(filteredSuggestions.length - 1);
+      if (filteredSuggestions.length > 0) {
+        e.preventDefault();
+        setIsSuggestionsVisible(true);
+        setActiveSuggestionIndex(prev => (prev > 0 ? prev - 1 : filteredSuggestions.length - 1));
       }
     } else if (e.key === 'Enter') {
-      if (filteredSuggestions.length > 0) {
+      if (isSuggestionsVisible && filteredSuggestions.length > 0) {
         e.preventDefault();
         handleSuggestionClick(filteredSuggestions[activeSuggestionIndex]);
       }
+    } else if (e.key === 'Escape') {
+      setIsSuggestionsVisible(false);
     }
   };
 
+  const Component = multiline ? Textarea : Input;
+
   return (
-    <div className="relative">
-      <Input
+    <div className="relative w-full">
+      <Component
         ref={ref}
         value={value}
         onChange={handleInputChange}
@@ -119,18 +131,24 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
         {...inputProps}
       />
       {isSuggestionsVisible && filteredSuggestions.length > 0 && (
-        <Card className="absolute z-10 w-full mt-1 bg-background shadow-lg max-h-[300px] overflow-y-auto">
-          <ul>
+        <Card className="absolute z-[100] w-full mt-1 bg-background shadow-lg max-h-[300px] overflow-y-auto border border-border">
+          <ul className="py-1">
             {filteredSuggestions.map((suggestion, index) => (
               <li
                 key={`${suggestion.id}-${suggestion.name}-${index}`}
-                onClick={() => handleSuggestionClick(suggestion)}
-                className={`p-2 cursor-pointer transition-colors ${index === activeSuggestionIndex ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'
-                  } ${suggestion.isBrand ? 'pl-6 text-sm italic' : 'font-semibold'}`}
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSuggestionClick(suggestion);
+                }}
+                className={cn(
+                    "px-3 py-2 cursor-pointer transition-colors text-sm",
+                    index === activeSuggestionIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-foreground',
+                    suggestion.isBrand && "pl-6 italic"
+                )}
               >
                 <div className="flex items-center gap-2">
-                  {suggestion.isBrand && <span className="text-muted-foreground">↳</span>}
-                  <span>{suggestion.label || suggestion.name}</span>
+                  {suggestion.isBrand && <span className="opacity-70">↳</span>}
+                  <span className="font-medium">{suggestion.label || suggestion.name}</span>
                 </div>
               </li>
             ))}
@@ -140,5 +158,7 @@ const AutosuggestInput = React.forwardRef<HTMLInputElement, AutosuggestInputProp
     </div>
   );
 });
+
+AutosuggestInput.displayName = "AutosuggestInput";
 
 export default AutosuggestInput;
