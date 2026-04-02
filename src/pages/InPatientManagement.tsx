@@ -2754,6 +2754,14 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                             </Button>
                         )}
                     </div>
+                    {!isDischarged && (
+                        <Button variant="outline" size="sm" asChild className="w-full text-xs h-9">
+                            <Link to="/ot-notes" state={{ initialPatient: patient }}>
+                                <BookOpen className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                                Draft OT Note
+                            </Link>
+                        </Button>
+                    )}
                 </div>
             </CardContent>
         </Card>

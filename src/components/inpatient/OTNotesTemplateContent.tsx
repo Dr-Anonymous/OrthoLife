@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit, Trash2, ArrowLeft, Loader2, Printer, X, Calendar as CalendarIcon, Search, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, ArrowLeft, Loader2, Printer, X, Calendar as CalendarIcon, Search, FileText, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { OTNotesTemplate } from '@/types/inPatients';
+import { OTNotesTemplate, InPatient } from '@/types/inPatients';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import RichTextEditor from '@/components/RichTextEditor';
@@ -15,6 +15,7 @@ import { useReactToPrint } from 'react-to-print';
 import { OTNotesTemplatePrint } from './OTNotesTemplatePrint';
 import { trackEvent } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
+import { calculateAge } from '@/lib/age';
 import {
     Dialog,
     DialogContent,
@@ -36,11 +37,13 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+
 interface OTNotesTemplateContentProps {
     readonly?: boolean;
+    initialPatient?: InPatient | null;
 }
 
-export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ readonly = false }) => {
+export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ readonly = false, initialPatient = null }) => {
     const [viewMode, setViewMode] = useState<'list' | 'edit'>('list');
     const [editingTemplate, setEditingTemplate] = useState<Partial<OTNotesTemplate> | null>(null);
     const [printingTemplate, setPrintingTemplate] = useState<OTNotesTemplate | null>(null);
@@ -57,6 +60,7 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
     const [isPrintDatePickerOpen, setIsPrintDatePickerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [focusedIndex, setFocusedIndex] = useState(0);
+    const [specData, setSpecData] = useState<Record<string, string>>({});
     const searchInputRef = useRef<HTMLInputElement>(null);
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -70,6 +74,20 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
             return () => clearTimeout(timer);
         }
     }, [viewMode, printInfoModalOpen]);
+
+    // Auto-fill from admission record if provided
+    useEffect(() => {
+        if (initialPatient) {
+            const age = initialPatient.patient.dob ? calculateAge(new Date(initialPatient.patient.dob)).toString() : '';
+            setPrintInfo(prev => ({
+                ...prev,
+                patientName: initialPatient.patient.name,
+                patientAge: age,
+                uhid: '', // UHID might not be in the direct record, but could be added later
+                date: initialPatient.procedure_date || new Date().toISOString().split('T')[0],
+            }));
+        }
+    }, [initialPatient]);
 
     useEffect(() => {
         if (viewMode === 'list' && filteredTemplates && filteredTemplates.length > 0) {
@@ -98,7 +116,7 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
 
     const confirmPrint = () => {
         setPrintInfoModalOpen(false);
-        
+
         if (printingTemplate) {
             trackEvent({
                 eventType: 'ot_note_template_print',
@@ -136,6 +154,16 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
         const queryWords = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
         return queryWords.every(word => name.includes(word));
     });
+
+    const getProcedureType = (name: string) => {
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes('acl')) return 'ACL';
+        if (lowerName.includes('tkr') || lowerName.includes('knee replacement')) return 'TKR';
+        if (lowerName.includes('thr') || lowerName.includes('hip replacement')) return 'THR';
+        if (lowerName.includes('spine') || lowerName.includes('acdf') || lowerName.includes('laminectomy')) return 'SPINE';
+        if (lowerName.includes('plating') || lowerName.includes('orif') || lowerName.includes('fixation')) return 'TRAUMA';
+        return 'GENERAL';
+    };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (viewMode !== 'list' || !filteredTemplates || filteredTemplates.length === 0 || printInfoModalOpen) return;
@@ -388,6 +416,7 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
                         ref={printRef}
                         template={printingTemplate}
                         printInfo={printInfo}
+                        specData={specData}
                     />
                 )}
             </div>
@@ -429,22 +458,24 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
                                 placeholder="e.g. 45"
                             />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Limb Side</Label>
-                            <div className="col-span-3">
-                                <Select value={printInfo.limbSide} onValueChange={(val) => setPrintInfo({ ...printInfo, limbSide: val })}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Limb Side" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Left">Left</SelectItem>
-                                        <SelectItem value="Right">Right</SelectItem>
-                                        <SelectItem value="Bilateral">Bilateral</SelectItem>
-                                        <SelectItem value="N/A">N/A</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                        {printingTemplate && getProcedureType(printingTemplate.name) !== 'SPINE' && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right">Limb Side</Label>
+                                <div className="col-span-3">
+                                    <Select value={printInfo.limbSide} onValueChange={(val) => setPrintInfo({ ...printInfo, limbSide: val })}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Limb Side" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Left">Left</SelectItem>
+                                            <SelectItem value="Right">Right</SelectItem>
+                                            <SelectItem value="Bilateral">Bilateral</SelectItem>
+                                            <SelectItem value="N/A">N/A</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                        </div>
+                        )}
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">Implant</Label>
                             <div className="col-span-3">
@@ -455,30 +486,37 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
                                     <SelectContent>
                                         <SelectItem value="Stainless Steel">Stainless Steel</SelectItem>
                                         <SelectItem value="Titanium">Titanium</SelectItem>
-                                        <SelectItem value="Pritine">Pritine</SelectItem>
+                                        <SelectItem value="Co-Cr (Cobalt Chrome)">Co-Cr</SelectItem>
+                                        <SelectItem value="PEEK / Poly">PEEK / Poly</SelectItem>
+                                        <SelectItem value="Ceramic">Ceramic</SelectItem>
+                                        <SelectItem value="Bio-composite">Bio-composite (ACL)</SelectItem>
+                                        <SelectItem value="PLLA / Bio-absorbable">PLLA / Bio-absorbable (ACL)</SelectItem>
                                         <SelectItem value="None/NA">None/NA</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Fixation</Label>
-                            <div className="col-span-3">
-                                <Select value={printInfo.fixationStatus} onValueChange={(val) => setPrintInfo({ ...printInfo, fixationStatus: val })}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Cemented">Cemented</SelectItem>
-                                        <SelectItem value="Uncemented">Uncemented</SelectItem>
-                                        <SelectItem value="Hybrid">Hybrid</SelectItem>
-                                        <SelectItem value="N/A">N/A</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                        {(getProcedureType(printingTemplate?.name || '') === 'TKR' || getProcedureType(printingTemplate?.name || '') === 'THR') && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right font-medium">Fixation</Label>
+                                <div className="col-span-3">
+                                    <Select value={printInfo.fixationStatus} onValueChange={(val) => setPrintInfo({ ...printInfo, fixationStatus: val })}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Cemented">Cemented</SelectItem>
+                                            <SelectItem value="Uncemented">Uncemented</SelectItem>
+                                            <SelectItem value="Hybrid">Hybrid</SelectItem>
+                                            <SelectItem value="N/A">N/A</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                        </div>
+                        )}
+
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="date" className="text-right">Date</Label>
+                            <Label htmlFor="date" className="text-right font-medium">Date</Label>
                             <div className="col-span-3">
                                 <Popover open={isPrintDatePickerOpen} onOpenChange={setIsPrintDatePickerOpen}>
                                     <PopoverTrigger asChild>
@@ -509,6 +547,112 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
                                 </Popover>
                             </div>
                         </div>
+
+                        {/* Surgical Specs Card (Dynamic) */}
+                        {printingTemplate && getProcedureType(printingTemplate.name) !== 'GENERAL' && (
+                            <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-4">
+                                <h4 className="text-sm font-bold text-primary flex items-center gap-2">
+                                    <ClipboardList className="w-4 h-4" />
+                                    Surgical Specifications ({getProcedureType(printingTemplate.name)})
+                                </h4>
+
+                                {getProcedureType(printingTemplate.name) === 'ACL' && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Graft Type</Label>
+                                            <Select value={specData.graftType} onValueChange={(v) => setSpecData({ ...specData, graftType: v })}>
+                                                <SelectTrigger className="h-8 text-xs">
+                                                    <SelectValue placeholder="Graft" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Peroneus Longus">Peroneus Longus</SelectItem>
+                                                    <SelectItem value="Hamstring">Hamstring</SelectItem>
+                                                    <SelectItem value="BTB (Bone-Tendon-Bone)">BTB</SelectItem>
+                                                    <SelectItem value="Quadriceps">Quadriceps</SelectItem>
+                                                    <SelectItem value="LARS / Synthetic">Synthetic</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Graft Size (mm)</Label>
+                                            <Input
+                                                className="h-8 text-xs"
+                                                placeholder="e.g. 8.5"
+                                                value={specData.graftSize || ''}
+                                                onChange={(e) => setSpecData({ ...specData, graftSize: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(getProcedureType(printingTemplate.name) === 'TKR' || getProcedureType(printingTemplate.name) === 'THR') && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Femoral Size</Label>
+                                            <Input className="h-8 text-xs" value={specData.femoralSize || ''} onChange={(e) => setSpecData({ ...specData, femoralSize: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Tibial/Acetabular Size</Label>
+                                            <Input className="h-8 text-xs" value={specData.tibialSize || ''} onChange={(e) => setSpecData({ ...specData, tibialSize: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Insert/Poly (mm)</Label>
+                                            <Input className="h-8 text-xs" value={specData.polySize || ''} onChange={(e) => setSpecData({ ...specData, polySize: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Cement</Label>
+                                            <Select value={specData.cement} onValueChange={(v) => setSpecData({ ...specData, cement: v })}>
+                                                <SelectTrigger className="h-8 text-xs">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Cemented">Cemented</SelectItem>
+                                                    <SelectItem value="Uncemented">Uncemented</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {getProcedureType(printingTemplate.name) === 'TRAUMA' && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Plate Type</Label>
+                                            <Input className="h-8 text-xs" placeholder="e.g. Locking Plate" value={specData.plateType || ''} onChange={(e) => setSpecData({ ...specData, plateType: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Number of Holes</Label>
+                                            <Input className="h-8 text-xs" type="number" value={specData.plateHoles || ''} onChange={(e) => setSpecData({ ...specData, plateHoles: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Cortical Screws</Label>
+                                            <Input className="h-8 text-xs" type="number" value={specData.corticalScrews || ''} onChange={(e) => setSpecData({ ...specData, corticalScrews: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Locking Screws</Label>
+                                            <Input className="h-8 text-xs" type="number" value={specData.lockingScrews || ''} onChange={(e) => setSpecData({ ...specData, lockingScrews: e.target.value })} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {getProcedureType(printingTemplate.name) === 'SPINE' && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Levels</Label>
+                                            <Input className="h-8 text-xs" placeholder="e.g. L4-L5" value={specData.levels || ''} onChange={(e) => setSpecData({ ...specData, levels: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs">Rod Length (mm)</Label>
+                                            <Input className="h-8 text-xs" placeholder="e.g. 40" value={specData.rodLength || ''} onChange={(e) => setSpecData({ ...specData, rodLength: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1.5 col-span-2">
+                                            <Label className="text-xs">Pedicle Screws (count)</Label>
+                                            <Input className="h-8 text-xs" type="number" value={specData.screwCount || ''} onChange={(e) => setSpecData({ ...specData, screwCount: e.target.value })} />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setPrintInfoModalOpen(false)}>Cancel</Button>
