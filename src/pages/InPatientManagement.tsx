@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
@@ -871,34 +871,36 @@ const InPatientManagement = () => {
                     <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage admissions, procedures, and patient updates.</p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
-                    {isMasterAdmin && (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 border rounded-lg mr-2">
-                            <Label htmlFor="global-fetch-all" className="text-[10px] font-bold uppercase tracking-tight text-primary/70 whitespace-nowrap">Show All</Label>
-                            <Switch
-                                id="global-fetch-all"
-                                checked={fetchAll}
-                                onCheckedChange={setFetchAll}
-                                className="scale-75 data-[state=checked]:bg-primary"
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-center">
+                    <div className="flex flex-row items-center gap-2 w-full md:w-auto">
+                        {isMasterAdmin && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 border rounded-lg flex-none h-10">
+                                <Label htmlFor="global-fetch-all" className="text-[10px] font-bold uppercase tracking-tight text-primary/70 whitespace-nowrap">Show All</Label>
+                                <Switch
+                                    id="global-fetch-all"
+                                    checked={fetchAll}
+                                    onCheckedChange={setFetchAll}
+                                    className="scale-75 data-[state=checked]:bg-primary"
+                                />
+                            </div>
+                        )}
+                        <div className="relative flex-1 md:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search patients..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-9 h-10 w-full"
                             />
                         </div>
-                    )}
-                    <div className="relative w-full md:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search patients..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-10"
-                        />
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <Button onClick={() => setIsAdmitModalOpen(true)} className="flex-1 sm:flex-none bg-primary hover:bg-primary/90">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center sm:justify-end">
+                        <Button onClick={() => setIsAdmitModalOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
                             <UserPlus className="w-4 h-4 mr-2" />
                             Admit
                         </Button>
                         {isMasterAdmin && (
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 w-full sm:w-auto">
                                 <Button variant="outline" asChild className="flex-1 sm:flex-none">
                                     <Link to="/consents">
                                         <FileText className="w-4 h-4 mr-2" />
@@ -1717,39 +1719,6 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         setOtFocusIndex(0);
     }, [otSearch]);
 
-    const applyTemplate = (t: any) => {
-        let content = t.content || '';
-        const stepsMarker = "Surgical Steps:</h3>";
-        const hrMarker = "<hr>";
-        
-        if (content.includes(stepsMarker)) {
-            content = content.split(stepsMarker)[1];
-        } else if (content.includes(hrMarker)) {
-            const parts = content.split(hrMarker);
-            content = parts[parts.length - 1];
-        }
-
-        const cleanText = content.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
-        setCourse({ ...course, operation_notes: cleanText });
-        setOtSearch('');
-        setIsOtPopoverOpen(false);
-    };
-
-    const handleOtKeyDown = (e: React.KeyboardEvent) => {
-        if (filteredOtTemplates.length === 0) return;
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setOtFocusIndex(prev => Math.min(prev + 1, filteredOtTemplates.length - 1));
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setOtFocusIndex(prev => Math.max(prev - 1, 0));
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (otFocusIndex >= 0 && otFocusIndex < filteredOtTemplates.length) {
-                applyTemplate(filteredOtTemplates[otFocusIndex]);
-            }
-        }
-    };
 
     // -- Data State --
     const [snapshot, setSnapshot] = useState({
@@ -1800,6 +1769,92 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         dama_description: '',
         affordabilityPreference: 'none'
     });
+
+    const applyTemplate = useCallback((t: any) => {
+        let content = t.content || '';
+        const stepsMarker = "Surgical Steps:</h3>";
+        const hrMarker = "<hr>";
+        
+        if (content.includes(stepsMarker)) {
+            content = content.split(stepsMarker)[1];
+        } else if (content.includes(hrMarker)) {
+            const parts = content.split(hrMarker);
+            content = parts[parts.length - 1];
+        }
+
+        // Auto-extract side (Left/Right/Bilateral) from diagnosis/procedure
+        let sideTerm = '';
+        let sidePrefix = '';
+        const diagProcText = `${course.diagnosis} ${course.procedure}`.toLowerCase();
+        if (diagProcText.includes('bilateral')) {
+            sidePrefix = '(Bilateral) ';
+            sideTerm = 'Bilateral';
+        } else if (diagProcText.includes('left')) {
+            sidePrefix = '(Left) ';
+            sideTerm = 'Left';
+        } else if (diagProcText.includes('right')) {
+            sidePrefix = '(Right) ';
+            sideTerm = 'Right';
+        }
+
+        let cleanText = content.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+        
+        // Process Placeholders
+        let hasLimbSidePlaceholder = /\{\{LimbSide\}\}/gi.test(content);
+
+        if (sideTerm) {
+            cleanText = cleanText.replace(/\{\{LimbSide\}\}/gi, sideTerm.toLowerCase());
+        } else {
+             cleanText = cleanText.replace(/\{\{LimbSide\}\}/gi, '');
+        }
+        
+        cleanText = cleanText.replace(/\{\{PatientName\}\}/gi, snapshot.name || '');
+        // Do NOT replace or purge other placeholders as per user request (ImplantMaterial, etc.)
+
+        // Only add prefix if the placeholder wasn't used in the text
+        const finalPrefix = hasLimbSidePlaceholder ? '' : sidePrefix;
+        setCourse(prev => ({ ...prev, operation_notes: (finalPrefix + cleanText).trim() }));
+        setOtSearch('');
+        setIsOtPopoverOpen(false);
+    }, [course.diagnosis, course.procedure, snapshot.name]);
+
+    // Auto-match and pre-fill template based on procedure
+    useEffect(() => {
+        if (otTemplates && course.procedure && (!course.operation_notes || course.operation_notes.trim() === '')) {
+            const sideWords = ['left', 'right', 'bilateral'];
+            const procSignificantWords = course.procedure.toLowerCase().split(/\W+/).filter(word => 
+                word.length >= 3 && !sideWords.includes(word)
+            );
+            
+            if (procSignificantWords.length === 0) return;
+
+            // Find a template whose name contains all the significant words of the procedure
+            const matchedTemplate = otTemplates.find(t => {
+                const templateName = t.name.toLowerCase();
+                return procSignificantWords.every(pw => templateName.includes(pw));
+            });
+
+            if (matchedTemplate) {
+                applyTemplate(matchedTemplate);
+            }
+        }
+    }, [course.procedure, otTemplates, applyTemplate, course.operation_notes]);
+
+    const handleOtKeyDown = (e: React.KeyboardEvent) => {
+        if (filteredOtTemplates.length === 0) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setOtFocusIndex(prev => Math.min(prev + 1, filteredOtTemplates.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setOtFocusIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (otFocusIndex >= 0 && otFocusIndex < filteredOtTemplates.length) {
+                applyTemplate(filteredOtTemplates[otFocusIndex]);
+            }
+        }
+    };
 
     // State for Suture Removal Date
     const [sutureDate, setSutureDate] = useState<Date | undefined>();

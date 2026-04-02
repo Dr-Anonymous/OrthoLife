@@ -17,10 +17,11 @@ interface OTNotesTemplatePrintProps {
         fixationStatus: string;
     };
     specData?: Record<string, string>;
+    customContent?: string;
 }
 
 export const OTNotesTemplatePrint = forwardRef<HTMLDivElement, OTNotesTemplatePrintProps>(
-    ({ template, printInfo, specData = {} }, ref) => {
+    ({ template, printInfo, specData = {}, customContent }, ref) => {
         const { user } = useAuth();
         const { consultant } = useConsultant();
         
@@ -76,6 +77,8 @@ export const OTNotesTemplatePrint = forwardRef<HTMLDivElement, OTNotesTemplatePr
         const showFixation = procedureType === 'TKR' || procedureType === 'THR';
         const showLimbSide = procedureType !== 'SPINE';
 
+        const finalHtml = customContent ? customContent : replacePlaceholders(template.content);
+
         return (
             <div ref={ref} className="p-12 text-black bg-white min-h-screen font-serif" style={{ fontSize: '13pt' }}>
                 <div className="text-center mb-8 border-b-2 pb-4">
@@ -119,7 +122,7 @@ export const OTNotesTemplatePrint = forwardRef<HTMLDivElement, OTNotesTemplatePr
                 </div>
 
                 {/* Surgical Specs Box */}
-                {Object.keys(specData).length > 0 && (
+                {!customContent && Object.keys(specData).length > 0 && (
                     <div className="mb-8 border border-black p-5 rounded-md bg-gray-50/30">
                         <h3 className="text-sm font-bold uppercase mb-4 border-b border-black pb-1 leading-none">Surgical Specifications</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-3 text-[12pt]">
@@ -140,21 +143,23 @@ export const OTNotesTemplatePrint = forwardRef<HTMLDivElement, OTNotesTemplatePr
 
                 <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mb-2 prose-headings:mt-4 print:prose-p:my-1">
                     <div 
-                        dangerouslySetInnerHTML={{ __html: replacePlaceholders(template.content) }} 
+                        dangerouslySetInnerHTML={{ __html: finalHtml }} 
                         className="ot-note-content leading-relaxed"
                     />
                 </div>
 
-                <div className="mt-20 flex justify-end gap-24">
-                    <div className="text-center border-t pt-2 w-48">
-                        <p className="font-bold">{surgeonName}</p>
-                        <p className="text-xs text-muted-foreground italic">Operating Surgeon</p>
+                {!customContent && (
+                    <div className="mt-20 flex justify-end gap-24">
+                        <div className="text-center border-t pt-2 w-48">
+                            <p className="font-bold">{surgeonName}</p>
+                            <p className="text-xs text-muted-foreground italic">Operating Surgeon</p>
+                        </div>
+                        <div className="text-center border-t pt-2 w-48">
+                            <p className="font-bold invisible">Signature</p>
+                            <p className="text-xs text-muted-foreground italic">Assistant / Nurse</p>
+                        </div>
                     </div>
-                    <div className="text-center border-t pt-2 w-48">
-                        <p className="font-bold invisible">Signature</p>
-                        <p className="text-xs text-muted-foreground italic">Assistant / Nurse</p>
-                    </div>
-                </div>
+                )}
 
                 <style dangerouslySetInnerHTML={{ __html: `
                     @media print {
