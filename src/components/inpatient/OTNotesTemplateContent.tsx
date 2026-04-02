@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Edit, Trash2, ArrowLeft, Loader2, Printer, X, Calendar as CalendarIcon, Search, FileText, ClipboardList } from 'lucide-react';
@@ -65,6 +66,38 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const printRef = useRef<HTMLDivElement>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const urlPatientId = searchParams.get('patient_id');
+    const urlTemplateId = searchParams.get('template_id');
+
+    const { data: templates, isLoading } = useQuery({
+        queryKey: ['ot-notes-templates'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('ot_notes_templates')
+                .select('*')
+                .order('name');
+            if (error) throw error;
+            return data as OTNotesTemplate[];
+        }
+    });
+
+    const { data: remotePatient } = useQuery({
+        queryKey: ['patient-by-id', urlPatientId],
+        queryFn: async () => {
+            if (!urlPatientId) return null;
+            const { data, error } = await supabase
+                .from('in_patients')
+                .select('*, patient:patients(*)')
+                .eq('id', urlPatientId)
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!urlPatientId && !initialPatient
+    });
+
+    const activePatient = initialPatient || remotePatient;
 
     useEffect(() => {
         if (viewMode === 'list' && !printInfoModalOpen) {
@@ -75,27 +108,15 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
         }
     }, [viewMode, printInfoModalOpen]);
 
-    // Auto-fill from admission record if provided
+    // Deep link handler
     useEffect(() => {
-        if (initialPatient) {
-            const age = initialPatient.patient.dob ? calculateAge(new Date(initialPatient.patient.dob)).toString() : '';
-            setPrintInfo(prev => ({
-                ...prev,
-                patientName: initialPatient.patient.name,
-                patientAge: age,
-                uhid: '', // UHID might not be in the direct record, but could be added later
-                date: initialPatient.procedure_date || new Date().toISOString().split('T')[0],
-            }));
+        if (urlTemplateId && templates && activePatient && !printInfoModalOpen && !printingTemplate) {
+            const found = templates.find(t => String(t.id) === String(urlTemplateId));
+            if (found) {
+                handlePrint(found, activePatient);
+            }
         }
-    }, [initialPatient]);
-
-    useEffect(() => {
-        if (viewMode === 'list' && filteredTemplates && filteredTemplates.length > 0) {
-            setFocusedIndex(0);
-        } else {
-            setFocusedIndex(-1);
-        }
-    }, [searchQuery, viewMode]);
+    }, [urlTemplateId, templates, activePatient]);
 
     useEffect(() => {
         if (focusedIndex >= 0 && filteredTemplates?.[focusedIndex]) {
@@ -107,9 +128,23 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
     const handlePrintLaunch = useReactToPrint({
         contentRef: printRef,
         documentTitle: `OTNote_${printingTemplate?.name || 'Template'}`,
+        onAfterPrint: () => {
+            setPrintingTemplate(null);
+        }
     });
 
-    const handlePrint = (template: OTNotesTemplate) => {
+    const handlePrint = (template: OTNotesTemplate, p: any = activePatient) => {
+        const age = p?.patient?.dob ? calculateAge(new Date(p.patient.dob)).toString() : '';
+        setPrintInfo({
+            patientName: p?.patient?.name || '',
+            patientAge: age,
+            uhid: p?.patient?.uhid || '',
+            date: p?.procedure_date || new Date().toISOString().split('T')[0],
+            limbSide: 'N/A',
+            implantMaterial: 'None/NA',
+            fixationStatus: 'N/A'
+        });
+        setSpecData({});
         setPrintingTemplate(template);
         setPrintInfoModalOpen(true);
     };
@@ -136,18 +171,6 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
             handlePrintLaunch();
         }, 200);
     };
-
-    const { data: templates, isLoading } = useQuery({
-        queryKey: ['ot-notes-templates-all'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('ot_notes_templates')
-                .select('*')
-                .order('name');
-            if (error) throw error;
-            return data as OTNotesTemplate[];
-        }
-    });
 
     const filteredTemplates = templates?.filter(template => {
         const name = template.name.toLowerCase();
@@ -422,7 +445,12 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
             </div>
 
             {/* Print Info Modal */}
-            <Dialog open={printInfoModalOpen} onOpenChange={setPrintInfoModalOpen}>
+            <Dialog open={printInfoModalOpen} onOpenChange={(open) => {
+                setPrintInfoModalOpen(open);
+                if (!open && urlPatientId) {
+                    setSearchParams({}, { replace: true });
+                }
+            }}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Fill OT Note Details</DialogTitle>

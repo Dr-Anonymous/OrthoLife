@@ -48,6 +48,16 @@ export const OTNotesTemplatePrint = forwardRef<HTMLDivElement, OTNotesTemplatePr
             // Add dynamic spec placeholders
             replaced = replaced.replace(/{{GraftType}}/g, specData.graftType || '__________');
             replaced = replaced.replace(/{{GraftSize}}/g, specData.graftSize || '____');
+            replaced = replaced.replace(/{{Levels}}/g, specData.levels || '__________');
+            replaced = replaced.replace(/{{RodLength}}/g, specData.rodLength || '____');
+            replaced = replaced.replace(/{{ScrewCount}}/g, specData.screwCount || '____');
+            replaced = replaced.replace(/{{PlateType}}/g, specData.plateType || '__________');
+            replaced = replaced.replace(/{{PlateHoles}}/g, specData.plateHoles || '____');
+            replaced = replaced.replace(/{{CorticalScrews}}/g, specData.corticalScrews || '____');
+            replaced = replaced.replace(/{{LockingScrews}}/g, specData.lockingScrews || '____');
+            replaced = replaced.replace(/{{FemoralSize}}/g, specData.femoralSize || '____');
+            replaced = replaced.replace(/{{TibialSize}}/g, specData.tibialSize || '____');
+            replaced = replaced.replace(/{{PolySize}}/g, specData.polySize || '____');
             
             return replaced;
         };
@@ -119,7 +129,7 @@ export const OTNotesTemplatePrint = forwardRef<HTMLDivElement, OTNotesTemplatePr
                                         <span className="capitalize text-gray-700 min-w-[120px]">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
                                         <span className="font-bold text-right pl-4">
                                             {value}
-                                            {key === 'graftSize' || key === 'rodLength' ? ' mm' : ''}
+                                            {(key.toLowerCase().includes('size') || key.toLowerCase().includes('length')) ? ' mm' : ''}
                                         </span>
                                     </div>
                                 )

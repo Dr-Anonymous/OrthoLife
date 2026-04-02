@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
@@ -26,7 +26,10 @@ import {
     Trash2,
     Download,
     MoreVertical,
-    ExternalLink
+    ExternalLink,
+    ChevronDown,
+    X,
+    ClipboardPen
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -62,6 +65,7 @@ import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { Medication } from '@/types/consultation';
 import { DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { useTranslation } from 'react-i18next';
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
@@ -96,6 +100,8 @@ interface AutofillProtocol {
 
 
 // --- Main Component ---
+
+const cleanText = (html: string) => html.replace(/<[^>]*>?/gm, ' ');
 
 const InPatientManagement = () => {
     const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
@@ -1684,6 +1690,67 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     const { i18n } = useTranslation();
     const [dischargeDate, setDischargeDate] = useState<string>('');
 
+    const { data: otTemplates } = useQuery({
+        queryKey: ['ot-notes-templates-all'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('ot_notes_templates')
+                .select('*')
+                .order('name');
+            if (error) throw error;
+            return data;
+        }
+    });
+    const [otSearch, setOtSearch] = useState('');
+    const [otFocusIndex, setOtFocusIndex] = useState(0);
+    const [isOtPopoverOpen, setIsOtPopoverOpen] = useState(false);
+
+    const filteredOtTemplates = useMemo(() => {
+        const searchWords = otSearch.toLowerCase().split(/\s+/).filter(Boolean);
+        return (otTemplates || []).filter(t => {
+            const name = t.name.toLowerCase();
+            return searchWords.every(word => name.includes(word));
+        });
+    }, [otSearch, otTemplates]);
+
+    useEffect(() => {
+        setOtFocusIndex(0);
+    }, [otSearch]);
+
+    const applyTemplate = (t: any) => {
+        let content = t.content || '';
+        const stepsMarker = "Surgical Steps:</h3>";
+        const hrMarker = "<hr>";
+        
+        if (content.includes(stepsMarker)) {
+            content = content.split(stepsMarker)[1];
+        } else if (content.includes(hrMarker)) {
+            const parts = content.split(hrMarker);
+            content = parts[parts.length - 1];
+        }
+
+        const cleanText = content.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+        setCourse({ ...course, operation_notes: cleanText });
+        setOtSearch('');
+        setIsOtPopoverOpen(false);
+    };
+
+    const handleOtKeyDown = (e: React.KeyboardEvent) => {
+        if (filteredOtTemplates.length === 0) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setOtFocusIndex(prev => Math.min(prev + 1, filteredOtTemplates.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setOtFocusIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (otFocusIndex >= 0 && otFocusIndex < filteredOtTemplates.length) {
+                applyTemplate(filteredOtTemplates[otFocusIndex]);
+            }
+        }
+    };
+
     // -- Data State --
     const [snapshot, setSnapshot] = useState({
         id: '',
@@ -2246,11 +2313,53 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     </Popover>
                                 </div>
                                 <div className="space-y-2 col-span-1 lg:col-span-2">
-                                    <Label>Operation Notes / Intro</Label>
+                                    <div className="flex justify-between items-center bg-muted/40 p-2 rounded-t-lg border-x border-t">
+                                        <Label className="flex items-center gap-2">
+                                            <BookOpen className="w-4 h-4 text-primary" />
+                                            Operation Notes / Intro
+                                        </Label>
+                                        <Popover open={isOtPopoverOpen} onOpenChange={setIsOtPopoverOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2 border-primary/20 hover:border-primary/50">
+                                                    <ClipboardPen className="w-3 h-3" />
+                                                    TEMPLATES
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[300px] p-0" align="end">
+                                                <div className="p-2 border-b">
+                                                    <Input
+                                                        placeholder="Search templates..."
+                                                        className="h-8 text-xs"
+                                                        value={otSearch}
+                                                        onChange={(e) => setOtSearch(e.target.value)}
+                                                        onKeyDown={handleOtKeyDown}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                <div className="max-h-[250px] overflow-y-auto">
+                                                    {filteredOtTemplates.map((t, idx) => (
+                                                        <button
+                                                            key={t.id}
+                                                            className={cn(
+                                                                "w-full text-left p-2.5 text-xs hover:bg-muted transition-colors border-b last:border-0",
+                                                                idx === otFocusIndex && "bg-primary/5 border-l-2 border-l-primary"
+                                                            )}
+                                                            onClick={() => applyTemplate(t)}
+                                                            onMouseEnter={() => setOtFocusIndex(idx)}
+                                                        >
+                                                            <div className="font-bold">{t.name}</div>
+                                                            <div className="text-[10px] text-muted-foreground truncate">{cleanText(t.content || '')}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
                                     <Textarea
                                         placeholder="Tourniquet time, findings, implants used..."
                                         value={course.operation_notes}
                                         onChange={e => handleTextChange('operation_notes', e.target.value, e.target.selectionStart)}
+                                        className="rounded-t-none min-h-[120px]"
                                     />
                                 </div>
                             </div>
@@ -2548,6 +2657,53 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
     onConsents?: () => void;
     onDelete?: () => void;
 }) => {
+    const { data: otTemplates } = useQuery({
+        queryKey: ['ot-notes-templates-all'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('ot_notes_templates')
+                .select('*')
+                .order('name');
+            if (error) throw error;
+            return data;
+        }
+    });
+
+    const [otSearch, setOtSearch] = useState('');
+    const [otFocusIndex, setOtFocusIndex] = useState(0);
+    const [isOtPopoverOpen, setIsOtPopoverOpen] = useState(false);
+
+    const filteredOtTemplates = useMemo(() => {
+        if (!otSearch) return otTemplates || [];
+        const lowerSearch = otSearch.toLowerCase();
+        const searchWords = lowerSearch.split(/\s+/).filter(Boolean);
+        return (otTemplates || []).filter(t => {
+            const name = t.name.toLowerCase();
+            return searchWords.every(word => name.includes(word));
+        });
+    }, [otTemplates, otSearch]);
+
+    useEffect(() => {
+        setOtFocusIndex(0);
+    }, [otSearch]);
+
+    const handleOtKeyDown = (e: React.KeyboardEvent) => {
+        if (filteredOtTemplates.length === 0) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setOtFocusIndex(prev => Math.min(prev + 1, filteredOtTemplates.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setOtFocusIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (otFocusIndex >= 0 && otFocusIndex < filteredOtTemplates.length) {
+                const t = filteredOtTemplates[otFocusIndex];
+                setIsOtPopoverOpen(false);
+                window.location.href = `/ot-notes?patient_id=${patient.id}&template_id=${t.id}`;
+            }
+        }
+    };
 
     const calculateDays = (startDate: string | null) => {
         if (!startDate) return null;
@@ -2740,13 +2896,69 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2">
-                        {onConsents && (
-                            <Button variant="secondary" size="sm" className={cn("w-full text-xs h-9 px-1", !onDischarge && "col-span-2")} onClick={onConsents}>
-                                <FileText className="w-3.5 h-3.5 mr-1.5" />
-                                Consents
-                            </Button>
-                        )}
+                    <div className="flex flex-col gap-2">
+                        <div className="grid grid-cols-2 gap-2">
+                            {onConsents && (
+                                <Button variant="secondary" size="sm" className={cn("w-full text-xs h-9 px-1", !isDischarged === false && "col-span-2")} onClick={onConsents}>
+                                    <FileText className="w-3.5 h-3.5 mr-1.5" />
+                                    Consents
+                                </Button>
+                            )}
+                            {!isDischarged && (
+                                <div className={cn("grid grid-cols-[1fr,auto] gap-px rounded-md overflow-hidden border", !onConsents && "col-span-2")}>
+                                    <Button variant="outline" size="sm" asChild className="w-full text-xs h-9 border-0 rounded-none hover:bg-primary/5">
+                                        <Link to="/ot-notes" state={{ initialPatient: patient }}>
+                                            <BookOpen className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                                            OT Note
+                                        </Link>
+                                    </Button>
+                                    <Popover open={isOtPopoverOpen} onOpenChange={setIsOtPopoverOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" size="icon" className="h-9 w-8 border-0 border-l rounded-none hover:bg-primary/5">
+                                                <ChevronDown className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[280px] p-0" align="end">
+                                            <div className="p-2 border-b bg-muted/20">
+                                                <div className="flex items-center gap-2">
+                                                    <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                                                    <Input
+                                                        placeholder="Search procedures..."
+                                                        className="h-8 text-xs border-none focus-visible:ring-0 px-0"
+                                                        value={otSearch}
+                                                        onChange={(e) => setOtSearch(e.target.value)}
+                                                        onKeyDown={handleOtKeyDown}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                            </div>
+                                            <ScrollArea className="h-full max-h-[300px]">
+                                                {filteredOtTemplates.map((t, idx) => (
+                                                    <button
+                                                        key={t.id}
+                                                        className={cn(
+                                                            "w-full text-left p-3 text-xs hover:bg-primary/5 transition-colors border-b last:border-0 group",
+                                                            idx === otFocusIndex && "bg-primary/5 border-l-2 border-l-primary"
+                                                        )}
+                                                        onClick={() => {
+                                                            setIsOtPopoverOpen(false);
+                                                            window.location.href = `/ot-notes?patient_id=${patient.id}&template_id=${t.id}`;
+                                                        }}
+                                                        onMouseEnter={() => setOtFocusIndex(idx)}
+                                                    >
+                                                        <div className="font-bold flex items-center justify-between">
+                                                            {t.name}
+                                                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                                        </div>
+                                                        <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{cleanText(t.content || '')}</div>
+                                                    </button>
+                                                ))}
+                                            </ScrollArea>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            )}
+                        </div>
                         {onDischarge && (
                             <Button variant="destructive" size="sm" className="w-full text-xs h-9 px-1" onClick={onDischarge}>
                                 <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5" />
@@ -2754,14 +2966,6 @@ const InPatientCard = ({ patient, onSendWhatsApp, onEdit, onDischarge, onPrint, 
                             </Button>
                         )}
                     </div>
-                    {!isDischarged && (
-                        <Button variant="outline" size="sm" asChild className="w-full text-xs h-9">
-                            <Link to="/ot-notes" state={{ initialPatient: patient }}>
-                                <BookOpen className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                                Draft OT Note
-                            </Link>
-                        </Button>
-                    )}
                 </div>
             </CardContent>
         </Card>
