@@ -379,6 +379,8 @@ const ConsultationPage = () => {
       investigations: extraData.investigations, // Usually English?
       followup: isTelugu ? '' : extraData.followup,
       followup_te: isTelugu ? extraData.followup : '',
+      orthotics: isTelugu ? '' : extraData.orthotics,
+      orthotics_te: isTelugu ? extraData.orthotics : '',
     });
     setIsKeywordModalOpen(true);
   };
@@ -1680,11 +1682,12 @@ const ConsultationPage = () => {
 
   // Suggestions Helpers (Protocol Logic)
 
-  const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications } = useMemo(() => {
+  const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications, suggestedOrthotics } = useMemo(() => {
     const inputDerivedSuggestions = {
       advice: new Set<{ text: string; translatedText?: string }>(),
       investigations: new Set<string>(),
       followup: new Set<{ text: string; translatedText?: string }>(),
+      orthotics: new Set<{ text: string; translatedText?: string }>(),
       medicationIds: new Set<number>()
     };
 
@@ -1730,6 +1733,22 @@ const ConsultationPage = () => {
           }
         }
 
+        if (protocol.orthotics || protocol.orthotics_te) {
+          const en = protocol.orthotics || '';
+          const te = protocol.orthotics_te || '';
+          const active = isTelugu ? te : en;
+          const backup = isTelugu ? en : te;
+          if (active) {
+            active.split('\n').filter(Boolean).forEach((s, idx) => {
+              const translatedLines = backup.split('\n').filter(Boolean);
+              inputDerivedSuggestions.orthotics.add({
+                text: s.trim(),
+                translatedText: translatedLines[idx]?.trim()
+              });
+            });
+          }
+        }
+
         if (protocol.medication_ids) {
           protocol.medication_ids.forEach(id => inputDerivedSuggestions.medicationIds.add(id));
         }
@@ -1760,6 +1779,7 @@ const ConsultationPage = () => {
       suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s.text)),
       suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.includes(s)),
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s.text)),
+      suggestedOrthotics: Array.from(inputDerivedSuggestions.orthotics).filter(s => !extraData.orthotics.includes(s.text)),
       suggestedMedications: finalMedications
         .filter(m => {
           const isAddedById = currentlyAddedMedIds.has(m.id) || currentlyAddedMedIds.has(String(m.id) as any);
@@ -1788,7 +1808,7 @@ const ConsultationPage = () => {
           return med;
         })
     };
-  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.medications, consultationLanguage, savedMedications, medicationSuggestionMode, selectedLocation, extraData.affordabilityPreference]);
+  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.orthotics, extraData.medications, consultationLanguage, savedMedications, medicationSuggestionMode, selectedLocation, extraData.affordabilityPreference]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -2138,8 +2158,10 @@ const ConsultationPage = () => {
                   referredToRef={referredToRef}
                   suggestedInvestigations={suggestedInvestigations}
                   suggestedAdvice={suggestedAdvice}
+                  suggestedOrthotics={suggestedOrthotics}
                   onInvestigationSuggestionClick={(val) => handleAppendSuggestion('investigations', val)}
                   onAdviceSuggestionClick={(val) => handleAppendSuggestion('advice', val)}
+                  onOrthoticsSuggestionClick={(val) => handleAppendSuggestion('orthotics', val)}
                   matchedGuides={matchedGuides}
                   isProcedureExpanded={isProcedureExpanded}
                   setIsProcedureExpanded={setIsProcedureExpanded}

@@ -17,6 +17,8 @@ interface Keyword {
   investigations?: string;
   followup?: string;
   followup_te?: string;
+  orthotics?: string;
+  orthotics_te?: string;
 }
 
 interface Medication {
@@ -31,6 +33,8 @@ export interface KeywordPrefillData {
   investigations?: string;
   followup?: string;
   followup_te?: string;
+  orthotics?: string;
+  orthotics_te?: string;
 }
 
 interface KeywordManagementModalProps {
@@ -61,6 +65,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [investigations, setInvestigations] = useState('');
   const [followup, setFollowup] = useState('');
   const [followupTe, setFollowupTe] = useState('');
+  const [orthotics, setOrthotics] = useState('');
+  const [orthoticsTe, setOrthoticsTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
@@ -133,6 +139,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         if (prefilledData.investigations) setInvestigations(prefilledData.investigations);
         if (prefilledData.followup) setFollowup(prefilledData.followup);
         if (prefilledData.followup_te) setFollowupTe(prefilledData.followup_te);
+        if (prefilledData.orthotics) setOrthotics(prefilledData.orthotics);
+        if (prefilledData.orthotics_te) setOrthoticsTe(prefilledData.orthotics_te);
       }
     }
   }, [isOpen]);
@@ -167,7 +175,17 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
 
     try {
       if (editingKeyword) {
-        const payload = { keywords: keywordsArray, medication_ids: selectedMeds, advice, advice_te: adviceTe, investigations, followup, followup_te: followupTe };
+        const payload = {
+          keywords: keywordsArray,
+          medication_ids: selectedMeds,
+          advice,
+          advice_te: adviceTe,
+          investigations,
+          followup,
+          followup_te: followupTe,
+          orthotics,
+          orthotics_te: orthoticsTe
+        };
         const { error } = await supabase.functions.invoke('update-autofill-keyword', {
           body: { id: editingKeyword.id, payload },
         });
@@ -187,6 +205,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             investigations: investigations,
             followup: followup,
             followup_te: followupTe,
+            orthotics: orthotics,
+            orthotics_te: orthoticsTe,
             consultant_id: consultantId
           },
         });
@@ -201,6 +221,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       setInvestigations('');
       setFollowup('');
       setFollowupTe('');
+      setOrthotics('');
+      setOrthoticsTe('');
       setEditingKeyword(null);
       fetchKeywords();
 
@@ -232,6 +254,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
     setInvestigations(keyword.investigations || '');
     setFollowup(keyword.followup || '');
     setFollowupTe(keyword.followup_te || '');
+    setOrthotics(keyword.orthotics || '');
+    setOrthoticsTe(keyword.orthotics_te || '');
   };
 
   return (
@@ -319,12 +343,41 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                 placeholder="e.g., Review after 1 week"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="orthotics">Braces / Splints / Plaster (Orthotics)</Label>
+              <Textarea
+                id="orthotics"
+                value={orthotics}
+                onChange={(e) => setOrthotics(e.target.value)}
+                placeholder="e.g., Apply forearm Splint"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="orthotics-te">Orthotics (Telugu)</Label>
+              <Textarea
+                id="orthotics-te"
+                value={orthoticsTe}
+                onChange={(e) => setOrthoticsTe(e.target.value)}
+                placeholder="e.g., forearm స్ప్లింట్ వేయండి"
+              />
+            </div>
             <Button onClick={handleSaveKeyword} size="sm">
               {editingKeyword ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
               {editingKeyword ? 'Save Changes' : 'Add Keyword'}
             </Button>
             {editingKeyword && (
-              <Button variant="ghost" size="sm" onClick={() => { setEditingKeyword(null); setNewKeywords(''); setSelectedMeds([]); setAdvice(''); setAdviceTe(''); setInvestigations(''); setFollowup(''); setFollowupTe(''); }}>
+              <Button variant="ghost" size="sm" onClick={() => {
+                setEditingKeyword(null);
+                setNewKeywords('');
+                setSelectedMeds([]);
+                setAdvice('');
+                setAdviceTe('');
+                setInvestigations('');
+                setFollowup('');
+                setFollowupTe('');
+                setOrthotics('');
+                setOrthoticsTe('');
+              }}>
                 Cancel Edit
               </Button>
             )}
@@ -345,6 +398,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                       {kw.advice && <p className="text-sm text-muted-foreground mt-1">Advice: {kw.advice}</p>}
                       {kw.investigations && <p className="text-sm text-muted-foreground mt-1">Investigations: {kw.investigations}</p>}
                       {kw.followup && <p className="text-sm text-muted-foreground mt-1">Follow-up: {kw.followup}</p>}
+                      {kw.orthotics && <p className="text-sm text-muted-foreground mt-1">Orthotics: {kw.orthotics}</p>}
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEdit(kw)}>

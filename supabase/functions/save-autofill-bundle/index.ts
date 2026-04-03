@@ -21,6 +21,8 @@ serve(async (req) => {
       investigations, 
       followup, 
       followup_te, 
+      orthotics,
+      orthotics_te,
       consultant_id 
     } = await req.json();
 
@@ -85,6 +87,8 @@ serve(async (req) => {
         investigations: investigations,
         followup: followup,
         followup_te: followup_te,
+        orthotics: orthotics,
+        orthotics_te: orthotics_te,
         consultant_id: consultant_id
       });
 

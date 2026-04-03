@@ -42,9 +42,11 @@ interface ClinicalNotesFormProps {
     // Suggestions
     suggestedInvestigations: string[];
     suggestedAdvice: (string | { text: string; translatedText?: string })[];
+    suggestedOrthotics: (string | { text: string; translatedText?: string })[];
 
     onInvestigationSuggestionClick: (val: string) => void;
     onAdviceSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
+    onOrthoticsSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
 
     matchedGuides: MatchedGuide[];
 
@@ -87,8 +89,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     referredToRef,
     suggestedInvestigations,
     suggestedAdvice,
+    suggestedOrthotics,
     onInvestigationSuggestionClick,
     onAdviceSuggestionClick,
+    onOrthoticsSuggestionClick,
     matchedGuides,
     isProcedureExpanded,
     setIsProcedureExpanded,
@@ -457,7 +461,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             className="text-xs min-h-[60px] pr-10"
                                             disabled={isReadOnly}
                                         />
-                                        {!isReadOnly && (
+                                        {!isReadOnly && (!report.gist || generatingSummaryId === report.fileId) && (
                                             <Button
                                                 type="button"
                                                 variant="ghost"
@@ -586,7 +590,17 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="orthotics" className="text-sm font-medium">Orthotics</Label>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Label htmlFor="orthotics" className="text-sm font-medium">Orthotics</Label>
+                    {suggestedOrthotics.map((orthotics) => {
+                        const text = typeof orthotics === 'string' ? orthotics : orthotics.text;
+                        return (
+                            <Button key={text} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onOrthoticsSuggestionClick(orthotics)} disabled={isReadOnly}>
+                                {text}
+                            </Button>
+                        );
+                    })}
+                </div>
                 <Textarea
                     ref={orthoticsRef}
                     id="orthotics"

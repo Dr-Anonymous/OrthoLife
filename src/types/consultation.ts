@@ -168,4 +168,6 @@ export interface AutofillProtocol {
     investigations?: string;
     followup?: string;
     followup_te?: string;
+    orthotics?: string;
+    orthotics_te?: string;
 }
