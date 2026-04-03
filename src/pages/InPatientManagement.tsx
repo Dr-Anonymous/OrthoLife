@@ -1864,9 +1864,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     const [isDobPickerOpen, setIsDobPickerOpen] = useState(false);
     const [isAdmissionDatePickerOpen, setIsAdmissionDatePickerOpen] = useState(false);
     const [isProcedureDatePickerOpen, setIsProcedureDatePickerOpen] = useState(false);
-    const [medicationSuggestionMode, setMedicationSuggestionMode] = useState<'composition' | 'brand'>(
-        (localStorage.getItem('medicationSuggestionMode') as 'composition' | 'brand') || 'composition'
-    );
+
 
     // -- Medication Manager Refs --
     const medicationNameInputRef = useRef<HTMLInputElement>(null);
@@ -2065,18 +2063,6 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
         let finalBrandName: string | undefined = med.brandName; // Use pre-calculated brand if exists
 
-        // If no pre-calculated brand but in brand mode, apply logic here as fallback
-        const affordabilityPreference = discharge.affordabilityPreference || 'none';
-        if (!finalBrandName && medicationSuggestionMode === 'brand' && med.brand_metadata && med.brand_metadata.length > 0) {
-            let validBrands = [...med.brand_metadata];
-            if (affordabilityPreference === 'cheap') {
-                validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
-            } else if (affordabilityPreference === 'costly') {
-                validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
-            }
-            finalBrandName = validBrands[0].name;
-        }
-
         const newMed: Medication = {
             id: crypto.randomUUID(),
             composition: med.composition || (med as any).name || '',
@@ -2149,24 +2135,26 @@ const DischargeForm = forwardRef<{ print: () => void }, {
             suggestedMedications: meds.filter(m => !currentNames.has(((m as any).composition || (m as any).name || '').toLowerCase()))
                 .map(med => {
                     const affordabilityPreference = discharge.affordabilityPreference || 'none';
-                    if (medicationSuggestionMode === 'brand' && med.brand_metadata && med.brand_metadata.length > 0) {
-                        let validBrands = [...med.brand_metadata];
+                    let bestBrand: string | undefined = undefined;
 
+                    if (med.brand_metadata && med.brand_metadata.length > 0) {
+                        let validBrands = [...med.brand_metadata];
+                        // If no preference, we still want to show A brand name for the badge
                         if (affordabilityPreference === 'cheap') {
                             validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
                         } else if (affordabilityPreference === 'costly') {
                             validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
                         }
-
-                        return {
-                            ...med,
-                            brandName: validBrands[0].name
-                        };
+                        bestBrand = validBrands[0].name;
                     }
-                    return med;
+
+                    return {
+                        ...med,
+                        brandName: bestBrand
+                    };
                 })
         };
-    }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications, medicationSuggestionMode, discharge.affordabilityPreference]);
+    }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications, discharge.affordabilityPreference]);
 
 
     const isTelugu = currentLanguage === 'te';
@@ -2490,25 +2478,11 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                     medNotesRefs={medNotesRefs}
                                     suggestedMedications={suggestedMedications} // Pass parsed suggestions
                                     handleMedicationSuggestionClick={handleMedicationSuggestionClick}
-                                    medicationSuggestionMode={medicationSuggestionMode}
+
                                     affordabilityPreference={discharge.affordabilityPreference || 'none'}
                                     onAffordabilityChange={(val) => setDischarge(prev => ({ ...prev, affordabilityPreference: val }))}
                                 />
-                                <div className="mt-4 flex items-center justify-end gap-2 px-6">
-                                    <Label htmlFor="brand-mode-toggle" className="text-xs font-semibold text-primary/80">
-                                        {medicationSuggestionMode === 'brand' ? "Show Generic Composition" : "Show Brand Names"}
-                                    </Label>
-                                    <Switch
-                                        id="brand-mode-toggle"
-                                        checked={medicationSuggestionMode === 'brand'}
-                                        onCheckedChange={(checked) => {
-                                            const newMode = checked ? 'brand' : 'composition';
-                                            setMedicationSuggestionMode(newMode);
-                                            localStorage.setItem('medicationSuggestionMode', newMode);
-                                        }}
-                                        className="scale-90"
-                                    />
-                                </div>
+
                             </div>
 
                             <div className="space-y-2">

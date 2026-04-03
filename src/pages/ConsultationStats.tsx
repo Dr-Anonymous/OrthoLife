@@ -89,7 +89,7 @@ const ConsultationStats = () => {
         fetchMonthlyDetails();
       }
     }
-  }, [selectedDate, selectedConsultantId, isConsultantLoading, isMasterAdmin, showMonthlyDetails]);
+  }, [selectedDate, selectedConsultantId, isConsultantLoading, isMasterAdmin]);
 
   const fetchStats = async (date: Date) => {
     setShowDailyDetails(false);

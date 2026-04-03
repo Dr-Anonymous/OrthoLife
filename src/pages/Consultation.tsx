@@ -6,7 +6,7 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } fr
 import { Loader2, IndianRupee, ChevronDown } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
-import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate } from '@/lib/utils';
+import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { fetchRecentHistory, generateAutofillData, calculateLastVisitString } from '@/lib/consultation-history';
@@ -288,16 +288,6 @@ const ConsultationPage = () => {
   });
 
   const [age, setAge] = useState<number | ''>('');
-  const [medicationSuggestionMode, setMedicationSuggestionMode] = useState<'composition' | 'brand'>(() => {
-    const stored = localStorage.getItem('medicationSuggestionMode');
-    return (stored as 'composition' | 'brand') || 'composition';
-  });
-
-  const toggleMedicationSuggestionMode = (checked: boolean) => {
-    const newMode = checked ? 'brand' : 'composition';
-    setMedicationSuggestionMode(newMode);
-    localStorage.setItem('medicationSuggestionMode', newMode);
-  };
 
   const medicationNameInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -474,6 +464,7 @@ const ConsultationPage = () => {
   const matchedGuides = useMemo(() => {
     return getMatchingGuides(debouncedAdvice, guides, consultationLanguage);
   }, [debouncedAdvice, guides, consultationLanguage]);
+
 
   // Timer Stop Logic handled by hook
 
@@ -1505,13 +1496,13 @@ const ConsultationPage = () => {
   const handleMedicationSuggestionClick = useCallback((med: Medication) => {
     const isTelugu = consultationLanguage === 'te';
 
-    let finalBrandName: string | undefined = undefined;
+    let finalBrandName: string | undefined = med.brandName;
 
     // Auto-swap logic for generic suggestions
     const affordabilityPreference = extraData.affordabilityPreference || 'none';
     const currentLocation = selectedHospital?.name || '';
 
-    if (affordabilityPreference !== 'none' || currentLocation) {
+    if (affordabilityPreference !== 'none') {
       let validBrands = med.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation)) || [];
       if (validBrands.length === 0 && med.brand_metadata) {
         validBrands = [...med.brand_metadata];
@@ -1521,7 +1512,7 @@ const ConsultationPage = () => {
         if (affordabilityPreference === 'cheap') {
           validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
         } else if (affordabilityPreference === 'costly') {
-          validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+          validBrands.sort((a, b) => ((b.cost || 0) / (a.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
         }
         finalBrandName = validBrands[0].name;
       }
@@ -1765,15 +1756,7 @@ const ConsultationPage = () => {
     const finalMedications = medications;
 
     const currentlyAddedMedIds = new Set(extraData.medications.map(m => m.savedMedicationId).filter(Boolean));
-    const cleanMedName = (name: string) => {
-      if (!name) return '';
-      const prefixes = ['t\\.', 'cap\\.', 'syr\\.', 'tab\\.', 'inj\\.', 'crm\\.', 'gel\\.', 'oint\\.', 'tab', 'cap', 'syr', 'inj', 'crm', 'gel', 'oint', 'syp', 'caps', 'tabs', 'pint', 'p\\.int', 'p\\.inj', 'supp', 'susp', 'lot', 'pdr', 't'];
-      const regex = new RegExp(`^(${prefixes.join('|')})\\s*`, 'i');
-      return name.toLowerCase()
-        .replace(regex, '')
-        .trim();
-    };
-    const currentlyAddedMedNames = new Set(extraData.medications.map(m => cleanMedName(m.brandName || m.composition || '')));
+    const currentlyAddedMedNames = new Set(extraData.medications.map(m => normalizeMedName(m.brandName || m.composition || '')));
 
     return {
       suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s.text)),
@@ -1783,32 +1766,34 @@ const ConsultationPage = () => {
       suggestedMedications: finalMedications
         .filter(m => {
           const isAddedById = currentlyAddedMedIds.has(m.id) || currentlyAddedMedIds.has(String(m.id) as any);
-          const cleanedName = cleanMedName(m.composition);
-          const isAddedByName = Array.from(currentlyAddedMedNames).some(name => cleanMedName(name) === cleanedName);
+          const cleanedName = normalizeMedName(m.composition);
+          const isAddedByName = Array.from(currentlyAddedMedNames).some(name => normalizeMedName(name) === cleanedName);
           return !isAddedById && !isAddedByName;
         })
         .map(med => {
-          if (medicationSuggestionMode === 'brand' && med.brand_metadata && med.brand_metadata.length > 0) {
-            // Pick a brand if none exists or if we should show brands
-            // We can reuse the logic from MedicationManager handleAutoswap but let's be simpler here
-            let validBrands = med.brand_metadata.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(selectedLocation || ''));
+          const affordabilityPreference = extraData.affordabilityPreference || 'none';
+          const currentLocation = selectedHospital?.name || '';
+          let bestBrand: string | undefined = undefined;
+
+          if (med.brand_metadata && med.brand_metadata.length > 0) {
+            let validBrands = med.brand_metadata.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation));
             if (validBrands.length === 0) validBrands = [...med.brand_metadata];
 
-            if (extraData.affordabilityPreference === 'cheap') {
+            if (affordabilityPreference === 'cheap') {
               validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
-            } else if (extraData.affordabilityPreference === 'costly') {
+            } else if (affordabilityPreference === 'costly') {
               validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
             }
-
-            return {
-              ...med,
-              brandName: validBrands[0].name
-            };
+            bestBrand = validBrands[0].name;
           }
-          return med;
+
+          return {
+            ...med,
+            brandName: bestBrand
+          };
         })
     };
-  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.orthotics, extraData.medications, consultationLanguage, savedMedications, medicationSuggestionMode, selectedLocation, extraData.affordabilityPreference]);
+  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.orthotics, extraData.medications, consultationLanguage, savedMedications, selectedLocation, extraData.affordabilityPreference]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -2197,7 +2182,6 @@ const ConsultationPage = () => {
                   currentLocation={selectedLocation}
                   affordabilityPreference={extraData.affordabilityPreference}
                   onAffordabilityChange={(val) => setExtraData(prev => ({ ...prev, affordabilityPreference: val }))}
-                  medicationSuggestionMode={medicationSuggestionMode}
                   consultationId={selectedConsultation?.id}
                   isMasterAdmin={isMasterAdmin}
                   isReadOnly={isReadOnly}
@@ -2307,8 +2291,7 @@ const ConsultationPage = () => {
                   onToggleSignSeal={toggleSignSeal}
                   onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
                   onToggleOnlyMeds={setIsOnlyConsultation}
-                  medicationSuggestionMode={medicationSuggestionMode}
-                  onToggleMedicationSuggestionMode={toggleMedicationSuggestionMode}
+
                   isReadOnly={isReadOnly}
                   isWhatsAppEnabled={consultant?.is_legacy_handler || consultant?.is_whatsauto_active}
                 />

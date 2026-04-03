@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,6 +38,31 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
   const [filteredSuggestions, setFilteredSuggestions] = useState<Suggestion[]>([]);
   const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+  const suggestionsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll active suggestion into view within the scroll container
+  useEffect(() => {
+    if (isSuggestionsVisible && suggestionsContainerRef.current) {
+        const container = suggestionsContainerRef.current;
+        // Using nth-child logic to find the active suggestion list item
+        const activeElement = container.querySelector(`li:nth-child(${activeSuggestionIndex + 1})`) as HTMLElement;
+        
+        if (activeElement) {
+            const containerHeight = container.offsetHeight;
+            const elementTop = activeElement.offsetTop;
+            const elementHeight = activeElement.offsetHeight;
+            const scrollTop = container.scrollTop;
+
+            if (elementTop < scrollTop) {
+                // If element is hidden above the viewport, scroll up
+                container.scrollTop = elementTop;
+            } else if (elementTop + elementHeight > scrollTop + containerHeight) {
+                // If element is hidden below the viewport, scroll down
+                container.scrollTop = elementTop + elementHeight - containerHeight;
+            }
+        }
+    }
+  }, [activeSuggestionIndex, isSuggestionsVisible]);
 
   const handleInputChange = (e: React.ChangeEvent<any>) => {
     const inputValue = e.target.value;
@@ -131,7 +156,7 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
         {...inputProps}
       />
       {isSuggestionsVisible && filteredSuggestions.length > 0 && (
-        <Card className="absolute z-[100] w-full mt-1 bg-background shadow-lg max-h-[300px] overflow-y-auto border border-border">
+        <Card ref={suggestionsContainerRef} className="absolute z-[100] w-full mt-1 bg-background shadow-lg max-h-[300px] overflow-y-auto border border-border">
           <ul className="py-1">
             {filteredSuggestions.map((suggestion, index) => (
               <li

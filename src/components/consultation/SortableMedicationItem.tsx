@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { GripVertical, Loader2, Star, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, normalizeMedName } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Medication } from '@/types/consultation';
@@ -31,11 +31,11 @@ interface SortableMedicationItemProps {
     handleManualAdd?: () => void;
     currentLocation?: string;
     affordabilityPreference?: string;
-    medicationSuggestionMode?: 'composition' | 'brand';
     isMasterAdmin?: boolean;
     isReadOnly?: boolean;
     pharmacyMeds?: any[];
 }
+
 
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     med,
@@ -55,7 +55,6 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     handleManualAdd,
     currentLocation,
     affordabilityPreference,
-    medicationSuggestionMode = 'composition',
     isMasterAdmin = false,
     isReadOnly = false,
     pharmacyMeds = []
@@ -230,33 +229,46 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
 
                                     // 1. Add Saved Medications (Favorites) first
                                     savedMedications.forEach(m => {
-                                        const hasBrands = m.brand_metadata && m.brand_metadata.length > 0;
-                                        if (medicationSuggestionMode === 'composition') {
-                                            items.push({ id: m.id!, name: m.composition, label: m.composition });
-                                        } else if (medicationSuggestionMode === 'brand') {
-                                            if (hasBrands) {
-                                                m.brand_metadata!.forEach(brand => {
-                                                    const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
-                                                    const costLabel = unitPrice ? `₹${unitPrice}/u` : brand.cost ? `₹${brand.cost}` : '';
-                                                    items.push({
-                                                        id: m.id!,
-                                                        name: brand.name,
-                                                        label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
-                                                        isBrand: true,
-                                                        searchTerms: m.composition
-                                                    });
-                                                });
-                                            } else {
-                                                items.push({ id: m.id!, name: m.composition, label: m.composition, searchTerms: "" });
-                                            }
-                                        }
+                                        const brands = m.brand_metadata || [];
+                                        const allBrandNames = brands.map(b => b.name).join(' ');
+
+                                        // Always add composition first
+                                        items.push({
+                                            id: m.id!,
+                                            name: m.composition,
+                                            label: m.composition,
+                                            searchTerms: `${m.composition} ${allBrandNames}`
+                                        });
+
+                                        // Add brands as sub-items
+                                        brands.forEach(brand => {
+                                            const unitPrice = brand.cost && brand.packSize ? (brand.cost / brand.packSize).toFixed(2) : null;
+                                            const costLabel = unitPrice ? `₹${unitPrice}/u` : brand.cost ? `₹${brand.cost}` : '';
+                                            items.push({
+                                                id: m.id!,
+                                                name: brand.name,
+                                                label: costLabel ? `${brand.name} (${costLabel})` : brand.name,
+                                                isBrand: true,
+                                                searchTerms: `${m.composition} ${brand.name}`
+                                            });
+                                        });
                                     });
 
                                     // 2. Add Pharmacy Medications as fallback
-                                    const savedNamesLower = new Set(savedMedications.map(s => s.composition.toLowerCase()));
+                                    const normalizedSavedNames = new Set<string>();
+                                    savedMedications.forEach(s => {
+                                        normalizedSavedNames.add(normalizeMedName(s.composition));
+                                        s.brand_metadata?.forEach(b => normalizedSavedNames.add(normalizeMedName(b.name)));
+                                    });
+
                                     if (pharmacyMeds) {
                                         pharmacyMeds.forEach(pm => {
-                                            if (!savedNamesLower.has(pm.name.toLowerCase())) {
+                                            const normPmName = normalizeMedName(pm.name);
+                                            const isAlreadySaved = Array.from(normalizedSavedNames).some(savedName => 
+                                                savedName && (normPmName.includes(savedName) || savedName.includes(normPmName))
+                                            );
+
+                                            if (!isAlreadySaved) {
                                                 const categoryPrefix = pm.category ? `${pm.category.substring(0, 3)}. ` : '';
                                                 const fullName = categoryPrefix + pm.name;
                                                 items.push({
@@ -279,23 +291,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         const savedMed = savedMedications.find(m => m.id === realId);
                                         if (savedMed) {
                                             const isBrand = suggestion.name !== savedMed.composition;
-                                            let finalBrandName = isBrand ? suggestion.name : undefined;
-
-                                            if (!isBrand && (currentLocation || affordabilityPreference !== 'none')) {
-                                                let validBrands = savedMed.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation || '')) || [];
-                                                if (validBrands.length === 0 && savedMed.brand_metadata) {
-                                                    validBrands = [...savedMed.brand_metadata];
-                                                }
-
-                                                if (validBrands.length > 0) {
-                                                    if (affordabilityPreference === 'cheap') {
-                                                        validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
-                                                    } else if (affordabilityPreference === 'costly') {
-                                                        validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
-                                                    }
-                                                    finalBrandName = validBrands[0].name;
-                                                }
-                                            }
+                                            const finalBrandName = isBrand ? suggestion.name : undefined;
 
                                             const medToAdd = language === 'te' ? {
                                                 ...savedMed,

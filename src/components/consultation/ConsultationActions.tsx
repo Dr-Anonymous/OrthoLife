@@ -28,8 +28,6 @@ interface ConsultationActionsProps {
     onToggleSignSeal?: (checked: boolean) => void;
     onlyMedicationsAndFollowup?: boolean;
     onToggleOnlyMeds?: (checked: boolean) => void;
-    medicationSuggestionMode?: 'composition' | 'brand';
-    onToggleMedicationSuggestionMode?: (checked: boolean) => void;
     isReadOnly?: boolean;
     isWhatsAppEnabled?: boolean;
 }
@@ -66,8 +64,6 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onToggleSignSeal,
     onlyMedicationsAndFollowup,
     onToggleOnlyMeds,
-    medicationSuggestionMode = 'composition',
-    onToggleMedicationSuggestionMode,
     isReadOnly = false,
     isWhatsAppEnabled = true
 }) => {
@@ -209,25 +205,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             </p>
                         </div>
 
-                        <div
-                            className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                onToggleMedicationSuggestionMode?.(medicationSuggestionMode !== 'brand');
-                            }}
-                        >
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Show Brands in Keywords</span>
-                                <Switch
-                                    checked={medicationSuggestionMode === 'brand'}
-                                    onCheckedChange={() => { }} // Handled by parent div click
-                                    className="scale-75"
-                                />
-                            </div>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                                Show brand names instead of generic composition.
-                            </p>
-                        </div>
+
 
                         <div
                             className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors"

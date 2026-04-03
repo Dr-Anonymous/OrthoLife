@@ -5,6 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Normalizes a medication name by removing common pharmaceutical prefixes (T, Tab, Cap, etc.)
+ * and converting to lowercase for consistent comparison and filtering.
+ */
+export function normalizeMedName(name: string | null | undefined): string {
+  if (!name) return "";
+  let clean = name.toLowerCase().trim();
+  // Strip common pharmaceutical prefixes repeatedly (e.g., "Tab. T. OMNACORTIL")
+  const prefixRegex = /^(t|c|cap|tab|inj|syr|syt|syp|ointment|cream|gel|pow|powder|drops|susp|mist|crm|lot|caps|tabs|pint|p\.int|p\.inj|supp|pdr|tab\.|cap\.|syr\.|inj\.|syp\.|syp|t\.|c\.|g\.|s\.|m\.|tab\s|cap\s|inj\s|syr\s|t\s|c\s)[\s.]*/i;
+  
+  let oldClean;
+  do {
+    oldClean = clean;
+    clean = clean.replace(prefixRegex, '').trim();
+  } while (clean !== oldClean);
+  
+  return clean;
+}
+
+/**
+ * Removes bracketed text from strings.
+ */
 export function removeBracketedText(text: string): string {
   if (!text) return '';
   // Preserve line breaks by avoiding \s* (which includes newlines).
@@ -14,7 +36,7 @@ export function removeBracketedText(text: string): string {
 
 /**
  * Removes the word "guide" (case-insensitive) from a line of text,
- * along with any unrelated punctuation that might be left over.(I commented this out- not using it.)
+ * along with any unrelated punctuation that might be left over.
  * Examples: 
  * "Guide: Low back pain" -> "Low back pain"
  * "Low back exercises guide" -> "Low back exercises"

@@ -31,7 +31,6 @@ interface MedicationManagerProps {
     currentLocation?: string;
     affordabilityPreference?: string;
     onAffordabilityChange?: (val: string) => void;
-    medicationSuggestionMode?: 'composition' | 'brand';
     consultationId?: string;
     isMasterAdmin?: boolean;
     isReadOnly?: boolean;
@@ -69,7 +68,6 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     currentLocation,
     affordabilityPreference = 'none',
     onAffordabilityChange,
-    medicationSuggestionMode = 'composition',
     consultationId,
     isMasterAdmin = false,
     isReadOnly = false
@@ -268,7 +266,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                     )}
                     <div className="flex flex-wrap items-center gap-2 ml-4">
                         {suggestedMedications.map((med) => {
-                            const displayName = medicationSuggestionMode === 'brand' && med.brandName ? med.brandName : med.composition;
+                            const displayName = med.brandName || med.composition;
                             return (
                                 <Button key={med.id} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => handleSuggestionAdd(med)} disabled={isReadOnly}>
                                     {displayName}
@@ -302,7 +300,6 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 handleManualAdd={handleManualAdd}
                                 currentLocation={currentLocation}
                                 affordabilityPreference={affordabilityPreference}
-                                medicationSuggestionMode={medicationSuggestionMode}
                                 isMasterAdmin={isMasterAdmin}
                                 isReadOnly={isReadOnly}
                                 pharmacyMeds={pharmacyMeds}
