@@ -7,7 +7,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type SocialPlatform = 'gbp' | 'facebook' | 'instagram';
+type SocialPlatform = 'gbp' | 'instagram';
 
 interface PublishResult {
     platform: SocialPlatform;
@@ -66,7 +66,13 @@ serve(async (req: Request) => {
                     const locData = await locRes.json();
                     if (locData.locations) {
                         console.log(`[social-publish] Found ${locData.locations.length} locations in ${acc.name}`);
-                        allLocations.push(...locData.locations);
+                        // Important: GPB v4 API for posts expects accounts/{accId}/locations/{locId}
+                        // But Business Information v1 API returns only locations/{locId}
+                        const locationsWithAccount = locData.locations.map((loc: any) => ({
+                            ...loc,
+                            name: `${acc.name}/${loc.name}`
+                        }));
+                        allLocations.push(...locationsWithAccount);
                     } else {
                         console.log(`[social-publish] No locations found in ${acc.name}`);
                     }
@@ -102,6 +108,7 @@ serve(async (req: Request) => {
         const content = formData.get('content') as string;
         const platformsStr = formData.get('platforms') as string;
         const gbpLocationName = formData.get('gbpLocationName') as string | null;
+        const gbpLocationNamesStr = formData.get('gbpLocationNames') as string | null;
 
         const mediaFiles: File[] = [];
         for (const [key, value] of formData.entries()) {
@@ -159,11 +166,25 @@ serve(async (req: Request) => {
                         throw new Error("Failed to retrieve Google Access Token for GBP");
                     }
 
-                    // 1. Target Location
-                    let targetLocationName = gbpLocationName || Deno.env.get('GOOGLE_BUSINESS_LOCATION_NAME');
+                    // 1. Target Locations
+                    let targetLocations: string[] = [];
+                    if (gbpLocationNamesStr) {
+                        try {
+                            targetLocations = JSON.parse(gbpLocationNamesStr);
+                        } catch (e) {
+                            console.error("[social-publish] Failed to parse gbpLocationNames", e);
+                        }
+                    }
 
-                    if (!targetLocationName) {
-                        console.log("[social-publish] No location provided, attempting auto-discovery...");
+                    if (targetLocations.length === 0) {
+                        const singleLocation = gbpLocationName || Deno.env.get('GOOGLE_BUSINESS_LOCATION_NAME');
+                        if (singleLocation) {
+                            targetLocations.push(singleLocation);
+                        }
+                    }
+
+                    if (targetLocations.length === 0) {
+                        console.log("[social-publish] No locations provided, attempting auto-discovery...");
                         const accRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
                             headers: { 'Authorization': `Bearer ${accessToken}` }
                         });
@@ -182,15 +203,15 @@ serve(async (req: Request) => {
                                     // If multiple, maybe we should filter by specific name if we knew it
                                     // For now, we take the first one or the one matching "OrthoLife"
                                     const match = locData.locations.find((l: any) => l.title?.toLowerCase().includes('ortholife')) || locData.locations[0];
-                                    targetLocationName = match.name;
-                                    console.log(`[social-publish] Auto-selected location: ${match.title} (${targetLocationName})`);
+                                    targetLocations.push(`${acc.name}/${match.name}`);
+                                    console.log(`[social-publish] Auto-selected location: ${match.title} (${targetLocations[0]})`);
                                     break;
                                 }
                             }
                         }
                     }
 
-                    if (!targetLocationName) throw new Error("No GBP location found. Ensure you have a verified business profile.");
+                    if (targetLocations.length === 0) throw new Error("No GBP location found. Ensure you have a verified business profile.");
 
                     // 2. Prepare Media for GBP
                     const mediaItems = mediaUrls.map(url => ({
@@ -198,114 +219,55 @@ serve(async (req: Request) => {
                         sourceUrl: url
                     }));
 
-                    // 3. Create Post
-                    // Endpoint: https://mybusiness.googleapis.com/v4/{parent=accounts/*/locations/*}/localPosts
-                    console.log(`[social-publish] Sending POST to GBP Location: ${targetLocationName}`);
-                    const postRes = await fetch(`https://mybusiness.googleapis.com/v4/${targetLocationName}/localPosts`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            languageCode: 'en-US',
-                            summary: content,
-                            topicType: 'STANDARD',
-                            media: mediaItems.length > 0 ? mediaItems : undefined
-                        })
-                    });
+                    // 3. Create Posts for all targets
+                    const gbpErrors: string[] = [];
+                    const gbpSuccesses: any[] = [];
 
-                    if (!postRes.ok) {
-                        const errBody = await postRes.text();
-                        console.error(`[social-publish] GBP Create Post failed: ${errBody}`);
-                        throw new Error(`Google API Error: ${postRes.status}`);
-                    }
-
-                    results.push({
-                        platform: 'gbp',
-                        success: true,
-                        message: `Successfully published to GBP profile.`,
-                        data: await postRes.json()
-                    });
-
-                } else if (platform === 'facebook') {
-                    console.log("[social-publish] Processing Facebook publish...");
-                    const pageId = Deno.env.get('FB_PAGE_ID');
-                    const pageAccessToken = Deno.env.get('FB_PAGE_ACCESS_TOKEN');
-
-                    if (!pageId || !pageAccessToken) {
-                        throw new Error("Facebook credentials (FB_PAGE_ID, FB_PAGE_ACCESS_TOKEN) are missing.");
-                    }
-
-                    let fbResponse;
-                    if (mediaUrls.length === 0) {
-                        // Text only
-                        fbResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                message: content,
-                                access_token: pageAccessToken
-                            })
-                        });
-                    } else if (mediaUrls.length === 1) {
-                        // Single photo
-                        fbResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                url: mediaUrls[0],
-                                caption: content,
-                                access_token: pageAccessToken
-                            })
-                        });
-                    } else {
-                        // Multiple photos - publish individual then link
-                        const photoIds = [];
-                        for (const url of mediaUrls) {
-                            const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
+                    for (const targetName of targetLocations) {
+                        console.log(`[social-publish] Sending POST to GBP Location: ${targetName}`);
+                        try {
+                            const postRes = await fetch(`https://mybusiness.googleapis.com/v4/${targetName}/localPosts`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`,
+                                    'Content-Type': 'application/json'
+                                },
                                 body: JSON.stringify({
-                                    url: url,
-                                    published: false,
-                                    access_token: pageAccessToken
+                                    languageCode: 'en-US',
+                                    summary: content,
+                                    topicType: 'STANDARD',
+                                    media: mediaItems.length > 0 ? mediaItems : undefined
                                 })
                             });
-                            if (res.ok) {
-                                const data = await res.json();
-                                photoIds.push({ media_fbid: data.id });
+
+                            if (!postRes.ok) {
+                                const errBody = await postRes.text();
+                                console.error(`[social-publish] GBP Create Post failed for ${targetName}: ${errBody}`);
+                                gbpErrors.push(`Failed for ${targetName}: ${postRes.status}`);
+                            } else {
+                                gbpSuccesses.push(await postRes.json());
                             }
+                        } catch (e: any) {
+                            console.error(`[social-publish] Exception during GBP POST for ${targetName}`, e);
+                            gbpErrors.push(`Exception for ${targetName}: ${e.message}`);
                         }
+                    }
 
-                        fbResponse = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                message: content,
-                                attached_media: photoIds,
-                                access_token: pageAccessToken
-                            })
+                    if (gbpSuccesses.length > 0) {
+                        results.push({
+                            platform: 'gbp',
+                            success: true,
+                            message: `Successfully published to ${gbpSuccesses.length} GBP profile(s).${gbpErrors.length > 0 ? ` Errors: ${gbpErrors.join(', ')}` : ''}`,
+                            data: gbpSuccesses
                         });
+                    } else {
+                        throw new Error(`Failed to publish to any GBP profile: ${gbpErrors.join('; ')}`);
                     }
-
-                    if (!fbResponse.ok) {
-                        const err = await fbResponse.text();
-                        console.error(`[social-publish] Facebook API Error: ${err}`);
-                        throw new Error(`Facebook API Error: ${fbResponse.status}`);
-                    }
-
-                    results.push({
-                        platform: 'facebook',
-                        success: true,
-                        message: `Successfully published to Facebook Page.`,
-                        data: await fbResponse.json()
-                    });
 
                 } else if (platform === 'instagram') {
                     console.log("[social-publish] Processing Instagram publish...");
-                    const igUserId = Deno.env.get('IG_BUSINESS_ACCOUNT_ID');
-                    const accessToken = Deno.env.get('FB_PAGE_ACCESS_TOKEN'); // IG usually uses the linked Page access token
+                    const igUserId = "17841455577389236"; //Deno.env.get('IG_BUSINESS_ACCOUNT_ID');
+                    const accessToken = "EAAs6rRo4yBIBRKind9urN39sZBhnPpwEFDwgPE5rnaBmlaXLatecK1zPPePCZCZA6MnQGptgzskLtO92R8pYbqM0oZBl2Ey5LtekWvtVNAvZARHlswL3W0hlccmjhGu71QG9gIWUnGSeBPP4je4P9tXWYy7YFxU6P09eXuhws5ng6QwC1k4U1cZC7glryGXXSrzZCj5Gt7FdSrluJh7ZB8uxEVoxJSJhmV26hOZAOoa51CgQZBujtAXQqUzW4ZD"; // Deno.env.get('FB_PAGE_ACCESS_TOKEN'); // IG usually uses the linked Page access token
 
                     if (!igUserId || !accessToken) {
                         throw new Error("Instagram credentials (IG_BUSINESS_ACCOUNT_ID, FB_PAGE_ACCESS_TOKEN) are missing.");
@@ -406,7 +368,7 @@ serve(async (req: Request) => {
             }
         }
 
-        return new Response(JSON.stringify({ results }), {
+        return new Response(JSON.stringify({ results, mediaUrls }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         });

@@ -15,16 +15,27 @@ import { socialService, type SocialPlatform, type GBPLocation } from '@/utils/so
 type SelectedPlatforms = Record<SocialPlatform, boolean>;
 type MediaFile = { file: File; preview: string };
 
-const PLATFORMS = [
+const PLATFORMS: PlatformConfig[] = [
   { id: 'gbp', name: 'Google Business', icon: MapPin, color: 'text-blue-600' },
-  { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-500' },
-  { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
-] as const satisfies ReadonlyArray<{ id: SocialPlatform; name: string; icon: React.ComponentType<{ className?: string }>; color: string }>;
+  { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600', note: 'Can auto-post to Personal Facebook' },
+  { id: 'facebook_personal', name: 'Personal Profile', icon: Facebook, color: 'text-indigo-600', note: 'Direct manual share' },
+];
+
+type PlatformConfig = {
+  id: SocialPlatform;
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  note?: string;
+};
+
+const DEFAULT_SHARE_URL = 'https://ortho.life'; // Fallback URL for Share Dialog
 
 const DEFAULT_PLATFORMS: SelectedPlatforms = {
   gbp: true,
-  facebook: true,
   instagram: true,
+  facebook_personal: false,
+  facebook: false,
 };
 
 const parseStoredPlatforms = (): SelectedPlatforms => {
@@ -35,8 +46,9 @@ const parseStoredPlatforms = (): SelectedPlatforms => {
     const parsed = JSON.parse(saved) as Partial<SelectedPlatforms>;
     return {
       gbp: parsed.gbp ?? true,
-      facebook: parsed.facebook ?? true,
       instagram: parsed.instagram ?? true,
+      facebook_personal: parsed.facebook_personal ?? false,
+      facebook: false, // Force disabled or removed
     };
   } catch {
     return DEFAULT_PLATFORMS;
@@ -69,8 +81,16 @@ const PostComposer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [gbpLocations, setGbpLocations] = useState<GBPLocation[]>([]);
-  const [selectedGbpLocation, setSelectedGbpLocation] = useState<string>(localStorage.getItem('smm_gbp_location') || '');
+  const [selectedGbpLocations, setSelectedGbpLocations] = useState<string[]>(() => {
+    const saved = localStorage.getItem('smm_gbp_locations');
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const mediaFilesRef = React.useRef<MediaFile[]>([]);
@@ -84,10 +104,8 @@ const PostComposer = () => {
   }, [selectedPlatforms]);
 
   useEffect(() => {
-    if (selectedGbpLocation) {
-      localStorage.setItem('smm_gbp_location', selectedGbpLocation);
-    }
-  }, [selectedGbpLocation]);
+    localStorage.setItem('smm_gbp_locations', JSON.stringify(selectedGbpLocations));
+  }, [selectedGbpLocations]);
 
   useEffect(() => {
     if (selectedPlatforms.gbp) {
@@ -106,9 +124,9 @@ const PostComposer = () => {
     try {
       const locations = await socialService.getGBPLocations();
       setGbpLocations(locations);
-      if (locations.length > 0 && !selectedGbpLocation) {
+      if (locations.length > 0 && selectedGbpLocations.length === 0) {
         const defaultLoc = locations.find(l => l.title.toLowerCase().includes('ortholife')) || locations[0];
-        setSelectedGbpLocation(defaultLoc.name);
+        setSelectedGbpLocations([defaultLoc.name]);
       }
     } catch (err) {
       console.error("Failed to fetch GBP locations", err);
@@ -124,15 +142,38 @@ const PostComposer = () => {
     }));
   };
 
+  const addMediaFiles = (files: File[]) => {
+    const newMedia = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setMediaFiles((prev) => [...prev, ...newMedia]);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const newMedia = files.map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-      }));
-      setMediaFiles((prev) => [...prev, ...newMedia]);
+      addMediaFiles(Array.from(e.target.files));
       e.target.value = '';
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragover" || e.type === "dragenter") {
+      setIsDragging(true);
+    } else if (e.type === "dragleave" || e.type === "drop") {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      addMediaFiles(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -163,8 +204,8 @@ const PostComposer = () => {
       return;
     }
 
-    if (selectedPlatforms.gbp && !selectedGbpLocation) {
-      toast.error('Please select a target Google Business Profile.');
+    if (selectedPlatforms.gbp && selectedGbpLocations.length === 0) {
+      toast.error('Please select at least one target Google Business Profile.');
       return;
     }
 
@@ -186,13 +227,44 @@ const PostComposer = () => {
     setIsSubmitting(true);
 
     try {
-      await socialService.publishAll({
+      const result = await socialService.publishAll({
         content,
         platforms: activePlatforms,
         scheduledAt: scheduledDateTime?.toISOString(),
         mediaFiles: mediaFiles.map((m) => m.file),
-        gbpLocationName: selectedPlatforms.gbp ? selectedGbpLocation : undefined,
+        gbpLocationNames: selectedPlatforms.gbp ? selectedGbpLocations : undefined,
       });
+
+      // Handle Facebook Personal sharing via Dialog
+      if (selectedPlatforms.facebook_personal && !scheduledDate) {
+        // Copy content to clipboard as a workaround since Facebook deprecated the 'quote' parameter
+        try {
+          await navigator.clipboard.writeText(content);
+          toast.info('Post text copied to clipboard! You can paste it into the Facebook window.', {
+            duration: 5000,
+          });
+        } catch (err) {
+          console.warn('Clipboard copy failed:', err);
+        }
+
+        const shareUrl = result.mediaUrls?.[0] || DEFAULT_SHARE_URL;
+        const encodedUrl = encodeURIComponent(shareUrl);
+        
+        // Facebook Sharer URL (Only 'u' is supported for personal profiles now)
+        const fbSharerUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+
+        // Open in a popup
+        const width = 600;
+        const height = 700;
+        const left = (window.innerWidth / 2) - (width / 2);
+        const top = (window.innerHeight / 2) - (height / 2);
+
+        window.open(
+          fbSharerUrl,
+          'facebook-share-dialog',
+          `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=no,resizable=yes`
+        );
+      }
 
       toast.success(scheduledDateTime ? 'Post scheduled successfully!' : 'Post published successfully to selected platforms!');
 
@@ -226,30 +298,43 @@ const PostComposer = () => {
               const Icon = platform.icon;
               const isSelected = selectedPlatforms[platform.id];
 
-              return (
-                <button
-                  type="button"
-                  key={platform.id}
-                  className={cn(
-                    'flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 text-left',
-                    isSelected
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50 text-gray-400'
-                  )}
-                  onClick={() => handlePlatformToggle(platform.id)}
-                >
-                  <div className="flex w-full justify-end mb-2">
-                    <Checkbox
-                      checked={isSelected}
-                      className="pointer-events-none data-[state=checked]:bg-primary"
-                    />
-                  </div>
-                  <Icon className={cn('h-8 w-8 mb-2', isSelected ? platform.color : 'text-gray-400')} />
-                  <span className={cn('text-sm font-medium', isSelected ? 'text-gray-900' : 'text-gray-500')}>
-                    {platform.name}
-                  </span>
-                </button>
-              );
+                  return (
+                    <div
+                      key={platform.id}
+                      role="button"
+                      tabIndex={0}
+                      className={cn(
+                        'flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 text-left relative group',
+                        isSelected
+                          ? 'border-primary bg-primary/5 shadow-sm'
+                          : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50 text-gray-400'
+                      )}
+                      onClick={() => handlePlatformToggle(platform.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handlePlatformToggle(platform.id);
+                        }
+                      }}
+                    >
+                      <div className="flex w-full justify-end mb-2">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handlePlatformToggle(platform.id)}
+                          className="data-[state=checked]:bg-primary"
+                        />
+                      </div>
+                      <Icon className={cn('h-8 w-8 mb-2', isSelected ? platform.color : 'text-gray-400')} />
+                      <span className={cn('text-sm font-medium', isSelected ? 'text-gray-900' : 'text-gray-500')}>
+                        {platform.name}
+                      </span>
+                      {platform.note && (
+                        <span className="text-[10px] text-gray-400 mt-1 text-center leading-tight">
+                          {platform.note}
+                        </span>
+                      )}
+                    </div>
+                  );
             })}
           </div>
         </div>
@@ -274,21 +359,40 @@ const PostComposer = () => {
 
             {gbpLocations.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {gbpLocations.map((loc) => (
-                  <button
-                    key={loc.name}
-                    type="button"
-                    onClick={() => setSelectedGbpLocation(loc.name)}
-                    className={cn(
-                      "text-left px-3 py-2 rounded-lg text-sm transition-all border",
-                      selectedGbpLocation === loc.name
-                        ? "bg-white border-blue-300 text-blue-900 shadow-sm font-medium"
-                        : "bg-transparent border-transparent text-blue-700 hover:bg-blue-100/50"
-                    )}
-                  >
-                    {loc.title}
-                  </button>
-                ))}
+                {gbpLocations.map((loc) => {
+                  const isSelected = selectedGbpLocations.includes(loc.name);
+                  return (
+                    <button
+                      key={loc.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedGbpLocations(prev =>
+                          isSelected
+                            ? prev.filter(n => n !== loc.name)
+                            : [...prev, loc.name]
+                        );
+                      }}
+                      className={cn(
+                        "text-left px-3 py-2 rounded-lg text-sm transition-all border flex items-center justify-between group",
+                        isSelected
+                          ? "bg-white border-blue-400 text-blue-900 shadow-sm font-medium"
+                          : "bg-transparent border-blue-100 text-blue-700 hover:bg-blue-100/50"
+                      )}
+                    >
+                      <span>{loc.title}</span>
+                      <div className={cn(
+                        "w-4 h-4 rounded border transition-colors flex items-center justify-center",
+                        isSelected ? "bg-blue-600 border-blue-600" : "border-blue-300 group-hover:border-blue-400"
+                      )}>
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-blue-600/70 italic">
@@ -300,14 +404,36 @@ const PostComposer = () => {
 
         <div className="space-y-3">
           <Label className="text-base font-medium">Post Content</Label>
-          <div className="relative">
+          <div
+            className={cn(
+              "relative transition-all duration-200 rounded-xl group overflow-hidden",
+              isDragging && "ring-2 ring-primary ring-offset-2"
+            )}
+            onDragOver={handleDrag}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+          >
             <Textarea
               placeholder="What do you want to share with your audience?..."
-              className="min-h-[150px] resize-y p-4 text-base rounded-xl border-gray-200 focus-visible:ring-primary/20"
+              className={cn(
+                "min-h-[150px] resize-y p-4 text-base rounded-xl border-gray-200 focus-visible:ring-primary/20 transition-colors",
+                isDragging && "bg-primary/5 border-primary/50"
+              )}
               value={content}
               maxLength={2200}
               onChange={(e) => setContent(e.target.value)}
             />
+
+            {isDragging && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-primary/10 backdrop-blur-[1px] rounded-xl z-20 animate-in fade-in zoom-in duration-200">
+                <div className="bg-white/90 p-4 rounded-full shadow-lg mb-2">
+                  <ImageIcon className="h-8 w-8 text-primary" />
+                </div>
+                <p className="text-primary font-bold text-lg">Drop to add media</p>
+                <p className="text-primary/70 text-sm">Photos and videos supported</p>
+              </div>
+            )}
 
             {mediaFiles.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-3 bg-white border-x border-gray-200">

@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type SocialPlatform = 'gbp' | 'facebook' | 'instagram';
+export type SocialPlatform = 'gbp' | 'facebook' | 'instagram' | 'facebook_personal';
 
 export interface GBPLocation {
     name: string;
@@ -13,6 +13,7 @@ interface PublishAllPayload {
     scheduledAt?: string;
     platforms: SocialPlatform[];
     gbpLocationName?: string;
+    gbpLocationNames?: string[];
 }
 
 interface SocialPublishResult {
@@ -24,9 +25,10 @@ interface SocialPublishResult {
 
 interface SocialPublishResponse {
     results: SocialPublishResult[];
+    mediaUrls?: string[];
 }
 
-const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'facebook', 'instagram'];
+const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'facebook', 'instagram', 'facebook_personal'];
 
 const isSocialPlatform = (value: string): value is SocialPlatform => {
     return ALLOWED_PLATFORMS.includes(value as SocialPlatform);
@@ -41,7 +43,7 @@ const toResultsRecord = (results: SocialPublishResult[]) => {
     return results.reduce<Record<SocialPlatform, SocialPublishResult | undefined>>((acc, result) => {
         acc[result.platform] = result;
         return acc;
-    }, { gbp: undefined, facebook: undefined, instagram: undefined });
+    }, { gbp: undefined, facebook: undefined, instagram: undefined, facebook_personal: undefined });
 };
 
 export const socialService = {
@@ -80,6 +82,9 @@ export const socialService = {
         if (payload.gbpLocationName) {
             formData.append('gbpLocationName', payload.gbpLocationName);
         }
+        if (payload.gbpLocationNames && payload.gbpLocationNames.length > 0) {
+            formData.append('gbpLocationNames', JSON.stringify(payload.gbpLocationNames));
+        }
         payload.mediaFiles?.forEach((file) => formData.append('files', file));
 
         const { data, error } = await supabase.functions.invoke<SocialPublishResponse>('social-publish', {
@@ -103,7 +108,10 @@ export const socialService = {
             throw new Error(`Errors occurred while posting:\n${errors.join('\n')}`);
         }
 
-        return toResultsRecord(data.results);
+        return {
+            results: toResultsRecord(data.results),
+            mediaUrls: data.mediaUrls || []
+        };
     },
 
     getErrorMessage,

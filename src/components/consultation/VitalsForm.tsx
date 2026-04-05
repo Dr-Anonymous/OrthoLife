@@ -35,6 +35,8 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     initialData,
     isReadOnly = false
 }) => {
+    const diastolicRef = React.useRef<HTMLInputElement>(null);
+
     const handleBpPartChange = (part: 'systolic' | 'diastolic', value: string) => {
         const parts = bp ? bp.split('/') : ['', ''];
         const newSystolic = part === 'systolic' ? value : (parts[0] || '');
@@ -44,6 +46,11 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
             onExtraChange('bp', '');
         } else {
             onExtraChange('bp', `${newSystolic}/${newDiastolic}`);
+        }
+
+        // Auto-focus diastolic field if systolic has 3 digits
+        if (part === 'systolic' && value.length === 3) {
+            diastolicRef.current?.focus();
         }
     };
 
@@ -97,27 +104,27 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 <div className="space-y-2">
                     <Label htmlFor="weight" className="text-sm font-medium">Weight (kg)</Label>
-                    <Input 
-                        id="weight" 
-                        value={weight} 
-                        onChange={e => onExtraChange('weight', e.target.value)} 
-                        placeholder="e.g., 70" 
+                    <Input
+                        id="weight"
+                        value={weight}
+                        onChange={e => onExtraChange('weight', e.target.value)}
+                        placeholder="e.g., 70"
                         className={getStyle('weight', weight)}
                         disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="height" className="text-sm font-medium">Height (cm)</Label>
-                    <Input 
-                        id="height" 
-                        value={height} 
-                        onChange={e => onExtraChange('height', e.target.value)} 
-                        placeholder="e.g., 170" 
+                    <Input
+                        id="height"
+                        value={height}
+                        onChange={e => onExtraChange('height', e.target.value)}
+                        placeholder="e.g., 170"
                         className={getStyle('height', height)}
                         disabled={isReadOnly}
                     />
                 </div>
-                
+
                 {/* BMI only shown if both height and weight are entered */}
                 {weight && height && (
                     <div className="space-y-2">
@@ -127,8 +134,8 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             // If both weight and height are unchanged and have content, highlight BMI container too?
                             // Usually BMI is derived, but if it was in initialData, we might highlight.
                             // However, BMI is calculated above. Let's just use the default style or primary/5.
-                            getStyle('bmi', bmiValue) !== "bg-background/50" 
-                                ? getStyle('bmi', bmiValue) 
+                            getStyle('bmi', bmiValue) !== "bg-background/50"
+                                ? getStyle('bmi', bmiValue)
                                 : "bg-primary/5 text-primary"
                         )}>
                             {bmiValue || '--'}
@@ -137,7 +144,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                 )}
 
                 <div className="space-y-2 col-span-2 sm:col-span-1 md:col-span-1">
-                    <Label className="text-sm font-medium text-nowrap">BP (Sys/Dia)</Label>
+                    <Label className="text-sm font-medium text-nowrap">BP</Label>
                     <div className="flex items-center gap-1">
                         <Input
                             placeholder="Sys"
@@ -149,6 +156,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         <span className="text-muted-foreground">/</span>
                         <Input
                             placeholder="Dia"
+                            ref={diastolicRef}
                             value={bp ? bp.split('/')[1] || '' : ''}
                             onChange={e => handleBpPartChange('diastolic', e.target.value)}
                             className={cn("text-center px-1", getStyle('bp', bp))}
@@ -159,44 +167,44 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
 
                 <div className="space-y-2">
                     <Label htmlFor="pulse" className="text-sm font-medium">Pulse (bpm)</Label>
-                    <Input 
-                        id="pulse" 
-                        value={pulse} 
-                        onChange={e => onExtraChange('pulse', e.target.value)} 
-                        placeholder="e.g., 72" 
+                    <Input
+                        id="pulse"
+                        value={pulse}
+                        onChange={e => onExtraChange('pulse', e.target.value)}
+                        placeholder="e.g., 72"
                         className={getStyle('pulse', pulse)}
                         disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="spo2" className="text-sm font-medium">SpO2 (%)</Label>
-                    <Input 
-                        id="spo2" 
-                        value={spo2} 
-                        onChange={e => onExtraChange('spo2', e.target.value)} 
-                        placeholder="e.g., 98" 
+                    <Input
+                        id="spo2"
+                        value={spo2}
+                        onChange={e => onExtraChange('spo2', e.target.value)}
+                        placeholder="e.g., 98"
                         className={getStyle('spo2', spo2)}
                         disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="temperature" className="text-sm font-medium">Temp (F)</Label>
-                    <Input 
-                        id="temperature" 
-                        value={temperature} 
-                        onChange={e => onExtraChange('temperature', e.target.value)} 
-                        placeholder="98.6" 
+                    <Input
+                        id="temperature"
+                        value={temperature}
+                        onChange={e => onExtraChange('temperature', e.target.value)}
+                        placeholder="98.6"
                         className={getStyle('temperature', temperature)}
                         disabled={isReadOnly}
                     />
                 </div>
                 <div className="space-y-2 col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1">
                     <Label htmlFor="allergy" className="text-sm font-medium">Allergy</Label>
-                    <Input 
-                        id="allergy" 
-                        value={allergy} 
-                        onChange={e => onExtraChange('allergy', e.target.value)} 
-                        placeholder="e.g., Penicillin" 
+                    <Input
+                        id="allergy"
+                        value={allergy}
+                        onChange={e => onExtraChange('allergy', e.target.value)}
+                        placeholder="e.g., Penicillin"
                         className={getStyle('allergy', allergy)}
                         disabled={isReadOnly}
                     />
