@@ -18,6 +18,7 @@ type MediaFile = { file: File; preview: string };
 const PLATFORMS: PlatformConfig[] = [
   { id: 'gbp', name: 'Google Business', icon: MapPin, color: 'text-blue-600' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600', note: 'Can auto-post to Personal Facebook' },
+  { id: 'facebook_personal', name: 'Personal Profile', icon: Facebook, color: 'text-indigo-600', note: 'Fully automated via Phone' },
 ];
 
 type PlatformConfig = {
@@ -33,6 +34,7 @@ const DEFAULT_SHARE_URL = 'https://ortho.life'; // Fallback URL for Share Dialog
 const DEFAULT_PLATFORMS: SelectedPlatforms = {
   gbp: true,
   instagram: true,
+  facebook_personal: false,
 };
 
 const parseStoredPlatforms = (): SelectedPlatforms => {
@@ -44,6 +46,7 @@ const parseStoredPlatforms = (): SelectedPlatforms => {
     return {
       gbp: parsed.gbp ?? true,
       instagram: parsed.instagram ?? true,
+      facebook_personal: parsed.facebook_personal ?? false,
     };
   } catch {
     return DEFAULT_PLATFORMS;
@@ -68,7 +71,10 @@ const revokePreviews = (media: MediaFile[]) => {
   media.forEach((item) => URL.revokeObjectURL(item.preview));
 };
 
+import { useConsultant } from '@/context/ConsultantContext';
+
 const PostComposer = () => {
+  const { consultant } = useConsultant();
   const [content, setContent] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<SelectedPlatforms>(parseStoredPlatforms);
   const [scheduledDate, setScheduledDate] = useState<Date>();
@@ -222,13 +228,35 @@ const PostComposer = () => {
     setIsSubmitting(true);
 
     try {
-      await socialService.publishAll({
-        content,
-        platforms: activePlatforms,
-        scheduledAt: scheduledDateTime?.toISOString(),
-        mediaFiles: mediaFiles.map((m) => m.file),
-        gbpLocationNames: selectedPlatforms.gbp ? selectedGbpLocations : undefined,
-      });
+      // Separate platforms into API and Phone Bridge
+      const apiPlatforms = activePlatforms.filter(p => p !== 'facebook_personal');
+      const isPhoneBridgeSelected = selectedPlatforms.facebook_personal;
+
+      let result;
+      if (apiPlatforms.length > 0) {
+        result = await socialService.publishAll({
+          content,
+          platforms: apiPlatforms,
+          scheduledAt: scheduledDateTime?.toISOString(),
+          mediaFiles: mediaFiles.map((m) => m.file),
+          gbpLocationNames: selectedPlatforms.gbp ? selectedGbpLocations : undefined,
+        });
+      }
+
+      if (isPhoneBridgeSelected) {
+        if (!consultant?.id) {
+          throw new Error('Could not identify consultant profile for phone bridge.');
+        }
+
+        // Bridge uses media from the API response (public URLs) or null if no media
+        const mediaUrl = result?.mediaUrls?.[0] || null;
+        
+        await socialService.pushToPhoneBridge(consultant.id, {
+          platform: 'facebook',
+          content,
+          mediaUrl: mediaUrl || undefined,
+        });
+      }
 
       toast.success(scheduledDateTime ? 'Post scheduled successfully!' : 'Post published successfully!');
 

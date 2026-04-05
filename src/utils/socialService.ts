@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type SocialPlatform = 'gbp' | 'instagram';
+export type SocialPlatform = 'gbp' | 'instagram' | 'facebook_personal';
 
 export interface GBPLocation {
     name: string;
@@ -28,7 +28,7 @@ interface SocialPublishResponse {
     mediaUrls?: string[];
 }
 
-const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'instagram'];
+const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'instagram', 'facebook_personal'];
 
 const isSocialPlatform = (value: string): value is SocialPlatform => {
     return ALLOWED_PLATFORMS.includes(value as SocialPlatform);
@@ -43,7 +43,7 @@ const toResultsRecord = (results: SocialPublishResult[]) => {
     return results.reduce<Record<SocialPlatform, SocialPublishResult | undefined>>((acc, result) => {
         acc[result.platform] = result;
         return acc;
-    }, { gbp: undefined, instagram: undefined });
+    }, { gbp: undefined, instagram: undefined, facebook_personal: undefined });
 };
 
 export const socialService = {
@@ -112,6 +112,29 @@ export const socialService = {
             results: toResultsRecord(data.results),
             mediaUrls: data.mediaUrls || []
         };
+    },
+
+    async pushToPhoneBridge(consultantId: string, payload: { platform: string; content: string; mediaUrl?: string }) {
+        const FIREBASE_URL = `https://whatsauto-9cf91-default-rtdb.firebaseio.com/${consultantId}.json`;
+        
+        const response = await fetch(FIREBASE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                platform: payload.platform,
+                message: payload.content,
+                media_url: payload.mediaUrl,
+                timestamp: Date.now(),
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to push task to phone bridge.');
+        }
+
+        return await response.json();
     },
 
     getErrorMessage,
