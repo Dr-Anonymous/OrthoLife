@@ -18,7 +18,6 @@ type MediaFile = { file: File; preview: string };
 const PLATFORMS: PlatformConfig[] = [
   { id: 'gbp', name: 'Google Business', icon: MapPin, color: 'text-blue-600' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-600', note: 'Can auto-post to Personal Facebook' },
-  { id: 'facebook_personal', name: 'Personal Profile', icon: Facebook, color: 'text-indigo-600', note: 'Direct manual share' },
 ];
 
 type PlatformConfig = {
@@ -34,8 +33,6 @@ const DEFAULT_SHARE_URL = 'https://ortho.life'; // Fallback URL for Share Dialog
 const DEFAULT_PLATFORMS: SelectedPlatforms = {
   gbp: true,
   instagram: true,
-  facebook_personal: false,
-  facebook: false,
 };
 
 const parseStoredPlatforms = (): SelectedPlatforms => {
@@ -47,8 +44,6 @@ const parseStoredPlatforms = (): SelectedPlatforms => {
     return {
       gbp: parsed.gbp ?? true,
       instagram: parsed.instagram ?? true,
-      facebook_personal: parsed.facebook_personal ?? false,
-      facebook: false, // Force disabled or removed
     };
   } catch {
     return DEFAULT_PLATFORMS;
@@ -227,7 +222,7 @@ const PostComposer = () => {
     setIsSubmitting(true);
 
     try {
-      const result = await socialService.publishAll({
+      await socialService.publishAll({
         content,
         platforms: activePlatforms,
         scheduledAt: scheduledDateTime?.toISOString(),
@@ -235,38 +230,7 @@ const PostComposer = () => {
         gbpLocationNames: selectedPlatforms.gbp ? selectedGbpLocations : undefined,
       });
 
-      // Handle Facebook Personal sharing via Dialog
-      if (selectedPlatforms.facebook_personal && !scheduledDate) {
-        // Copy content to clipboard as a workaround since Facebook deprecated the 'quote' parameter
-        try {
-          await navigator.clipboard.writeText(content);
-          toast.info('Post text copied to clipboard! You can paste it into the Facebook window.', {
-            duration: 5000,
-          });
-        } catch (err) {
-          console.warn('Clipboard copy failed:', err);
-        }
-
-        const shareUrl = result.mediaUrls?.[0] || DEFAULT_SHARE_URL;
-        const encodedUrl = encodeURIComponent(shareUrl);
-        
-        // Facebook Sharer URL (Only 'u' is supported for personal profiles now)
-        const fbSharerUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-
-        // Open in a popup
-        const width = 600;
-        const height = 700;
-        const left = (window.innerWidth / 2) - (width / 2);
-        const top = (window.innerHeight / 2) - (height / 2);
-
-        window.open(
-          fbSharerUrl,
-          'facebook-share-dialog',
-          `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=no,resizable=yes`
-        );
-      }
-
-      toast.success(scheduledDateTime ? 'Post scheduled successfully!' : 'Post published successfully to selected platforms!');
+      toast.success(scheduledDateTime ? 'Post scheduled successfully!' : 'Post published successfully!');
 
       setContent('');
       setScheduledDate(undefined);

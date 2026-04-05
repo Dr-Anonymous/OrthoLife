@@ -266,8 +266,8 @@ serve(async (req: Request) => {
 
                 } else if (platform === 'instagram') {
                     console.log("[social-publish] Processing Instagram publish...");
-                    const igUserId = "17841455577389236"; //Deno.env.get('IG_BUSINESS_ACCOUNT_ID');
-                    const accessToken = "EAAs6rRo4yBIBRKind9urN39sZBhnPpwEFDwgPE5rnaBmlaXLatecK1zPPePCZCZA6MnQGptgzskLtO92R8pYbqM0oZBl2Ey5LtekWvtVNAvZARHlswL3W0hlccmjhGu71QG9gIWUnGSeBPP4je4P9tXWYy7YFxU6P09eXuhws5ng6QwC1k4U1cZC7glryGXXSrzZCj5Gt7FdSrluJh7ZB8uxEVoxJSJhmV26hOZAOoa51CgQZBujtAXQqUzW4ZD"; // Deno.env.get('FB_PAGE_ACCESS_TOKEN'); // IG usually uses the linked Page access token
+                    const igUserId = "17841462136125230"; //Deno.env.get('IG_BUSINESS_ACCOUNT_ID');
+                    const accessToken = "EAAs6rRo4yBIBRPqIZC2DleexWQwBxtXrlsbTbosGlurv3ZA3uSaAbHK8hmvMMWNwLZCA6N1mljXOo70ZAEhF9ZCIaA393YItOkmvFwUCOSVVPFzc2AAfpxNAw94DLcnRTKkc96yc46BXcl9FAtbIkSsUaw24FETn85nlEVt2nQRyII1I6mWAW1ZBbIM0ZCk9By8ZBcvcAIBpxmjcwbZBUqezCxpMAoKLI6Jph6oco856YRvTpuNud0nd50BiYixoZD"; // Deno.env.get('FB_PAGE_ACCESS_TOKEN'); // IG usually uses the linked Page access token
 
                     if (!igUserId || !accessToken) {
                         throw new Error("Instagram credentials (IG_BUSINESS_ACCOUNT_ID, FB_PAGE_ACCESS_TOKEN) are missing.");
@@ -368,7 +368,28 @@ serve(async (req: Request) => {
             }
         }
 
-        return new Response(JSON.stringify({ results, mediaUrls }), {
+        // Cleanup: Delete uploaded media from Supabase Storage after processing
+        if (mediaUrls.length > 0) {
+            console.log(`[social-publish] Cleaning up ${mediaUrls.length} files from storage...`);
+            const paths = mediaUrls.map(url => {
+                const parts = url.split('/social-media/');
+                return parts.length > 1 ? parts[1] : null;
+            }).filter(Boolean) as string[];
+
+            if (paths.length > 0) {
+                const { error: deleteError } = await supabase.storage
+                    .from('social-media')
+                    .remove(paths);
+                
+                if (deleteError) {
+                    console.error("[social-publish] Cleanup failed:", deleteError);
+                } else {
+                    console.log("[social-publish] Storage cleanup successful.");
+                }
+            }
+        }
+
+        return new Response(JSON.stringify({ results }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         });
