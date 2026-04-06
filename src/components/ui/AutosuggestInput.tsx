@@ -14,7 +14,7 @@ export interface Suggestion {
 
 interface AutosuggestInputProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, cursorPosition?: number | null) => void;
   onSuggestionSelected: (suggestion: Suggestion) => void;
   suggestions: Suggestion[];
   onKeyDown?: (e: React.KeyboardEvent<any>) => void;
@@ -66,7 +66,8 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
 
   const handleInputChange = (e: React.ChangeEvent<any>) => {
     const inputValue = e.target.value;
-    onChange(inputValue);
+    const cursor = (e.target as any).selectionStart;
+    onChange(inputValue, cursor);
 
     if (inputValue.length > 0) {
       // In multiline mode, we only want to search using the current line being typed

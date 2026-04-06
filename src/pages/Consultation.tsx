@@ -1340,7 +1340,7 @@ const ConsultationPage = () => {
       let newCursor = cursorPosition || value.length;
 
       // Special Duration Shortcuts for Complaints/Advice
-      if (field === 'complaints' || field === 'advice' || field === 'medicalHistory') {
+      if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations') {
         const textBeforeCursor = value.substring(0, newCursor);
         const durationRegex = /(\d+)([dwmy])\.\s$/i;
         const match = textBeforeCursor.match(durationRegex);
@@ -1369,7 +1369,8 @@ const ConsultationPage = () => {
 
               setExtraData(prev => ({ ...prev, [field]: processedValue }));
               setTimeout(() => {
-                const targetRef = field === 'advice' ? adviceRef : (field === 'medicalHistory' ? medicalHistoryRef : complaintsRef);
+                const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef };
+                const targetRef = refs[field] || complaintsRef;
                 if (targetRef.current) {
                   targetRef.current.setSelectionRange(newCursor, newCursor);
                 }
@@ -1377,7 +1378,7 @@ const ConsultationPage = () => {
               return;
             }
           }
-        } else if (field === 'complaints' || field === 'advice' || field === 'medicalHistory') {
+        } else if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations') {
           // Unit-only shortcuts (e.g. "y. " -> "years ")
           const unitOnlyRegex = /(?:^|\s)([dwmy])\.\s$/i;
           const unitMatch = textBeforeCursor.match(unitOnlyRegex);
@@ -1407,7 +1408,8 @@ const ConsultationPage = () => {
 
                 setExtraData(prev => ({ ...prev, [field]: processedValue }));
                 setTimeout(() => {
-                  const targetRef = field === 'advice' ? adviceRef : (field === 'medicalHistory' ? medicalHistoryRef : complaintsRef);
+                  const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef };
+                  const targetRef = refs[field] || complaintsRef;
                   if (targetRef.current) {
                     targetRef.current.setSelectionRange(newCursor, newCursor);
                   }

@@ -216,8 +216,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 }}
                                 ref={medicationNameInputRef}
                                 value={med.brandName || med.composition || ''}
-                                onChange={value => {
-                                    handleMedChange(index, 'composition', value);
+                                onChange={(value, cursor) => {
+                                    handleMedChange(index, 'composition', value, cursor);
                                     if (med.brandName || med.savedMedicationId) {
                                         handleMedChange(index, 'brandName', undefined);
                                         handleMedChange(index, 'savedMedicationId', undefined);

@@ -337,7 +337,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             ref={investigationsRef as any}
                             multiline
                             value={extraData.investigations}
-                            onChange={value => onExtraChange('investigations', value)}
+                            onChange={(value, cursor) => onExtraChange('investigations', value, cursor)}
                             onSuggestionSelected={suggestion => {
                                 const current = extraData.investigations;
                                 const lines = current.split('\n');
@@ -640,10 +640,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                 <AutosuggestInput
                                     ref={index === 0 ? referredToRef : null}
                                     value={item}
-                                    onChange={value => {
+                                    onChange={(value, cursor) => {
                                         const newList = [...(extraData.referred_to_list && extraData.referred_to_list.length > 0 ? extraData.referred_to_list : [''])];
                                         newList[index] = value;
-                                        onExtraChange('referred_to_list', newList);
+                                        onExtraChange('referred_to_list', newList, cursor);
                                     }}
                                     suggestions={referralDoctors.map(d => ({
                                         id: d.id,
