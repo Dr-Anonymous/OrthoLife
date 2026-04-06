@@ -67,7 +67,7 @@ import { DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } fr
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { processTextShortcuts } from '@/lib/textShortcuts';
-import { useTranslation } from 'react-i18next';
+// Removed useTranslation import correctly
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
 import { ConsentManagementModal } from '@/components/inpatient/ConsentManagementModal';
 // Removed ConsentTemplateManager import
@@ -82,7 +82,6 @@ import { useConsultant } from '@/context/ConsultantContext';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 
 // --- Types ---
-
 import { InPatient, DischargeSummary, DischargeData } from '@/types/inPatients';
 import { Consultant } from '@/types/consultation';
 
@@ -116,7 +115,7 @@ const InPatientManagement = () => {
     const [paymentFilter, setPaymentFilter] = useState<string>('all');
     const [activeTab, setActiveTab] = useState('admitted');
     const [fetchAll, setFetchAll] = useState(false);
-    const { i18n } = useTranslation();
+    const [inPatientLanguage, setInPatientLanguage] = useState<string>('te');
 
     // Refs
     const dischargeFormRef = useRef<{ print: () => void }>(null);
@@ -173,7 +172,12 @@ const InPatientManagement = () => {
     // Removed isTemplateManagerOpen state
 
     const [isDischargeModalOpen, setIsDischargeModalOpen] = useState(false);
-    const [transientDischargeLanguage, setTransientDischargeLanguage] = useState('en');
+
+    // Consolidated Sync Handler
+    const updateLocalLanguage = (code: string) => {
+        setInPatientLanguage(code);
+        setAdmissionData(prev => ({ ...prev, language: code }));
+    };
 
     // Selection States
     const [selectedPatientForEdit, setSelectedPatientForEdit] = useState<InPatient | null>(null);
@@ -198,7 +202,7 @@ const InPatientManagement = () => {
         admission_date: format(new Date(), 'yyyy-MM-dd'),
         procedure_date: '',
         room_number: '',
-        language: 'te',
+        language: inPatientLanguage || 'te',
         total_bill: '',
         consultant_cut: '',
         referred_by: '',
@@ -489,7 +493,7 @@ const InPatientManagement = () => {
             admission_date: format(new Date(), 'yyyy-MM-dd'),
             procedure_date: '',
             room_number: '',
-            language: 'te',
+            language: inPatientLanguage || 'te',
             total_bill: '',
             consultant_cut: '',
             referred_by: '',
@@ -699,13 +703,15 @@ const InPatientManagement = () => {
     };
 
     const openEditModal = (patient: InPatient) => {
+        updateLocalLanguage(patient.language || inPatientLanguage || 'en');
         setSelectedPatientForEdit(patient);
         setIsEditModalOpen(true);
     };
 
     const openDischargeModal = (patient: InPatient) => {
         // Localize language: do NOT change global i18n
-        setTransientDischargeLanguage(patient.language || 'en');
+        const lang = patient.language || inPatientLanguage || 'en';
+        updateLocalLanguage(lang);
         setSelectedPatientForDischarge(patient);
         setIsDischargeModalOpen(true);
     };
@@ -893,12 +899,31 @@ const InPatientManagement = () => {
                                 className="pl-9 h-10 w-full"
                             />
                         </div>
+                    <div className="flex bg-muted/40 p-1 rounded-lg border flex-none h-10 items-center" title="Default Language for IP area">
+                        {[
+                            { code: 'en', label: 'EN' },
+                            { code: 'te', label: 'తె' }
+                        ].map((lang) => (
+                            <Button
+                                key={lang.code}
+                                variant={inPatientLanguage === lang.code ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => updateLocalLanguage(lang.code)}
+                                className={cn(
+                                    "h-8 px-3 text-xs font-bold transition-all duration-200",
+                                    inPatientLanguage === lang.code ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-primary"
+                                )}
+                            >
+                                {lang.label}
+                            </Button>
+                        ))}
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center sm:justify-end">
-                        <Button onClick={() => setIsAdmitModalOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            Admit
-                        </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center sm:justify-end">
+                    <Button onClick={() => setIsAdmitModalOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Admit
+                    </Button>
                         {isMasterAdmin && (
                             <div className="flex gap-2 w-full sm:w-auto">
                                 <Button variant="outline" asChild className="flex-1 sm:flex-none">
@@ -1074,7 +1099,7 @@ const InPatientManagement = () => {
                                 onSendWhatsApp={initWhatsApp}
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
-                                onPrint={() => p.discharge_summary && triggerPrint(p.discharge_summary, (p as any).consultant, p.discharge_date || undefined)}
+                                onPrint={() => p.discharge_summary && triggerPrint({ ...p.discharge_summary, language: p.language || 'en' }, (p as any).consultant, p.discharge_date || undefined)}
                                 onConsents={(p.surgical_consents && p.surgical_consents.length > 0) ? () => openConsentModal(p) : undefined}
                             />
                         )) : (
@@ -1102,9 +1127,9 @@ const InPatientManagement = () => {
                                 <Button
                                     key={code}
                                     size="sm"
-                                    variant={admissionData.language === code ? "default" : "ghost"}
+                                    variant={inPatientLanguage === code ? "default" : "ghost"}
                                     className="h-6 px-2 text-xs"
-                                    onClick={() => setAdmissionData({ ...admissionData, language: code })}
+                                    onClick={() => updateLocalLanguage(code)}
                                     type="button"
                                 >
                                     {label}
@@ -1330,6 +1355,7 @@ const InPatientManagement = () => {
                     <EditPatientForm
                         patient={selectedPatientForEdit}
                         onSubmit={(data: any) => editMutation.mutate({ ...data, id: selectedPatientForEdit?.id })}
+                        onLanguageChange={updateLocalLanguage}
                         isSaving={editMutation.isPending}
                         onCancel={() => setIsEditModalOpen(false)}
                     />
@@ -1355,9 +1381,9 @@ const InPatientManagement = () => {
                                         <Button
                                             key={code}
                                             size="sm"
-                                            variant={transientDischargeLanguage === code ? "default" : "ghost"}
+                                            variant={inPatientLanguage === code ? "default" : "ghost"}
                                             className="h-6 px-2 text-xs"
-                                            onClick={() => setTransientDischargeLanguage(code)}
+                                            onClick={() => updateLocalLanguage(code)}
                                             type="button"
                                         >
                                             {label}
@@ -1380,7 +1406,7 @@ const InPatientManagement = () => {
                         <DischargeForm
                             ref={dischargeFormRef}
                             patient={selectedPatientForDischarge}
-                            currentLanguage={transientDischargeLanguage}
+                            currentLanguage={inPatientLanguage}
                             onSubmit={(summary, date, isDraft) => {
                                 // Use the date selected in the form
                                 let isoDate = date;
@@ -1392,7 +1418,7 @@ const InPatientManagement = () => {
                                 dischargeMutation.mutate({
                                     id: selectedPatientForDischarge.id,
                                     summary: pruneEmptyFields(summary),
-                                    language: transientDischargeLanguage,
+                                    language: inPatientLanguage,
                                     dischargeDate: isoDate,
                                     isDraft: isDraft
                                 });
@@ -1414,7 +1440,7 @@ const InPatientManagement = () => {
                         patientSnapshot={printData.patient_snapshot}
                         courseDetails={printData.course_details}
                         dischargeData={printData.discharge_data}
-                        language={printData?.language || i18n.language}
+                        language={printData?.language || inPatientLanguage}
                         logoUrl={printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"}
                         dischargeDate={printDate}
                         consultant={printConsultant || consultant}
@@ -1513,7 +1539,7 @@ const EmptyState = ({ icon: Icon, message }: { icon: any, message: string }) => 
     </div>
 );
 
-const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: InPatient | null, onSubmit: (data: any) => void, isSaving: boolean, onCancel: () => void }) => {
+const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCancel }: { patient: InPatient | null, onSubmit: (data: any) => void, onLanguageChange?: (code: string) => void, isSaving: boolean, onCancel: () => void }) => {
     const [data, setData] = useState({
         diagnosis: patient?.diagnosis || '',
         procedure: patient?.procedure || '',
@@ -1551,7 +1577,10 @@ const EditPatientForm = ({ patient, onSubmit, isSaving, onCancel }: { patient: I
                             size="sm"
                             variant={data.language === code ? "default" : "ghost"}
                             className="h-6 px-2 text-xs"
-                            onClick={() => setData({ ...data, language: code })}
+                            onClick={() => {
+                                setData({ ...data, language: code });
+                                if (onLanguageChange) onLanguageChange(code);
+                            }}
                             type="button"
                         >
                             {label}
@@ -1689,7 +1718,6 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     currentLanguage: string
 }>(({ patient, onSubmit, isSaving, onPrint, currentLanguage }, ref) => {
     const [activeTab, setActiveTab] = useState("demographics");
-    const { i18n } = useTranslation();
     const [dischargeDate, setDischargeDate] = useState<string>('');
 
     const { data: otTemplates } = useQuery({
@@ -2159,16 +2187,36 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
     const isTelugu = currentLanguage === 'te';
 
-    // Auto-fill new sections if empty when language changes or modal opens
-    React.useEffect(() => {
-        const lang = isTelugu ? 'te' : 'en';
-        setDischarge(prev => ({
-            ...prev,
-            red_flags: prev.red_flags || DISCHARGE_INSTRUCTIONS[lang].red_flags,
-            wound_care: prev.wound_care || DISCHARGE_INSTRUCTIONS[lang].wound_care,
-            activity: prev.activity || DISCHARGE_INSTRUCTIONS[lang].activity
-        }));
-    }, [isTelugu]);
+    // Dynamic template swapping when language changes
+    const prevLanguageRef = useRef<string | null>(null);
+    useEffect(() => {
+        const newLang = currentLanguage as keyof typeof DISCHARGE_INSTRUCTIONS;
+        const prevLang = prevLanguageRef.current as keyof typeof DISCHARGE_INSTRUCTIONS | null;
+        
+        setDischarge(prev => {
+            const updated = { ...prev };
+            const fieldsToSwap: ('red_flags' | 'wound_care' | 'activity')[] = ['red_flags', 'wound_care', 'activity'];
+            
+            let changed = false;
+            fieldsToSwap.forEach(f => {
+                const prevDefault = prevLang ? DISCHARGE_INSTRUCTIONS[prevLang][f].trim() : null;
+                const currentVal = (prev[f] || '').trim();
+                
+                // If it's the first run and the field is empty, OR
+                // if it matches the previous default, swap to the current default
+                if (!currentVal || (prevDefault && currentVal === prevDefault)) {
+                    if (prev[f] !== DISCHARGE_INSTRUCTIONS[newLang][f]) {
+                        updated[f] = DISCHARGE_INSTRUCTIONS[newLang][f];
+                        changed = true;
+                    }
+                }
+            });
+            
+            return changed ? updated : prev;
+        });
+        
+        prevLanguageRef.current = currentLanguage;
+    }, [currentLanguage]);
 
     const buildSummary = (): DischargeSummary => ({
         patient_snapshot: {
@@ -2185,7 +2233,8 @@ const DischargeForm = forwardRef<{ print: () => void }, {
             diagnosis: course.diagnosis,
             operation_notes: course.operation_notes
         },
-        discharge_data: discharge
+        discharge_data: discharge,
+        language: currentLanguage
     });
 
     useImperativeHandle(ref, () => ({
