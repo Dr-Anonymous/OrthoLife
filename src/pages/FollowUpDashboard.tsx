@@ -6,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, User, Phone, MessageSquare, Calendar as CalendarIcon, MapPin, ClipboardList, IndianRupee } from 'lucide-react';
+import { Loader2, User, Phone, MessageSquare, Calendar as CalendarIcon, MapPin, ClipboardList, IndianRupee, Send } from 'lucide-react';
 import { format, formatDistanceToNow, addDays, startOfToday } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useConsultant } from '@/context/ConsultantContext';
@@ -117,14 +117,18 @@ const FollowUpDashboard = () => {
   };
 
   const confirmAndSendWhatsApp = async () => {
-    if (!targetConsultation) return;
+    if (!targetConsultation || !consultant) return;
     
     const phone = targetConsultation.patient.phone;
     setIsSendingWhatsApp(true);
     
     try {
       const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: { number: phone, message: whatsappMessage },
+        body: { 
+          number: phone, 
+          message: whatsappMessage,
+          consultant_id: consultant.is_legacy_handler ? "legacy" : consultant.id
+        },
       });
 
       if (error) throw error;
@@ -133,12 +137,18 @@ const FollowUpDashboard = () => {
     } catch (error: any) {
       console.error('WhatsApp Error:', error);
       toast.error(error.message || 'Failed to send WhatsApp reminder.');
-      // Fallback: Open WhatsApp Web
-      const encodedMsg = encodeURIComponent(whatsappMessage);
-      window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+      handleWhatsAppWebFallback();
     } finally {
       setIsSendingWhatsApp(false);
     }
+  };
+
+  const handleWhatsAppWebFallback = () => {
+    if (!targetConsultation) return;
+    const phone = targetConsultation.patient.phone;
+    const encodedMsg = encodeURIComponent(whatsappMessage);
+    window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+    setWhatsappPreviewVisible(false);
   };
 
   const handleCallPatient = (phone: string) => {
@@ -406,9 +416,13 @@ const FollowUpDashboard = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 w-8 p-0 border-green-200 text-green-600 hover:bg-green-50"
+                                  className={cn(
+                                    "h-8 w-8 p-0 border-green-200 text-green-600 hover:bg-green-50",
+                                    (c.consultant_id !== consultant?.id && !isMasterAdmin) && "opacity-50 cursor-not-allowed grayscale"
+                                  )}
                                   onClick={() => handleWhatsAppReminder(c)}
-                                  title="Send WhatsApp Reminder"
+                                  disabled={c.consultant_id !== consultant?.id && !isMasterAdmin}
+                                  title={(c.consultant_id !== consultant?.id && !isMasterAdmin) ? "Restricted: You can only send reminders for your own patients." : "Send WhatsApp Reminder"}
                                 >
                                   <MessageSquare className="w-4 h-4" />
                                 </Button>
@@ -444,8 +458,12 @@ const FollowUpDashboard = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-9 w-9 p-0 rounded-full border-green-200 text-green-600 bg-green-50/50"
+                              className={cn(
+                                "h-9 w-9 p-0 rounded-full border-green-200 text-green-600 bg-green-50/50",
+                                (c.consultant_id !== consultant?.id && !isMasterAdmin) && "opacity-50 cursor-not-allowed grayscale"
+                              )}
                               onClick={() => handleWhatsAppReminder(c)}
+                              disabled={c.consultant_id !== consultant?.id && !isMasterAdmin}
                             >
                               <MessageSquare className="w-4 h-4" />
                             </Button>
@@ -559,21 +577,33 @@ const FollowUpDashboard = () => {
             />
           </div>
           
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setWhatsappPreviewVisible(false)}>
+          <div className="flex flex-col sm:flex-row justify-end gap-3">
+            <Button variant="ghost" onClick={() => setWhatsappPreviewVisible(false)}>
               Cancel
             </Button>
+            
             <Button 
-              className="bg-green-600 hover:bg-green-700" 
-              onClick={confirmAndSendWhatsApp}
-              disabled={isSendingWhatsApp}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50"
+              onClick={handleWhatsAppWebFallback}
             >
-              {isSendingWhatsApp ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
-              ) : (
-                <><MessageSquare className="w-4 h-4 mr-2" /> Send via WhatsApp</>
-              )}
+              <MessageSquare className="w-4 h-4 mr-2" />
+              WhatsApp Web
             </Button>
+
+            {(consultant?.is_legacy_handler || consultant?.is_whatsauto_active) && (
+              <Button 
+                className="bg-green-600 hover:bg-green-700" 
+                onClick={confirmAndSendWhatsApp}
+                disabled={isSendingWhatsApp}
+              >
+                {isSendingWhatsApp ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+                ) : (
+                  <><Send className="w-4 h-4 mr-2" /> Send via Bot</>
+                )}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

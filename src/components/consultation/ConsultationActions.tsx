@@ -99,6 +99,14 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onSelect={() => {
+                                    if (isReadOnly) {
+                                        toast({
+                                            title: "Access Denied",
+                                            description: "You cannot send messages from another doctor's profile.",
+                                            variant: "destructive"
+                                        });
+                                        return;
+                                    }
                                     if (isWhatsAppEnabled) {
                                         onSendCompletionClick();
                                     } else {
@@ -109,10 +117,15 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                                         });
                                     }
                                 }}
-                                className="flex flex-col items-center justify-center h-20 text-center gap-1 cursor-pointer border rounded-md hover:bg-accent/50 focus:bg-accent/50"
+                                className={cn(
+                                    "flex flex-col items-center justify-center h-20 text-center gap-1 cursor-pointer border rounded-md hover:bg-accent/50 focus:bg-accent/50",
+                                    isReadOnly && "opacity-50 cursor-not-allowed bg-muted/20"
+                                )}
                             >
-                                <Send className={cn("w-5 h-5", isWhatsAppEnabled ? "text-green-600" : "text-muted-foreground")} />
-                                <span className={cn("text-xs font-medium", !isWhatsAppEnabled && "text-muted-foreground")}>Send Msg</span>
+                                <Send className={cn("w-5 h-5", (isWhatsAppEnabled && !isReadOnly) ? "text-green-600" : "text-muted-foreground")} />
+                                <span className={cn("text-xs font-medium", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")}>
+                                    {isReadOnly ? 'Restricted' : 'Send Msg'}
+                                </span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={onSaveBundleClick} className="flex flex-col items-center justify-center h-20 text-center gap-1 cursor-pointer border rounded-md hover:bg-accent/50 focus:bg-accent/50">
                                 <PackagePlus className="w-5 h-5 text-orange-500" />
@@ -208,9 +221,13 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
 
 
                         <div
-                            className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors"
+                            className={cn(
+                                "p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors",
+                                isReadOnly && "opacity-50 cursor-not-allowed"
+                            )}
                             onClick={(e) => {
                                 e.preventDefault();
+                                if (isReadOnly) return;
                                 if (isWhatsAppEnabled) {
                                     onToggleAutoSend?.();
                                 } else {
@@ -222,17 +239,19 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             }}
                         >
                             <div className="flex items-center justify-between">
-                                <span className={cn("text-sm font-medium", !isWhatsAppEnabled && "text-muted-foreground")}>Auto-send WhatsApp</span>
+                                <span className={cn("text-sm font-medium", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")}>Auto-send WhatsApp</span>
                                 <Switch
-                                    checked={isWhatsAppEnabled && isAutoSendEnabled}
+                                    checked={isWhatsAppEnabled && isAutoSendEnabled && !isReadOnly}
                                     onCheckedChange={() => { }} // Handled by parent div click
                                     className="scale-75"
+                                    disabled={isReadOnly}
                                 />
                             </div>
                             <p className="text-[10px] text-muted-foreground mt-1">
-                                {isWhatsAppEnabled
-                                    ? "Auto-send consultation completed notification."
-                                    : "Personalize your patient experience. Contact admin to activate."}
+                                {isReadOnly ? "Read-only mode: Settings cannot be changed." :
+                                    isWhatsAppEnabled
+                                        ? "Auto-send consultation completed notification."
+                                        : "Personalize your patient experience. Contact admin to activate."}
                             </p>
                         </div>
                     </DropdownMenuContent>
