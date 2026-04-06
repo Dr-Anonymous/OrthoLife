@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, X, Plus, Save, Trash2, Edit, Search, MapPin } from 'lucide-react';
+import { Loader2, X, Plus, Save, Trash2, Edit, Search, MapPin, Copy } from 'lucide-react';
 import { useHospitals } from '@/context/HospitalsContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -494,11 +494,37 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                   <div className="space-y-2">
                     <Label htmlFor="med-frequency">Frequency</Label>
                     <Input id="med-frequency" value={newMed.frequency} onChange={e => handleInputChange('frequency', e.target.value)} placeholder="e.g., once a week" />
+                    {!newMed.frequency && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {["1/week", "If needed"].map(text => (
+                          <div
+                            key={text}
+                            className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                            onClick={() => handleInputChange('frequency', text)}
+                          >
+                            {text}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {isCustom && (
                     <div className="space-y-2">
                       <Label htmlFor="med-frequency-te">Frequency (Telugu)</Label>
                       <Input id="med-frequency-te" value={newMed.frequency_te} onChange={e => handleInputChange('frequency_te', e.target.value)} disabled={isTranslating} />
+                      {!newMed.frequency_te && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {["వారానికి ఒకసారి", "అవసరమైతే"].map(text => (
+                            <div
+                              key={text}
+                              className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                              onClick={() => handleInputChange('frequency_te', text)}
+                            >
+                              {text}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -508,19 +534,91 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
               <div className="space-y-1.5">
                 <Label htmlFor="med-instructions" className="text-xs font-semibold">Instructions</Label>
                 <Input id="med-instructions" value={newMed.instructions} onChange={e => handleInputChange('instructions', e.target.value)} className="h-9" />
+                {!newMed.instructions && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {["Bef. food", "Aft. food"].map(text => (
+                      <div
+                        key={text}
+                        className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                        onClick={() => handleInputChange('instructions', text)}
+                      >
+                        {text}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5 opacity-80">
                 <Label htmlFor="med-instructions-te" className="text-xs font-semibold text-muted-foreground">Instructions (Te)</Label>
                 <Input id="med-instructions-te" value={newMed.instructions_te} onChange={e => handleInputChange('instructions_te', e.target.value)} disabled={isTranslating} className="h-9" />
+                {!newMed.instructions_te && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {["ఆహరం ముందు", "ఆహరం తర్వాత"].map(text => (
+                      <div
+                        key={text}
+                        className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                        onClick={() => handleInputChange('instructions_te', text)}
+                      >
+                        {text}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="med-duration" className="text-xs font-semibold">Duration</Label>
                 <Input id="med-duration" value={newMed.duration} onChange={e => handleInputChange('duration', e.target.value)} className="h-9" />
+                {(() => {
+                  const val = (newMed.duration || '').trim();
+                  const match = val.match(/^(\d+)/);
+                  const number = match ? parseInt(match[1]) : null;
+                  if (number !== null) {
+                    const isPlural = number > 1;
+                    const units = isPlural ? ["days", "weeks", "months"] : ["day", "week", "month"];
+                    return (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {units.map(unit => (
+                          <div
+                            key={unit}
+                            className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                            onClick={() => handleInputChange('duration', `${number} ${unit}`)}
+                          >
+                            {unit}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
               <div className="space-y-1.5 opacity-80">
                 <Label htmlFor="med-duration-te" className="text-xs font-semibold text-muted-foreground">Duration (Te)</Label>
                 <Input id="med-duration-te" value={newMed.duration_te || ''} onChange={e => handleInputChange('duration_te', e.target.value)} disabled={isTranslating} className="h-9" />
+                {(() => {
+                  const val = (newMed.duration_te || '').trim();
+                  const match = val.match(/^(\d+)/);
+                  const number = match ? parseInt(match[1]) : null;
+                  if (number !== null) {
+                    const isPlural = number > 1;
+                    const units = isPlural ? ["రోజులు", "వారాలు", "నెలలు"] : ["రోజు", "వారం", "నెల"];
+                    return (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {units.map(unit => (
+                          <div
+                            key={unit}
+                            className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
+                            onClick={() => handleInputChange('duration_te', `${number} ${unit}`)}
+                          >
+                            {unit}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               <div className="space-y-1.5">
@@ -564,22 +662,61 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                 filteredMeds.map((med, idx) => (
                     <div 
                       key={med.id} 
-                      className={`flex items-center justify-between p-2 border rounded-md transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10 border-primary/50' : ''}`}
+                      className={`flex flex-col p-3 border rounded-md transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10 border-primary/50' : ''}`}
                     >
-                      <div>
-                        <span className="font-medium block">{med.composition}</span>
-                        {med.brand_metadata && med.brand_metadata.length > 0 && (
-                          <span className="text-[10px] text-muted-foreground block mt-0.5">
-                            {med.brand_metadata.map(b => {
-                              const up = b.cost && b.packSize ? (b.cost / b.packSize).toFixed(2) : b.cost;
-                              return `${b.name} (₹${up}${b.packSize && b.packSize > 1 ? '/u' : ''})`;
-                            }).join(', ')}
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-x-2">
-                        <Button variant="ghost" size="icon" onClick={() => startEditing(med)}><Edit className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteMedication(med.id!)}><Trash2 className="w-4 h-4" /></Button>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-semibold text-sm truncate">{med.composition}</span>
+                            {med.dose && (
+                              <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border shrink-0">
+                                {med.dose}
+                              </span>
+                            )}
+                          </div>
+                          {med.brand_metadata && med.brand_metadata.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground block line-clamp-2">
+                              {med.brand_metadata.map(b => {
+                                const up = b.cost && b.packSize ? (b.cost / b.packSize).toFixed(2) : b.cost;
+                                return `${b.name} (₹${up}${b.packSize && b.packSize > 1 ? '/u' : ''})`;
+                              }).join(', ')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            title="Duplicate as new"
+                            onClick={() => {
+                              const { id, ...copyData } = med;
+                              setNewMed(copyData);
+                              setIsEditing(null);
+                              setIsCustom(!!med.frequency);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                              toast({ title: 'Template Loaded', description: `New variant of ${med.composition} initialized.` });
+                            }}
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={() => startEditing(med)}
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10" 
+                            onClick={() => handleDeleteMedication(med.id!)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))
