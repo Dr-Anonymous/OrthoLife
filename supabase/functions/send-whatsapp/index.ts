@@ -9,11 +9,11 @@ serve(async (req) => {
   }
 
   try {
-    const { number, message, consultant_id } = await req.json()
+    const { number, message, consultant_id, media_url } = await req.json()
 
     // 1. Proceed with Realtime DB write directly
     // (UI logic handles the enabled/disabled state for practitioners)
-    const result = await sendWhatsAppMessage(number, message, consultant_id)
+    const result = await sendWhatsAppMessage(number, message, consultant_id, media_url)
 
     if (!result) {
       throw new Error("Failed to send WhatsApp message via shared helper.")

@@ -4,7 +4,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-export async function sendWhatsAppMessage(number: string, message: string, consultantId: string = "legacy") {
+export async function sendWhatsAppMessage(number: string, message: string, consultantId: string = "legacy", mediaUrl?: string) {
   try {
     if (!number || !message) {
       throw new Error('Missing number or message')
@@ -30,7 +30,8 @@ export async function sendWhatsAppMessage(number: string, message: string, consu
 
     const payload = {
       number: formattedNumber,
-      message: message
+      message: message,
+      media_url: mediaUrl || null
     }
 
     const response = await fetch(url, {
