@@ -7,7 +7,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type SocialPlatform = 'gbp' | 'instagram';
+type SocialPlatform = 'gbp' | 'instagram' | 'phone_bridge_only';
 
 interface PublishResult {
     platform: SocialPlatform;
@@ -121,11 +121,11 @@ serve(async (req: Request) => {
             throw new Error("Content or media is required");
         }
 
-        let platforms: SocialPlatform[] = JSON.parse(platformsStr || '[]');
+        let platforms: (SocialPlatform | 'phone_bridge_only')[] = JSON.parse(platformsStr || '[]');
         console.log(`[social-publish] Publishing to platforms: ${platforms.join(', ')}`);
 
-        if (!platforms || platforms.length === 0) {
-            throw new Error("At least one platform is required");
+        if ((!platforms || platforms.length === 0) && mediaFiles.length === 0) {
+            throw new Error("At least one platform or media file is required");
         }
 
         const results: PublishResult[] = [];
@@ -367,8 +367,8 @@ serve(async (req: Request) => {
                 });
             }
         }
-
-        // Cleanup: Delete uploaded media from Supabase Storage after processing
+        /* 
+        // Cleanup: DISABLED because the phone bridge needs time to download these files!
         if (mediaUrls.length > 0) {
             console.log(`[social-publish] Cleaning up ${mediaUrls.length} files from storage...`);
             const paths = mediaUrls.map(url => {
@@ -388,8 +388,17 @@ serve(async (req: Request) => {
                 }
             }
         }
+        */
 
-        return new Response(JSON.stringify({ results }), {
+        if (platforms.includes('phone_bridge_only')) {
+            results.push({
+                platform: 'phone_bridge_only',
+                success: true,
+                message: "Media uploaded/handled for phone bridge"
+            });
+        }
+
+        return new Response(JSON.stringify({ results, mediaUrls }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         });

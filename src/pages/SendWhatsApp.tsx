@@ -7,12 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Send, Phone, MessageSquare } from "lucide-react";
+import { useConsultant } from "@/context/ConsultantContext";
 
 const SendWhatsApp = () => {
   const [number, setNumber] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { consultant } = useConsultant();
 
   const handleSend = async () => {
     if (!number || !message) {
@@ -27,7 +29,11 @@ const SendWhatsApp = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp", {
-        body: { number, message },
+        body: { 
+          number, 
+          message,
+          consultant_id: consultant?.id || "legacy" 
+        },
       });
 
       if (error) throw error;

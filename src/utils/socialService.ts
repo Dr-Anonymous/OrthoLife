@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type SocialPlatform = 'gbp' | 'instagram' | 'facebook_personal';
+export type SocialPlatform = 'gbp' | 'instagram' | 'facebook_personal' | 'phone_bridge_only';
 
 export interface GBPLocation {
     name: string;
@@ -28,7 +28,7 @@ interface SocialPublishResponse {
     mediaUrls?: string[];
 }
 
-const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'instagram', 'facebook_personal'];
+const ALLOWED_PLATFORMS: SocialPlatform[] = ['gbp', 'instagram', 'facebook_personal', 'phone_bridge_only'];
 
 const isSocialPlatform = (value: string): value is SocialPlatform => {
     return ALLOWED_PLATFORMS.includes(value as SocialPlatform);
@@ -43,7 +43,7 @@ const toResultsRecord = (results: SocialPublishResult[]) => {
     return results.reduce<Record<SocialPlatform, SocialPublishResult | undefined>>((acc, result) => {
         acc[result.platform] = result;
         return acc;
-    }, { gbp: undefined, instagram: undefined, facebook_personal: undefined });
+    }, { gbp: undefined, instagram: undefined, facebook_personal: undefined, phone_bridge_only: undefined });
 };
 
 export const socialService = {
@@ -62,8 +62,8 @@ export const socialService = {
 
     async publishAll(payload: PublishAllPayload) {
         const normalizedPlatforms = payload.platforms.filter(isSocialPlatform);
-        if (normalizedPlatforms.length === 0) {
-            throw new Error('Please select at least one supported platform.');
+        if (normalizedPlatforms.length === 0 && (!payload.mediaFiles || payload.mediaFiles.length === 0)) {
+            throw new Error('Please select at least one supported platform or add media.');
         }
 
         if (payload.scheduledAt) {

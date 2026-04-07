@@ -36,6 +36,7 @@ interface MedicalCertificateProps {
   diagnosis: string;
   certificateData: CertificateData;
   consultant?: Consultant | null;
+  showSignSeal?: boolean;
 }
 
 interface MedicalCertificateModalProps {
@@ -61,6 +62,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   diagnosis,
   certificateData,
   consultant,
+  showSignSeal = false,
 }) => {
   const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity, certificateDate, consultationDate, customContent } = certificateData;
   const restPeriodEndDate = addDays(restPeriodStartDate, restPeriodDays - 1);
@@ -139,9 +141,9 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           <div className="flex justify-between items-end">
             <div></div>
             <div className="text-center">
-              {consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
+              {showSignSeal && consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
               <div className="relative">
-                {consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />}
+                {showSignSeal && consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />}
               </div>
             </div>
           </div>
