@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Phone, MessageSquare, Image as ImageIcon } from "lucide-react";
+import { Loader2, Send, Phone, MessageSquare, Image as ImageIcon, Upload } from "lucide-react";
 import { useConsultant } from "@/context/ConsultantContext";
 import { socialService } from "@/utils/socialService";
+import { useRef } from "react";
+import { cn } from "@/lib/utils";
 
 const SendWhatsApp = () => {
   const [number, setNumber] = useState("");
@@ -16,19 +18,47 @@ const SendWhatsApp = () => {
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   const { consultant } = useConsultant();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file",
+        description: "Please select an image file.",
+      });
+      return;
+    }
+    setImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) handleFiles(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFiles(file);
   };
 
   const handleSend = async () => {
@@ -80,6 +110,9 @@ const SendWhatsApp = () => {
       setMessage(""); // Clear message on success
       setImage(null);
       setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error: any) {
       console.error("Error sending WhatsApp:", error);
       toast({
@@ -133,32 +166,62 @@ const SendWhatsApp = () => {
             <label className="text-sm font-medium flex items-center gap-2">
               <ImageIcon className="h-4 w-4" /> Image (Optional)
             </label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="cursor-pointer"
-            />
-            {imagePreview && (
-              <div className="mt-2 relative">
-                <img 
-                  src={imagePreview} 
-                  alt="Preview" 
-                  className="w-full h-32 object-cover rounded-md border" 
-                />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="absolute top-1 right-1 h-6 w-6 p-0"
-                  onClick={() => {
-                    setImage(null);
-                    setImagePreview(null);
-                  }}
-                >
-                  ×
-                </Button>
-              </div>
-            )}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={cn(
+                "relative group border-2 border-dashed rounded-lg p-4 transition-all duration-200 text-center cursor-pointer",
+                isDragging 
+                  ? "border-blue-500 bg-blue-50" 
+                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+              )}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              {!imagePreview ? (
+                <div className="flex flex-col items-center gap-2 py-2">
+                  <div className="p-2 rounded-full bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-500 transition-colors">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-semibold text-blue-600">Click to upload</span>
+                    <span className="text-gray-500"> or drag and drop</span>
+                  </div>
+                  <p className="text-xs text-gray-400">PNG, JPG or GIF</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="w-full h-32 object-cover rounded-md" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center">
+                    <p className="text-white text-xs font-medium">Click to change</p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full shadow-lg z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImage(null);
+                      setImagePreview(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
+                    ×
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           <Button
