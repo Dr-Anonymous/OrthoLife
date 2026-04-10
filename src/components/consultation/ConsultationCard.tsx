@@ -17,7 +17,9 @@ import {
     Calendar,
     MapPin,
     Tag,
-    CheckCircle2
+    CheckCircle2,
+    Briefcase,
+    Droplets
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -103,7 +105,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                 <div className="flex items-start gap-3 p-3 bg-white rounded border border-border/50 shadow-sm">
                     <Activity className="w-5 h-5 mt-0.5 text-primary" />
                     <div className="flex-1">
-                        <h4 className="font-semibold text-[10px] mb-2 uppercase tracking-widest text-muted-foreground">Patient Vitals</h4>
+                        <h4 className="font-semibold text-[10px] mb-2 uppercase tracking-widest text-muted-foreground">Patient Profile</h4>
                         <div className="flex flex-wrap gap-4 text-sm">
                             {data.bp && (
                                 <span className="flex items-center gap-1.5" title="Blood Pressure">
@@ -122,17 +124,17 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                             )}
                             {data.blood_group && (
                                 <span className="flex items-center gap-1.5" title="Blood Group">
-                                    <span className="font-medium">Blood:</span> {renderText(data.blood_group)}
+                                    <Droplets className="w-3.5 h-3.5 text-red-600/70" /> {renderText(data.blood_group)}
                                 </span>
                             )}
                             {data.occupation && (
                                 <span className="flex items-center gap-1.5" title="Occupation">
-                                    <span className="font-medium">Occ:</span> {renderText(data.occupation)}
+                                    <Briefcase className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.occupation)}
                                 </span>
                             )}
                             {data.hometown && (
                                 <span className="flex items-center gap-1.5" title="Hometown">
-                                    <span className="font-medium">Home:</span> {renderText(data.hometown)}
+                                    <MapPin className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.hometown)}
                                 </span>
                             )}
                         </div>

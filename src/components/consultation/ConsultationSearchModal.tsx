@@ -98,7 +98,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
           <Input placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={handleKeyDown} />
-          <Input placeholder="Search by keyword in notes..." value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} />
+          <Input placeholder="Search by keyword, hometown or occupation..." value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} />
         </div>
         <div className="px-4 pb-4">
           <Button onClick={handleSearch} className="w-full">Search</Button>
@@ -134,7 +134,10 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                             created_at: consultation.created_at,
                             location: consultation.location,
                             visit_type: consultation.visit_type,
-                            status: consultation.status
+                            status: consultation.status,
+                            occupation: patient.occupation,
+                            hometown: patient.hometown,
+                            blood_group: patient.blood_group
                           }}
                           highlightKeyword={highlightKeyword}
                         />

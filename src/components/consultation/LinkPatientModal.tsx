@@ -121,8 +121,13 @@ export const LinkPatientModal: React.FC<LinkPatientModalProps> = ({ isOpen, onCl
                                 className={`p-3 border rounded cursor-pointer hover:bg-slate-50 ${selectedPatient?.id === patient.id ? 'border-primary ring-1 ring-primary bg-primary/5' : ''}`}
                                 onClick={() => setSelectedPatient(patient)}
                             >
-                                <div className="font-medium">{patient.name}</div>
-                                <div className="text-sm text-muted-foreground">{patient.phone} • {patient.sex} • {patient.dob}</div>
+                                <div className="flex justify-between items-baseline">
+                                    <div className="font-medium">{patient.name}</div>
+                                    {patient.hometown && <div className="text-[10px] bg-muted px-1.5 rounded text-muted-foreground font-semibold">{patient.hometown}</div>}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    {patient.phone} • {patient.sex} • {patient.dob} {patient.occupation && `• ${patient.occupation}`}
+                                </div>
                             </div>
                         ))}
                     </div>
