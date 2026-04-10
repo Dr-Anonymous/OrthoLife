@@ -101,7 +101,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             )}
 
             {/* Vitals Section */}
-            {(data.bp || data.weight || data.temperature) && (
+            {(data.bp || data.weight || data.temperature || data.blood_group || data.occupation || data.hometown) && (
                 <div className="flex items-start gap-3 p-3 bg-white rounded border border-border/50 shadow-sm">
                     <Activity className="w-5 h-5 mt-0.5 text-primary" />
                     <div className="flex-1">

@@ -241,7 +241,10 @@ export const FamilyMemberManager: React.FC<FamilyMemberManagerProps> = ({ curren
                                                 onClick={() => setSelectedRelatedPatient(p)}
                                             >
                                                 <div className="font-medium">{p.name}</div>
-                                                <div className="text-xs text-muted-foreground">{p.phone} • {getAge(p.dob)} {p.sex}</div>
+                                                <div className="text-xs text-muted-foreground flex justify-between items-center gap-2">
+                                                    <span className="truncate">{p.phone} • {getAge(p.dob)} {p.sex} {p.occupation && `• ${p.occupation}`}</span>
+                                                    {p.hometown && <span className="text-[10px] bg-muted-foreground/10 px-1 rounded shrink-0">{p.hometown}</span>}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

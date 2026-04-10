@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, User, Phone, Calendar as CalendarIcon, Search } from 'lucide-react';
+import { Loader2, User, Phone, Calendar as CalendarIcon, Search, MapPin, Briefcase } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, differenceInDays } from 'date-fns';
@@ -35,6 +35,9 @@ interface Patient {
   medications?: any[];
   personalNote?: string;
   is_dob_estimated?: boolean;
+  hometown?: string;
+  occupation?: string;
+  blood_group?: string;
 }
 
 interface FormData {
@@ -45,6 +48,9 @@ interface FormData {
   phone: string;
   secondary_phone?: string;
   referred_by?: string;
+  hometown?: string;
+  occupation?: string;
+  blood_group?: string;
   driveId: string | null;
   consultation_data: any | null;
   isDobEstimated: boolean;
@@ -80,6 +86,9 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     phone: '',
     secondary_phone: '',
     referred_by: '',
+    hometown: '',
+    occupation: '',
+    blood_group: '',
     driveId: null,
     consultation_data: null,
     isDobEstimated: false,
@@ -375,6 +384,9 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         sex,
         phone,
         secondary_phone: selected.secondary_phone || '',
+        hometown: selected.hometown || '',
+        occupation: selected.occupation || '',
+        blood_group: selected.blood_group || '',
         driveId: drive_id,
         consultation_data,
         isDobEstimated: selected.is_dob_estimated || false
@@ -469,7 +481,11 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
         if (onSuccess) onSuccess(newConsultation, {});
 
-        setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null, isDobEstimated: false });
+        setFormData({
+          id: null, name: '', dob: undefined, sex: 'M', phone: '', secondary_phone: '', referred_by: '',
+          hometown: '', occupation: '', blood_group: '',
+          driveId: null, consultation_data: null, isDobEstimated: false
+        });
         setSearchResults([]);
         setSelectedPatientId('');
       } catch (storageError) {
@@ -504,6 +520,9 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               location: location,
               is_dob_estimated: formData.isDobEstimated,
               referred_by: formData.referred_by,
+              hometown: formData.hometown,
+              occupation: formData.occupation,
+              blood_group: formData.blood_group,
               language: formData.language,
               free_visit_duration_days: location ? getHospitalByName(location)?.settings.free_visit_duration_days : 14,
               consultant_id: consultantId
@@ -525,7 +544,11 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               title: 'Patient Registered for Consultation',
               description: `${formData.name} has been successfully registered.`,
             });
-            setFormData({ id: null, name: '', dob: undefined, sex: 'M', phone: '', driveId: null, consultation_data: null, isDobEstimated: false });
+            setFormData({
+              id: null, name: '', dob: undefined, sex: 'M', phone: '', secondary_phone: '', referred_by: '',
+              hometown: '', occupation: '', blood_group: '',
+              driveId: null, consultation_data: null, isDobEstimated: false
+            });
             setSearchResults([]);
             setSelectedPatientId('');
             if (onSuccess) {
@@ -750,6 +773,48 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="blood_group" className="text-sm font-medium">Blood Group</Label>
+              <Select value={formData.blood_group} onValueChange={(val) => setFormData(prev => ({ ...prev, blood_group: val }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                    <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="occupation" className="text-sm font-medium">Occupation</Label>
+              <div className="relative">
+                <Briefcase className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                <Input
+                  id="occupation"
+                  value={formData.occupation || ''}
+                  onChange={e => handleInputChange('occupation', e.target.value)}
+                  className="pl-10"
+                  placeholder="e.g. Teacher"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hometown" className="text-sm font-medium">Hometown</Label>
+              <div className="relative">
+                <MapPin className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                <Input
+                  id="hometown"
+                  value={formData.hometown || ''}
+                  onChange={e => handleInputChange('hometown', e.target.value)}
+                  className="pl-10"
+                  placeholder="e.g. Kakinada"
+                />
+              </div>
             </div>
           </div>
         </div>

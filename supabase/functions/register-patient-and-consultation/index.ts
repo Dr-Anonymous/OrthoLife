@@ -90,7 +90,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { id, name, dob, sex, phone, secondary_phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days, consultant_id } = await req.json();
+    const { id, name, dob, sex, phone, secondary_phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days, consultant_id, hometown, occupation, blood_group } = await req.json();
     const freeDuration = free_visit_duration_days ? Number(free_visit_duration_days) : 14;
 
     // Sanitize phone and support matching both full international form and legacy last-10 form.
@@ -302,7 +302,10 @@ serve(async (req: Request) => {
         phone: sanitizedPhone,
         secondary_phone: secondary_phone ? sanitizePhoneNumber(secondary_phone) : null,
         drive_id: driveId,
-        is_dob_estimated: is_dob_estimated ?? true
+        is_dob_estimated: is_dob_estimated ?? true,
+        hometown,
+        occupation,
+        blood_group
       })
       .select('id, created_at, drive_id')
       .single();

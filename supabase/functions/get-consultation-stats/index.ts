@@ -43,7 +43,10 @@ serve(async (req) => {
             dob,
             sex,
             phone,
-            drive_id
+            drive_id,
+            occupation,
+            blood_group,
+            hometown
           )
         `)
         .gte('created_at', monthStartDate)
@@ -142,7 +145,10 @@ serve(async (req) => {
           dob,
           sex,
           phone,
-          drive_id
+          drive_id,
+          occupation,
+          blood_group,
+          hometown
         )
       `)
       .gte('created_at', dayStartDate)

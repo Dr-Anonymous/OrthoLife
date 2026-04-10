@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-serve(async (req)=>{
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders
@@ -73,7 +73,7 @@ SMS: <a href="sms:${patientData.phone}?body=` + message + `">Send</a>`,
       if (!calendarResponse.ok) {
         const errorText = await calendarResponse.text();
         console.error(`Failed to ${isReschedule ? 'update' : 'create'} calendar event:`, errorText);
-      // Continue response even if calendar fails
+        // Continue response even if calendar fails
       } else {
         const calendarEventData = await calendarResponse.json();
         console.log(`Google Calendar event ${isReschedule ? 'updated' : 'created'}:`, calendarEventData.id);

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Mail, Phone, MapPin, CalendarIcon } from 'lucide-react';
+import { User, Mail, Phone, MapPin, CalendarIcon, Briefcase, Droplets } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { sanitizePhoneNumber, isValidPhoneNumber } from '@/lib/phone-utils';
@@ -18,6 +18,9 @@ interface PatientData {
   address: string;
   dateOfBirth: Date | undefined;
   secondary_phone?: string;
+  hometown?: string;
+  occupation?: string;
+  blood_group?: string;
 }
 
 interface PatientRegistrationProps {
@@ -32,7 +35,10 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
     phone: initialData?.phone || '',
     address: initialData?.address || '',
     dateOfBirth: initialData?.dateOfBirth || undefined,
-    secondary_phone: initialData?.secondary_phone || ''
+    secondary_phone: initialData?.secondary_phone || '',
+    hometown: initialData?.hometown || '',
+    occupation: initialData?.occupation || '',
+    blood_group: initialData?.blood_group || ''
   });
 
   useEffect(() => {

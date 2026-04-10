@@ -369,7 +369,10 @@ const WhatsAppMe = () => {
                 <ConsultationCard data={{
                   ...prescription,
                   created_at: prescription.created_at,
-                  location: prescription.location
+                  location: prescription.location,
+                  occupation: prescription.occupation,
+                  hometown: prescription.hometown,
+                  blood_group: prescription.blood_group
                 }} />
               </CardContent>
             </Card>
