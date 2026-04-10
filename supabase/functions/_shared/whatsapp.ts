@@ -6,8 +6,8 @@ export const corsHeaders = {
 
 export async function sendWhatsAppMessage(number: string, message: string, consultantId: string = "legacy", mediaUrl?: string) {
   try {
-    if (!number || !message) {
-      throw new Error('Missing number or message')
+    if (!number || (!message && !mediaUrl)) {
+      throw new Error('Missing number or content (message/media)')
     }
 
     // Phone number formatting

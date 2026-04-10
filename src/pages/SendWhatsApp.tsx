@@ -22,27 +22,49 @@ const SendWhatsApp = () => {
   const { toast } = useToast();
   const { consultant } = useConsultant();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
 
   const handleFiles = (file: File) => {
-    if (!file.type.startsWith('image/')) {
+    const isImage = file.type.startsWith('image/');
+    const isPDF = file.type === 'application/pdf';
+
+    if (!isImage && !isPDF) {
       toast({
         variant: "destructive",
         title: "Invalid file",
-        description: "Please select an image file.",
+        description: "Please select an image or PDF file.",
       });
       return;
     }
     setImage(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview("pdf_placeholder"); // Local marker for PDF
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleFiles(file);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handlePhoneKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      messageRef.current?.focus();
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -62,11 +84,11 @@ const SendWhatsApp = () => {
   };
 
   const handleSend = async () => {
-    if (!number || !message) {
+    if (!number || (!message && !image)) {
       toast({
         variant: "destructive",
         title: "Missing Fields",
-        description: "Please enter both a phone number and a message.",
+        description: "Please enter a phone number and either a message or an attachment.",
       });
       return;
     }
@@ -74,7 +96,7 @@ const SendWhatsApp = () => {
     setLoading(true);
     try {
       let mediaUrl = "";
-      
+
       if (image) {
         // Use the existing socialService publishing mechanism to handle the upload.
         // This bypasses Browser RLS issues because the Edge function handles the upload with SERVICE_ROLE.
@@ -83,20 +105,20 @@ const SendWhatsApp = () => {
           platforms: ['phone_bridge_only'],
           mediaFiles: [image]
         });
-        
+
         mediaUrl = uploadResult.mediaUrls?.[0] || "";
-        
+
         if (!mediaUrl) {
           throw new Error("Failed to get public URL for image.");
         }
       }
 
       const { data, error } = await supabase.functions.invoke("send-whatsapp", {
-        body: { 
-          number, 
+        body: {
+          number,
           message,
           media_url: mediaUrl || undefined,
-          consultant_id: consultant?.id || "legacy" 
+          consultant_id: consultant?.id || "legacy"
         },
       });
 
@@ -131,7 +153,7 @@ const SendWhatsApp = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Send className="h-6 w-6" />
-            Test WhatsApp Sender
+            WhatsApp Messaging
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -143,6 +165,7 @@ const SendWhatsApp = () => {
               placeholder="e.g. 9876543210"
               value={number}
               onChange={(e) => setNumber(e.target.value)}
+              onKeyDown={handlePhoneKeyDown}
               type="tel"
             />
             <p className="text-xs text-muted-foreground">
@@ -155,16 +178,18 @@ const SendWhatsApp = () => {
               <MessageSquare className="h-4 w-4" /> Message
             </label>
             <Textarea
+              ref={messageRef}
               placeholder="Type your message here..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" /> Image (Optional)
+              <ImageIcon className="h-4 w-4" /> Attachment (Image or PDF)
             </label>
             <div
               onDragOver={handleDragOver}
@@ -172,8 +197,8 @@ const SendWhatsApp = () => {
               onDrop={handleDrop}
               className={cn(
                 "relative group border-2 border-dashed rounded-lg p-4 transition-all duration-200 text-center cursor-pointer",
-                isDragging 
-                  ? "border-blue-500 bg-blue-50" 
+                isDragging
+                  ? "border-blue-500 bg-blue-50"
                   : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
               )}
               onClick={() => fileInputRef.current?.click()}
@@ -181,7 +206,7 @@ const SendWhatsApp = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 onChange={handleImageChange}
                 className="hidden"
               />
@@ -194,14 +219,19 @@ const SendWhatsApp = () => {
                     <span className="font-semibold text-blue-600">Click to upload</span>
                     <span className="text-gray-500"> or drag and drop</span>
                   </div>
-                  <p className="text-xs text-gray-400">PNG, JPG or GIF</p>
+                  <p className="text-xs text-gray-400">PNG, JPG, GIF or PDF</p>
+                </div>
+              ) : image?.type === "application/pdf" || imagePreview === "pdf_placeholder" ? (
+                <div className="flex flex-col items-center gap-2 py-4 bg-gray-50 rounded-md border border-gray-100">
+                  <Upload className="w-8 h-8 text-blue-500" />
+                  <p className="text-sm font-medium text-gray-600">{image?.name || "Document.pdf"}</p>
                 </div>
               ) : (
                 <div className="relative">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    className="w-full h-32 object-cover rounded-md" 
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-32 object-cover rounded-md"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center">
                     <p className="text-white text-xs font-medium">Click to change</p>

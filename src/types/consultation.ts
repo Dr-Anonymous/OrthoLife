@@ -42,6 +42,7 @@ export interface Patient {
     secondary_phone?: string;
     occupation?: string;
     blood_group?: string;
+    hometown?: string;
 }
 
 export interface ConsultantBio {

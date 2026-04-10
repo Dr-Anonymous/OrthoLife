@@ -237,6 +237,7 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             id: m.id!,
                                             name: m.composition,
                                             label: m.composition,
+                                            dose: m.dose,
                                             searchTerms: `${m.composition} ${allBrandNames}`
                                         });
 

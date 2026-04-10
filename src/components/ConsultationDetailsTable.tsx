@@ -445,7 +445,10 @@ export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: 
                     created_at: selectedConsultation.created_at,
                     location: selectedConsultation.location,
                     visit_type: selectedConsultation.visit_type,
-                    status: selectedConsultation.status
+                    status: selectedConsultation.status,
+                    occupation: selectedConsultation.patient.occupation,
+                    blood_group: selectedConsultation.patient.blood_group,
+                    hometown: selectedConsultation.patient.hometown
                   }} 
                 />
               )}

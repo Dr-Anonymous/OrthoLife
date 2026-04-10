@@ -120,6 +120,21 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                                     <Thermometer className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.temperature)}
                                 </span>
                             )}
+                            {data.blood_group && (
+                                <span className="flex items-center gap-1.5" title="Blood Group">
+                                    <span className="font-medium">Blood:</span> {renderText(data.blood_group)}
+                                </span>
+                            )}
+                            {data.occupation && (
+                                <span className="flex items-center gap-1.5" title="Occupation">
+                                    <span className="font-medium">Occ:</span> {renderText(data.occupation)}
+                                </span>
+                            )}
+                            {data.hometown && (
+                                <span className="flex items-center gap-1.5" title="Hometown">
+                                    <span className="font-medium">Home:</span> {renderText(data.hometown)}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>

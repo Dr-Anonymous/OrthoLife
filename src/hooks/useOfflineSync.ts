@@ -21,6 +21,9 @@ type OfflinePatientDetails = {
     phone: string;
     secondary_phone?: string;
     is_dob_estimated?: boolean;
+    occupation?: string;
+    blood_group?: string;
+    hometown?: string;
 };
 
 type OfflineConsultationRecord = Partial<OfflineConsultationBundle> & {
@@ -93,6 +96,9 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId }: UseOf
         };
         if (patientDetails.secondary_phone !== undefined) patientUpdate.secondary_phone = patientDetails.secondary_phone;
         if (patientDetails.is_dob_estimated !== undefined) patientUpdate.is_dob_estimated = patientDetails.is_dob_estimated;
+        if (patientDetails.occupation !== undefined) patientUpdate.occupation = patientDetails.occupation;
+        if (patientDetails.blood_group !== undefined) patientUpdate.blood_group = patientDetails.blood_group;
+        if (patientDetails.hometown !== undefined) patientUpdate.hometown = patientDetails.hometown;
         return patientUpdate;
     };
 

@@ -107,7 +107,10 @@ const arePatientsEqual = (p1: Patient | null, p2: Patient | null) => {
     normalize(p1.dob) === normalize(p2.dob) &&
     normalize(p1.sex) === normalize(p2.sex) &&
     normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
-    normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated)
+    normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated) &&
+    normalize(p1.occupation) === normalize(p2.occupation) &&
+    normalize(p1.blood_group) === normalize(p2.blood_group) &&
+    normalize(p1.hometown) === normalize(p2.hometown)
   );
 };
 
@@ -1335,12 +1338,12 @@ const ConsultationPage = () => {
       return;
     }
 
-    if (typeof value === 'string' && (field === 'complaints' || field === 'medicalHistory' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to')) {
+    if (typeof value === 'string' && (field === 'complaints' || field === 'medicalHistory' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to' || field === 'orthotics')) {
       let processedValue = value;
       let newCursor = cursorPosition || value.length;
 
       // Special Duration Shortcuts for Complaints/Advice
-      if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations') {
+      if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations' || field === 'orthotics') {
         const textBeforeCursor = value.substring(0, newCursor);
         const durationRegex = /(\d+)([dwmy])\.\s$/i;
         const match = textBeforeCursor.match(durationRegex);
@@ -1369,7 +1372,7 @@ const ConsultationPage = () => {
 
               setExtraData(prev => ({ ...prev, [field]: processedValue }));
               setTimeout(() => {
-                const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef };
+                const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef, orthotics: orthoticsRef };
                 const targetRef = refs[field] || complaintsRef;
                 if (targetRef.current) {
                   targetRef.current.setSelectionRange(newCursor, newCursor);
@@ -1378,7 +1381,7 @@ const ConsultationPage = () => {
               return;
             }
           }
-        } else if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations') {
+        } else if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations' || field === 'orthotics') {
           // Unit-only shortcuts (e.g. "y. " -> "years ")
           const unitOnlyRegex = /(?:^|\s)([dwmy])\.\s$/i;
           const unitMatch = textBeforeCursor.match(unitOnlyRegex);
@@ -1408,7 +1411,7 @@ const ConsultationPage = () => {
 
                 setExtraData(prev => ({ ...prev, [field]: processedValue }));
                 setTimeout(() => {
-                  const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef };
+                  const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef, orthotics: orthoticsRef };
                   const targetRef = refs[field] || complaintsRef;
                   if (targetRef.current) {
                     targetRef.current.setSelectionRange(newCursor, newCursor);
@@ -1476,6 +1479,7 @@ const ConsultationPage = () => {
             followup: followupRef.current,
             referred_to: referredToRef.current,
             referred_by: referredByRef.current,
+            orthotics: orthoticsRef.current,
           };
           const ref = (refs as any)[field];
           if (ref) {
@@ -2195,6 +2199,8 @@ const ConsultationPage = () => {
                   followupRef={followupRef}
                   suggestedFollowup={suggestedFollowup}
                   onFollowupSuggestionClick={(val) => handleAppendSuggestion('followup', val)}
+                  language={consultationLanguage}
+                  baseDate={selectedConsultation ? new Date(selectedConsultation.created_at) : new Date()}
                   initialFollowup={initialExtraData?.followup}
                   isReadOnly={isReadOnly}
                 />

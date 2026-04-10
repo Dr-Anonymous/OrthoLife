@@ -26,6 +26,9 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
         sex: string;
         is_dob_estimated: boolean;
         secondary_phone: string;
+        occupation: string;
+        blood_group: string;
+        hometown: string;
     }>({
         name: '',
         phone: '',
@@ -33,6 +36,9 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
         sex: 'M',
         is_dob_estimated: false,
         secondary_phone: '',
+        occupation: '',
+        blood_group: '',
+        hometown: '',
     });
     const [age, setAge] = useState<number | ''>('');
     const [isSaving, setIsSaving] = useState(false);
@@ -47,6 +53,9 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                 sex: patient.sex || 'M',
                 is_dob_estimated: patient.is_dob_estimated || false,
                 secondary_phone: patient.secondary_phone || '',
+                occupation: patient.occupation || '',
+                blood_group: patient.blood_group || '',
+                hometown: patient.hometown || '',
             });
             if (patient.secondary_phone) {
                 setShowSecondaryPhone(true);
@@ -93,6 +102,9 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                     sex: formData.sex,
                     is_dob_estimated: formData.is_dob_estimated,
                     secondary_phone: formData.secondary_phone ? sanitizePhoneNumber(formData.secondary_phone) : null,
+                    occupation: formData.occupation,
+                    blood_group: formData.blood_group,
+                    hometown: formData.hometown,
                 })
                 .eq('id', patient.id);
 
@@ -110,6 +122,9 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                 sex: formData.sex,
                 is_dob_estimated: formData.is_dob_estimated,
                 secondary_phone: formData.secondary_phone ? sanitizePhoneNumber(formData.secondary_phone) : null,
+                occupation: formData.occupation,
+                blood_group: formData.blood_group,
+                hometown: formData.hometown,
             };
             onSave(updatedPatient);
             onClose();
@@ -211,6 +226,42 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                                 <SelectItem value="Other">Other</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="blood_group" className="text-right">Blood Group</Label>
+                        <Select
+                            value={formData.blood_group}
+                            onValueChange={(val) => setFormData({ ...formData, blood_group: val })}
+                        >
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                                    <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="occupation" className="text-right">Occupation</Label>
+                        <Input
+                            id="occupation"
+                            value={formData.occupation}
+                            onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                            className="col-span-3"
+                            placeholder="e.g., Software Engineer"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="hometown" className="text-right">Hometown</Label>
+                        <Input
+                            id="hometown"
+                            value={formData.hometown}
+                            onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
+                            className="col-span-3"
+                            placeholder="e.g., Kakinada"
+                        />
                     </div>
                 </div>
                 <DialogFooter>

@@ -10,6 +10,7 @@ export interface Suggestion {
   label?: string;
   isBrand?: boolean;
   searchTerms?: string;
+  dose?: string;
 }
 
 interface AutosuggestInputProps {
@@ -175,6 +176,16 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
                 <div className="flex items-center gap-2">
                   {suggestion.isBrand && <span className="opacity-70">↳</span>}
                   <span className="font-medium">{suggestion.label || suggestion.name}</span>
+                  {suggestion.dose && (
+                    <span className={cn(
+                        "px-1.5 py-0.5 rounded text-[10px] font-mono border shrink-0",
+                        index === activeSuggestionIndex 
+                          ? "bg-primary-foreground/20 border-primary-foreground/30 text-primary-foreground" 
+                          : "bg-muted text-muted-foreground border-border"
+                    )}>
+                      {suggestion.dose}
+                    </span>
+                  )}
                 </div>
               </li>
             ))}

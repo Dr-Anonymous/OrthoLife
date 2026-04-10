@@ -1,31 +1,12 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, calculateFollowUpDate } from '@/lib/utils';
+import { Patient, Medication } from '@/types/consultation';
 import { cleanAdviceLine } from '@/lib/utils';
 import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope, Heart, Brain, Eye, FlaskConical, Thermometer, Baby, BriefcaseMedical } from 'lucide-react';
 import { Consultant } from '@/types/consultation';
 
-interface Medication {
-  composition: string;
-  dose: string;
-  freqMorning: boolean;
-  freqNoon: boolean;
-  freqNight: boolean;
-  frequency: string;
-  duration: string;
-  instructions: string;
-  notes: string;
-}
-
-interface Patient {
-  name: string;
-  dob: string;
-  sex: string;
-  phone: string;
-  id: string;
-  occupation?: string;
-  blood_group?: string;
-}
+// Interfaces are imported from @/types/consultation
 
 interface ConsultationData {
   complaints: string;
@@ -117,7 +98,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   };
 
   const hasMedications = consultation.medications && consultation.medications.length > 0;
-  
+
   const cName = typeof consultant?.name === 'object' ? (consultant?.name?.[language === 'te' ? 'te' : 'en'] || consultant?.name?.en) : (consultant?.name || '');
   const cQuals = typeof consultant?.qualifications === 'object' ? (consultant?.qualifications?.[language === 'te' ? 'te' : 'en'] || consultant?.qualifications?.en) : (consultant?.qualifications || '');
   const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
@@ -125,8 +106,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   const cExp = typeof consultant?.experience === 'object' ? (consultant?.experience?.[language === 'te' ? 'te' : 'en'] || consultant?.experience?.en) : (consultant?.experience || '');
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
-  
-  const activeServices = (consultant?.services || []).filter(s => 
+
+  const activeServices = (consultant?.services || []).filter(s =>
     s.title?.en?.trim() || s.title?.te?.trim()
   );
 
@@ -433,10 +414,24 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           {/* Followup */}
           {consultation.followup && (
             <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-              <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
-                <Calendar className="h-4 w-4" />
-                <span>{t('prescription.followup')}:</span>
-              </h3>
+              <div className="flex items-center gap-3 mb-1">
+                <h3 className="font-heading font-semibold text-primary flex items-center gap-2 leading-none">
+                  <Calendar className="h-4 w-4" />
+                  <span>{t('prescription.followup')}:</span>
+                </h3>
+                {(() => {
+                  const dueDate = calculateFollowUpDate(consultation.followup, consultationDate);
+                  if (!dueDate) return null;
+                  const dateObj = new Date(dueDate);
+                  const isTelugu = language === 'te';
+                  const dayName = dateObj.toLocaleDateString(isTelugu ? 'te-IN' : 'en-IN', { weekday: 'long' });
+                  return (
+                    <span className="text-[11px] font-bold text-primary px-2 py-0.5 border border-primary/20 rounded bg-primary/5">
+                      {dateObj.toLocaleDateString(isTelugu ? 'te-IN' : 'en-IN', { day: '2-digit', month: 'long', year: 'numeric' })} ({dayName})
+                    </span>
+                  );
+                })()}
+              </div>
               <p className="whitespace-pre-wrap">{consultation.followup}</p>
             </section>
           )}
@@ -553,7 +548,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                       <Activity className="h-4 w-4 text-primary" />
                       ప్రత్యేక సేవలు
                     </h3>
-                    
+
                     <ul className="space-y-1.5 text-base">
                       {activeServices.filter(s => s.title?.te?.trim()).map((service, idx) => {
                         const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;

@@ -162,6 +162,38 @@ export function calculateFollowUpDate(message: string, baseDate: Date = new Date
 
   const text = message.toLowerCase();
   
+  // Handle explicit dates like DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY, or YYYY variations
+  const dateStrRegex = /(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/;
+  const dateMatch = text.match(dateStrRegex);
+  if (dateMatch) {
+    let year, month, day;
+    if (dateMatch[1]) { // DD-MM-YYYY
+      day = parseInt(dateMatch[1]);
+      month = parseInt(dateMatch[2]) - 1;
+      year = parseInt(dateMatch[3]);
+    } else { // YYYY-MM-DD
+      year = parseInt(dateMatch[4]);
+      month = parseInt(dateMatch[5]) - 1;
+      day = parseInt(dateMatch[6]);
+    }
+    const date = new Date(year, month, day);
+    if (!isNaN(date.getTime())) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+  }
+  
+  // Hande special keywords
+  if (text.includes('tomorrow') || text.includes('రేపు')) {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + 1);
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  }
+  
   // Define patterns
   const patterns = [
     { regex: /(\d+)?\s*(year|years|సంవత్సరం|సంవత్సరాలు|సంవత్సరాల)/i, unit: 'years' },

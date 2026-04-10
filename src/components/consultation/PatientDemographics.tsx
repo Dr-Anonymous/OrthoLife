@@ -226,6 +226,8 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                         </SelectContent>
                     </Select>
                 </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="blood_group">Blood Group</Label>
                     <Select value={patient.blood_group} onValueChange={value => onPatientDetailsChange('blood_group', value)} disabled={isReadOnly}>
@@ -241,7 +243,11 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="occupation">Occupation</Label>
-                    <Input id="occupation" value={patient.occupation || ''} onChange={e => onPatientDetailsChange('occupation', e.target.value)} placeholder="e.g., Software Engineer, Teacher" disabled={isReadOnly} />
+                    <Input id="occupation" value={patient.occupation || ''} onChange={e => onPatientDetailsChange('occupation', e.target.value)} placeholder="e.g., Software... " disabled={isReadOnly} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="hometown">Hometown</Label>
+                    <Input id="hometown" value={patient.hometown || ''} onChange={e => onPatientDetailsChange('hometown', e.target.value)} placeholder="e.g., Kakinada..." disabled={isReadOnly} />
                 </div>
             </div>
         </div>
