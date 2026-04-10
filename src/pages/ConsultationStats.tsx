@@ -557,7 +557,8 @@ const ConsultationStats = () => {
                   DayContent: (props) => {
                     const { date } = props;
                     const dayStr = format(date, 'yyyy-MM-dd');
-                    const stats = monthlyStats || [];
+                    
+                    const stats = filteredMonthlyData.length > 0 || showMonthlyDetails ? filteredMonthlyData : [];
 
                     const count = stats.filter(s => {
                       if (!s.created_at) return false;
