@@ -156,9 +156,9 @@ export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: 
             aValue = (a.location || '').toLowerCase();
             bValue = (b.location || '').toLowerCase();
             break;
-          case 'visit_type':
-            aValue = (a.visit_type || '').toLowerCase();
-            bValue = (b.visit_type || '').toLowerCase();
+          case 'financials':
+            aValue = Number(a.procedure_fee) || (a.visit_type === 'paid' ? 1 : 0);
+            bValue = Number(b.procedure_fee) || (b.visit_type === 'paid' ? 1 : 0);
             break;
           case 'status':
             aValue = a.status.toLowerCase();
@@ -380,8 +380,8 @@ export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: 
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('location')}>
                 Location {renderSortIcon('location')}
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('visit_type')}>
-                Payment {renderSortIcon('visit_type')}
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('financials')}>
+                Financials {renderSortIcon('financials')}
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('status')}>
                 Status {renderSortIcon('status')}
@@ -408,7 +408,19 @@ export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: 
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.patient.phone}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{consultation.location || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{consultation.visit_type || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                    <div>{consultation.visit_type || '-'}</div>
+                    {Number(consultation.procedure_fee) > 0 && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        Fee: ₹{consultation.procedure_fee}
+                        {Number(consultation.procedure_consultant_cut) > 0 && (
+                          <span className="text-green-600 font-mono ml-1">
+                            (+₹{consultation.procedure_consultant_cut})
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${consultation.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                       {consultation.status}
