@@ -191,12 +191,15 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
+      e.stopPropagation();
       setActiveSuggestionIndex(prev => (prev + 1) % filteredDoctors.length);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      e.stopPropagation();
       setActiveSuggestionIndex(prev => (prev - 1 + filteredDoctors.length) % filteredDoctors.length);
     } else if (e.key === 'Enter') {
       e.preventDefault();
+      e.stopPropagation();
       const selected = filteredDoctors[activeSuggestionIndex];
       if (selected) handleEdit(selected);
     }
@@ -229,6 +232,10 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
                   ref={nameInputRef}
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
+                  onKeyDown={e => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') handleSave();
+                  }}
                   placeholder="e.g., Dr. Smith" 
                 />
               </div>
@@ -238,6 +245,10 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
                   id="doc-specialization" 
                   value={specialization} 
                   onChange={(e) => setSpecialization(e.target.value)} 
+                  onKeyDown={e => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') handleSave();
+                  }}
                   placeholder="e.g., Orthopedic Surgeon" 
                 />
               </div>
@@ -247,6 +258,10 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
                   id="doc-phone" 
                   value={phone} 
                   onChange={(e) => setPhone(e.target.value)} 
+                  onKeyDown={e => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') handleSave();
+                  }}
                   placeholder="e.g., +91 9876543210" 
                 />
               </div>
@@ -256,6 +271,10 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
                   id="doc-address" 
                   value={address} 
                   onChange={(e) => setAddress(e.target.value)} 
+                  onKeyDown={e => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') handleSave();
+                  }}
                   placeholder="e.g., Hospital Location, City" 
                 />
               </div>
@@ -284,7 +303,10 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
                   placeholder="Search doctors..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleSearchKeyDown}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    handleSearchKeyDown(e);
+                  }}
                   className="h-9 w-48 pl-8"
                 />
               </div>

@@ -29,6 +29,7 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
         occupation: string;
         blood_group: string;
         hometown: string;
+        allergies: string;
     }>({
         name: '',
         phone: '',
@@ -39,6 +40,7 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
         occupation: '',
         blood_group: '',
         hometown: '',
+        allergies: '',
     });
     const [age, setAge] = useState<number | ''>('');
     const [isSaving, setIsSaving] = useState(false);
@@ -56,6 +58,7 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                 occupation: patient.occupation || '',
                 blood_group: patient.blood_group || '',
                 hometown: patient.hometown || '',
+                allergies: patient.allergies || '',
             });
             if (patient.secondary_phone) {
                 setShowSecondaryPhone(true);
@@ -105,6 +108,7 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                     occupation: formData.occupation,
                     blood_group: formData.blood_group,
                     hometown: formData.hometown,
+                    allergies: formData.allergies,
                 })
                 .eq('id', patient.id);
 
@@ -125,6 +129,7 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                 occupation: formData.occupation,
                 blood_group: formData.blood_group,
                 hometown: formData.hometown,
+                allergies: formData.allergies,
             };
             onSave(updatedPatient);
             onClose();
@@ -261,6 +266,16 @@ export const PatientEditModal: React.FC<PatientEditModalProps> = ({ patient, isO
                             onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
                             className="col-span-3"
                             placeholder="e.g., Kakinada"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="allergies" className="text-right text-destructive font-semibold">Allergies</Label>
+                        <Input
+                            id="allergies"
+                            value={formData.allergies}
+                            onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                            className="col-span-3 border-destructive/20 focus-visible:ring-destructive"
+                            placeholder="e.g., Penicillin"
                         />
                     </div>
                 </div>

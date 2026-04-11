@@ -32,6 +32,10 @@ export interface ConsultationData {
     weight?: string;
     temperature?: string;
     allergy?: string;
+    allergies?: string;
+    blood_group?: string;
+    occupation?: string;
+    hometown?: string;
     complaints?: string;
     findings?: string;
     investigations?: string;
@@ -144,7 +148,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
 
             {/* Content Sections */}
             {[
-                { label: "Allergies", value: data.allergy, icon: AlertCircle, color: "text-destructive" },
+                { label: "Allergies", value: data.allergies || data.allergy, icon: AlertCircle, color: "text-destructive" },
                 { label: "Doctor's Note", value: data.personalNote || data.personal_note, icon: NotebookText },
                 { label: "Complaints", value: data.complaints, icon: Stethoscope },
                 { label: "Clinical Findings", value: data.findings, icon: Eye },

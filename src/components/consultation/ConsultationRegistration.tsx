@@ -38,6 +38,7 @@ interface Patient {
   hometown?: string;
   occupation?: string;
   blood_group?: string;
+  allergies?: string;
 }
 
 interface FormData {
@@ -51,6 +52,7 @@ interface FormData {
   hometown?: string;
   occupation?: string;
   blood_group?: string;
+  allergies?: string;
   driveId: string | null;
   consultation_data: any | null;
   isDobEstimated: boolean;
@@ -89,6 +91,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     hometown: '',
     occupation: '',
     blood_group: '',
+    allergies: '',
     driveId: null,
     consultation_data: null,
     isDobEstimated: false,
@@ -218,7 +221,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             // Direct Supabase Query for max speed & control (limit 50)
             const { data, error } = await supabase
               .from('patients')
-              .select('id, name, dob, sex, phone, secondary_phone, drive_id, is_dob_estimated')
+              .select('id, name, dob, sex, phone, secondary_phone, drive_id, is_dob_estimated, allergies')
               .ilike('phone', `%${currentPrefix}%`)
               .limit(50); // Fetch enough to be useful but not overload
 
@@ -387,6 +390,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         hometown: selected.hometown || '',
         occupation: selected.occupation || '',
         blood_group: selected.blood_group || '',
+        allergies: selected.allergies || (selected as any).allergy || '',
         driveId: drive_id,
         consultation_data,
         isDobEstimated: selected.is_dob_estimated || false
@@ -455,6 +459,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           sex: formData.sex,
           phone: sanitizePhoneNumber(formData.phone),
           secondary_phone: formData.secondary_phone ? sanitizePhoneNumber(formData.secondary_phone) : null,
+          allergies: formData.allergies || null,
           drive_id: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -483,7 +488,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
         setFormData({
           id: null, name: '', dob: undefined, sex: 'M', phone: '', secondary_phone: '', referred_by: '',
-          hometown: '', occupation: '', blood_group: '',
+          hometown: '', occupation: '', blood_group: '', allergies: '',
           driveId: null, consultation_data: null, isDobEstimated: false
         });
         setSearchResults([]);
@@ -523,6 +528,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               hometown: formData.hometown,
               occupation: formData.occupation,
               blood_group: formData.blood_group,
+              allergies: formData.allergies,
               language: formData.language,
               free_visit_duration_days: location ? getHospitalByName(location)?.settings.free_visit_duration_days : 14,
               consultant_id: consultantId
@@ -546,7 +552,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             });
             setFormData({
               id: null, name: '', dob: undefined, sex: 'M', phone: '', secondary_phone: '', referred_by: '',
-              hometown: '', occupation: '', blood_group: '',
+              hometown: '', occupation: '', blood_group: '', allergies: '',
               driveId: null, consultation_data: null, isDobEstimated: false
             });
             setSearchResults([]);
@@ -815,6 +821,20 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   placeholder="e.g. Kakinada"
                 />
               </div>
+            </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allergies" className="text-sm font-semibold text-destructive">Allergies</Label>
+            <div className="relative">
+              <Input
+                id="allergies"
+                value={formData.allergies || ''}
+                onChange={e => handleInputChange('allergies', e.target.value)}
+                className="border-destructive/20 focus-visible:ring-destructive"
+                placeholder="e.g. Penicillin, Pollen (Leave empty if none)"
+              />
             </div>
           </div>
         </div>

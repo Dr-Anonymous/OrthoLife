@@ -24,6 +24,7 @@ type OfflinePatientDetails = {
     occupation?: string;
     blood_group?: string;
     hometown?: string;
+    allergies?: string;
 };
 
 type OfflineConsultationRecord = Partial<OfflineConsultationBundle> & {
@@ -99,6 +100,7 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId }: UseOf
         if (patientDetails.occupation !== undefined) patientUpdate.occupation = patientDetails.occupation;
         if (patientDetails.blood_group !== undefined) patientUpdate.blood_group = patientDetails.blood_group;
         if (patientDetails.hometown !== undefined) patientUpdate.hometown = patientDetails.hometown;
+        if (patientDetails.allergies !== undefined) patientUpdate.allergies = patientDetails.allergies;
         return patientUpdate;
     };
 

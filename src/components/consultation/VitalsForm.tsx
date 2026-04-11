@@ -14,6 +14,7 @@ interface VitalsFormProps {
     allergy: string;
     onExtraChange: (field: string, value: string) => void;
     initialData?: any;
+    initialPatientData?: any;
     isReadOnly?: boolean;
 }
 
@@ -33,6 +34,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     allergy,
     onExtraChange,
     initialData,
+    initialPatientData,
     isReadOnly = false
 }) => {
     const diastolicRef = React.useRef<HTMLInputElement>(null);
@@ -68,6 +70,19 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
             return "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40";
         }
         return "bg-background/50"; // Default style
+    };
+
+    const getAllergyStyle = (value: string) => {
+        if (!initialPatientData) return "bg-background/50";
+
+        const initialValue = initialPatientData.allergies;
+        const isUnchanged = String(value).trim() === String(initialValue || '').trim();
+        const hasContent = value && String(value).trim().length > 0;
+
+        if (isUnchanged && hasContent) {
+            return "bg-amber-50/80 border-amber-200 focus-visible:ring-amber-400 placeholder:text-amber-900/40";
+        }
+        return "bg-background/50";
     };
 
     // Auto-calculate BMI
@@ -205,7 +220,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         value={allergy}
                         onChange={e => onExtraChange('allergy', e.target.value)}
                         placeholder="e.g., Penicillin"
-                        className={getStyle('allergy', allergy)}
+                        className={getAllergyStyle(allergy)}
                         disabled={isReadOnly}
                     />
                 </div>

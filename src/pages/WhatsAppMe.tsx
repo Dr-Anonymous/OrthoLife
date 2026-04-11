@@ -372,7 +372,8 @@ const WhatsAppMe = () => {
                   location: prescription.location,
                   occupation: prescription.occupation,
                   hometown: prescription.hometown,
-                  blood_group: prescription.blood_group
+                  blood_group: prescription.blood_group,
+                  allergies: prescription.allergies
                 }} />
               </CardContent>
             </Card>

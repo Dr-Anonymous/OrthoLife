@@ -26,7 +26,6 @@ interface ConsultationData {
   height?: string;
   pulse?: string;
   spo2?: string;
-  allergy?: string;
   orthotics?: string;
 }
 
@@ -184,7 +183,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
 
           {/* Vitals */}
-          {(consultation.bp || consultation.temperature || consultation.weight || consultation.height || consultation.pulse || consultation.spo2 || consultation.allergy || patient.blood_group) && !onlyMedicationsAndFollowup && (
+          {(consultation.bp || consultation.temperature || consultation.weight || consultation.height || consultation.pulse || consultation.spo2 || patient.allergies || patient.blood_group) && !onlyMedicationsAndFollowup && (
             <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               {patient.blood_group && (
                 <div className="flex items-center">
@@ -228,10 +227,10 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <span className="font-medium">{consultation.spo2} %</span>
                 </div>
               )}
-              {consultation.allergy && (
+              {patient.allergies && (
                 <div className="flex items-center">
                   <span className="font-semibold text-destructive text-xs uppercase tracking-wider mr-2">Allergies:</span>
-                  <span className="font-medium text-destructive">{consultation.allergy}</span>
+                  <span className="font-medium text-destructive">{patient.allergies}</span>
                 </div>
               )}
             </section>

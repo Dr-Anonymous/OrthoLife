@@ -43,6 +43,7 @@ export interface Patient {
     occupation?: string;
     blood_group?: string;
     hometown?: string;
+    allergies?: string;
 }
 
 export interface ConsultantBio {
@@ -145,7 +146,7 @@ export interface ExtraData {
     pulse: string;
     spo2: string;
     bmi: string;
-    allergy: string;
+    allergy?: string;
     personalNote: string;
     procedure: string;
     procedure_fee: string;

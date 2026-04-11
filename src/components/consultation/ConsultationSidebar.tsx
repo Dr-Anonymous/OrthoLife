@@ -178,6 +178,9 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     }, []);
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        // Prevent sidebar navigation if a modal is open
+        if (document.querySelector('[role="dialog"]')) return;
+        
         if (visibleConsultations.length === 0) return;
 
         if (e.key === 'ArrowDown') {

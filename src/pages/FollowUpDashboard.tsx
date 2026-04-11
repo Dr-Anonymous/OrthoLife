@@ -547,7 +547,8 @@ const FollowUpDashboard = () => {
                       status: selectedConsultation.status,
                       occupation: selectedConsultation.patient.occupation,
                       hometown: selectedConsultation.patient.hometown,
-                      blood_group: selectedConsultation.patient.blood_group
+                      blood_group: selectedConsultation.patient.blood_group,
+                      allergies: selectedConsultation.patient.allergies
                     }} 
                   />
                 )}

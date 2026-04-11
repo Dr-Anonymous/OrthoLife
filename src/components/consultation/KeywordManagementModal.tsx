@@ -69,6 +69,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [orthoticsTe, setOrthoticsTe] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [listSearchQuery, setListSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
   const filteredMeds = medications.filter(med =>
@@ -383,12 +384,38 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             )}
           </div>
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Existing Keywords</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Existing Keywords</h3>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search protocols..."
+                  value={listSearchQuery}
+                  onChange={(e) => setListSearchQuery(e.target.value)}
+                  className="h-9 w-48 pl-8"
+                />
+              </div>
+            </div>
             {isLoading ? (
               <Loader2 className="animate-spin" />
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {keywords.map(kw => (
+              <div className="space-y-2 max-h-64 overflow-y-auto p-1">
+                {keywords.filter(kw => {
+                  const query = listSearchQuery.toLowerCase().trim();
+                  if (!query) return true;
+                  
+                  const hasKeywordMatch = (kw.keywords || []).some(k => k.toLowerCase().includes(query));
+                  const hasAdviceMatch = kw.advice?.toLowerCase().includes(query) || kw.advice_te?.toLowerCase().includes(query);
+                  const hasMedMatch = (kw.medication_ids || []).some(id => {
+                    const med = medications.find(m => m.id === id);
+                    return med?.composition?.toLowerCase().includes(query);
+                  });
+                  const hasInvestMatch = kw.investigations?.toLowerCase().includes(query);
+                  const hasFollowupMatch = kw.followup?.toLowerCase().includes(query) || kw.followup_te?.toLowerCase().includes(query);
+                  const hasOrthoticsMatch = kw.orthotics?.toLowerCase().includes(query) || kw.orthotics_te?.toLowerCase().includes(query);
+
+                  return hasKeywordMatch || hasAdviceMatch || hasMedMatch || hasInvestMatch || hasFollowupMatch || hasOrthoticsMatch;
+                }).map(kw => (
                   <div key={kw.id} className="flex items-center justify-between p-2 border rounded-md">
                     <div>
                       <p className="font-semibold">{(kw.keywords || []).join(', ')}</p>

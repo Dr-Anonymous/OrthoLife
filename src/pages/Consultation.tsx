@@ -485,6 +485,7 @@ const ConsultationPage = () => {
     const normalizedPatient = {
       ...consultation.patient,
       secondary_phone: consultation.patient.secondary_phone || '',
+      allergies: consultation.patient.allergies || (consultation.consultation_data as any)?.allergy || '',
     };
     setEditablePatientDetails(normalizedPatient);
     setInitialPatientDetails(normalizedPatient);
@@ -1332,9 +1333,20 @@ const ConsultationPage = () => {
    * @param cursorPosition - The current cursor position (if applicable) for managing caret placement.
    */
   const handleExtraChange = useCallback((field: string, value: any, cursorPosition?: number | null) => {
+    if (field === 'allergy') {
+      setEditablePatientDetails(prev => prev ? ({ ...prev, allergies: value }) : prev);
+      return;
+    }
     if (field === 'complaints' && typeof value === 'string' && value.includes('//')) {
       setIsShortcutModalOpen(true);
       setExtraData(prev => ({ ...prev, [field]: value.replace('//', '') })); // Remove the trigger
+      return;
+    }
+
+    if (field === 'referred_to_list' && Array.isArray(value) && value.some(val => typeof val === 'string' && val.includes('//'))) {
+      setIsReferralModalOpen(true);
+      const cleanedValue = value.map(val => typeof val === 'string' ? val.replace('//', '') : val);
+      setExtraData(prev => ({ ...prev, [field]: cleanedValue }));
       return;
     }
 
@@ -2150,9 +2162,10 @@ const ConsultationPage = () => {
                   spo2={extraData.spo2}
                   bp={extraData.bp}
                   temperature={extraData.temperature}
-                  allergy={extraData.allergy}
+                  allergy={editablePatientDetails.allergies || ''}
                   onExtraChange={handleExtraChange}
                   initialData={initialExtraData}
+                  initialPatientData={initialPatientDetails}
                   isReadOnly={isReadOnly}
                 />
 
