@@ -1596,7 +1596,16 @@ const ConsultationPage = () => {
         }
       }
 
-      newMeds[index] = { ...newMeds[index], [field]: value };
+      if (field === 'composition') {
+        newMeds[index] = { 
+          ...newMeds[index], 
+          [field]: value,
+          brandName: undefined, // Reset brand name when composition is manually edited
+          brand_metadata: []    // Reset brand metadata when composition is manually edited
+        };
+      } else {
+        newMeds[index] = { ...newMeds[index], [field]: value };
+      }
       return { ...prev, medications: newMeds };
     });
   }, [textShortcuts, isReadOnly]);

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
-import { GripVertical, Loader2, Star, X } from 'lucide-react';
+import { Check, GripVertical, Loader2, PlusCircle, X } from 'lucide-react';
 import { cn, normalizeMedName } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -98,17 +98,17 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
         setIsCustom(!!med.frequency);
     }, [med.frequency]);
 
-    const isFavorite = savedMedications.some(savedMed => {
-        const nameMatches = (savedMed.composition || '').toLowerCase() === (med.composition || '').toLowerCase();
-        const brandMatches = (savedMed.brand_metadata || []).some(b => b.name.toLowerCase() === (med.composition || '').toLowerCase());
-        return nameMatches || brandMatches;
+    const isSavedInMaster = savedMedications.some(savedMed => {
+        const nameMatches = normalizeMedName(savedMed.composition) === normalizeMedName(med.composition);
+        const doseMatches = (savedMed.dose || '').toLowerCase().trim() === (med.dose || '').toLowerCase().trim();
+        return nameMatches && doseMatches;
     });
 
-    const handleFavoriteClick = async () => {
+    const handleSaveToMaster = async () => {
         if (!med.composition) {
             toast({
                 variant: 'destructive',
-                title: 'Cannot save favorite',
+                title: 'Cannot save',
                 description: 'Please enter a name for the medication.',
             });
             return;
@@ -123,33 +123,55 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                 freq_morning: med.freqMorning,
                 freq_noon: med.freqNoon,
                 freq_night: med.freqNight,
+                // If language is Telugu, med.frequency contains Telugu and med.frequency_te contains English
+                // We must un-swap them for the database payload
+                frequency: isTelugu ? med.frequency_te : med.frequency,
+                frequency_te: isTelugu ? med.frequency : med.frequency_te,
+                duration: isTelugu ? med.duration_te : med.duration,
+                duration_te: isTelugu ? med.duration : med.duration_te,
+                instructions: isTelugu ? med.instructions_te : med.instructions,
+                instructions_te: isTelugu ? med.instructions : med.instructions_te,
+                notes: isTelugu ? med.notes_te : med.notes,
+                notes_te: isTelugu ? med.notes : med.notes_te,
             };
 
+            // Translation Logic
+            const translate = async (text: string, targetLang: string, sourceLang: string = 'en') => {
+                if (!text || !text.trim()) return '';
+                try {
+                    const { data, error } = await supabase.functions.invoke('translate-content', {
+                        body: { text, targetLanguage: targetLang, sourceLanguage: sourceLang },
+                    });
+                    if (error) throw error;
+                    return data?.translatedText || '';
+                } catch (e) {
+                    console.error('Translation error:', e);
+                    return '';
+                }
+            };
+
+            // Bidirectional Translation based on current input
+            if (isTelugu) {
+                // If Telugu is the active language, translate missing English fields
+                if (payload.instructions_te && !payload.instructions) payload.instructions = await translate(payload.instructions_te, 'en', 'te');
+                if (payload.duration_te && !payload.duration) payload.duration = await translate(payload.duration_te, 'en', 'te');
+                if (payload.frequency_te && !payload.frequency) payload.frequency = await translate(payload.frequency_te, 'en', 'te');
+                if (payload.notes_te && !payload.notes) payload.notes = await translate(payload.notes_te, 'en', 'te');
+            } else {
+                // If English is the active language, translate missing Telugu fields
+                if (payload.instructions && !payload.instructions_te) payload.instructions_te = await translate(payload.instructions, 'te', 'en');
+                if (payload.duration && !payload.duration_te) payload.duration_te = await translate(payload.duration, 'te', 'en');
+                if (payload.frequency && !payload.frequency_te) payload.frequency_te = await translate(payload.frequency, 'te', 'en');
+                if (payload.notes && !payload.notes_te) payload.notes_te = await translate(payload.notes, 'te', 'en');
+            }
+
             // If we have a brandName that isn't already the composition name
-            // and it's not in brand_metadata, we should probably ensure it's recorded
-            if (med.brandName && med.brandName !== med.composition) {
-                const brandExists = (payload.brand_metadata as any[]).some(b => b.name === med.brandName);
+            // and it's not in brand_metadata, record it
+            if (med.brandName && normalizeMedName(med.brandName) !== normalizeMedName(med.composition)) {
+                const brandExists = (payload.brand_metadata as any[]).some(b => normalizeMedName(b.name) === normalizeMedName(med.brandName!));
                 if (!brandExists) {
                     payload.brand_metadata = [{ name: med.brandName }, ...(payload.brand_metadata as any[])];
                 }
-            }
-
-            if (isTelugu) {
-                payload.frequency_te = med.frequency;
-                payload.duration_te = med.duration;
-                payload.instructions_te = med.instructions;
-                payload.notes_te = med.notes;
-            } else {
-                payload.frequency = med.frequency;
-                payload.duration = med.duration;
-                payload.instructions = med.instructions;
-                payload.notes = med.notes;
-
-                // Also preserve existing te values if present
-                if (med.frequency_te) payload.frequency_te = med.frequency_te;
-                if (med.duration_te) payload.duration_te = med.duration_te;
-                if (med.instructions_te) payload.instructions_te = med.instructions_te;
-                if (med.notes_te) payload.notes_te = med.notes_te;
             }
 
             const { error } = await supabase
@@ -158,15 +180,15 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
 
             if (error) throw error;
             toast({
-                title: 'Favorite saved',
-                description: `${med.composition} has been added to your saved medications.`,
+                title: 'Medication Saved',
+                description: `${med.composition} has been added to your master list.`,
             });
             fetchSavedMedications();
         } catch (error) {
-            console.error('Error saving favorite medication:', error);
+            console.error('Error saving medication:', error);
             toast({
                 variant: 'destructive',
-                title: 'Error saving favorite',
+                title: 'Error saving',
                 description: (error as Error).message,
             });
         } finally {
@@ -190,12 +212,22 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="h-6 w-6 text-muted-foreground hover:text-yellow-500"
-                                        onClick={handleFavoriteClick}
-                                        disabled={isSavingFavorite || isFavorite || isReadOnly}
+                                        className={cn(
+                                            "h-6 w-6 transition-all duration-300",
+                                            isSavedInMaster ? "text-green-500 bg-green-50 hover:bg-green-100" : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                        )}
+                                        onClick={handleSaveToMaster}
+                                        disabled={isSavingFavorite || isSavedInMaster || isReadOnly}
+                                        title={isSavedInMaster ? "Already in saved medications" : "Add to saved medications"}
                                     >
-                                        {isSavingFavorite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-500")} />}
-                                        <span className="sr-only">Save as favorite</span>
+                                        {isSavingFavorite ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : isSavedInMaster ? (
+                                            <Check className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <PlusCircle className="h-3.5 w-3.5" />
+                                        )}
+                                        <span className="sr-only">Add to saved medications</span>
                                     </Button>
                                     <Button
                                         type="button"

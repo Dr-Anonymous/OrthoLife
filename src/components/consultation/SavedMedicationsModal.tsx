@@ -79,6 +79,10 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const debouncedFrequency = useDebounce(newMed.frequency, 500);
   const debouncedDuration = useDebounce(newMed.duration, 500);
   const debouncedNotes = useDebounce(newMed.notes, 500);
+  const debouncedInstructionsTe = useDebounce(newMed.instructions_te, 500);
+  const debouncedFrequencyTe = useDebounce(newMed.frequency_te, 500);
+  const debouncedDurationTe = useDebounce(newMed.duration_te, 500);
+  const debouncedNotesTe = useDebounce(newMed.notes_te, 500);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
@@ -111,12 +115,12 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
 
   useEffect(() => {
-    const translateField = async (text: string, field: keyof Medication) => {
+    const translateField = async (text: string, field: keyof Medication, targetLang: string, sourceLang: string) => {
       if (!text || !text.trim()) return;
       setIsTranslating(true);
       try {
         const { data, error } = await supabase.functions.invoke('translate-content', {
-          body: { text, targetLanguage: 'te' },
+          body: { text, targetLanguage: targetLang, sourceLanguage: sourceLang },
         });
         if (error) throw error;
         if (data?.translatedText) {
@@ -131,33 +135,39 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     };
 
     if (!isEditing) {
+      // English -> Telugu
       if (newMed.instructions && debouncedInstructions === newMed.instructions && debouncedInstructions !== newMed.instructions_te) {
-        translateField(debouncedInstructions, 'instructions_te');
-      } else if (!newMed.instructions && newMed.instructions_te) {
-        setNewMed(prev => ({ ...prev, instructions_te: '' }));
+        translateField(debouncedInstructions, 'instructions_te', 'te', 'en');
       }
-
       if (newMed.frequency && debouncedFrequency === newMed.frequency && debouncedFrequency !== newMed.frequency_te) {
-        translateField(debouncedFrequency, 'frequency_te');
-      } else if (!newMed.frequency && newMed.frequency_te) {
-        setNewMed(prev => ({ ...prev, frequency_te: '' }));
+        translateField(debouncedFrequency, 'frequency_te', 'te', 'en');
       }
-
       if (newMed.duration && debouncedDuration === newMed.duration && debouncedDuration !== newMed.duration_te) {
-        translateField(debouncedDuration, 'duration_te');
-      } else if (!newMed.duration && newMed.duration_te) {
-        setNewMed(prev => ({ ...prev, duration_te: '' }));
+        translateField(debouncedDuration, 'duration_te', 'te', 'en');
+      }
+      if (newMed.notes && debouncedNotes === newMed.notes && debouncedNotes !== newMed.notes_te) {
+        translateField(debouncedNotes, 'notes_te', 'te', 'en');
       }
 
-      if (newMed.notes && debouncedNotes === newMed.notes && debouncedNotes !== newMed.notes_te) {
-        translateField(debouncedNotes, 'notes_te');
-      } else if (!newMed.notes && newMed.notes_te) {
-        setNewMed(prev => ({ ...prev, notes_te: '' }));
+      // Telugu -> English
+      if (newMed.instructions_te && debouncedInstructionsTe === newMed.instructions_te && debouncedInstructionsTe !== newMed.instructions) {
+        translateField(debouncedInstructionsTe, 'instructions', 'en', 'te');
+      }
+      if (newMed.frequency_te && debouncedFrequencyTe === newMed.frequency_te && debouncedFrequencyTe !== newMed.frequency) {
+        translateField(debouncedFrequencyTe, 'frequency', 'en', 'te');
+      }
+      if (newMed.duration_te && debouncedDurationTe === newMed.duration_te && debouncedDurationTe !== newMed.duration) {
+        translateField(debouncedDurationTe, 'duration', 'en', 'te');
+      }
+      if (newMed.notes_te && debouncedNotesTe === newMed.notes_te && debouncedNotesTe !== newMed.notes) {
+        translateField(debouncedNotesTe, 'notes', 'en', 'te');
       }
     }
   }, [
-    debouncedInstructions, debouncedFrequency, debouncedDuration, debouncedNotes, 
+    debouncedInstructions, debouncedFrequency, debouncedDuration, debouncedNotes,
+    debouncedInstructionsTe, debouncedFrequencyTe, debouncedDurationTe, debouncedNotesTe,
     newMed.instructions, newMed.frequency, newMed.duration, newMed.notes,
+    newMed.instructions_te, newMed.frequency_te, newMed.duration_te, newMed.notes_te,
     isEditing
   ]);
 

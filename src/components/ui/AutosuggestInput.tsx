@@ -82,30 +82,74 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
 
       const cleanSearch = (text: string) => {
         if (!text) return '';
-        const prefixes = ['t\\. ', 'cap\\. ', 'syr\\. ', 'tab\\. ', 'inj\\. ', 'crm\\. ', 'gel\\. ', 'oint\\. ', 'tab ', 'cap ', 'syr ', 'inj ', 'crm ', 'gel ', 'oint ', 'syp ', 'caps ', 'tabs '];
-        const prefixRegex = new RegExp(`^(${prefixes.join('|')})`, 'i');
+        // Comprehensive list of pharmaceutical prefixes - must be followed by dot or space
+        // Using word boundary \b and global flag to catch all occurrences (especially in searchTerms)
+        const prefixRegex = /\b(t|cap|syr|tab|inj|crm|gel|oint|syp|caps|tabs)[\.\s]+/gi;
         
-        return text.toLowerCase()
-          .replace(prefixRegex, '')
-          .replace(/[.()]/g, '')
+        const cleaned = text.toLowerCase()
+          .replace(prefixRegex, ' ')
+          .replace(/[^a-z0-9\s]/g, ' ') // Replace special characters with space
           .replace(/\s+/g, ' ')
           .trim();
+
+        // If cleaning stripped everything (like if typing just a prefix), return the lowered original
+        return cleaned || text.toLowerCase().trim();
       };
 
       const searchVal = cleanSearch(currentToken);
+      const searchValLower = searchVal.toLowerCase();
       
-      const filtered = suggestions.filter(suggestion => {
+      // First, identify all group IDs that have at least one match
+      const matchingGroupIds = new Set(
+        suggestions
+          .filter(suggestion => {
+            const cleanName = cleanSearch(suggestion.name || '');
+            const cleanLabel = cleanSearch(suggestion.label || '');
+            const cleanTerms = cleanSearch(suggestion.searchTerms || '');
+
+            return cleanName.includes(searchValLower) || 
+                   cleanLabel.includes(searchValLower) || 
+                   cleanTerms.includes(searchValLower);
+          })
+          .map(suggestion => suggestion.id)
+      );
+
+      // Then, include ALL suggestions that belong to those matching groups
+      // This ensures that if one brand matches, we see the composition and all its other brands
+      const filtered = suggestions.filter(suggestion => matchingGroupIds.has(suggestion.id));
+
+      // Find the best match index based on match quality while keeping original hierarchical order
+      let bestMatchIndex = 0;
+      let highestPriority = -1;
+
+      filtered.forEach((suggestion, index) => {
         const cleanName = cleanSearch(suggestion.name || '');
         const cleanLabel = cleanSearch(suggestion.label || '');
-        const cleanTerms = cleanSearch(suggestion.searchTerms || '');
-        const searchValLower = searchVal.toLowerCase();
+        
+        let priority = -1;
+        // Priority 1: Exact match on name or label
+        if (cleanName === searchValLower || cleanLabel === searchValLower) {
+          priority = 10;
+        } 
+        // Priority 2: Name or label starts with search term
+        else if (cleanName.startsWith(searchValLower) || cleanLabel.startsWith(searchValLower)) {
+          priority = 5;
+        }
+        // Priority 3: Name or label contains search term
+        else if (cleanName.includes(searchValLower) || cleanLabel.includes(searchValLower)) {
+          priority = 1;
+        }
 
-        return cleanName.includes(searchValLower) || 
-               cleanLabel.includes(searchValLower) || 
-               cleanTerms.includes(searchValLower);
+        // We use > highestPriority to pick the FIRST best match in the original order
+        if (priority > highestPriority) {
+          highestPriority = priority;
+          bestMatchIndex = index;
+        }
       });
+
       setFilteredSuggestions(filtered);
       setIsSuggestionsVisible(true);
+      setActiveSuggestionIndex(bestMatchIndex);
     } else {
       setFilteredSuggestions([]);
       setIsSuggestionsVisible(false);
@@ -153,6 +197,17 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
+        onFocus={() => {
+          if (value.trim().length > 0 && filteredSuggestions.length > 0) {
+            setIsSuggestionsVisible(true);
+          }
+        }}
+        onBlur={() => {
+          // Use a small delay to allow onMouseDown on suggestions to fire first
+          // if we weren't using preventDefault, but since we are, 
+          // this is mostly for safety with other UI interactions.
+          setTimeout(() => setIsSuggestionsVisible(false), 200);
+        }}
         placeholder={placeholder}
         disabled={disabled}
         {...inputProps}
