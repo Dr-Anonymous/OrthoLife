@@ -95,7 +95,9 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     const [isSavingFavorite, setIsSavingFavorite] = useState(false);
 
     useEffect(() => {
-        setIsCustom(!!med.frequency);
+        if (!!med.frequency) {
+            setIsCustom(true);
+        }
     }, [med.frequency]);
 
     const isSavedInMaster = savedMedications.some(savedMed => {
@@ -426,6 +428,11 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                             handleMedChange(index, 'freqMorning', false);
                                             handleMedChange(index, 'freqNoon', false);
                                             handleMedChange(index, 'freqNight', false);
+                                            // Fill with default if empty
+                                            if (!med.frequency || !med.frequency.trim()) {
+                                                const defaultText = language === 'te' ? 'అవసరమైతే' : 'if needed';
+                                                handleMedChange(index, 'frequency', defaultText);
+                                            }
                                         } else {
                                             handleMedChange(index, 'frequency', '');
                                         }
@@ -442,7 +449,6 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                     ref={el => medFrequencyRefs.current[`${index}.frequency`] = el}
                                     value={med.frequency || ''}
                                     onChange={e => handleMedChange(index, 'frequency', e.target.value, e.target.selectionStart)}
-                                    placeholder="e.g., once a week"
                                     onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                     className={getStyle('frequency', med.frequency)}
                                     disabled={isReadOnly}
@@ -450,8 +456,8 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                                 {(!med.frequency) && (
                                     <div className="flex flex-wrap gap-1 mt-1">
                                         {(language === 'te'
-                                            ? ["వారానికి ఒకసారి", "అవసరమైతే"]
-                                            : ["1/week", "If needed"]
+                                            ? ["అవసరమైతే", "రోజు విడిచి రోజు", "వారానికి ఒకసారి", "వారానికి 2 సార్లు", "నెలకోసారి"]
+                                            : ["If needed", "Alt-days", "Once a week", "2/week", "1/month"]
                                         ).map(text => (
                                             <div
                                                 key={text}

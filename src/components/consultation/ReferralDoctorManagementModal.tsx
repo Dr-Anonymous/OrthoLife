@@ -106,12 +106,16 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
       };
 
       if (editingDoctor) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('referral_doctors')
           .update(payload)
-          .eq('id', editingDoctor.id);
+          .eq('id', editingDoctor.id)
+          .select();
         
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error('Update failed. You might not have permission to edit this record.');
+        }
         toast({ title: 'Doctor updated successfully' });
       } else {
         const { error } = await supabase
@@ -140,12 +144,16 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
     if (!window.confirm('Are you sure you want to delete this referral doctor?')) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('referral_doctors')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
       
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('Delete failed. You might not have permission to delete this record.');
+      }
       toast({ title: 'Doctor deleted successfully' });
       fetchDoctors();
       if (onUpdate) onUpdate();

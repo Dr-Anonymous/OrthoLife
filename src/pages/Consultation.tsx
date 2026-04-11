@@ -1529,6 +1529,7 @@ const ConsultationPage = () => {
       composition: med.composition || '',
       savedMedicationId: med.id,
       brandName: finalBrandName,
+      brand_metadata: med.brand_metadata,
       dose: med.dose || '',
       freqMorning: med.freqMorning || false,
       freqNoon: med.freqNoon || false,
@@ -1545,7 +1546,18 @@ const ConsultationPage = () => {
       notes_te: isTelugu ? (med.notes || '') : (med.notes_te || '')
     };
 
-    setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
+    setExtraData(prev => {
+      const meds = [...prev.medications];
+      const emptyIdx = meds.findIndex(m => !m.composition || m.composition.trim() === "");
+      
+      if (emptyIdx !== -1) {
+        // Use existing row but update all fields. Keep original stable ID for dnd-kit
+        const existingId = meds[emptyIdx].id;
+        meds[emptyIdx] = { ...newMed, id: existingId };
+        return { ...prev, medications: meds };
+      }
+      return { ...prev, medications: [...prev.medications, newMed] };
+    });
   }, [consultationLanguage, extraData.affordabilityPreference, selectedHospital?.name]);
 
   /**

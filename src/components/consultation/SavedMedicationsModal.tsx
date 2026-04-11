@@ -490,8 +490,17 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                         handleInputChange('freqMorning', false);
                         handleInputChange('freqNoon', false);
                         handleInputChange('freqNight', false);
+                        // Auto-fill defaults if empty
+                        if (!newMed.frequency) {
+                          setNewMed(prev => ({ 
+                            ...prev, 
+                            frequency: 'if needed',
+                            frequency_te: prev.frequency_te || 'అవసరమైతే'
+                          }));
+                        }
                       } else {
                         handleInputChange('frequency', '');
+                        handleInputChange('frequency_te', '');
                       }
                     }}
                     className="rounded border-border"
@@ -506,7 +515,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                     <Input id="med-frequency" value={newMed.frequency} onChange={e => handleInputChange('frequency', e.target.value)} placeholder="e.g., once a week" />
                     {!newMed.frequency && (
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {["1/week", "If needed"].map(text => (
+                        {["If needed", "Alt-days", "Once a week", "2/week", "1/month"].map(text => (
                           <div
                             key={text}
                             className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
@@ -524,7 +533,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                       <Input id="med-frequency-te" value={newMed.frequency_te} onChange={e => handleInputChange('frequency_te', e.target.value)} disabled={isTranslating} />
                       {!newMed.frequency_te && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {["వారానికి ఒకసారి", "అవసరమైతే"].map(text => (
+                          {["అవసరమైతే", "రోజు విడిచి రోజు", "వారానికి ఒకసారి", "వారానికి 2 సార్లు", "నెలకోసారి"].map(text => (
                             <div
                               key={text}
                               className="text-[10px] px-1.5 py-0.5 border rounded-full cursor-pointer hover:bg-muted text-muted-foreground bg-background transition-colors"
