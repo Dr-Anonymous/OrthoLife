@@ -97,9 +97,10 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                           location: item.location,
                           visit_type: item.visit_type,
                           status: item.status,
-                          occupation: item.patient?.occupation,
-                          hometown: item.patient?.hometown,
-                          blood_group: item.patient?.blood_group
+                          blood_group: item.patient?.blood_group,
+                          allergies: item.patient?.allergies,
+                          sex: item.patient?.sex,
+                          dob: item.patient?.dob
                         }} 
                       />
                     </div>

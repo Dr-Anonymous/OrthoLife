@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    User,
     Stethoscope,
     Pill,
     FileText,
@@ -22,6 +23,7 @@ import {
     Droplets
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { calculateAge } from '@/lib/age';
 
 export interface ConsultationData {
     created_at?: string;
@@ -36,6 +38,12 @@ export interface ConsultationData {
     blood_group?: string;
     occupation?: string;
     hometown?: string;
+    sex?: string;
+    age?: number | string;
+    dob?: string;
+    name?: string;
+    phone?: string;
+    secondary_phone?: string;
     complaints?: string;
     findings?: string;
     investigations?: string;
@@ -66,6 +74,24 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
 
     return (
         <div className="space-y-4">
+            {/* Header / Identity Section */}
+            {(data.name || data.sex || data.age || data.dob || data.phone) && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                        {data.name && <h3 className="text-xl font-bold text-primary">{renderText(data.name)}</h3>}
+                        {(data.sex || data.age || data.dob) && (
+                            <span className="text-sm font-semibold text-muted-foreground bg-muted/80 backdrop-blur-sm px-2 py-0.5 rounded flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5" />
+                                {data.sex === 'M' ? 'M' : data.sex === 'F' ? 'F' : data.sex}
+                                {((data.sex && (data.age || data.dob)) ? ' / ' : '')}
+                                {data.age || calculateAge(data.dob)}
+                                {(data.age || data.dob) ? 'Y' : ''}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Meta Information Section */}
             {(data.created_at || data.location || data.visit_type || data.status) && (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 bg-primary/5 rounded-lg border border-primary/10 mb-2 shadow-sm">
@@ -109,7 +135,9 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                 <div className="flex items-start gap-3 p-3 bg-white rounded border border-border/50 shadow-sm">
                     <Activity className="w-5 h-5 mt-0.5 text-primary" />
                     <div className="flex-1">
-                        <h4 className="font-semibold text-[10px] mb-2 uppercase tracking-widest text-muted-foreground">Patient Profile</h4>
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-[10px] uppercase tracking-widest text-muted-foreground">Vitals & Info</h4>
+                        </div>
                         <div className="flex flex-wrap gap-4 text-sm">
                             {data.bp && (
                                 <span className="flex items-center gap-1.5" title="Blood Pressure">

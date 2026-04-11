@@ -135,9 +135,14 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                             location: consultation.location,
                             visit_type: consultation.visit_type,
                             status: consultation.status,
+                            name: patient.name,
+                            phone: patient.phone,
                             occupation: patient.occupation,
                             hometown: patient.hometown,
-                            blood_group: patient.blood_group
+                            blood_group: patient.blood_group,
+                            allergies: patient.allergies,
+                            sex: patient.sex,
+                            dob: patient.dob
                           }}
                           highlightKeyword={highlightKeyword}
                         />

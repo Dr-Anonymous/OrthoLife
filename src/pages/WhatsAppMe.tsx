@@ -364,16 +364,20 @@ const WhatsAppMe = () => {
                   <Clipboard className="w-4 h-4" /> Prescription Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p><strong>Name:</strong> {prescription.name}</p>
+              <CardContent className="space-y-4">
                 <ConsultationCard data={{
                   ...prescription,
+                  name: prescription.name,
+                  phone: prescription.phone,
                   created_at: prescription.created_at,
                   location: prescription.location,
                   occupation: prescription.occupation,
                   hometown: prescription.hometown,
                   blood_group: prescription.blood_group,
-                  allergies: prescription.allergies
+                  allergies: prescription.allergies,
+                  sex: prescription.sex,
+                  age: prescription.age,
+                  dob: prescription.dob
                 }} />
               </CardContent>
             </Card>

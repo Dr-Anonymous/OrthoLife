@@ -523,14 +523,13 @@ const FollowUpDashboard = () => {
             </DialogHeader>
             {selectedConsultation && (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-1 border-b">
+                <div className="border-b pb-4 mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                       <User className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="font-bold text-xl leading-none">{selectedConsultation.patient.name}</p>
-                      <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1 font-medium">
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 font-medium">
                         <Phone className="w-3.5 h-3.5" /> {selectedConsultation.patient.phone}
                       </p>
                     </div>
@@ -541,6 +540,8 @@ const FollowUpDashboard = () => {
                   <ConsultationCard 
                     data={{ 
                       ...selectedConsultation.consultation_data,
+                      name: selectedConsultation.patient.name,
+                      phone: selectedConsultation.patient.phone,
                       created_at: selectedConsultation.created_at,
                       location: selectedConsultation.location,
                       visit_type: selectedConsultation.visit_type,
@@ -548,7 +549,10 @@ const FollowUpDashboard = () => {
                       occupation: selectedConsultation.patient.occupation,
                       hometown: selectedConsultation.patient.hometown,
                       blood_group: selectedConsultation.patient.blood_group,
-                      allergies: selectedConsultation.patient.allergies
+                      allergies: selectedConsultation.patient.allergies,
+                      sex: selectedConsultation.patient.sex,
+                      age: selectedConsultation.patient.age,
+                      dob: selectedConsultation.patient.dob
                     }} 
                   />
                 )}
