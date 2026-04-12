@@ -822,7 +822,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                 />
               </div>
             </div>
-            </div>
           </div>
 
           <div className="space-y-2">
