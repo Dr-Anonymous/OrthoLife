@@ -110,6 +110,7 @@ const TextShortcutManagementModal: React.FC<TextShortcutManagementModalProps> = 
   };
 
   const handleDeleteShortcut = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this text shortcut?")) return;
     try {
       const { error } = await supabase
         .from('text_shortcuts')

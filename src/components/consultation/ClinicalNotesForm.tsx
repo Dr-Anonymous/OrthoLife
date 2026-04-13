@@ -248,6 +248,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
     return (
         <div className="space-y-6">
+            <div className="flex items-center justify-between mt-4 mb-4 pb-2 border-b border-primary/10">
+                <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                        <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground tracking-tight">Clinical Notes</h3>
+                </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>

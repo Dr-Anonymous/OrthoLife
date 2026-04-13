@@ -283,6 +283,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   };
 
   const handleDeleteMedication = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this medication from the library?")) return;
     setIsLoading(true);
     const { error } = await supabase.from('saved_medications').delete().eq('id', id);
     if (error) {

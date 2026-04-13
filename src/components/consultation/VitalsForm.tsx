@@ -2,7 +2,7 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText } from 'lucide-react';
+import { FileText, Scale, Ruler, Activity, HeartPulse, Wind, Thermometer, AlertCircle, Droplet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VitalsFormProps {
@@ -95,54 +95,59 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
         const w = parseFloat(weight);
         const h = parseFloat(height) / 100; // Assuming height is in cm
         if (w > 0 && h > 0) {
-            const bmi = (w / (h * h)).toFixed(1);
-            // Sync BMI to extraData if it changes? 
-            // Better to just show it or let parent handle the sync.
-            // For now, we'll just display it.
-            return bmi;
+            return (w / (h * h)).toFixed(1);
         }
         return '';
     }, [weight, height]);
 
-    // Sync BMI to parent state if it's calculated but doesn't match current state
-    React.useEffect(() => {
-        const currentBmi = String(bmiValue);
-        // We only sync if it's non-empty and different to avoid infinite loops
-        // But BMI in extraData is also used for persistence.
-        // If the calculated BMI changes, we should update the parent.
+    const bmiCategory = React.useMemo(() => {
+        const val = parseFloat(bmiValue);
+        if (isNaN(val)) return null;
+        if (val < 18.5) return { label: 'Underweight', color: 'bg-blue-50 text-blue-700 border-blue-200' };
+        if (val < 25) return { label: 'Normal', color: 'bg-green-50 text-green-700 border-green-200' };
+        if (val < 30) return { label: 'Overweight', color: 'bg-orange-50 text-orange-700 border-orange-200' };
+        return { label: 'Obese', color: 'bg-red-50 text-red-700 border-red-200' };
     }, [bmiValue]);
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary/10">
                 <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold text-foreground">Medical Information</h3>
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                        <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground tracking-tight">Medical Information</h3>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
                 <div className="space-y-2">
                     <Label htmlFor="weight" className="text-sm font-medium">Weight (kg)</Label>
-                    <Input
-                        id="weight"
-                        value={weight}
-                        onChange={e => onExtraChange('weight', e.target.value)}
-                        placeholder="e.g., 70"
-                        className={getStyle('weight', weight)}
-                        disabled={isReadOnly}
-                    />
+                    <div className="relative">
+                        <Scale className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                        <Input
+                            id="weight"
+                            value={weight}
+                            onChange={e => onExtraChange('weight', e.target.value)}
+                            placeholder="e.g., 70"
+                            className={cn("pl-9", getStyle('weight', weight))}
+                            disabled={isReadOnly}
+                        />
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="height" className="text-sm font-medium">Height (cm)</Label>
-                    <Input
-                        id="height"
-                        value={height}
-                        onChange={e => onExtraChange('height', e.target.value)}
-                        placeholder="e.g., 170"
-                        className={getStyle('height', height)}
-                        disabled={isReadOnly}
-                    />
+                    <div className="relative">
+                        <Ruler className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                        <Input
+                            id="height"
+                            value={height}
+                            onChange={e => onExtraChange('height', e.target.value)}
+                            placeholder="e.g., 170"
+                            className={cn("pl-9", getStyle('height', height))}
+                            disabled={isReadOnly}
+                        />
+                    </div>
                 </div>
 
                 {/* BMI only shown if both height and weight are entered */}
@@ -150,27 +155,24 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">BMI</Label>
                         <div className={cn(
-                            "h-10 px-3 py-2 rounded-md border flex items-center justify-center font-bold animate-in fade-in zoom-in duration-300",
-                            // If both weight and height are unchanged and have content, highlight BMI container too?
-                            // Usually BMI is derived, but if it was in initialData, we might highlight.
-                            // However, BMI is calculated above. Let's just use the default style or primary/5.
-                            getStyle('bmi', bmiValue) !== "bg-background/50"
-                                ? getStyle('bmi', bmiValue)
-                                : "bg-primary/5 text-primary"
+                            "h-10 px-3 py-2 rounded-md border flex flex-col items-center justify-center font-bold animate-in fade-in zoom-in duration-300 leading-tight",
+                            bmiCategory ? bmiCategory.color : "bg-primary/5 text-primary border-primary/10"
                         )}>
-                            {bmiValue || '--'}
+                            <span className="text-sm">{bmiValue || '--'}</span>
+                            {bmiCategory && <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-80">{bmiCategory.label}</span>}
                         </div>
                     </div>
                 )}
 
                 <div className="space-y-2 col-span-2 lg:col-span-1">
                     <Label className="text-sm font-medium text-nowrap">BP</Label>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 relative">
+                        <Activity className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 z-10" />
                         <Input
                             placeholder="Sys"
                             value={bp ? bp.split('/')[0] : ''}
                             onChange={e => handleBpPartChange('systolic', e.target.value)}
-                            className={cn("text-center px-1", getStyle('bp', bp))}
+                            className={cn("text-center pl-8 pr-1", getStyle('bp', bp))}
                             disabled={isReadOnly}
                         />
                         <span className="text-muted-foreground">/</span>
@@ -187,60 +189,75 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
 
                 <div className="space-y-2">
                     <Label htmlFor="pulse" className="text-sm font-medium">Pulse (bpm)</Label>
-                    <Input
-                        id="pulse"
-                        value={pulse}
-                        onChange={e => onExtraChange('pulse', e.target.value)}
-                        placeholder="e.g., 72"
-                        className={getStyle('pulse', pulse)}
-                        disabled={isReadOnly}
-                    />
+                    <div className="relative">
+                        <HeartPulse className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                        <Input
+                            id="pulse"
+                            value={pulse}
+                            onChange={e => onExtraChange('pulse', e.target.value)}
+                            placeholder="e.g., 72"
+                            className={cn("pl-9", getStyle('pulse', pulse))}
+                            disabled={isReadOnly}
+                        />
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="spo2" className="text-sm font-medium">SpO2 (%)</Label>
-                    <Input
-                        id="spo2"
-                        value={spo2}
-                        onChange={e => onExtraChange('spo2', e.target.value)}
-                        placeholder="e.g., 98"
-                        className={getStyle('spo2', spo2)}
-                        disabled={isReadOnly}
-                    />
+                    <div className="relative">
+                        <Wind className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                        <Input
+                            id="spo2"
+                            value={spo2}
+                            onChange={e => onExtraChange('spo2', e.target.value)}
+                            placeholder="e.g., 98"
+                            className={cn("pl-9", getStyle('spo2', spo2))}
+                            disabled={isReadOnly}
+                        />
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="temperature" className="text-sm font-medium">Temp (F)</Label>
-                    <Input
-                        id="temperature"
-                        value={temperature}
-                        onChange={e => onExtraChange('temperature', e.target.value)}
-                        placeholder="98.6"
-                        className={getStyle('temperature', temperature)}
-                        disabled={isReadOnly}
-                    />
+                    <div className="relative">
+                        <Thermometer className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                        <Input
+                            id="temperature"
+                            value={temperature}
+                            onChange={e => onExtraChange('temperature', e.target.value)}
+                            placeholder="98.6"
+                            className={cn("pl-9", getStyle('temperature', temperature))}
+                            disabled={isReadOnly}
+                        />
+                    </div>
                 </div>
                 <div className="space-y-2 lg:col-span-1">
                     <Label htmlFor="allergy" className="text-sm font-medium">Allergy</Label>
-                    <Input
-                        id="allergy"
-                        value={allergy}
-                        onChange={e => onExtraChange('allergy', e.target.value)}
-                        placeholder="e.g., Penicillin"
-                        className={getAllergyStyle(allergy)}
-                        disabled={isReadOnly}
-                    />
+                    <div className="relative">
+                        <AlertCircle className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                        <Input
+                            id="allergy"
+                            value={allergy}
+                            onChange={e => onExtraChange('allergy', e.target.value)}
+                            placeholder="e.g., Penicillin"
+                            className={cn("pl-9", getAllergyStyle(allergy))}
+                            disabled={isReadOnly}
+                        />
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="blood_group" className="text-sm font-medium">Blood Group</Label>
-                    <Select value={bloodGroup} onValueChange={value => onPatientDetailsChange('blood_group', value)} disabled={isReadOnly}>
-                        <SelectTrigger className="bg-background/50">
-                            <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                                <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="relative">
+                        <Droplet className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                        <Select value={bloodGroup} onValueChange={value => onPatientDetailsChange('blood_group', value)} disabled={isReadOnly}>
+                            <SelectTrigger className="bg-background/50 pl-9">
+                                <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                                    <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
         </div>

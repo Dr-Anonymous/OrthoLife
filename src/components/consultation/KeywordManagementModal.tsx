@@ -24,6 +24,7 @@ interface Keyword {
 interface Medication {
   id: number;
   composition: string;
+  brand_metadata?: { name: string }[];
 }
 
 export interface KeywordPrefillData {
@@ -72,26 +73,39 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
-  const filteredMeds = medications.filter(med =>
-    med.composition.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const displayedMeds = React.useMemo(() => {
+    let filtered = medications.filter(med =>
+      med.composition.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (med.brand_metadata || []).some(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    return filtered.sort((a, b) => {
+      const aSelected = selectedMeds.includes(a.id);
+      const bSelected = selectedMeds.includes(b.id);
+      
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      
+      return a.composition.localeCompare(b.composition);
+    });
+  }, [medications, searchQuery, selectedMeds]);
 
   useEffect(() => {
     setActiveSuggestionIndex(0);
   }, [searchQuery]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (filteredMeds.length === 0) return;
+    if (displayedMeds.length === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveSuggestionIndex(prev => (prev + 1) % filteredMeds.length);
+      setActiveSuggestionIndex(prev => (prev + 1) % displayedMeds.length);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveSuggestionIndex(prev => (prev - 1 + filteredMeds.length) % filteredMeds.length);
+      setActiveSuggestionIndex(prev => (prev - 1 + displayedMeds.length) % displayedMeds.length);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const activeMed = filteredMeds[activeSuggestionIndex];
+      const activeMed = displayedMeds[activeSuggestionIndex];
       if (activeMed) {
         const id = activeMed.id;
         setSelectedMeds(prev => {
@@ -117,7 +131,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   };
 
   const fetchMedications = async () => {
-    const { data, error } = await supabase.from('saved_medications').select('id, composition');
+    const { data, error } = await supabase.from('saved_medications').select('id, composition, brand_metadata');
     if (error) {
       toast({ variant: 'destructive', title: 'Error fetching medications', description: error.message });
     } else {
@@ -233,6 +247,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   };
 
   const handleDeleteKeyword = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this clinical protocol?')) return;
     try {
       const { error } = await supabase.functions.invoke('delete-autofill-keyword', {
         body: { id },
@@ -291,7 +306,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                   </div>
                 </div>
                 <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
-                  {filteredMeds.map((med, idx) => (
+                  {displayedMeds.map((med, idx) => (
                     <div
                       key={med.id}
                       className={`flex items-center gap-2 p-1 rounded-sm transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10' : ''}`}
@@ -308,7 +323,14 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                           }
                         }}
                       />
-                      <Label htmlFor={`med-${med.id}`}>{med.composition}</Label>
+                      <Label htmlFor={`med-${med.id}`} className="cursor-pointer">
+                        <div className="font-medium">{med.composition}</div>
+                        {(med.brand_metadata || []).length > 0 && (
+                          <div className="text-[10px] text-muted-foreground leading-tight">
+                            {(med.brand_metadata || []).map(b => b.name).join(', ')}
+                          </div>
+                        )}
+                      </Label>
                     </div>
                   ))}
                 </div>
@@ -408,7 +430,9 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                   const hasAdviceMatch = kw.advice?.toLowerCase().includes(query) || kw.advice_te?.toLowerCase().includes(query);
                   const hasMedMatch = (kw.medication_ids || []).some(id => {
                     const med = medications.find(m => m.id === id);
-                    return med?.composition?.toLowerCase().includes(query);
+                    const hasCompMatch = med?.composition?.toLowerCase().includes(query);
+                    const hasBrandMatch = (med?.brand_metadata || []).some(b => b.name.toLowerCase().includes(query));
+                    return hasCompMatch || hasBrandMatch;
                   });
                   const hasInvestMatch = kw.investigations?.toLowerCase().includes(query);
                   const hasFollowupMatch = kw.followup?.toLowerCase().includes(query) || kw.followup_te?.toLowerCase().includes(query);
@@ -420,7 +444,14 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                     <div>
                       <p className="font-semibold">{(kw.keywords || []).join(', ')}</p>
                       <p className="text-sm text-muted-foreground">
-                        Meds: {(kw.medication_ids || []).map(id => medications.find(m => m.id === id)?.composition).join(', ')}
+                        Meds: {(kw.medication_ids || []).map(id => {
+                          const med = medications.find(m => m.id === id);
+                          if (!med) return null;
+                          const brandStr = (med.brand_metadata || []).length > 0 
+                            ? ` (${med.brand_metadata?.map(b => b.name).join(', ')})` 
+                            : '';
+                          return med.composition + brandStr;
+                        }).filter(Boolean).join(', ')}
                       </p>
                       {kw.advice && <p className="text-sm text-muted-foreground mt-1">Advice: {kw.advice}</p>}
                       {kw.investigations && <p className="text-sm text-muted-foreground mt-1">Investigations: {kw.investigations}</p>}
