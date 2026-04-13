@@ -1,6 +1,7 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +13,9 @@ interface VitalsFormProps {
     bp: string;
     temperature: string;
     allergy: string;
+    bloodGroup?: string;
     onExtraChange: (field: string, value: string) => void;
+    onPatientDetailsChange: (field: string, value: string) => void;
     initialData?: any;
     initialPatientData?: any;
     isReadOnly?: boolean;
@@ -32,7 +35,9 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     bp,
     temperature,
     allergy,
+    bloodGroup,
     onExtraChange,
+    onPatientDetailsChange,
     initialData,
     initialPatientData,
     isReadOnly = false
@@ -116,7 +121,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
                 <div className="space-y-2">
                     <Label htmlFor="weight" className="text-sm font-medium">Weight (kg)</Label>
                     <Input
@@ -158,7 +163,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                     </div>
                 )}
 
-                <div className="space-y-2 col-span-2 sm:col-span-1 md:col-span-1">
+                <div className="space-y-2 col-span-2 lg:col-span-1">
                     <Label className="text-sm font-medium text-nowrap">BP</Label>
                     <div className="flex items-center gap-1">
                         <Input
@@ -213,7 +218,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         disabled={isReadOnly}
                     />
                 </div>
-                <div className="space-y-2 col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1">
+                <div className="space-y-2 lg:col-span-1">
                     <Label htmlFor="allergy" className="text-sm font-medium">Allergy</Label>
                     <Input
                         id="allergy"
@@ -223,6 +228,19 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                         className={getAllergyStyle(allergy)}
                         disabled={isReadOnly}
                     />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="blood_group" className="text-sm font-medium">Blood Group</Label>
+                    <Select value={bloodGroup} onValueChange={value => onPatientDetailsChange('blood_group', value)} disabled={isReadOnly}>
+                        <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                                <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
         </div>

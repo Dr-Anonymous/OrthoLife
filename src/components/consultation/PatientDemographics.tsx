@@ -227,20 +227,7 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                     </Select>
                 </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="blood_group">Blood Group</Label>
-                    <Select value={patient.blood_group} onValueChange={value => onPatientDetailsChange('blood_group', value)} disabled={isReadOnly}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                                <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="occupation">Occupation</Label>
                     <Input id="occupation" value={patient.occupation || ''} onChange={e => onPatientDetailsChange('occupation', e.target.value)} placeholder="e.g., Software... " disabled={isReadOnly} />

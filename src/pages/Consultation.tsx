@@ -2163,7 +2163,9 @@ const ConsultationPage = () => {
                   bp={extraData.bp}
                   temperature={extraData.temperature}
                   allergy={editablePatientDetails.allergies || ''}
+                  bloodGroup={editablePatientDetails.blood_group}
                   onExtraChange={handleExtraChange}
+                  onPatientDetailsChange={handlePatientDetailsChange}
                   initialData={initialExtraData}
                   initialPatientData={initialPatientDetails}
                   isReadOnly={isReadOnly}
