@@ -4,7 +4,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe } from 'lucide-react';
+import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe, Activity, Droplets, Thermometer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog,
@@ -16,6 +16,9 @@ import {
 import BMICalculator from '@/components/BMICalculator';
 import PainTracker from '@/components/PainTracker';
 import RecoveryProgressTracker from '@/components/RecoveryProgressTracker';
+import BloodPressureTracker from '@/components/BloodPressureTracker';
+import BloodSugarTracker from '@/components/BloodSugarTracker';
+import TemperatureTracker from '@/components/TemperatureTracker';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -37,7 +40,10 @@ const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInst
   const toolsAndCalculators = [
     { id: 1, titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
     { id: 2, titleKey: 'resources.tool2.title', descriptionKey: 'resources.tool2.description', icon: Calendar, type: 'Interactive Tool', component: <PainTracker /> },
-    { id: 3, titleKey: 'resources.tool3.title', descriptionKey: 'resources.tool3.description', icon: FileText, type: 'Interactive Tool', component: <RecoveryProgressTracker /> }
+    { id: 3, titleKey: 'resources.tool3.title', descriptionKey: 'resources.tool3.description', icon: FileText, type: 'Interactive Tool', component: <RecoveryProgressTracker /> },
+    { id: 4, titleKey: 'resources.tool4.title', descriptionKey: 'resources.tool4.description', icon: Activity, type: 'Interactive Tool', component: <BloodPressureTracker /> },
+    { id: 5, titleKey: 'resources.tool5.title', descriptionKey: 'resources.tool5.description', icon: Droplets, type: 'Interactive Tool', component: <BloodSugarTracker /> },
+    { id: 6, titleKey: 'resources.tool6.title', descriptionKey: 'resources.tool6.description', icon: Thermometer, type: 'Interactive Tool', component: <TemperatureTracker /> }
   ];
 
   const mobileApps = [
@@ -103,11 +109,13 @@ const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInst
                         </DialogTrigger>
                       </CardContent>
                     </Card>
-                    <DialogContent>
+                    <DialogContent className="sm:max-w-[900px] w-[95vw] overflow-y-auto max-h-[90vh]">
                       <DialogHeader>
                         <DialogTitle>{t(tool.titleKey)}</DialogTitle>
                       </DialogHeader>
-                      {tool.component}
+                      <div className="py-4">
+                        {tool.component}
+                      </div>
                     </DialogContent>
                   </Dialog>
                 ))}

@@ -132,7 +132,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                         <div className="flex items-center gap-2 border-l pl-4 border-border/50">
                             <Briefcase className="w-4 h-4 text-primary" />
                             <p className="text-sm font-semibold text-primary/80">
-                                Dr. {renderText(data.consultant_name)}
+                                {renderText(data.consultant_name)}
                             </p>
                         </div>
                     )}

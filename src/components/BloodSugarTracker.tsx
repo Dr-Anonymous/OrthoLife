@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   LineChart, 
   Line, 
@@ -15,59 +22,68 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-interface PainEntry {
+interface SugarEntry {
   level: number;
+  type: string;
   timestamp: Date;
 }
 
-const PainTracker: React.FC = () => {
+const BloodSugarTracker: React.FC = () => {
   const { t } = useTranslation();
-  const [painLevel, setPainLevel] = useState<number>(5);
-  const [painHistory, setPainHistory] = useState<PainEntry[]>(() => {
+  const [level, setLevel] = useState<string>('100');
+  const [type, setType] = useState<string>('random');
+  const [history, setHistory] = useState<SugarEntry[]>(() => {
     try {
-      const savedHistory = localStorage.getItem('painHistory');
-      if (savedHistory) {
-        return JSON.parse(savedHistory).map((entry: any) => ({
+      const saved = localStorage.getItem('sugarHistory');
+      if (saved) {
+        return JSON.parse(saved).map((entry: any) => ({
           ...entry,
           timestamp: new Date(entry.timestamp),
         }));
       }
     } catch (error) {
-      console.error("Failed to parse pain history from localStorage", error);
+      console.error("Failed to parse Sugar history", error);
     }
     return [];
   });
 
   useEffect(() => {
-    localStorage.setItem('painHistory', JSON.stringify(painHistory));
-  }, [painHistory]);
+    localStorage.setItem('sugarHistory', JSON.stringify(history));
+  }, [history]);
 
-  const logPain = () => {
-    const newEntry: PainEntry = {
-      level: painLevel,
+  const logSugar = () => {
+    const l = parseInt(level);
+    if (isNaN(l)) return;
+
+    const newEntry: SugarEntry = {
+      level: l,
+      type: type,
       timestamp: new Date(),
     };
-    setPainHistory([newEntry, ...painHistory]);
+    setHistory([newEntry, ...history]);
   };
 
   const resetHistory = () => {
-    setPainHistory([]);
-    localStorage.removeItem('painHistory');
+    setHistory([]);
+    localStorage.removeItem('sugarHistory');
   };
 
-  const getPainLevelLabel = (level: number) => {
-    if (level <= 3) return t('pain.mild');
-    if (level <= 7) return t('pain.moderate');
-    return t('pain.severe');
+  const getTypeName = (value: string) => {
+    switch(value) {
+      case 'fasting': return t('sugar.fasting');
+      case 'post_meal': return t('sugar.post_meal');
+      case 'random': return t('sugar.random');
+      default: return value;
+    }
   };
 
-  // Format data for the chart (showing last 10 entries in chronological order)
-  const chartData = [...painHistory]
+  const chartData = [...history]
     .slice(0, 10)
     .reverse()
     .map(entry => ({
       time: entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       level: entry.level,
+      type: getTypeName(entry.type),
       fullDate: entry.timestamp.toLocaleString()
     }));
 
@@ -75,47 +91,55 @@ const PainTracker: React.FC = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
-          <div className="bg-muted/30 p-6 rounded-lg space-y-4">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-primary">{t('pain.current_level')}</label>
-                <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-bold">
-                  {painLevel} - {getPainLevelLabel(painLevel)}
-                </span>
-              </div>
-              <Slider
-                min={0}
-                max={10}
-                step={1}
-                value={[painLevel]}
-                onValueChange={(value) => setPainLevel(value[0])}
-                className="my-6"
+          <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-primary">{t('sugar.level')}</label>
+              <Input 
+                type="number" 
+                value={level} 
+                onChange={(e) => setLevel(e.target.value)}
+                placeholder="100"
+                className="bg-background"
               />
             </div>
-            <Button onClick={logPain} className="w-full shadow-md py-6 text-lg font-bold">
-              {t('pain.log_pain')}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-primary">{t('sugar.type')}</label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fasting">{t('sugar.fasting')}</SelectItem>
+                  <SelectItem value="post_meal">{t('sugar.post_meal')}</SelectItem>
+                  <SelectItem value="random">{t('sugar.random')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={logSugar} className="col-span-2 shadow-sm">
+              {t('sugar.log')}
             </Button>
           </div>
           
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b pb-2">
-              <h4 className="font-bold">{t('pain.history')}</h4>
-              {painHistory.length > 0 && (
+              <h4 className="font-bold">{t('sugar.history')}</h4>
+              {history.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={resetHistory} className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10">
                   {t('common.reset')}
                 </Button>
               )}
             </div>
-            <ScrollArea className="h-[250px] w-full rounded-md border bg-muted/10 p-4">
-              {painHistory.length > 0 ? (
+            <ScrollArea className="h-[300px] w-full rounded-md border bg-muted/10 p-4">
+              {history.length > 0 ? (
                 <div className="space-y-3">
-                  {painHistory.map((entry, index) => (
+                  {history.map((entry, index) => (
                     <div key={index} className="flex justify-between items-center text-sm p-3 rounded-md bg-background border shadow-sm transition-all hover:border-primary/30">
                       <div className="flex flex-col">
                         <span className="font-bold text-lg leading-none">
-                          {entry.level} <span className="text-xs text-muted-foreground font-normal">/ 10</span>
+                          {entry.level} 
+                          <span className="text-[10px] ml-1 text-muted-foreground uppercase">{t('sugar.unit')}</span>
                         </span>
-                        <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">{getPainLevelLabel(entry.level)}</span>
+                        <span className="text-[10px] text-muted-foreground mt-1">{getTypeName(entry.type)}</span>
                       </div>
                       <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                         {entry.timestamp.toLocaleString()}
@@ -137,7 +161,7 @@ const PainTracker: React.FC = () => {
             <h4 className="font-bold">{t('common.progress')}</h4>
           </div>
           <div className="flex-grow min-h-[350px] w-full border rounded-lg p-4 bg-muted/5 shadow-inner">
-            {painHistory.length > 1 ? (
+            {history.length > 1 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.5} />
@@ -149,11 +173,10 @@ const PainTracker: React.FC = () => {
                     tick={{ fill: 'currentColor', opacity: 0.6 }}
                   />
                   <YAxis 
-                    domain={[0, 10]} 
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={false}
-                    ticks={[0, 2, 4, 6, 8, 10]}
+                    domain={['auto', 'auto']}
                     tick={{ fill: 'currentColor', opacity: 0.6 }}
                   />
                   <Tooltip 
@@ -162,11 +185,11 @@ const PainTracker: React.FC = () => {
                   <Line 
                     type="monotone" 
                     dataKey="level" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={4} 
-                    dot={{ r: 6, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 8 }}
-                    name={t('pain.level')}
+                    stroke="#059669" 
+                    strokeWidth={3} 
+                    dot={{ r: 5, fill: '#059669', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 7 }}
+                    name={t('sugar.level')}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -182,4 +205,4 @@ const PainTracker: React.FC = () => {
   );
 };
 
-export default PainTracker;
+export default BloodSugarTracker;

@@ -542,7 +542,11 @@ const PatientRegistration = () => {
                         <p className="font-semibold text-lg">{c.patient.name}</p>
                         <div className="text-sm text-muted-foreground">
                           <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex}</div>
-                          <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
+                          {c.patient.phone && c.patient.phone !== '0000000000' ? (
+                            <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
+                          ) : (
+                            <span className="text-muted-foreground italic block mt-1">No phone</span>
+                          )}
                           {c.patient.secondary_phone && (
                             <a href={`tel:${c.patient.secondary_phone}`} className="hover:underline block text-xs mt-1 text-muted-foreground">Alt: {c.patient.secondary_phone}</a>
                           )}

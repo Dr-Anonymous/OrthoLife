@@ -66,7 +66,7 @@ const FollowUpDashboard = () => {
     setIsLoading(true);
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      
+
       let query = supabase
         .from('consultations')
         .select('*, patient:patients(*)')
@@ -99,18 +99,18 @@ const FollowUpDashboard = () => {
 
   const handleWhatsAppReminder = (consultation: Consultation) => {
     const phone = consultation.patient.phone;
-    if (!phone) {
-      toast.error('Patient phone number missing.');
+    if (!phone || phone === '0000000000') {
+      toast.error('Patient does not have a registered phone number.');
       return;
     }
 
     const isTelugu = consultation.language === 'te';
     const formattedDate = format(selectedDate!, 'PPP');
-    
+
     const defaultMessage = isTelugu
       ? `నమస్కారం ${consultation.patient.name} గారు, 🙏\n\nOrthoLife నుండి మీకు చిన్న రిమైండర్. 🏥\n\n🗓️ మీ రివ్యూ పర్యవేక్షణ (follow-up): ${formattedDate}\n\nదయచేసి మీ రాకను ఖరారు (confirm) చేసుకోవడానికి మమ్మల్ని సంప్రదించండి. 📞\n\nధన్యవాదాలు!`
       : `Hello ${consultation.patient.name}, 👋\n\nThis is a reminder from OrthoLife regarding your scheduled follow-up. 🏥\n\n🗓️ Scheduled Review: ${formattedDate}\n\nPlease contact us to confirm your visit. 📞\n\nThank you!`;
-    
+
     setWhatsappMessage(defaultMessage);
     setTargetConsultation(consultation);
     setWhatsappPreviewVisible(true);
@@ -118,14 +118,14 @@ const FollowUpDashboard = () => {
 
   const confirmAndSendWhatsApp = async () => {
     if (!targetConsultation || !consultant) return;
-    
+
     const phone = targetConsultation.patient.phone;
     setIsSendingWhatsApp(true);
-    
+
     try {
       const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: { 
-          number: phone, 
+        body: {
+          number: phone,
           message: whatsappMessage,
           consultant_id: consultant.is_legacy_handler ? "legacy" : consultant.id
         },
@@ -152,6 +152,10 @@ const FollowUpDashboard = () => {
   };
 
   const handleCallPatient = (phone: string) => {
+    if (!phone || phone === '0000000000') {
+      toast.error('No phone number available to call.');
+      return;
+    }
     window.location.href = `tel:${phone}`;
   };
 
@@ -166,12 +170,12 @@ const FollowUpDashboard = () => {
 
   if (!consultant) {
     return (
-      <DoctorLoginGate 
+      <DoctorLoginGate
         onLogin={(phone, name) => {
           localStorage.setItem('consultant_phone', phone);
           localStorage.setItem('consultant_name', name);
           window.location.reload();
-        }} 
+        }}
       />
     );
   }
@@ -179,7 +183,7 @@ const FollowUpDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="container mx-auto max-w-7xl space-y-8">
-        
+
         {/* Header Section */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 text-2xl font-bold text-primary mb-2">
@@ -389,14 +393,15 @@ const FollowUpDashboard = () => {
                           <TableRow key={c.id}>
                             <TableCell>
                               <div className="flex flex-col">
-                                <button 
+                                <button
                                   onClick={() => setSelectedConsultation(c)}
                                   className="font-medium text-left hover:underline text-primary"
                                 >
                                   {c.patient.name}
                                 </button>
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Phone className="w-3 h-3" /> {c.patient.phone}
+                                  <Phone className="w-3 h-3" />
+                                  {c.patient.phone && c.patient.phone !== '0000000000' ? c.patient.phone : <span className="italic">No phone</span>}
                                 </span>
                               </div>
                             </TableCell>
@@ -429,8 +434,12 @@ const FollowUpDashboard = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 w-8 p-0 border-blue-200 text-blue-600 hover:bg-blue-50"
+                                  className={cn(
+                                    "h-8 w-8 p-0 border-blue-200 text-blue-600 hover:bg-blue-50",
+                                    (!c.patient.phone || c.patient.phone === '0000000000') && "opacity-50 cursor-not-allowed"
+                                  )}
                                   onClick={() => handleCallPatient(c.patient.phone)}
+                                  disabled={!c.patient.phone || c.patient.phone === '0000000000'}
                                   title="Call Patient"
                                 >
                                   <Phone className="w-4 h-4" />
@@ -448,7 +457,7 @@ const FollowUpDashboard = () => {
                     {followUpList.map((c) => (
                       <div key={c.id} className="p-4 rounded-lg bg-card shadow-sm border space-y-3">
                         <div className="flex justify-between items-start">
-                          <button 
+                          <button
                             onClick={() => setSelectedConsultation(c)}
                             className="font-bold text-left hover:underline text-primary text-lg transition-colors"
                           >
@@ -470,18 +479,25 @@ const FollowUpDashboard = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-9 w-9 p-0 rounded-full border-blue-200 text-blue-600 bg-blue-50/50"
+                              className={cn(
+                                "h-9 w-9 p-0 rounded-full border-blue-200 text-blue-600 bg-blue-50/50",
+                                (!c.patient.phone || c.patient.phone === '0000000000') && "opacity-50 cursor-not-allowed"
+                              )}
                               onClick={() => handleCallPatient(c.patient.phone)}
+                              disabled={!c.patient.phone || c.patient.phone === '0000000000'}
                             >
                               <Phone className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div className="flex flex-col gap-1">
                             <span className="text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Phone</span>
-                            <span className="flex items-center gap-1 font-medium"><Phone className="w-3 h-3" /> {c.patient.phone}</span>
+                            <span className="flex items-center gap-1 font-medium">
+                              <Phone className="w-3 h-3" />
+                              {c.patient.phone && c.patient.phone !== '0000000000' ? c.patient.phone : <span className="italic">No phone</span>}
+                            </span>
                           </div>
                           <div className="flex flex-col gap-1 text-right">
                             <span className="text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Last Visit</span>
@@ -519,7 +535,7 @@ const FollowUpDashboard = () => {
         <Dialog open={!!selectedConsultation} onOpenChange={(open) => !open && setSelectedConsultation(null)}>
           <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle>Consulation Summary</DialogTitle>
+              <DialogTitle>Consultation Summary</DialogTitle>
             </DialogHeader>
             {selectedConsultation && (
               <div className="space-y-6">
@@ -537,8 +553,8 @@ const FollowUpDashboard = () => {
                 </div>
 
                 {selectedConsultation.consultation_data && (
-                  <ConsultationCard 
-                    data={{ 
+                  <ConsultationCard
+                    data={{
                       ...selectedConsultation.consultation_data,
                       name: selectedConsultation.patient.name,
                       phone: selectedConsultation.patient.phone,
@@ -551,9 +567,8 @@ const FollowUpDashboard = () => {
                       blood_group: selectedConsultation.patient.blood_group,
                       allergies: selectedConsultation.patient.allergies,
                       sex: selectedConsultation.patient.sex,
-                      age: selectedConsultation.patient.age,
                       dob: selectedConsultation.patient.dob
-                    }} 
+                    }}
                   />
                 )}
               </div>
@@ -571,12 +586,12 @@ const FollowUpDashboard = () => {
               Edit WhatsApp Reminder
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="text-sm text-muted-foreground">
               To: <span className="font-semibold text-foreground">{targetConsultation?.patient.name}</span> ({targetConsultation?.patient.phone})
             </div>
-            
+
             <textarea
               className="w-full min-h-[150px] p-3 text-sm rounded-md border border-input focus:ring-1 focus:ring-primary outline-none resize-none bg-muted/50"
               value={whatsappMessage}
@@ -584,13 +599,13 @@ const FollowUpDashboard = () => {
               placeholder="Type your message..."
             />
           </div>
-          
+
           <div className="flex flex-col sm:flex-row justify-end gap-3">
             <Button variant="ghost" onClick={() => setWhatsappPreviewVisible(false)}>
               Cancel
             </Button>
-            
-            <Button 
+
+            <Button
               variant="outline"
               className="border-green-600 text-green-600 hover:bg-green-50"
               onClick={handleWhatsAppWebFallback}
@@ -600,8 +615,8 @@ const FollowUpDashboard = () => {
             </Button>
 
             {(consultant?.is_legacy_handler || consultant?.is_whatsauto_active) && (
-              <Button 
-                className="bg-green-600 hover:bg-green-700" 
+              <Button
+                className="bg-green-600 hover:bg-green-700"
                 onClick={confirmAndSendWhatsApp}
                 disabled={isSendingWhatsApp}
               >

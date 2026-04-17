@@ -28,12 +28,18 @@ async function generateIncrementalId(supabaseClient: SupabaseClient) {
 }
 
 // Helper to determine visit type based on 14-day rule (or hospital specific)
-async function getVisitType(supabaseClient: SupabaseClient, patientId: string | number, currentLocation: string, freeVisitDurationDays = 14) {
-  const { data: lastPaidConsultation, error } = await supabaseClient
+async function getVisitType(supabaseClient: SupabaseClient, patientId: string | number, currentLocation: string, consultantId?: string, freeVisitDurationDays = 14) {
+  let query = supabaseClient
     .from('consultations')
     .select('created_at, location')
     .eq('patient_id', patientId)
-    .eq('visit_type', 'paid')
+    .eq('visit_type', 'paid');
+
+  if (consultantId) {
+    query = query.eq('consultant_id', consultantId);
+  }
+
+  const { data: lastPaidConsultation, error } = await query
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -51,12 +57,18 @@ async function getVisitType(supabaseClient: SupabaseClient, patientId: string | 
 
     if (diffDays <= freeVisitDurationDays) {
       // Rule 2: Only 1 free visit allowed within the window
-      const { count, error: countError } = await supabaseClient
+      let countQuery = supabaseClient
         .from('consultations')
         .select('*', { count: 'exact', head: true })
         .eq('patient_id', patientId)
         .eq('visit_type', 'free')
         .gt('created_at', lastPaidConsultation.created_at);
+
+      if (consultantId) {
+        countQuery = countQuery.eq('consultant_id', consultantId);
+      }
+
+      const { count, error: countError } = await countQuery;
 
       if (!countError && count !== null && count >= 1) {
         return 'paid';
@@ -168,10 +180,25 @@ serve(async (req: Request) => {
 
       for (const result of results) {
         if (result.error) throw result.error;
-        patients.push(...(result.data || []));
+        // Skip results where phone is the dummy number 0000000000
+        const filtered = (result.data || []).filter(p => p.phone !== '0000000000');
+        patients.push(...filtered);
       }
 
       return Array.from(new Map(patients.map((patient) => [patient.id, patient])).values());
+    };
+
+    const findExistingPatientsByDivergentCriteria = async () => {
+      // Broad search by name prefix + sex for patients who might be using the dummy phone number
+      const { data, error } = await supabase
+        .from('patients')
+        .select('id, name, dob, sex, phone, drive_id')
+        .ilike('name', `${name.trim().slice(0, 3)}%`) // Prefix search
+        .eq('sex', sex)
+        .limit(100);
+
+      if (error) throw error;
+      return data || [];
     };
 
     const calculateSimilarity = (incomingName: string, existingName: string): number => {
@@ -196,24 +223,46 @@ serve(async (req: Request) => {
         }
       }
 
-      const phoneMatches = await findExistingPatientsByPhone();
-      let bestPhoneMatch = null;
-      let bestPhoneSimilarity = 0;
+      const isDummyPhone = sanitizedPhone === '0000000000' || sanitizedPhone === '';
+      const potentialMatches = isDummyPhone
+        ? await findExistingPatientsByDivergentCriteria()
+        : await findExistingPatientsByPhone();
 
-      for (const patient of phoneMatches) {
+      let bestMatch = null;
+      let bestSimilarity = 0;
+
+      for (const patient of potentialMatches) {
         if (sex && patient.sex && sex.toLowerCase() !== patient.sex.toLowerCase()) {
           continue;
         }
 
         const similarity = calculateSimilarity(name, patient.name);
-        if (similarity >= 0.6 && similarity > bestPhoneSimilarity) {
-          bestPhoneSimilarity = similarity;
-          bestPhoneMatch = patient;
+        
+        // For patients with dummy phone numbers, we are more selective
+        if (isDummyPhone && similarity < 0.7) continue;
+
+        // Age/DOB window check (±2 years)
+        if (dob && patient.dob) {
+          const incomingYear = new Date(dob).getFullYear();
+          const existingYear = new Date(patient.dob).getFullYear();
+          const yearDiff = Math.abs(incomingYear - existingYear);
+
+          if (yearDiff > 2) {
+            // Strict age check for dummy phone registrations
+            if (isDummyPhone) continue;
+            // For real phone matches (e.g. sharing phone), we just penalize the score
+            if (similarity < 0.9) continue; // High bar for age mismatch on shared phones
+          }
+        }
+
+        if (similarity >= 0.6 && similarity > bestSimilarity) {
+          bestSimilarity = similarity;
+          bestMatch = patient;
         }
       }
 
-      if (bestPhoneMatch) {
-        return { patient: bestPhoneMatch, similarity: bestPhoneSimilarity };
+      if (bestMatch) {
+        return { patient: bestMatch, similarity: bestSimilarity };
       }
       return { patient: null, similarity: 0 };
     };
@@ -242,7 +291,7 @@ serve(async (req: Request) => {
         });
       }
 
-      const visitTypePromise = getVisitType(supabase, patient.id, location, freeDuration);
+      const visitTypePromise = getVisitType(supabase, patient.id, location, consultant_id, freeDuration);
       const languagePromise = language
         ? Promise.resolve(language)
         : getLastLanguage(supabase, patient.id);

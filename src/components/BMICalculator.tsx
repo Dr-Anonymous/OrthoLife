@@ -39,45 +39,51 @@ const BMICalculator: React.FC = () => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>{t('resources.tool1.title')}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+    <div className="space-y-6">
+      <div className="bg-muted/30 p-6 rounded-lg space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="height">{t('bmi.height')}</Label>
+            <Label htmlFor="height" className="font-semibold text-primary">{t('bmi.height')}</Label>
             <Input
               id="height"
               type="number"
               value={height}
               onChange={(e) => setHeight(e.target.value)}
               placeholder={t('bmi.height_placeholder')}
+              className="bg-background"
             />
           </div>
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="weight">{t('bmi.weight')}</Label>
+            <Label htmlFor="weight" className="font-semibold text-primary">{t('bmi.weight')}</Label>
             <Input
               id="weight"
               type="number"
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
               placeholder={t('bmi.weight_placeholder')}
+              className="bg-background"
             />
           </div>
-          <Button onClick={calculateBmi} className="w-full">
-            {t('bmi.calculate')}
-          </Button>
-          {bmi !== null && (
-            <div className="text-center pt-4">
-              <h3 className="text-lg font-semibold">{t('bmi.your_bmi')}</h3>
-              <p className="text-3xl font-bold text-primary">{bmi.toFixed(2)}</p>
-              <p className="text-muted-foreground">{interpretation}</p>
-            </div>
-          )}
         </div>
-      </CardContent>
-    </Card>
+        <Button onClick={calculateBmi} className="w-full shadow-md py-6 text-xl font-bold">
+          {t('bmi.calculate')}
+        </Button>
+      </div>
+
+      {bmi !== null && (
+        <div className="animate-in fade-in zoom-in duration-300">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-10 text-center space-y-4 shadow-inner">
+            <div className="space-y-1">
+              <span className="text-sm text-muted-foreground uppercase tracking-widest font-bold">{t('bmi.your_bmi')}</span>
+              <div className="text-7xl font-black text-primary leading-none">{bmi.toFixed(2)}</div>
+            </div>
+            <div className={`text-xl font-bold px-6 py-2 rounded-full inline-block border bg-background shadow-sm`}>
+              {interpretation}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

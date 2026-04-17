@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Thermometer } from 'lucide-react';
 import { 
   LineChart, 
   Line, 
@@ -15,59 +16,55 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-interface PainEntry {
-  level: number;
+interface TempEntry {
+  value: number;
   timestamp: Date;
 }
 
-const PainTracker: React.FC = () => {
+const TemperatureTracker: React.FC = () => {
   const { t } = useTranslation();
-  const [painLevel, setPainLevel] = useState<number>(5);
-  const [painHistory, setPainHistory] = useState<PainEntry[]>(() => {
+  const [value, setValue] = useState<string>('98.6');
+  const [history, setHistory] = useState<TempEntry[]>(() => {
     try {
-      const savedHistory = localStorage.getItem('painHistory');
-      if (savedHistory) {
-        return JSON.parse(savedHistory).map((entry: any) => ({
+      const saved = localStorage.getItem('tempHistory');
+      if (saved) {
+        return JSON.parse(saved).map((entry: any) => ({
           ...entry,
           timestamp: new Date(entry.timestamp),
         }));
       }
     } catch (error) {
-      console.error("Failed to parse pain history from localStorage", error);
+      console.error("Failed to parse Temp history", error);
     }
     return [];
   });
 
   useEffect(() => {
-    localStorage.setItem('painHistory', JSON.stringify(painHistory));
-  }, [painHistory]);
+    localStorage.setItem('tempHistory', JSON.stringify(history));
+  }, [history]);
 
-  const logPain = () => {
-    const newEntry: PainEntry = {
-      level: painLevel,
+  const logTemp = () => {
+    const v = parseFloat(value);
+    if (isNaN(v)) return;
+
+    const newEntry: TempEntry = {
+      value: v,
       timestamp: new Date(),
     };
-    setPainHistory([newEntry, ...painHistory]);
+    setHistory([newEntry, ...history]);
   };
 
   const resetHistory = () => {
-    setPainHistory([]);
-    localStorage.removeItem('painHistory');
+    setHistory([]);
+    localStorage.removeItem('tempHistory');
   };
 
-  const getPainLevelLabel = (level: number) => {
-    if (level <= 3) return t('pain.mild');
-    if (level <= 7) return t('pain.moderate');
-    return t('pain.severe');
-  };
-
-  // Format data for the chart (showing last 10 entries in chronological order)
-  const chartData = [...painHistory]
+  const chartData = [...history]
     .slice(0, 10)
     .reverse()
     .map(entry => ({
       time: entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      level: entry.level,
+      value: entry.value,
       fullDate: entry.timestamp.toLocaleString()
     }));
 
@@ -75,48 +72,40 @@ const PainTracker: React.FC = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
-          <div className="bg-muted/30 p-6 rounded-lg space-y-4">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-primary">{t('pain.current_level')}</label>
-                <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-bold">
-                  {painLevel} - {getPainLevelLabel(painLevel)}
-                </span>
-              </div>
-              <Slider
-                min={0}
-                max={10}
-                step={1}
-                value={[painLevel]}
-                onValueChange={(value) => setPainLevel(value[0])}
-                className="my-6"
+          <div className="bg-muted/30 p-4 rounded-lg space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-primary">{t('temp.value')}</label>
+              <Input 
+                type="number" 
+                step="0.1"
+                value={value} 
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="98.6"
+                className="bg-background"
               />
             </div>
-            <Button onClick={logPain} className="w-full shadow-md py-6 text-lg font-bold">
-              {t('pain.log_pain')}
+            <Button onClick={logTemp} className="w-full shadow-sm">
+              {t('temp.log')}
             </Button>
           </div>
           
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b pb-2">
-              <h4 className="font-bold">{t('pain.history')}</h4>
-              {painHistory.length > 0 && (
+              <h4 className="font-bold">{t('temp.history')}</h4>
+              {history.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={resetHistory} className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10">
                   {t('common.reset')}
                 </Button>
               )}
             </div>
-            <ScrollArea className="h-[250px] w-full rounded-md border bg-muted/10 p-4">
-              {painHistory.length > 0 ? (
+            <ScrollArea className="h-[300px] w-full rounded-md border bg-muted/10 p-4">
+              {history.length > 0 ? (
                 <div className="space-y-3">
-                  {painHistory.map((entry, index) => (
+                  {history.map((entry, index) => (
                     <div key={index} className="flex justify-between items-center text-sm p-3 rounded-md bg-background border shadow-sm transition-all hover:border-primary/30">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-lg leading-none">
-                          {entry.level} <span className="text-xs text-muted-foreground font-normal">/ 10</span>
-                        </span>
-                        <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">{getPainLevelLabel(entry.level)}</span>
-                      </div>
+                      <span className="font-bold text-lg">
+                        {entry.value}<span className="text-[10px] ml-1 text-muted-foreground uppercase">{t('temp.unit')}</span>
+                      </span>
                       <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                         {entry.timestamp.toLocaleString()}
                       </span>
@@ -137,7 +126,7 @@ const PainTracker: React.FC = () => {
             <h4 className="font-bold">{t('common.progress')}</h4>
           </div>
           <div className="flex-grow min-h-[350px] w-full border rounded-lg p-4 bg-muted/5 shadow-inner">
-            {painHistory.length > 1 ? (
+            {history.length > 1 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.5} />
@@ -149,11 +138,10 @@ const PainTracker: React.FC = () => {
                     tick={{ fill: 'currentColor', opacity: 0.6 }}
                   />
                   <YAxis 
-                    domain={[0, 10]} 
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={false}
-                    ticks={[0, 2, 4, 6, 8, 10]}
+                    domain={['auto', 'auto']}
                     tick={{ fill: 'currentColor', opacity: 0.6 }}
                   />
                   <Tooltip 
@@ -161,12 +149,12 @@ const PainTracker: React.FC = () => {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="level" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={4} 
-                    dot={{ r: 6, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 8 }}
-                    name={t('pain.level')}
+                    dataKey="value" 
+                    stroke="#f97316" 
+                    strokeWidth={3} 
+                    dot={{ r: 5, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 7 }}
+                    name={t('temp.value')}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -182,4 +170,4 @@ const PainTracker: React.FC = () => {
   );
 };
 
-export default PainTracker;
+export default TemperatureTracker;

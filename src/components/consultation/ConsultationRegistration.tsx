@@ -151,7 +151,16 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.dob) newErrors.dob = 'Date of birth is required';
     if (formData.dob && formData.dob > new Date()) newErrors.dob = 'Date of birth cannot be in the future';
-    if (!formData.phone || !isValidPhoneNumber(formData.phone)) newErrors.phone = 'A valid 10-digit phone number is required';
+
+    if (!formData.phone) {
+      if (!formData.name.trim() || !formData.dob) {
+        newErrors.phone = 'Phone number is required unless Name and DOB are provided';
+      }
+    } else if (!isValidPhoneNumber(formData.phone)) {
+      if (formData.phone !== '0000000000') {
+        newErrors.phone = 'A valid 10-digit phone number is required';
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
