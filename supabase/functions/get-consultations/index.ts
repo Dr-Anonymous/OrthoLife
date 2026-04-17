@@ -63,6 +63,7 @@ async function fetchConsultations(date?: string, patientId?: string, hospital?: 
     .select(`
       id, status, consultation_data, visit_type, location, language, created_at, duration,
       procedure_fee, procedure_consultant_cut, referral_amount, referred_by, consultant_id,
+      consultant:consultants (name),
       patient:patients (
         id, name, dob, sex, phone, drive_id, is_dob_estimated, secondary_phone,
         occupation, blood_group, hometown

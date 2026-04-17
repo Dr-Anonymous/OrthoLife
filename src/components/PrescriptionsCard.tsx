@@ -186,7 +186,9 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
             {dbConsultations.map((consultation: any) => (
               <li key={consultation.id} className="p-3 bg-gray-100 rounded-lg flex justify-between items-center">
                 <div>
-                  <p className="font-medium text-gray-800">Consultation</p>
+                  <p className="font-medium text-gray-800">
+                    Consultation {consultation.consultant?.name && ` - Dr. ${typeof consultation.consultant.name === 'object' ? consultation.consultant.name.en : consultation.consultation.name}`}
+                  </p>
                   <p className="text-sm text-gray-600">{format(new Date(consultation.created_at), 'PPP')}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => onDownloadClick(consultation)}>

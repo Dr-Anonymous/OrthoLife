@@ -93,6 +93,7 @@ export interface Consultation {
     patient: Patient;
     patient_id: string;
     consultant_id?: string;
+    consultant?: { name: any };
     consultation_data?: ExtraData;
     last_visit_date?: string;
     duration?: number;

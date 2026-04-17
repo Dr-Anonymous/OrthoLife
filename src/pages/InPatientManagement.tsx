@@ -624,7 +624,7 @@ const InPatientManagement = () => {
 
         if (type === 'pre-op') {
             if (isTelugu) {
-                message = `🙏 నమస్కారం ${patientName} గారు,\nరేపు మీ ${patient.procedure} శస్త్రచికిత్స జరగనుంది. \nదయచేసి ఈ రోజు అర్ధరాత్రి నుండి ఉపవాసం ఉండండి - ఎటువంటి ఆహారం లేదా నీరు తీసుకోవద్దు 🚫🍽️.\n\nశస్త్రచికిత్సకు ముందు తీసుకోవలసిన విషయాలు ఇక్కడ చూడండి:\nhttps://ortho.life/te/guides/15\n\nశుభాకాంక్షలు,\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి.`;
+                message = `🙏 నమస్కారం ${patientName} గారు,\nరేపు మీ ${patient.procedure} శస్త్రచికిత్స జరగనుంది. \nదయచేసి ఈ రోజు అర్ధరాత్రి నుండి ఉపవాసం ఉండండి - ఎటువంటి ఆహారం లేదా నీరు తీసుకోవద్దు 🚫🍽️.\n\nశస్త్రచికిత్సకు ముందు తెలుసుకోవలసిన విషయాలు ఇక్కడ చూడండి:\nhttps://ortho.life/te/guides/15\n\nశుభాకాంక్షలు,\nడాక్టర్ శామ్యూల్ మనోజ్ చెరుకూరి.`;
             } else {
                 message = `🙏 Hello ${patientName},\nThis is an update regarding your scheduled procedure: ${patient.procedure}.\nPlease ensure you are fasting from midnight - No food or water 🚫🍽️.\n\nHere is an article outlining common before-surgery concerns:\nhttps://ortho.life/guides/15\n\nBest regards,\nDr Samuel Manoj Cherukuri.`;
             }
@@ -874,7 +874,7 @@ const InPatientManagement = () => {
                         <Users className="w-7 h-7 sm:w-8 sm:h-8" />
                         IP Management
                     </h1>
-                    <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage admissions, procedures, and patient updates.</p>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage patient admissions and procedures.</p>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-center">
@@ -899,31 +899,31 @@ const InPatientManagement = () => {
                                 className="pl-9 h-10 w-full"
                             />
                         </div>
-                    <div className="flex bg-muted/40 p-1 rounded-lg border flex-none h-10 items-center" title="Default Language for IP area">
-                        {[
-                            { code: 'en', label: 'EN' },
-                            { code: 'te', label: 'తె' }
-                        ].map((lang) => (
-                            <Button
-                                key={lang.code}
-                                variant={inPatientLanguage === lang.code ? "default" : "ghost"}
-                                size="sm"
-                                onClick={() => updateLocalLanguage(lang.code)}
-                                className={cn(
-                                    "h-8 px-3 text-xs font-bold transition-all duration-200",
-                                    inPatientLanguage === lang.code ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-primary"
-                                )}
-                            >
-                                {lang.label}
-                            </Button>
-                        ))}
+                        <div className="flex bg-muted/40 p-1 rounded-lg border flex-none h-10 items-center" title="Default Language for IP area">
+                            {[
+                                { code: 'en', label: 'EN' },
+                                { code: 'te', label: 'తె' }
+                            ].map((lang) => (
+                                <Button
+                                    key={lang.code}
+                                    variant={inPatientLanguage === lang.code ? "default" : "ghost"}
+                                    size="sm"
+                                    onClick={() => updateLocalLanguage(lang.code)}
+                                    className={cn(
+                                        "h-8 px-3 text-xs font-bold transition-all duration-200",
+                                        inPatientLanguage === lang.code ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-primary"
+                                    )}
+                                >
+                                    {lang.label}
+                                </Button>
+                            ))}
+                        </div>
                     </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center sm:justify-end">
-                    <Button onClick={() => setIsAdmitModalOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Admit
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center sm:justify-end">
+                        <Button onClick={() => setIsAdmitModalOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Admit
+                        </Button>
                         {isMasterAdmin && (
                             <div className="flex gap-2 w-full sm:w-auto">
                                 <Button variant="outline" asChild className="flex-1 sm:flex-none">
@@ -1802,7 +1802,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         let content = t.content || '';
         const stepsMarker = "Surgical Steps:</h3>";
         const hrMarker = "<hr>";
-        
+
         if (content.includes(stepsMarker)) {
             content = content.split(stepsMarker)[1];
         } else if (content.includes(hrMarker)) {
@@ -1826,16 +1826,16 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         }
 
         let cleanText = content.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
-        
+
         // Process Placeholders
         let hasLimbSidePlaceholder = /\{\{LimbSide\}\}/gi.test(content);
 
         if (sideTerm) {
             cleanText = cleanText.replace(/\{\{LimbSide\}\}/gi, sideTerm.toLowerCase());
         } else {
-             cleanText = cleanText.replace(/\{\{LimbSide\}\}/gi, '');
+            cleanText = cleanText.replace(/\{\{LimbSide\}\}/gi, '');
         }
-        
+
         cleanText = cleanText.replace(/\{\{PatientName\}\}/gi, snapshot.name || '');
         // Do NOT replace or purge other placeholders as per user request (ImplantMaterial, etc.)
 
@@ -1850,10 +1850,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     useEffect(() => {
         if (otTemplates && course.procedure && (!course.operation_notes || course.operation_notes.trim() === '')) {
             const sideWords = ['left', 'right', 'bilateral'];
-            const procSignificantWords = course.procedure.toLowerCase().split(/\W+/).filter(word => 
+            const procSignificantWords = course.procedure.toLowerCase().split(/\W+/).filter(word =>
                 word.length >= 3 && !sideWords.includes(word)
             );
-            
+
             if (procSignificantWords.length === 0) return;
 
             // Find a template whose name contains all the significant words of the procedure
@@ -2192,16 +2192,16 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     useEffect(() => {
         const newLang = currentLanguage as keyof typeof DISCHARGE_INSTRUCTIONS;
         const prevLang = prevLanguageRef.current as keyof typeof DISCHARGE_INSTRUCTIONS | null;
-        
+
         setDischarge(prev => {
             const updated = { ...prev };
             const fieldsToSwap: ('red_flags' | 'wound_care' | 'activity')[] = ['red_flags', 'wound_care', 'activity'];
-            
+
             let changed = false;
             fieldsToSwap.forEach(f => {
                 const prevDefault = prevLang ? DISCHARGE_INSTRUCTIONS[prevLang][f].trim() : null;
                 const currentVal = (prev[f] || '').trim();
-                
+
                 // If it's the first run and the field is empty, OR
                 // if it matches the previous default, swap to the current default
                 if (!currentVal || (prevDefault && currentVal === prevDefault)) {
@@ -2211,10 +2211,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     }
                 }
             });
-            
+
             return changed ? updated : prev;
         });
-        
+
         prevLanguageRef.current = currentLanguage;
     }, [currentLanguage]);
 

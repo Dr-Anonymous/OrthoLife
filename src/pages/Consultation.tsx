@@ -963,9 +963,13 @@ const ConsultationPage = () => {
     const activeExtraData = options.extraDataOverride || extraData;
 
     const hasMedsOrFollowup = activeExtraData.medications.length > 0 || (activeExtraData.followup && activeExtraData.followup.trim() !== '');
+    const hasInvestigations = activeExtraData.investigations && activeExtraData.investigations.trim() !== '';
+
     let newStatus = selectedConsultation.status;
     if (options.markAsCompleted) {
       newStatus = hasMedsOrFollowup ? 'completed' : 'under_evaluation';
+    } else if (hasInvestigations && newStatus === 'pending') {
+      newStatus = 'under_evaluation';
     }
     const statusChanged = newStatus !== selectedConsultation.status;
 

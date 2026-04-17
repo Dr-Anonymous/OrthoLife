@@ -100,7 +100,10 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                           blood_group: item.patient?.blood_group,
                           allergies: item.patient?.allergies,
                           sex: item.patient?.sex,
-                          dob: item.patient?.dob
+                          dob: item.patient?.dob,
+                          consultant_name: typeof item.consultant?.name === 'object' 
+                            ? item.consultant.name.en
+                            : (item.consultant?.name || '')
                         }} 
                       />
                     </div>

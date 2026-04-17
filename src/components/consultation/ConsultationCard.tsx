@@ -56,6 +56,7 @@ export interface ConsultationData {
     referred_to_list?: string[];
     referred_by?: string;
     personalNote?: string;
+    consultant_name?: string;
     [key: string]: any;
 }
 
@@ -125,6 +126,14 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                             <span className={`px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
                                 {data.status}
                             </span>
+                        </div>
+                    )}
+                    {data.consultant_name && (
+                        <div className="flex items-center gap-2 border-l pl-4 border-border/50">
+                            <Briefcase className="w-4 h-4 text-primary" />
+                            <p className="text-sm font-semibold text-primary/80">
+                                Dr. {renderText(data.consultant_name)}
+                            </p>
                         </div>
                     )}
                 </div>
