@@ -87,6 +87,8 @@
     "/guides/14",
     "/guides/weight-loss-guide",
     "/guides/17",
+    "/guides/kidney-stones-and-heatstroke-management",
+    "/guides/18",
     "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
     "/te/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
     "/te/guides/7",
@@ -135,10 +137,9 @@
     "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
     "/te/guides/post-surgery-recovery-what-to-expect",
     "/te/guides/15",
-    "/op",
-    "/stats",
-    "/followups",
-    "/ip"
+    "/te/guides/కిడ్నీ-రాళ్లు-మరియు-ఎండదెబ్బను-నివారించడం",
+    "/te/guides/kidney-stones-and-heatstroke-management",
+    "/te/guides/18"
   ],
   "metadata": [
     {
@@ -205,25 +206,25 @@
       "route": "/blog/beat-backache-causes-prevention-treatments-for-back-pain",
       "title": "Beat Backache: Causes, Prevention & Treatments for Back Pain",
       "description": "Back pain is a common issue, but it doesn't have to control your life. Learn about the main causes of backache, from muscle strain to disc problems, and discover effective prevention strategies and treatment options to get you back on your feet.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/blog/12",
       "title": "Beat Backache: Causes, Prevention & Treatments for Back Pain",
       "description": "Back pain is a common issue, but it doesn't have to control your life. Learn about the main causes of backache, from muscle strain to disc problems, and discover effective prevention strategies and treatment options to get you back on your feet.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/blog/hip-replacement-surgery-recovery-benefits-patient-guide",
       "title": "Hip Replacement Surgery: Recovery, Benefits & Patient Guide",
       "description": "Hip pain can limit every step you take. Hip replacement surgery is a proven way to relieve pain and improve movement. Discover when it’s recommended, what the procedure involves, and how recovery can bring back your independence.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
     },
     {
       "route": "/blog/8",
       "title": "Hip Replacement Surgery: Recovery, Benefits & Patient Guide",
       "description": "Hip pain can limit every step you take. Hip replacement surgery is a proven way to relieve pain and improve movement. Discover when it’s recommended, what the procedure involves, and how recovery can bring back your independence.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
     },
     {
       "route": "/blog/acl-tear-understanding-causes-treatment-recovery",
@@ -367,19 +368,19 @@
       "route": "/te/blog/తుంటి-మార్పిడి-శస్త్రచికిత్స-కోలుకోవడం-ప్రయోజనాలు-సూచనలు",
       "title": "తుంటి మార్పిడి శస్త్రచికిత్స: కోలుకోవడం, ప్రయోజనాలు & సూచనలు",
       "description": "తుంటి నొప్పి మీరు వేసే ప్రతి అడుగును పరిమితం చేస్తుంది. తుంటి మార్పిడి శస్త్రచికిత్స నొప్పి నుండి ఉపశమనం పొందడానికి మరియు కదలికను మెరుగుపరచడానికి నిరూపితమైన మార్గం. ఇది ఎప్పుడు సిఫార్సు చేయబడుతుందో, ఆ ప్రక్రియ ఎలా చేస్తారో మరియు కోలుకున్న తర్వాత మీ స్వాతంత్ర్యాన్ని ఎలా తిరిగి పొందగలరో తెలుసుకోండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
     },
     {
       "route": "/te/blog/hip-replacement-surgery-recovery-benefits-patient-guide",
       "title": "తుంటి మార్పిడి శస్త్రచికిత్స: కోలుకోవడం, ప్రయోజనాలు & సూచనలు",
       "description": "తుంటి నొప్పి మీరు వేసే ప్రతి అడుగును పరిమితం చేస్తుంది. తుంటి మార్పిడి శస్త్రచికిత్స నొప్పి నుండి ఉపశమనం పొందడానికి మరియు కదలికను మెరుగుపరచడానికి నిరూపితమైన మార్గం. ఇది ఎప్పుడు సిఫార్సు చేయబడుతుందో, ఆ ప్రక్రియ ఎలా చేస్తారో మరియు కోలుకున్న తర్వాత మీ స్వాతంత్ర్యాన్ని ఎలా తిరిగి పొందగలరో తెలుసుకోండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
     },
     {
       "route": "/te/blog/8",
       "title": "తుంటి మార్పిడి శస్త్రచికిత్స: కోలుకోవడం, ప్రయోజనాలు & సూచనలు",
       "description": "తుంటి నొప్పి మీరు వేసే ప్రతి అడుగును పరిమితం చేస్తుంది. తుంటి మార్పిడి శస్త్రచికిత్స నొప్పి నుండి ఉపశమనం పొందడానికి మరియు కదలికను మెరుగుపరచడానికి నిరూపితమైన మార్గం. ఇది ఎప్పుడు సిఫార్సు చేయబడుతుందో, ఆ ప్రక్రియ ఎలా చేస్తారో మరియు కోలుకున్న తర్వాత మీ స్వాతంత్ర్యాన్ని ఎలా తిరిగి పొందగలరో తెలుసుకోండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/hip-pain.jpeg"
     },
     {
       "route": "/te/blog/బోలు-ఎముకల-వ్యాధిని-అర్థం-చేసుకోవడం-నివారణ-మరియు-చికిత్స",
@@ -439,19 +440,19 @@
       "route": "/te/blog/నడుము-నొప్పిని-జెయించండి-నడుము-నొప్పికి-గల-కారణాలు-నివారణ-మరియు-చికిత్సలు",
       "title": "నడుము నొప్పిని జెయించండి: నడుము నొప్పికి గల కారణాలు, నివారణ మరియు చికిత్సలు",
       "description": "నడుము నొప్పి ఒక సాధారణ సమస్య, కానీ అది మీ జీవితాన్ని నియంత్రించకూడదు. కండరాల బెణుకు నుండి డిస్క్ సమస్యల వరకు నడుము నొప్పికి ప్రధాన కారణాల గురించి తెలుసుకోండి. అలాగే, మిమ్మల్ని మళ్లీ చురుకుగా మార్చడానికి సహాయపడే సమర్థవంతమైన నివారణ వ్యూహాలు మరియు చికిత్స ఎంపికలను కనుగొనండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/te/blog/beat-backache-causes-prevention-treatments-for-back-pain",
       "title": "నడుము నొప్పిని జెయించండి: నడుము నొప్పికి గల కారణాలు, నివారణ మరియు చికిత్సలు",
       "description": "నడుము నొప్పి ఒక సాధారణ సమస్య, కానీ అది మీ జీవితాన్ని నియంత్రించకూడదు. కండరాల బెణుకు నుండి డిస్క్ సమస్యల వరకు నడుము నొప్పికి ప్రధాన కారణాల గురించి తెలుసుకోండి. అలాగే, మిమ్మల్ని మళ్లీ చురుకుగా మార్చడానికి సహాయపడే సమర్థవంతమైన నివారణ వ్యూహాలు మరియు చికిత్స ఎంపికలను కనుగొనండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/te/blog/12",
       "title": "నడుము నొప్పిని జెయించండి: నడుము నొప్పికి గల కారణాలు, నివారణ మరియు చికిత్సలు",
       "description": "నడుము నొప్పి ఒక సాధారణ సమస్య, కానీ అది మీ జీవితాన్ని నియంత్రించకూడదు. కండరాల బెణుకు నుండి డిస్క్ సమస్యల వరకు నడుము నొప్పికి ప్రధాన కారణాల గురించి తెలుసుకోండి. అలాగే, మిమ్మల్ని మళ్లీ చురుకుగా మార్చడానికి సహాయపడే సమర్థవంతమైన నివారణ వ్యూహాలు మరియు చికిత్స ఎంపికలను కనుగొనండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/te/blog/మడమ-నొప్పిని-అర్థం-చేసుకోవడం-కారణాలు-మరియు-ప్లాంటార్-ఫాసిటిస్-పై-దృష్టి",
@@ -511,13 +512,13 @@
       "route": "/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
       "title": "Navigating Life with a Plaster Cast: Essential Care and Tips",
       "description": "A broken bone is a temporary setback, but proper cast care is crucial for a smooth recovery. Learn essential tips for living with a plaster cast, including how to keep it dry, manage itching, and spot red flags that need a doctor's attention.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/cast.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
     },
     {
       "route": "/guides/7",
       "title": "Navigating Life with a Plaster Cast: Essential Care and Tips",
       "description": "A broken bone is a temporary setback, but proper cast care is crucial for a smooth recovery. Learn essential tips for living with a plaster cast, including how to keep it dry, manage itching, and spot red flags that need a doctor's attention.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/cast.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
     },
     {
       "route": "/guides/diabetic-diet-chart-for-andhra-pradesh-patients",
@@ -595,13 +596,13 @@
       "route": "/guides/back-strengthening-exercises-do-s-and-dont-s",
       "title": "Back Strengthening Exercises: Do’s and Dont's",
       "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/guides/3",
       "title": "Back Strengthening Exercises: Do’s and Dont's",
       "description": "Strengthening your back muscles is one of the best ways to prevent back pain and improve posture. Here’s a simple set of safe and effective back exercises you can do at home, along with important do’s and don’ts.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/guides/post-injection-care-a-guide-to-recovery-after-joint-injections",
@@ -664,22 +665,34 @@
       "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
     },
     {
+      "route": "/guides/kidney-stones-and-heatstroke-management",
+      "title": "Beat the Andhra Heat: Your Guide to Preventing Kidney Stones and Heatstroke",
+      "description": "Rising temperatures in Kakinada increase the risk of dehydration-led complications. Learn how to protect your kidneys and stay cool with our expert summer diet and safety tips.",
+      "image": "https://images.pexels.com/photos/3776806/pexels-photo-3776806.jpeg"
+    },
+    {
+      "route": "/guides/18",
+      "title": "Beat the Andhra Heat: Your Guide to Preventing Kidney Stones and Heatstroke",
+      "description": "Rising temperatures in Kakinada increase the risk of dehydration-led complications. Learn how to protect your kidneys and stay cool with our expert summer diet and safety tips.",
+      "image": "https://images.pexels.com/photos/3776806/pexels-photo-3776806.jpeg"
+    },
+    {
       "route": "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
       "title": "ప్లాస్టర్ కాస్ట్‌తో జీవించడం: ముఖ్యమైన జాగ్రత్తలు మరియు చిట్కాలు",
       "description": "ఎముక విరగడం తాత్కాలిక సమస్యే, కానీ సరైన కాస్ట్ సంరక్షణ త్వరగా కోలుకోవడానికి చాలా అవసరం. ప్లాస్టర్ కాస్ట్‌తో జీవించడానికి ముఖ్యమైన చిట్కాలు, దానిని పొడిగా ఉంచుకోవడం, దురదను తగ్గించడం మరియు వైద్యుని సహాయం అవసరమైన ప్రమాద సంకేతాలను గుర్తించడం వంటి వాటి గురించి తెలుసుకోండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/cast.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
     },
     {
       "route": "/te/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
       "title": "ప్లాస్టర్ కాస్ట్‌తో జీవించడం: ముఖ్యమైన జాగ్రత్తలు మరియు చిట్కాలు",
       "description": "ఎముక విరగడం తాత్కాలిక సమస్యే, కానీ సరైన కాస్ట్ సంరక్షణ త్వరగా కోలుకోవడానికి చాలా అవసరం. ప్లాస్టర్ కాస్ట్‌తో జీవించడానికి ముఖ్యమైన చిట్కాలు, దానిని పొడిగా ఉంచుకోవడం, దురదను తగ్గించడం మరియు వైద్యుని సహాయం అవసరమైన ప్రమాద సంకేతాలను గుర్తించడం వంటి వాటి గురించి తెలుసుకోండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/cast.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
     },
     {
       "route": "/te/guides/7",
       "title": "ప్లాస్టర్ కాస్ట్‌తో జీవించడం: ముఖ్యమైన జాగ్రత్తలు మరియు చిట్కాలు",
       "description": "ఎముక విరగడం తాత్కాలిక సమస్యే, కానీ సరైన కాస్ట్ సంరక్షణ త్వరగా కోలుకోవడానికి చాలా అవసరం. ప్లాస్టర్ కాస్ట్‌తో జీవించడానికి ముఖ్యమైన చిట్కాలు, దానిని పొడిగా ఉంచుకోవడం, దురదను తగ్గించడం మరియు వైద్యుని సహాయం అవసరమైన ప్రమాద సంకేతాలను గుర్తించడం వంటి వాటి గురించి తెలుసుకోండి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/cast.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/cast.jpeg"
     },
     {
       "route": "/te/guides/జాయింట్-ఇంజెక్షన్-తర్వాత-తీసుకోవలసిన-జాగ్రత్తలు-రోగుల-కోసం-మార్గదర్శకాలు",
@@ -865,19 +878,19 @@
       "route": "/te/guides/వెన్ను-బలపరిచే-వ్యాయామాలు-చేయవలసినవి-చేయకూడనివి",
       "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
       "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/te/guides/back-strengthening-exercises-do-s-and-dont-s",
       "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
       "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/te/guides/3",
       "title": "వెన్ను బలపరిచే వ్యాయామాలు: చేయవలసినవి & చేయకూడనివి",
       "description": "మీ నడుము కండరాలను బలోపేతం చేయడం అనేది వెన్నునొప్పిని నివారించడానికి మరియు భంగిమను మెరుగుపరచడానికి ఉత్తమ మార్గాలలో ఒకటి. మీరు ఇంట్లో చేయగలిగే సురక్షితమైన మరియు ప్రభావవంతమైన నడుము వ్యాయామాల సెట్ ఇక్కడ ఉంది, ముఖ్యమైనవి మరియు చేయకూడనివి కూడా ఉన్నాయి.",
-      "image": "https://supabase.gangrenesoul.workers.dev/storage/v1/object/public/post_images/cover/backache.jpeg"
+      "image": "https://vqskeanwpnvuyxorymib.supabase.co/storage/v1/object/public/post_images/cover/backache.jpeg"
     },
     {
       "route": "/te/guides/శస్త్రచికిత్స-అనంతర-ఆహారం-శస్త్రచికిత్స-తర్వాత-కోలుకోవడానికి-మీ-మార్గదర్శిని",
@@ -952,28 +965,22 @@
       "image": "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=500&h=300&fit=crop"
     },
     {
-      "route": "/op",
-      "title": "Doctor Workspace",
-      "description": "Secure professional portal for OrthoLife consultants to manage patient consultations and medicine prescriptions.",
-      "image": "https://ortho.life/logo.png"
+      "route": "/te/guides/కిడ్నీ-రాళ్లు-మరియు-ఎండదెబ్బను-నివారించడం",
+      "title": "ఎండల నుండి రక్షణ: కిడ్నీ రాళ్లు మరియు ఎండదెబ్బను నివారించే మార్గదర్శిని",
+      "description": "కాకినాడలో పెరుగుతున్న ఉష్ణోగ్రతల వల్ల డీహైడ్రేషన్ మరియు ఆరోగ్య సమస్యలు వచ్చే అవకాశం ఉంది. మీ కిడ్నీలను రక్షించుకోవడానికి మరియు శరీరాన్ని చల్లబరుచుకోవడానికి ఈ వేసవి చిట్కాలను పాటించండి.",
+      "image": "https://images.pexels.com/photos/3776806/pexels-photo-3776806.jpeg"
     },
     {
-      "route": "/stats",
-      "title": "Consultation Statistics",
-      "description": "Analyze consultation trends, patient demographics, and department-wise statistics.",
-      "image": "https://ortho.life/logo.png"
+      "route": "/te/guides/kidney-stones-and-heatstroke-management",
+      "title": "ఎండల నుండి రక్షణ: కిడ్నీ రాళ్లు మరియు ఎండదెబ్బను నివారించే మార్గదర్శిని",
+      "description": "కాకినాడలో పెరుగుతున్న ఉష్ణోగ్రతల వల్ల డీహైడ్రేషన్ మరియు ఆరోగ్య సమస్యలు వచ్చే అవకాశం ఉంది. మీ కిడ్నీలను రక్షించుకోవడానికి మరియు శరీరాన్ని చల్లబరుచుకోవడానికి ఈ వేసవి చిట్కాలను పాటించండి.",
+      "image": "https://images.pexels.com/photos/3776806/pexels-photo-3776806.jpeg"
     },
     {
-      "route": "/followups",
-      "title": "Follow-up Dashboard",
-      "description": "Manage upcoming reviews and send reminders to patients scheduled for follow-up visits.",
-      "image": "https://ortho.life/logo.png"
-    },
-    {
-      "route": "/ip",
-      "title": "In-Patient Portal",
-      "description": "Secure portal for doctors to manage in-patient surgical care, hospital rounds, and patient recovery tracking.",
-      "image": "https://ortho.life/logo.png"
+      "route": "/te/guides/18",
+      "title": "ఎండల నుండి రక్షణ: కిడ్నీ రాళ్లు మరియు ఎండదెబ్బను నివారించే మార్గదర్శిని",
+      "description": "కాకినాడలో పెరుగుతున్న ఉష్ణోగ్రతల వల్ల డీహైడ్రేషన్ మరియు ఆరోగ్య సమస్యలు వచ్చే అవకాశం ఉంది. మీ కిడ్నీలను రక్షించుకోవడానికి మరియు శరీరాన్ని చల్లబరుచుకోవడానికి ఈ వేసవి చిట్కాలను పాటించండి.",
+      "image": "https://images.pexels.com/photos/3776806/pexels-photo-3776806.jpeg"
     }
   ]
 }
