@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,16 +23,34 @@ import TemperatureTracker from '@/components/TemperatureTracker';
 
 const ResourcesPage = () => {
   const { t } = useTranslation();
+  const { toolId } = useParams();
+  const navigate = useNavigate();
+  const [openToolId, setOpenToolId] = useState<string | null>(null);
 
   const toolsAndCalculators = [
-    { id: 1, titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
-    { id: 2, titleKey: 'resources.tool2.title', descriptionKey: 'resources.tool2.description', icon: Calendar, type: 'Interactive Tool', component: <PainTracker /> },
-    { id: 3, titleKey: 'resources.tool3.title', descriptionKey: 'resources.tool3.description', icon: FileText, type: 'Interactive Tool', component: <RecoveryProgressTracker /> },
-    { id: 4, titleKey: 'resources.tool4.title', descriptionKey: 'resources.tool4.description', icon: Activity, type: 'Interactive Tool', component: <BloodPressureTracker /> },
-    { id: 5, titleKey: 'resources.tool5.title', descriptionKey: 'resources.tool5.description', icon: Droplets, type: 'Interactive Tool', component: <BloodSugarTracker /> },
-    { id: 6, titleKey: 'resources.tool6.title', descriptionKey: 'resources.tool6.description', icon: Thermometer, type: 'Interactive Tool', component: <TemperatureTracker /> }
+    { id: 1, routeId: 'bmi-calculator', titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
+    { id: 2, routeId: 'pain-tracker', titleKey: 'resources.tool2.title', descriptionKey: 'resources.tool2.description', icon: Calendar, type: 'Interactive Tool', component: <PainTracker /> },
+    { id: 3, routeId: 'recovery-tracker', titleKey: 'resources.tool3.title', descriptionKey: 'resources.tool3.description', icon: FileText, type: 'Interactive Tool', component: <RecoveryProgressTracker /> },
+    { id: 4, routeId: 'bp-tracker', titleKey: 'resources.tool4.title', descriptionKey: 'resources.tool4.description', icon: Activity, type: 'Interactive Tool', component: <BloodPressureTracker /> },
+    { id: 5, routeId: 'sugar-tracker', titleKey: 'resources.tool5.title', descriptionKey: 'resources.tool5.description', icon: Droplets, type: 'Interactive Tool', component: <BloodSugarTracker /> },
+    { id: 6, routeId: 'temp-tracker', titleKey: 'resources.tool6.title', descriptionKey: 'resources.tool6.description', icon: Thermometer, type: 'Interactive Tool', component: <TemperatureTracker /> }
   ];
 
+  useEffect(() => {
+    if (toolId) {
+      setOpenToolId(toolId);
+    } else {
+      setOpenToolId(null);
+    }
+  }, [toolId]);
+
+  const handleOpenChange = (open: boolean, routeId: string) => {
+    if (open) {
+      navigate(`/resources/${routeId}`);
+    } else {
+      navigate('/resources');
+    }
+  };
 
   const externalResources = [
     { id: 1, titleKey: 'resources.external1.title', descriptionKey: 'resources.external1.description', url: 'https://orthosam.com', type: 'Website' },
@@ -72,7 +91,11 @@ const ResourcesPage = () => {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {toolsAndCalculators.map((tool) => (
-                  <Dialog key={tool.id}>
+                  <Dialog 
+                    key={tool.id} 
+                    open={openToolId === tool.routeId} 
+                    onOpenChange={(open) => handleOpenChange(open, tool.routeId)}
+                  >
                     <Card className="hover:shadow-lg transition-shadow group flex flex-col">
                       <CardHeader>
                         <div className="flex items-center justify-between">

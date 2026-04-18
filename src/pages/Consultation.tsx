@@ -876,9 +876,9 @@ const ConsultationPage = () => {
 
   // Modification: Added consultant dependency for scoped messaging
   const generateCompletionMessage = useCallback((patient: Patient, guidesMatched: any[]) => {
-    // Pass consultant profile for personalized messages
-    return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage, consultant?.name);
-  }, [consultationLanguage, consultant]);
+    // Pass consultant profile and advice for personalized messages
+    return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage, consultant?.name, extraData.advice);
+  }, [consultationLanguage, consultant, extraData.advice]);
 
   // --- Completion Message Logic ---
   const handleOpenCompletionModal = useCallback(() => {
@@ -1726,7 +1726,41 @@ const ConsultationPage = () => {
     };
 
     const inputText = `${extraData.complaints} ${extraData.medicalHistory} ${extraData.diagnosis} ${extraData.procedure}`.toLowerCase();
+    const activeText = `${extraData.complaints} ${extraData.diagnosis}`.toLowerCase();
     const isTelugu = consultationLanguage === 'te';
+
+    // Automated Health Monitoring Suggestions (scan complaints/diagnosis only)
+    const healthKeywords = [
+      {
+        keywords: ['diabetes', 'diabetic', 'sugar', 'dm', 'iddm', 'niddm'],
+        en: 'Regular sugar monitoring/logging at home',
+        te: 'ఇంట్లో క్రమం తప్పకుండా షుగర్ లెవల్స్ నమోదు చేయండి'
+      },
+      {
+        keywords: ['hypertension', 'htn', 'bp', 'high bp', 'hypertensive'],
+        en: 'Regular BP monitoring/logging at home',
+        te: 'ఇంట్లో క్రమం తప్పకుండా బీపీ నమోదు చేయండి'
+      },
+      {
+        keywords: ['fever', 'temp', 'febrile', 'chills'],
+        en: 'Regular temperature/fever monitoring at home',
+        te: 'ఇంట్లో క్రమం తప్పకుండా జ్వరం/ఉష్ణోగ్రత నమోదు చేయండి'
+      },
+      {
+        keywords: ['operated case of', 'post-op', 'postop', 'post operative'],
+        en: 'Monitor recovery progress regularly',
+        te: 'రికవరీ పురోగతిని క్రమం తప్పకుండా పర్యవేక్షించండి'
+      }
+    ];
+
+    healthKeywords.forEach(hk => {
+      if (hk.keywords.some(k => activeText.includes(k))) {
+        inputDerivedSuggestions.advice.add({
+          text: isTelugu ? hk.te : hk.en,
+          translatedText: isTelugu ? hk.en : hk.te
+        });
+      }
+    });
 
     autofillKeywords.forEach(protocol => {
       const match = (protocol.keywords || []).some(k => inputText.includes(k.toLowerCase()));
@@ -2499,6 +2533,7 @@ const ConsultationPage = () => {
         patientPhone={editablePatientDetails?.phone || ''}
         initialMessage={completionMessage}
         consultantId={consultant?.is_legacy_handler ? "legacy" : consultant?.id}
+        isWhatsAppIntegrated={consultant?.is_legacy_handler || consultant?.is_whatsauto_active}
         onMessageChange={(newMessage) => {
           setCompletionMessage(newMessage);
           setIsMessageManuallyEdited(true);

@@ -147,7 +147,7 @@ const App = () => {
                     <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
                     <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
                     <Route path="/faqs" element={<FAQPage />} />
-                    <Route path="/resources" element={<ResourcesPage />} />
+                    <Route path="/resources/:toolId?" element={<ResourcesPage />} />
                     <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
 
                     {/* login routes */}

@@ -107,23 +107,15 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                                         });
                                         return;
                                     }
-                                    if (isWhatsAppEnabled) {
-                                        onSendCompletionClick();
-                                    } else {
-                                        toast({
-                                            title: "Feature Unavailable",
-                                            description: "WhatsApp not active for your profile. Please contact admin to enable this feature.",
-                                            variant: "default"
-                                        });
-                                    }
+                                    onSendCompletionClick();
                                 }}
                                 className={cn(
                                     "flex flex-col items-center justify-center h-20 text-center gap-1 cursor-pointer border rounded-md hover:bg-accent/50 focus:bg-accent/50",
                                     isReadOnly && "opacity-50 cursor-not-allowed bg-muted/20"
                                 )}
                             >
-                                <Send className={cn("w-5 h-5", (isWhatsAppEnabled && !isReadOnly) ? "text-green-600" : "text-muted-foreground")} />
-                                <span className={cn("text-xs font-medium", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")}>
+                                <Send className={cn("w-5 h-5", !isReadOnly ? "text-green-600" : "text-muted-foreground")} />
+                                <span className={cn("text-xs font-medium", isReadOnly && "text-muted-foreground")}>
                                     {isReadOnly ? 'Restricted' : 'Send Msg'}
                                 </span>
                             </DropdownMenuItem>
