@@ -85,10 +85,10 @@
     "/guides/10",
     "/guides/post-meniscus-surgery-rehab-exercises-recovery-timeline",
     "/guides/14",
-    "/guides/weight-loss-guide",
-    "/guides/17",
     "/guides/kidney-stones-and-heatstroke-management",
     "/guides/18",
+    "/guides/weight-loss-guide",
+    "/guides/17",
     "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
     "/te/guides/navigating-life-with-a-plaster-cast-essential-care-and-tips",
     "/te/guides/7",
@@ -101,6 +101,9 @@
     "/te/guides/చదునైన-పాదాల-సంరక్షణ-ఆరోగ్యకరమైన-పాదాలకు-ప్రభావవంతమైన-వ్యాయామాలు-మరియు-సూచనలు",
     "/te/guides/flat-foot-care-effective-exercises-and-tips-for-healthy-feet",
     "/te/guides/1",
+    "/te/guides/బరువు-తగ్గడం",
+    "/te/guides/weight-loss-guide",
+    "/te/guides/17",
     "/te/guides/హైపోథైరాయిడిజం-ఆహారం-సరైన-థైరాయిడ్-ఆరోగ్యం-కోసం-మీ-శరీరానికి-ఇంధనం",
     "/te/guides/hypothyroidism-diet-fueling-your-body-for-optimal-thyroid-health",
     "/te/guides/9",
@@ -131,9 +134,6 @@
     "/te/guides/acl-పునరావాస-ప్రయాణం-శస్త్రచికిత్స-అనంతర-ప్రోటోకాల్",
     "/te/guides/the-acl-rehab-journey-a-complete-post-operative-protocol",
     "/te/guides/11",
-    "/te/guides/బరువు-తగ్గడం",
-    "/te/guides/weight-loss-guide",
-    "/te/guides/17",
     "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
     "/te/guides/post-surgery-recovery-what-to-expect",
     "/te/guides/15",
@@ -653,18 +653,6 @@
       "image": "https://images.pexels.com/photos/29558666/pexels-photo-29558666.jpeg?cs=srgb&dl=pexels-anhleephoto-29558666.jpg&fm=jpg&w=640&h=426&_gl=1*rkv0d9*_ga*MTU3ODYwNjQwMi4xNzU1NDAzOTcy*_ga_8JE65Q40S6*czE3NTczOTc5NTUkbzEwJGcxJHQxNzU3Mzk4MDQ4JGozMCRsMCRoMA.."
     },
     {
-      "route": "/guides/weight-loss-guide",
-      "title": "Shedding Pounds for Stronger Joints: A Practical Weight Loss Guide",
-      "description": "Carrying excess weight puts immense pressure on your knees and spine. Learn how to lose weight safely with a 7-day meal plan tailored for the local Andhra palate.",
-      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
-    },
-    {
-      "route": "/guides/17",
-      "title": "Shedding Pounds for Stronger Joints: A Practical Weight Loss Guide",
-      "description": "Carrying excess weight puts immense pressure on your knees and spine. Learn how to lose weight safely with a 7-day meal plan tailored for the local Andhra palate.",
-      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
-    },
-    {
       "route": "/guides/kidney-stones-and-heatstroke-management",
       "title": "Beat the Andhra Heat: Your Guide to Preventing Kidney Stones and Heatstroke",
       "description": "Rising temperatures in Kakinada increase the risk of dehydration-led complications. Learn how to protect your kidneys and stay cool with our expert summer diet and safety tips.",
@@ -675,6 +663,18 @@
       "title": "Beat the Andhra Heat: Your Guide to Preventing Kidney Stones and Heatstroke",
       "description": "Rising temperatures in Kakinada increase the risk of dehydration-led complications. Learn how to protect your kidneys and stay cool with our expert summer diet and safety tips.",
       "image": "https://images.pexels.com/photos/3776806/pexels-photo-3776806.jpeg"
+    },
+    {
+      "route": "/guides/weight-loss-guide",
+      "title": "Shedding Pounds for Stronger Joints: A Practical Weight Loss Guide",
+      "description": "Carrying excess weight puts immense pressure on your knees and spine. Learn how to lose weight safely with a 7-day meal plan tailored for the local Andhra palate.",
+      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
+    },
+    {
+      "route": "/guides/17",
+      "title": "Shedding Pounds for Stronger Joints: A Practical Weight Loss Guide",
+      "description": "Carrying excess weight puts immense pressure on your knees and spine. Learn how to lose weight safely with a 7-day meal plan tailored for the local Andhra palate.",
+      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
     },
     {
       "route": "/te/guides/ప్లాస్టర్-కాస్ట్-తో-జీవించడం-ముఖ్యమైన-జాగ్రత్తలు-మరియు-చిట్కాలు",
@@ -747,6 +747,24 @@
       "title": "చదునైన పాదాల సంరక్షణ: ఆరోగ్యకరమైన పాదాలకు ప్రభావవంతమైన వ్యాయామాలు మరియు సూచనలు",
       "description": "ఫ్లాట్ ఫుట్ (చదునైన పాదాలు) అనేది నొప్పి, అలసట మరియు నడకలో ఇబ్బందిని కలిగించే ఒక సాధారణ పరిస్థితి. సరైన వ్యాయామాలు మరియు జీవనశైలి మీ పాదాలను బలోపేతం చేయడానికి, భంగిమను మెరుగుపరచడానికి మరియు అసౌకర్యాన్ని నియంత్రించడానికి సహాయపడుతుంది.",
       "image": "https://images.unsplash.com/photo-1468616047823-d688c44bf6dd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=danie-franco-jyyNiSEcCl4-unsplash.jpg"
+    },
+    {
+      "route": "/te/guides/బరువు-తగ్గడం",
+      "title": "బరువు తగ్గడం: ఆరోగ్యకరమైన కీళ్లు మరియు జీవనశైలి కోసం మార్గదర్శిని",
+      "description": "అధిక బరువు మీ మోకాళ్లు మరియు వెన్నెముకపై విపరీతమైన ఒత్తిడిని కలిగిస్తుంది. ఆంధ్ర రుచులకు తగిన 7 రోజుల ఆహార ప్రణాళికతో సురక్షితంగా బరువు తగ్గడం ఎలాగో నేర్చుకోండి.",
+      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
+    },
+    {
+      "route": "/te/guides/weight-loss-guide",
+      "title": "బరువు తగ్గడం: ఆరోగ్యకరమైన కీళ్లు మరియు జీవనశైలి కోసం మార్గదర్శిని",
+      "description": "అధిక బరువు మీ మోకాళ్లు మరియు వెన్నెముకపై విపరీతమైన ఒత్తిడిని కలిగిస్తుంది. ఆంధ్ర రుచులకు తగిన 7 రోజుల ఆహార ప్రణాళికతో సురక్షితంగా బరువు తగ్గడం ఎలాగో నేర్చుకోండి.",
+      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
+    },
+    {
+      "route": "/te/guides/17",
+      "title": "బరువు తగ్గడం: ఆరోగ్యకరమైన కీళ్లు మరియు జీవనశైలి కోసం మార్గదర్శిని",
+      "description": "అధిక బరువు మీ మోకాళ్లు మరియు వెన్నెముకపై విపరీతమైన ఒత్తిడిని కలిగిస్తుంది. ఆంధ్ర రుచులకు తగిన 7 రోజుల ఆహార ప్రణాళికతో సురక్షితంగా బరువు తగ్గడం ఎలాగో నేర్చుకోండి.",
+      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
     },
     {
       "route": "/te/guides/హైపోథైరాయిడిజం-ఆహారం-సరైన-థైరాయిడ్-ఆరోగ్యం-కోసం-మీ-శరీరానికి-ఇంధనం",
@@ -927,24 +945,6 @@
       "title": "ACL పునరావాస ప్రయాణం: శస్త్రచికిత్స అనంతర ప్రోటోకాల్",
       "description": "ఈ మార్గదర్శిని శస్త్రచికిత్స జరిగిన రోజు నుండి ఒక సంవత్సరం వరకు ప్రతి దశకు ఒక సాధారణ కాలక్రమం మరియు లక్ష్యాలు, వ్యాయామాలు మరియు మైలురాళ్ళను వివరిస్తుంది.",
       "image": "https://images.unsplash.com/photo-1644492097455-d5f39f458fcd?ixlib=rb-4.1.0&q=85&fm=jpg&crop=entropy&cs=srgb&dl=eagle-media-pro-q8nDOBfFajU-unsplash.jpg"
-    },
-    {
-      "route": "/te/guides/బరువు-తగ్గడం",
-      "title": "బరువు తగ్గడం: ఆరోగ్యకరమైన కీళ్లు మరియు జీవనశైలి కోసం మార్గదర్శిని",
-      "description": "అధిక బరువు మీ మోకాళ్లు మరియు వెన్నెముకపై విపరీతమైన ఒత్తిడిని కలిగిస్తుంది. ఆంధ్ర రుచులకు తగిన 7 రోజుల ఆహార ప్రణాళికతో సురక్షితంగా బరువు తగ్గడం ఎలాగో నేర్చుకోండి.",
-      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
-    },
-    {
-      "route": "/te/guides/weight-loss-guide",
-      "title": "బరువు తగ్గడం: ఆరోగ్యకరమైన కీళ్లు మరియు జీవనశైలి కోసం మార్గదర్శిని",
-      "description": "అధిక బరువు మీ మోకాళ్లు మరియు వెన్నెముకపై విపరీతమైన ఒత్తిడిని కలిగిస్తుంది. ఆంధ్ర రుచులకు తగిన 7 రోజుల ఆహార ప్రణాళికతో సురక్షితంగా బరువు తగ్గడం ఎలాగో నేర్చుకోండి.",
-      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
-    },
-    {
-      "route": "/te/guides/17",
-      "title": "బరువు తగ్గడం: ఆరోగ్యకరమైన కీళ్లు మరియు జీవనశైలి కోసం మార్గదర్శిని",
-      "description": "అధిక బరువు మీ మోకాళ్లు మరియు వెన్నెముకపై విపరీతమైన ఒత్తిడిని కలిగిస్తుంది. ఆంధ్ర రుచులకు తగిన 7 రోజుల ఆహార ప్రణాళికతో సురక్షితంగా బరువు తగ్గడం ఎలాగో నేర్చుకోండి.",
-      "image": "https://images.pexels.com/photos/6975464/pexels-photo-6975464.jpeg"
     },
     {
       "route": "/te/guides/శస్త్రచికిత్స-తర్వాత-కోలుకోవడం-ఏమి-ఆశించాలి",
