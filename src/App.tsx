@@ -7,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PageLoader from "./components/PageLoader";
-import { usePWAInstall } from "./hooks/usePWAInstall";
 import { trackEvent } from "./lib/analytics";
 import { useAuth } from "./hooks/useAuth";
 
@@ -80,7 +79,6 @@ import { GlobalSyncManager } from "./components/GlobalSyncManager";
 import { ConsultantProvider } from "./context/ConsultantContext";
 
 const App = () => {
-  const { installPrompt, handleInstallClick } = usePWAInstall();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -149,7 +147,7 @@ const App = () => {
                     <Route path="/te/guides/:guideId" element={<PatientGuidePage />} />
                     <Route path="/guides/:guideId/edit" element={<EditGuidePage />} />
                     <Route path="/faqs" element={<FAQPage />} />
-                    <Route path="/resources" element={<ResourcesPage installPrompt={installPrompt} handleInstallClick={handleInstallClick} />} />
+                    <Route path="/resources" element={<ResourcesPage />} />
                     <Route path="/symptom-checker" element={<SymptomCheckerPage />} />
 
                     {/* login routes */}

@@ -4,7 +4,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Download, Calculator, Calendar, FileText, Smartphone, Globe, Activity, Droplets, Thermometer } from 'lucide-react';
+import { ExternalLink, Download, Calculator, Calendar, FileText, Globe, Activity, Droplets, Thermometer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog,
@@ -20,21 +20,7 @@ import BloodPressureTracker from '@/components/BloodPressureTracker';
 import BloodSugarTracker from '@/components/BloodSugarTracker';
 import TemperatureTracker from '@/components/TemperatureTracker';
 
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
-
-interface ResourcesPageProps {
-  installPrompt: BeforeInstallPromptEvent | null;
-  handleInstallClick: () => void;
-}
-
-const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInstallClick }) => {
+const ResourcesPage = () => {
   const { t } = useTranslation();
 
   const toolsAndCalculators = [
@@ -46,10 +32,6 @@ const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInst
     { id: 6, titleKey: 'resources.tool6.title', descriptionKey: 'resources.tool6.description', icon: Thermometer, type: 'Interactive Tool', component: <TemperatureTracker /> }
   ];
 
-  const mobileApps = [
-    { id: 1, titleKey: 'resources.app1.title', descriptionKey: 'resources.app1.description', platforms: ['iOS', 'Android'], rating: 4.8, downloads: '10K+', icon: Smartphone },
-    { id: 2, titleKey: 'resources.app2.title', descriptionKey: 'resources.app2.description', platforms: ['iOS', 'Android'], rating: 4.6, downloads: '5K+', icon: Smartphone }
-  ];
 
   const externalResources = [
     { id: 1, titleKey: 'resources.external1.title', descriptionKey: 'resources.external1.description', url: 'https://orthosam.com', type: 'Website' },
@@ -118,58 +100,6 @@ const ResourcesPage: React.FC<ResourcesPageProps> = ({ installPrompt, handleInst
                       </div>
                     </DialogContent>
                   </Dialog>
-                ))}
-              </div>
-            </section>
-
-            {/* Mobile Apps */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-heading font-bold mb-6 flex items-center gap-2">
-                <Smartphone className="text-primary" />
-                {t('resources.apps.title')}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {mobileApps.map((app) => (
-                  <Card key={app.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <app.icon className="text-primary" size={24} />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">{t(app.titleKey)}</CardTitle>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-yellow-500">★</span>
-                              <span className="text-sm text-muted-foreground">
-                                {app.rating} • {app.downloads}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <CardDescription className="mt-3">{t(app.descriptionKey)}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-2">
-                          {app.platforms.map((platform) => (
-                            <Badge key={platform} variant="outline">{platform}</Badge>
-                          ))}
-                        </div>
-                        {app.id === 1 && installPrompt ? (
-                          <Button size="sm" onClick={handleInstallClick}>
-                            {t('resources.apps.install')}
-                          </Button>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            <Button size="sm" disabled={app.id === 1}>App Store</Button>
-                            <Button size="sm" variant="outline" disabled={app.id === 1}>Play Store</Button>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
                 ))}
               </div>
             </section>
