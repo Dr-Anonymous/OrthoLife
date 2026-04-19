@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Download, Calculator, Calendar, FileText, Globe, Activity, Droplets, Thermometer } from 'lucide-react';
+import { ExternalLink, Download, Calculator, Calendar, FileText, Globe, Activity, Droplets, Thermometer, ShieldCheck, UserCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -25,7 +27,12 @@ const ResourcesPage = () => {
   const { t } = useTranslation();
   const { toolId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const phoneParam = searchParams.get('p');
+  const { user, loading } = useAuth();
   const [openToolId, setOpenToolId] = useState<string | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const toolsAndCalculators = [
     { id: 1, routeId: 'bmi-calculator', titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
@@ -44,11 +51,31 @@ const ResourcesPage = () => {
     }
   }, [toolId]);
 
+  useEffect(() => {
+    // If a phone number is provided but user is not logged in, show login prompt
+    if (!loading && phoneParam && !user && toolId) {
+      setShowLoginPrompt(true);
+    }
+  }, [loading, phoneParam, user, toolId]);
+
   const handleOpenChange = (open: boolean, routeId: string) => {
     if (open) {
-      navigate(`/resources/${routeId}`);
+      // If patient is not logged in but we have their phone, prompt them
+      if (!user && phoneParam) {
+        setShowLoginPrompt(true);
+        return;
+      }
+      navigate(`/resources/${routeId}${location.search}`);
     } else {
-      navigate('/resources');
+      navigate(`/resources${location.search}`);
+    }
+  };
+
+  const handleLogin = () => {
+    if (phoneParam) {
+      navigate(`/u/${phoneParam}?redirect=${location.pathname}${location.search}`);
+    } else {
+      navigate(`/auth?redirect=${location.pathname}${location.search}`);
     }
   };
 
@@ -68,6 +95,38 @@ const ResourcesPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+
+      {/* Login Requirement Dialog */}
+      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <ShieldCheck className="w-5 h-5" />
+              Verification Required
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              To securely track your health data and share progress with your doctor, please verify your phone number.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-6 space-y-6">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+              <UserCheck className="w-10 h-10 text-primary" />
+            </div>
+            <div className="text-center space-y-2">
+              <p className="font-semibold text-lg">Hello! 👋</p>
+              <p className="text-sm text-muted-foreground">
+                By logging in, your vitals will be automatically linked to your patient record at the clinic.
+              </p>
+            </div>
+            <Button onClick={handleLogin} className="w-full h-12 text-lg shadow-lg">
+              Verify & Start Tracking
+            </Button>
+            <Button variant="ghost" onClick={() => setShowLoginPrompt(false)} className="text-muted-foreground">
+              Continue as Guest (Not Shared)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">

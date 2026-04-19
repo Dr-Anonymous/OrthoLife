@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { 
   LineChart, 
   Line, 
@@ -14,6 +12,10 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { Trash2 } from 'lucide-react';
 
 interface PainEntry {
   level: number;
@@ -22,7 +24,11 @@ interface PainEntry {
 
 const PainTracker: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const phone = user?.phoneNumber?.slice(-10);
+
   const [painLevel, setPainLevel] = useState<number>(5);
+  const [isLogging, setIsLogging] = useState(false);
   const [painHistory, setPainHistory] = useState<PainEntry[]>(() => {
     try {
       const savedHistory = localStorage.getItem('painHistory');
@@ -38,16 +44,87 @@ const PainTracker: React.FC = () => {
     return [];
   });
 
+  // Sync with Supabase on mount
+  useEffect(() => {
+    if (phone) {
+      const fetchRemoteLogs = async () => {
+        const { data, error } = await supabase
+          .from('patient_health_logs')
+          .select('*')
+          .eq('phone', phone)
+          .eq('log_type', 'pain')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          const remoteHistory = data.map(log => ({
+            id: log.id,
+            level: (log.value_data as any).level,
+            timestamp: new Date(log.created_at),
+          }));
+          setPainHistory(remoteHistory);
+        }
+      };
+      fetchRemoteLogs();
+    }
+  }, [phone]);
+
   useEffect(() => {
     localStorage.setItem('painHistory', JSON.stringify(painHistory));
   }, [painHistory]);
 
-  const logPain = () => {
+  const logPain = async () => {
+    setIsLogging(true);
     const newEntry: PainEntry = {
       level: painLevel,
       timestamp: new Date(),
     };
+    
+    // Optimistic update
     setPainHistory([newEntry, ...painHistory]);
+
+    // Save to Supabase
+    if (phone) {
+      try {
+        const { data, error } = await supabase.from('patient_health_logs').insert({
+          phone,
+          log_type: 'pain',
+          value_data: { level: painLevel }
+        }).select();
+
+        if (error) throw error;
+        
+        // Add ID from Supabase to history
+        if (data && data.length > 0) {
+          setPainHistory(prev => prev.map((entry, idx) => 
+            idx === 0 ? { ...entry, id: data[0].id } : entry
+          ));
+        }
+
+        toast.success(t('common.success', 'Pain level logged successfully'));
+      } catch (err) {
+        console.error("Error saving pain log:", err);
+        toast.error('Failed to sync. Please try again.');
+      }
+    }
+    setIsLogging(false);
+  };
+
+  const deleteLog = async (logId: string) => {
+    if (!logId) return;
+    try {
+      const { error } = await supabase
+        .from('patient_health_logs')
+        .delete()
+        .eq('id', logId);
+
+      if (error) throw error;
+      
+      setPainHistory(painHistory.filter(entry => (entry as any).id !== logId));
+      toast.success(t('common.success', 'Reading deleted'));
+    } catch (err) {
+      console.error("Error deleting pain log:", err);
+      toast.error('Failed to delete. Please try again.');
+    }
   };
 
   const resetHistory = () => {
@@ -92,8 +169,8 @@ const PainTracker: React.FC = () => {
                 className="my-6"
               />
             </div>
-            <Button onClick={logPain} className="w-full shadow-md py-6 text-lg font-bold">
-              {t('pain.log_pain')}
+            <Button onClick={logPain} className="w-full shadow-md py-6 text-lg font-bold" disabled={isLogging}>
+              {isLogging ? t('common.loading', 'Saving...') : t('pain.log_pain')}
             </Button>
           </div>
           
@@ -117,9 +194,21 @@ const PainTracker: React.FC = () => {
                         </span>
                         <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">{getPainLevelLabel(entry.level)}</span>
                       </div>
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {entry.timestamp.toLocaleString()}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {entry.timestamp.toLocaleString()}
+                        </span>
+                        {(entry as any).id && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteLog((entry as any).id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -48,6 +48,7 @@ import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { FollowUpSection } from '@/components/consultation/FollowUpSection';
 import { ConsultationActions } from '@/components/consultation/ConsultationActions';
 import { SavedDocumentsSection } from '@/components/consultation/SavedDocumentsSection';
+import PatientHealthDashboard from '@/components/consultation/PatientHealthDashboard';
 import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol, CertificateData, ReceiptData } from '@/types/consultation';
 
 import { processTextShortcuts } from '@/lib/textShortcuts';
@@ -2261,6 +2262,10 @@ const ConsultationPage = () => {
                   initialData={initialExtraData}
                   initialPatientData={initialPatientDetails}
                   isReadOnly={isReadOnly}
+                />
+
+                <PatientHealthDashboard 
+                  phone={editablePatientDetails.phone || ''} 
                 />
 
                 <ClinicalNotesForm

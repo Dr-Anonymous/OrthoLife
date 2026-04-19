@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Activity } from 'lucide-react';
+import { Activity, Trash2 } from 'lucide-react';
 import { 
   LineChart, 
   Line, 
@@ -16,6 +14,10 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { notifyConsultant } from '@/lib/consultation-utils';
 
 interface BPEntry {
   systolic: number;
@@ -25,8 +27,12 @@ interface BPEntry {
 
 const BloodPressureTracker: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const phone = user?.phoneNumber?.slice(-10);
+
   const [systolic, setSystolic] = useState<string>('120');
   const [diastolic, setDiastolic] = useState<string>('80');
+  const [isLogging, setIsLogging] = useState(false);
   const [history, setHistory] = useState<BPEntry[]>(() => {
     try {
       const saved = localStorage.getItem('bpHistory');
@@ -42,21 +48,100 @@ const BloodPressureTracker: React.FC = () => {
     return [];
   });
 
+  // Sync with Supabase if logged in
+  useEffect(() => {
+    if (phone) {
+      const fetchRemoteLogs = async () => {
+        const { data, error } = await supabase
+          .from('patient_health_logs')
+          .select('*')
+          .eq('phone', phone)
+          .eq('log_type', 'bp')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          const remoteHistory = data.map(log => ({
+            id: log.id,
+            systolic: (log.value_data as any).systolic,
+            diastolic: (log.value_data as any).diastolic,
+            timestamp: new Date(log.created_at),
+          }));
+          
+          // Merge or replace? Let's use remote as source of truth if phone is present
+          setHistory(remoteHistory);
+        }
+      };
+      fetchRemoteLogs();
+    }
+  }, [phone]);
+
   useEffect(() => {
     localStorage.setItem('bpHistory', JSON.stringify(history));
   }, [history]);
 
-  const logBP = () => {
+  const logBP = async () => {
     const s = parseInt(systolic);
     const d = parseInt(diastolic);
     if (isNaN(s) || isNaN(d)) return;
 
+    setIsLogging(true);
     const newEntry: BPEntry = {
       systolic: s,
       diastolic: d,
       timestamp: new Date(),
     };
+
+    // Optimistic update
     setHistory([newEntry, ...history]);
+
+    // Save to Supabase if logged in
+    if (phone) {
+      try {
+        const { data, error } = await supabase.from('patient_health_logs').insert({
+          phone,
+          log_type: 'bp',
+          value_data: { systolic: s, diastolic: d }
+        }).select();
+
+        if (error) throw error;
+        
+        // Add ID from Supabase to history
+        if (data && data.length > 0) {
+          setHistory(prev => prev.map((entry, idx) => 
+            idx === 0 ? { ...entry, id: data[0].id } : entry
+          ));
+        }
+
+        toast.success(t('common.success', 'Reading saved successfully'));
+
+        // Check for critical thresholds
+        if (s > 160 || s < 90 || d > 100) {
+          notifyConsultant(supabase, phone, `CRITICAL BP ALERT: Patient logged ${s}/${d} mmHg.`);
+        }
+      } catch (err) {
+        console.error("Error saving BP log:", err);
+        toast.error('Failed to sync with doctor. Please try again.');
+      }
+    }
+    setIsLogging(false);
+  };
+
+  const deleteLog = async (logId: string) => {
+    if (!logId) return;
+    try {
+      const { error } = await supabase
+        .from('patient_health_logs')
+        .delete()
+        .eq('id', logId);
+
+      if (error) throw error;
+      
+      setHistory(history.filter(entry => (entry as any).id !== logId));
+      toast.success(t('common.success', 'Reading deleted'));
+    } catch (err) {
+      console.error("Error deleting BP log:", err);
+      toast.error('Failed to delete. Please try again.');
+    }
   };
 
   const resetHistory = () => {
@@ -99,8 +184,8 @@ const BloodPressureTracker: React.FC = () => {
                 className="bg-background"
               />
             </div>
-            <Button onClick={logBP} className="col-span-2 shadow-sm">
-              {t('bp.log')}
+            <Button onClick={logBP} className="col-span-2 shadow-sm" disabled={isLogging}>
+              {isLogging ? t('common.loading', 'Saving...') : t('bp.log')}
             </Button>
           </div>
           
@@ -127,9 +212,21 @@ const BloodPressureTracker: React.FC = () => {
                           <span className="text-[10px] ml-1 text-muted-foreground uppercase">{t('bp.unit')}</span>
                         </span>
                       </div>
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {entry.timestamp.toLocaleString()}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {entry.timestamp.toLocaleString()}
+                        </span>
+                        {(entry as any).id && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteLog((entry as any).id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

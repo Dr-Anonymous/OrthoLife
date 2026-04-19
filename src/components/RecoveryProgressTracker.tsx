@@ -1,12 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const RecoveryProgressTracker: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const phone = user?.phoneNumber?.slice(-10);
 
   const milestones = useMemo(() => [
     { id: 'milestone1', labelKey: 'recovery.milestone1' },
@@ -26,17 +30,63 @@ const RecoveryProgressTracker: React.FC = () => {
     }
   });
 
+  // Sync with Supabase on mount
+  useEffect(() => {
+    if (phone) {
+      const fetchRemoteLogs = async () => {
+        const { data, error } = await supabase
+          .from('patient_health_logs')
+          .select('*')
+          .eq('phone', phone)
+          .eq('log_type', 'recovery')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setCompletedMilestones(data[0].value_data as Record<string, boolean>);
+        }
+      };
+      fetchRemoteLogs();
+    }
+  }, [phone]);
+
   useEffect(() => {
     localStorage.setItem('recoveryProgress', JSON.stringify(completedMilestones));
   }, [completedMilestones]);
 
-  const handleMilestoneChange = (id: string, checked: boolean) => {
-    setCompletedMilestones(prev => ({ ...prev, [id]: checked }));
+  const handleMilestoneChange = async (id: string, checked: boolean) => {
+    const newState = { ...completedMilestones, [id]: checked };
+    setCompletedMilestones(newState);
+
+    if (phone) {
+      try {
+        await supabase.from('patient_health_logs').insert({
+          phone,
+          log_type: 'recovery',
+          value_data: newState
+        });
+      } catch (err) {
+        console.error("Error saving recovery log:", err);
+      }
+    }
   };
 
-  const resetProgress = () => {
+  const resetProgress = async () => {
     setCompletedMilestones({});
     localStorage.removeItem('recoveryProgress');
+    
+    if (phone) {
+      try {
+        await supabase.from('patient_health_logs').insert({
+          phone,
+          log_type: 'recovery',
+          value_data: {}
+        });
+        toast.success(t('common.success', 'Progress reset successfully'));
+      } catch (err) {
+        console.error("Error resetting recovery log:", err);
+      }
+    }
   };
 
   const completedCount = Object.values(completedMilestones).filter(Boolean).length;

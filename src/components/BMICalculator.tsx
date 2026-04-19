@@ -3,16 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const BMICalculator: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const phone = user?.phoneNumber?.slice(-10);
+
   const [height, setHeight] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
   const [bmi, setBmi] = useState<number | null>(null);
   const [interpretation, setInterpretation] = useState<string>('');
 
-  const calculateBmi = () => {
+  const calculateBmi = async () => {
     const h = parseFloat(height);
     const w = parseFloat(weight);
 
@@ -20,6 +25,20 @@ const BMICalculator: React.FC = () => {
       const bmiValue = w / ((h / 100) * (h / 100));
       setBmi(bmiValue);
       interpretBmi(bmiValue);
+
+      // Save to Supabase
+      if (phone) {
+        try {
+          await supabase.from('patient_health_logs').insert({
+            phone,
+            log_type: 'bmi',
+            value_data: { bmi: bmiValue, height: h, weight: w }
+          });
+          toast.success(t('common.success', 'BMI saved'));
+        } catch (err) {
+          console.error("Error saving BMI:", err);
+        }
+      }
     } else {
       setBmi(null);
       setInterpretation('');
