@@ -247,7 +247,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" id="clinical-notes-section">
             <div className="flex items-center justify-between mt-4 mb-4 pb-2 border-b border-primary/10">
                 <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-primary/10">
@@ -268,6 +268,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         className={cn("min-h-[100px]", getStyle('complaints', extraData.complaints))}
                         disabled={isReadOnly}
                     />
+                    {!isReadOnly && <p className="text-[10px] text-muted-foreground/70 leading-none">Example: Type a custom shortcut (like <code className="font-bold">ra.</code> or <code className="font-bold">2w.</code>) to expand text. Manage these in **More Actions &gt; Shortcuts**.</p>}
                 </div>
 
                 <div className="space-y-2">

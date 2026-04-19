@@ -243,12 +243,13 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4" id="medications-section">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                         <Stethoscope className="w-5 h-5 text-primary" />
                         <h3 className="text-lg font-semibold text-foreground">Medications</h3>
+                        {!isReadOnly && <span className="text-[10px] text-muted-foreground/70 ml-2 font-normal">Type <code className="font-bold">//</code> in drug name to load protocols</span>}
                     </div>
                     {onAffordabilityChange && (
                         <div className="flex items-center gap-2 ml-4">

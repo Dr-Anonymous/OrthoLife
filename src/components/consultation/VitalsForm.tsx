@@ -128,7 +128,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     }, [bp]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4" id="vitals-section">
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary/10">
                 <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-primary/10">

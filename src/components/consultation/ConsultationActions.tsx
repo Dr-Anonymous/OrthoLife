@@ -77,13 +77,13 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                 </Button>
             </div>
             <div className="flex w-full sm:w-auto gap-3">
-                <Button type="button" size="lg" onClick={onSaveAndPrint}>
+                <Button type="button" size="lg" onClick={onSaveAndPrint} id="save-print-button">
                     <Printer className="w-5 h-5 mr-2" />
                     Print
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button type="button" size="icon" variant="outline" className="h-12 w-12">
+                        <Button type="button" size="icon" variant="outline" className="h-12 w-12" id="more-actions-button">
                             <MoreVertical className="w-5 h-5" />
                         </Button>
                     </DropdownMenuTrigger>

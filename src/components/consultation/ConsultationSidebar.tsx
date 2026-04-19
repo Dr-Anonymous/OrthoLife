@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MapPin, Search, UserPlus, RefreshCw, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog } from 'lucide-react';
+import { MapPin, Search, UserPlus, BookOpen, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
@@ -14,6 +14,7 @@ import { useConsultant } from '@/context/ConsultantContext';
 import { Input } from '@/components/ui/input';
 import { addSeconds } from 'date-fns';
 import { FamilyMemberManager } from './FamilyMemberManager';
+import { HandbookSheet } from './HandbookSheet';
 
 interface ConsultationSidebarProps {
     selectedHospitalName: string;
@@ -63,6 +64,7 @@ interface ConsultationSidebarProps {
     referredByRef?: React.RefObject<HTMLInputElement>;
     initialReferredBy?: string;
     onProfileClick?: () => void;
+    onShortcutsClick?: () => void;
     hasChanges?: boolean;
     onNavigate?: (path: string) => void;
 }
@@ -114,6 +116,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     referredByRef,
     initialReferredBy,
     onProfileClick,
+    onShortcutsClick,
     hasChanges = false,
     onNavigate
 }) => {
@@ -135,6 +138,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
         setIsReferredByExpanded(!!referredBy);
     }, [selectedConsultationId, personalNote, referredBy]);
 
+    const [isHandbookOpen, setIsHandbookOpen] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');
     const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -180,7 +184,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         // Prevent sidebar navigation if a modal is open
         if (document.querySelector('[role="dialog"]')) return;
-        
+
         if (visibleConsultations.length === 0) return;
 
         if (e.key === 'ArrowDown') {
@@ -245,18 +249,29 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 : consultant.name}
                         </span>
                     </div>
-                    {onProfileClick && (
+                    <div className="flex items-center gap-1">
                         <Button
-                            type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-primary hover:bg-primary/10"
-                            onClick={onProfileClick}
+                            className="h-8 w-8 p-0"
+                            title="Handbook & Shortcuts"
+                            onClick={() => setIsHandbookOpen(true)}
                         >
-                            <UserCog className="h-5 w-5" />
-                            <span className="sr-only">My Profile</span>
+                            <BookOpen className="w-5 h-5 text-primary hover:text-primary/80" />
                         </Button>
-                    )}
+                        {onProfileClick && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-primary hover:bg-primary/10"
+                                onClick={onProfileClick}
+                            >
+                                <UserCog className="h-5 w-5" />
+                                <span className="sr-only">My Profile</span>
+                            </Button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -287,7 +302,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             <Search className="h-4 w-4" />
                             <span className="sr-only">Search Consultations</span>
                         </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onRegisterClick} title="Register New Patient">
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" id="registration-button" onClick={onRegisterClick} title="Register New Patient">
                             <UserPlus className="h-4 w-4" />
                             <span className="sr-only">Register New Patient</span>
                         </Button>
@@ -314,6 +329,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 <Popover open={isConsultationDatePickerOpen} onOpenChange={setIsConsultationDatePickerOpen}>
                     <PopoverTrigger asChild>
                         <Button
+                            id="date-picker-trigger"
                             variant="outline"
                             className={cn(
                                 "w-full justify-start text-left font-normal",
@@ -620,6 +636,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     )}
                 </div>
             </div>
+
+            <HandbookSheet
+                isOpen={isHandbookOpen}
+                onClose={() => setIsHandbookOpen(false)}
+                onShortcutsClick={onShortcutsClick}
+            />
         </div>
     );
 };

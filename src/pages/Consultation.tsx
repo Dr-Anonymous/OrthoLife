@@ -47,6 +47,7 @@ import { ClinicalNotesForm } from '@/components/consultation/ClinicalNotesForm';
 import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { FollowUpSection } from '@/components/consultation/FollowUpSection';
 import { ConsultationActions } from '@/components/consultation/ConsultationActions';
+import { OnboardingTour } from '@/components/consultation/OnboardingTour';
 import { SavedDocumentsSection } from '@/components/consultation/SavedDocumentsSection';
 import PatientHealthDashboard from '@/components/consultation/PatientHealthDashboard';
 import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol, CertificateData, ReceiptData } from '@/types/consultation';
@@ -161,6 +162,8 @@ const ConsultationPage = () => {
   });
   const [initialLanguage, setInitialLanguage] = useState<string>('te');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [isTourSimulation, setIsTourSimulation] = useState(false);
 
   // SEO & Page Title - Optimise for link sharing
   useEffect(() => {
@@ -204,6 +207,63 @@ const ConsultationPage = () => {
       }
     };
   }, []);
+
+  // Check onboarding on mount
+  useEffect(() => {
+    const isDone = localStorage.getItem('ortholife_onboarding_done');
+    if (!isDone && consultant) {
+      setShowTour(true);
+    }
+  }, [consultant]);
+
+  // Handle tour simulation (inject sample patient)
+  useEffect(() => {
+    if (showTour && !selectedConsultation) {
+      setIsTourSimulation(true);
+
+      const samplePatient: Patient = {
+        id: 'tour-sample',
+        name: 'Mr. Sample Patient',
+        phone: '1234567890',
+        dob: '1980-01-01',
+        sex: 'M',
+      };
+
+      const sampleConsultation: Consultation = {
+        id: 'tour-sample-cons',
+        created_at: new Date().toISOString(),
+        status: 'under_evaluation',
+        patient: samplePatient,
+        consultation_data: {
+          complaints: '',
+          medicalHistory: '',
+          findings: '',
+          diagnosis: '',
+          medications: [],
+          advice: '',
+          investigations: '',
+          procedure: '',
+          referred_to: '',
+          weight: '70',
+          bp: '130/85',
+        }
+      };
+
+      setSelectedConsultation(sampleConsultation);
+      setEditablePatientDetails(samplePatient);
+      setExtraData(sampleConsultation.consultation_data as any);
+    }
+  }, [showTour, selectedConsultation]);
+
+  const handleTourComplete = () => {
+    setShowTour(false);
+    localStorage.setItem('ortholife_onboarding_done', 'true');
+    if (isTourSimulation) {
+      setSelectedConsultation(null);
+      setEditablePatientDetails(null);
+      setIsTourSimulation(false);
+    }
+  };
 
   const [extraData, setExtraData] = useState<ExtraData>({
     complaints: '',
@@ -1549,7 +1609,7 @@ const ConsultationPage = () => {
         if (affordabilityPreference === 'cheap') {
           validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
         } else if (affordabilityPreference === 'costly') {
-          validBrands.sort((a, b) => ((b.cost || 0) / (a.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+          validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
         }
         finalBrandName = validBrands[0].name;
       }
@@ -2175,6 +2235,7 @@ const ConsultationPage = () => {
 
   return (
     <>
+      {showTour && <OnboardingTour onComplete={handleTourComplete} />}
       <div className="container mx-auto p-4 max-w-[1600px]">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <ConsultationSidebar
@@ -2201,7 +2262,8 @@ const ConsultationPage = () => {
             onSelectConsultation={handleSelectConsultation}
             onDeleteClick={handleDeleteClick}
             onShowPatientHistory={handleOpenHistory}
-            personalNote={extraData.personalNote}
+            onShortcutsClick={() => setIsShortcutModalOpen(true)}
+            personalNote={extraData.personalNote || ''}
             onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
             personalNoteRef={personalNoteRef}
             initialPersonalNote={initialExtraData?.personalNote}
@@ -2248,83 +2310,89 @@ const ConsultationPage = () => {
                   isReadOnly={isReadOnly}
                 />
 
-                <VitalsForm
-                  weight={extraData.weight}
-                  height={extraData.height}
-                  pulse={extraData.pulse}
-                  spo2={extraData.spo2}
-                  bp={extraData.bp}
-                  temperature={extraData.temperature}
-                  allergy={editablePatientDetails.allergies || ''}
-                  bloodGroup={editablePatientDetails.blood_group}
-                  onExtraChange={handleExtraChange}
-                  onPatientDetailsChange={handlePatientDetailsChange}
-                  initialData={initialExtraData}
-                  initialPatientData={initialPatientDetails}
-                  isReadOnly={isReadOnly}
-                />
+                <div id="vitals-section">
+                  <VitalsForm
+                    weight={extraData.weight}
+                    height={extraData.height}
+                    pulse={extraData.pulse}
+                    spo2={extraData.spo2}
+                    bp={extraData.bp}
+                    temperature={extraData.temperature}
+                    allergy={editablePatientDetails.allergies || ''}
+                    bloodGroup={editablePatientDetails.blood_group}
+                    onExtraChange={handleExtraChange}
+                    onPatientDetailsChange={handlePatientDetailsChange}
+                    initialData={initialExtraData}
+                    initialPatientData={initialPatientDetails}
+                    isReadOnly={isReadOnly}
+                  />
+                </div>
 
                 <PatientHealthDashboard 
                   phone={editablePatientDetails.phone || ''} 
                 />
 
-                <ClinicalNotesForm
-                  extraData={extraData}
-                  onExtraChange={handleExtraChange}
-                  complaintsRef={complaintsRef}
-                  medicalHistoryRef={medicalHistoryRef}
-                  findingsRef={findingsRef}
-                  investigationsRef={investigationsRef}
-                  diagnosisRef={diagnosisRef}
-                  procedureRef={procedureRef}
-                  adviceRef={adviceRef}
-                  orthoticsRef={orthoticsRef}
-                  referredToRef={referredToRef}
-                  suggestedInvestigations={suggestedInvestigations}
-                  suggestedAdvice={suggestedAdvice}
-                  suggestedOrthotics={suggestedOrthotics}
-                  onInvestigationSuggestionClick={(val) => handleAppendSuggestion('investigations', val)}
-                  onAdviceSuggestionClick={(val) => handleAppendSuggestion('advice', val)}
-                  onOrthoticsSuggestionClick={(val) => handleAppendSuggestion('orthotics', val)}
-                  matchedGuides={matchedGuides}
-                  isProcedureExpanded={isProcedureExpanded}
-                  setIsProcedureExpanded={setIsProcedureExpanded}
-                  isReferredToExpanded={isReferredToExpanded}
-                  setIsReferredToExpanded={setIsReferredToExpanded}
-                  referralDoctors={referralDoctors}
-                  language={consultationLanguage}
-                  onLanguageChange={handleLanguageChange}
-                  initialData={initialExtraData}
-                  isReadOnly={isReadOnly}
-                  patientId={selectedConsultation?.patient?.id}
-                />
+                <div id="clinical-notes-section">
+                  <ClinicalNotesForm
+                    extraData={extraData}
+                    onExtraChange={handleExtraChange}
+                    complaintsRef={complaintsRef}
+                    medicalHistoryRef={medicalHistoryRef}
+                    findingsRef={findingsRef}
+                    investigationsRef={investigationsRef}
+                    diagnosisRef={diagnosisRef}
+                    procedureRef={procedureRef}
+                    adviceRef={adviceRef}
+                    orthoticsRef={orthoticsRef}
+                    referredToRef={referredToRef}
+                    suggestedInvestigations={suggestedInvestigations}
+                    suggestedAdvice={suggestedAdvice}
+                    suggestedOrthotics={suggestedOrthotics}
+                    onInvestigationSuggestionClick={(val) => handleAppendSuggestion('investigations', val)}
+                    onAdviceSuggestionClick={(val) => handleAppendSuggestion('advice', val)}
+                    onOrthoticsSuggestionClick={(val) => handleAppendSuggestion('orthotics', val)}
+                    matchedGuides={matchedGuides}
+                    isProcedureExpanded={isProcedureExpanded}
+                    setIsProcedureExpanded={setIsProcedureExpanded}
+                    isReferredToExpanded={isReferredToExpanded}
+                    setIsReferredToExpanded={setIsReferredToExpanded}
+                    referralDoctors={referralDoctors}
+                    language={consultationLanguage}
+                    onLanguageChange={handleLanguageChange}
+                    initialData={initialExtraData}
+                    isReadOnly={isReadOnly}
+                    patientId={selectedConsultation?.patient?.id}
+                  />
+                </div>
 
-                <MedicationManager
-                  medications={extraData.medications}
-                  initialMedications={initialExtraData?.medications}
-                  sensors={sensors}
-                  handleDragEnd={handleDragEnd}
-                  handleMedChange={handleMedChange}
-                  removeMedication={removeMedication}
-                  savedMedications={savedMedications}
-                  setExtraData={setExtraData}
-                  medicationNameInputRef={medicationNameInputRef}
-                  fetchSavedMedications={fetchSavedMedications}
-                  language={consultationLanguage}
-                  medFrequencyRefs={medFrequencyRefs}
-                  medDurationRefs={medDurationRefs}
-                  medInstructionsRefs={medInstructionsRefs}
-                  medNotesRefs={medNotesRefs}
-                  addMedication={addMedication}
-                  suggestedMedications={suggestedMedications}
-                  handleMedicationSuggestionClick={handleMedicationSuggestionClick}
-                  currentLocation={selectedLocation}
-                  affordabilityPreference={extraData.affordabilityPreference}
-                  onAffordabilityChange={(val) => setExtraData(prev => ({ ...prev, affordabilityPreference: val }))}
-                  consultationId={selectedConsultation?.id}
-                  isMasterAdmin={isMasterAdmin}
-                  isReadOnly={isReadOnly}
-                />
+                <div id="medications-section">
+                  <MedicationManager
+                    medications={extraData.medications}
+                    initialMedications={initialExtraData?.medications}
+                    sensors={sensors}
+                    handleDragEnd={handleDragEnd}
+                    handleMedChange={handleMedChange}
+                    removeMedication={removeMedication}
+                    savedMedications={savedMedications}
+                    setExtraData={setExtraData}
+                    medicationNameInputRef={medicationNameInputRef}
+                    fetchSavedMedications={fetchSavedMedications}
+                    language={consultationLanguage}
+                    medFrequencyRefs={medFrequencyRefs}
+                    medDurationRefs={medDurationRefs}
+                    medInstructionsRefs={medInstructionsRefs}
+                    medNotesRefs={medNotesRefs}
+                    addMedication={addMedication}
+                    suggestedMedications={suggestedMedications}
+                    handleMedicationSuggestionClick={handleMedicationSuggestionClick}
+                    currentLocation={selectedLocation}
+                    affordabilityPreference={extraData.affordabilityPreference}
+                    onAffordabilityChange={(val) => setExtraData(prev => ({ ...prev, affordabilityPreference: val }))}
+                    consultationId={selectedConsultation?.id}
+                    isMasterAdmin={isMasterAdmin}
+                    isReadOnly={isReadOnly}
+                  />
+                </div>
 
                 <FollowUpSection
                   followup={extraData.followup}
@@ -2547,6 +2615,8 @@ const ConsultationPage = () => {
         </DialogContent>
       </Dialog>
       <TextShortcutManagementModal isOpen={isShortcutModalOpen} onClose={() => setIsShortcutModalOpen(false)} onUpdate={fetchTextShortcuts} consultantId={consultant?.id} />
+
+      <OnboardingTour run={showTour} onComplete={handleTourComplete} />
       <ReferralDoctorManagementModal isOpen={isReferralModalOpen} onClose={() => setIsReferralModalOpen(false)} onUpdate={fetchReferralDoctors} consultantId={consultant?.id} />
       {
         selectedConsultation && editablePatientDetails && (

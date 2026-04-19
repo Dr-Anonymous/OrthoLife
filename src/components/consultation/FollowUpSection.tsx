@@ -55,25 +55,25 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
 
     const handleAdjustDate = (days: number) => {
         if (isReadOnly) return;
-        
+
         // 1. Calculate the current target date
         const currentTargetDate = calculateFollowUpDate(followup, baseDate);
         if (!currentTargetDate) return;
 
         const dateObj = new Date(currentTargetDate);
         dateObj.setDate(dateObj.getDate() + days);
-        
+
         // 2. Calculate the difference from baseDate in days
         const baseRef = baseDate || new Date();
         const diffMs = dateObj.getTime() - baseRef.getTime();
         const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays <= 0) return;
 
         // 3. Generate smart text
         const isTelugu = language === 'te';
         let newCount, newUnit;
-        
+
         if (diffDays % 30 === 0) {
             newCount = diffDays / 30;
             newUnit = isTelugu ? (newCount === 1 ? 'నెల' : 'నెలల') : (newCount === 1 ? 'month' : 'months');
@@ -92,9 +92,9 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
         const durationRegex = /(?:\d+)?\s*(days|day|weeks|week|months|month|years|year|రోజులు|రోజుల|రోజు|వారాలు|వారాల|వారం|నెలలు|నెలల|నెల|సంవత్సరాలు|సంవత్సరాల|సంవత్సరం)/i;
         const tomorrowRegex = /(tomorrow|రేపు)/i;
         const dateStrRegex = /(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/;
-        
+
         let processedFollowup = followup;
-        
+
         if (dateStrRegex.test(followup)) {
             const formattedDate = format(dateObj, 'dd-MM-yyyy');
             processedFollowup = followup.replace(dateStrRegex, formattedDate);
@@ -105,7 +105,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
         } else {
             processedFollowup = `${followup} ${newDurationText}`.trim();
         }
-        
+
         onExtraChange('followup', processedFollowup);
     };
 
@@ -113,7 +113,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
         <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
                 <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
-                
+
                 {calculatedDate && (
                     <div className="flex items-center gap-1 bg-muted/30 rounded-full border border-border/50 p-0.5">
                         <Button
@@ -180,6 +180,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                 className={cn("min-h-[80px]", getStyle())}
                 disabled={isReadOnly}
             />
+            {!isReadOnly && <p className="text-[10px] text-muted-foreground/70 leading-none mt-1">Speed tip: Use custom shorthand (like <code className="font-bold">2w.</code>) to write "after 2 weeks".</p>}
         </div>
     );
 };
