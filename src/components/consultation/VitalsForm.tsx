@@ -109,6 +109,24 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
         return { label: 'Obese', color: 'bg-red-50 text-red-700 border-red-200' };
     }, [bmiValue]);
 
+    // Evaluate Blood Pressure Category (AHA/ACC Guidelines)
+    const bpCategory = React.useMemo(() => {
+        if (!bp || !bp.includes('/')) return null;
+        const [sysStr, diaStr] = bp.split('/');
+        const sys = parseInt(sysStr);
+        const dia = parseInt(diaStr);
+
+        if (isNaN(sys) || isNaN(dia) || !sys || !dia) return null;
+
+        if (sys > 180 || dia > 120) return { label: 'Crisis', color: 'bg-red-600/10 text-red-700 border-red-300 focus-visible:ring-red-500' };
+        if (sys >= 140 || dia >= 90) return { label: 'Stage 2', color: 'bg-red-50 text-red-700 border-red-200 focus-visible:ring-red-400' };
+        if (sys >= 130 || dia >= 80) return { label: 'Stage 1', color: 'bg-orange-50 text-orange-700 border-orange-200 focus-visible:ring-orange-400' };
+        if (sys >= 120 && dia < 80) return { label: 'Elevated', color: 'bg-amber-50 text-amber-700 border-amber-200 focus-visible:ring-amber-400' };
+        if (sys < 120 && dia < 80) return { label: 'Normal', color: 'bg-green-50 text-green-700 border-green-200 focus-visible:ring-green-400' };
+
+        return null;
+    }, [bp]);
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary/10">
@@ -165,14 +183,20 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                 )}
 
                 <div className="space-y-2 col-span-2 lg:col-span-1">
-                    <Label className="text-sm font-medium text-nowrap">BP</Label>
+                    <Label className="text-sm font-medium text-nowrap flex items-center justify-between">
+                        BP
+                        {bpCategory && <span className="text-[10px] uppercase font-bold opacity-70 animate-in fade-in slide-in-from-right-1">{bpCategory.label}</span>}
+                    </Label>
                     <div className="flex items-center gap-1 relative">
                         <Activity className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 z-10" />
                         <Input
                             placeholder="Sys"
                             value={bp ? bp.split('/')[0] : ''}
                             onChange={e => handleBpPartChange('systolic', e.target.value)}
-                            className={cn("text-center pl-8 pr-1", getStyle('bp', bp))}
+                            className={cn(
+                                "text-center pl-8 pr-1 transition-colors duration-300",
+                                bpCategory ? bpCategory.color : getStyle('bp', bp)
+                            )}
                             disabled={isReadOnly}
                         />
                         <span className="text-muted-foreground">/</span>
@@ -181,7 +205,10 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             ref={diastolicRef}
                             value={bp ? bp.split('/')[1] || '' : ''}
                             onChange={e => handleBpPartChange('diastolic', e.target.value)}
-                            className={cn("text-center px-1", getStyle('bp', bp))}
+                            className={cn(
+                                "text-center px-1 transition-colors duration-300",
+                                bpCategory ? bpCategory.color : getStyle('bp', bp)
+                            )}
                             disabled={isReadOnly}
                         />
                     </div>

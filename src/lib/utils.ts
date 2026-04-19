@@ -107,6 +107,7 @@ export function pruneEmptyFields(data: any): any {
   if (Array.isArray(data)) {
     return data.map(pruneEmptyFields);
   } else if (typeof data === 'object' && data !== null) {
+    if (data instanceof Date) return data;
     return Object.entries(data).reduce((acc, [key, value]) => {
       // Keep boolean false (checked checkboxes)
       if (value === '' || value === null || value === undefined) {

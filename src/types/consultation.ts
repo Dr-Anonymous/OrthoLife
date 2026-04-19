@@ -129,6 +129,24 @@ export interface InvestigationReport {
     mimeType?: string;
 }
 
+export interface CertificateData {
+    restPeriodDays: number;
+    restPeriodStartDate: string | Date;
+    treatmentFromDate: string | Date;
+    rejoinDate?: string | Date;
+    rejoinActivity?: string;
+    certificateDate: string | Date;
+    consultationDate: string | Date;
+    customContent?: string;
+}
+
+export interface ReceiptData {
+    amountPaid: number;
+    serviceName: string;
+    id?: string;
+    created_at?: string;
+}
+
 export interface ExtraData {
     complaints: string;
     medicalHistory: string;
@@ -160,6 +178,8 @@ export interface ExtraData {
     affordabilityPreference: string;
     orthotics?: string;
     investigation_reports?: InvestigationReport[];
+    certificates?: CertificateData[];
+    receipts?: ReceiptData[];
 }
 
 export interface AutofillProtocol {

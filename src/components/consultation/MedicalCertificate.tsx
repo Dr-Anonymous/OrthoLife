@@ -10,26 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Loader2, Printer, FileEdit, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import RichTextEditor from '@/components/RichTextEditor';
-import { Consultant, ConsultantText } from '@/types/consultation';
-
-// --- Interfaces ---
-
-interface Patient {
-  id: string;
-  name: string;
-  sex: string;
-}
-
-export interface CertificateData {
-  restPeriodDays: number;
-  restPeriodStartDate: Date;
-  treatmentFromDate: Date;
-  rejoinDate?: Date;
-  rejoinActivity?: string;
-  certificateDate: Date;
-  consultationDate: Date;
-  customContent?: string;
-}
+import { Consultant, ConsultantText, Patient, CertificateData } from '@/types/consultation';
 
 interface MedicalCertificateProps {
   patient: Patient;
@@ -44,6 +25,7 @@ interface MedicalCertificateModalProps {
   onClose: () => void;
   onSubmit: (data: CertificateData) => void;
   patientName: string;
+  initialData?: CertificateData | null;
 }
 
 // --- MedicalCertificate Component (Print Layout) ---
@@ -227,18 +209,28 @@ const generateDefaultCertificateHtml = (
 export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
   patient: Patient;
   diagnosis: string;
-}> = ({ isOpen, onClose, onSubmit, patientName, patient, diagnosis }) => {
+}> = ({ isOpen, onClose, onSubmit, patientName, patient, diagnosis, initialData }) => {
   const [step, setStep] = useState<'input' | 'edit'>('input');
 
   // Data input states
-  const [restPeriodDays, setRestPeriodDays] = useState<number | ''>('');
-  const [restPeriodStartDate, setRestPeriodStartDate] = useState<Date | undefined>(new Date());
-  const [treatmentFromDate, setTreatmentFromDate] = useState<Date | undefined>(new Date());
-  const [rejoinDate, setRejoinDate] = useState<Date | undefined>();
-  const [rejoinActivity, setRejoinActivity] = useState('');
+  const [restPeriodDays, setRestPeriodDays] = useState<number | ''>(initialData?.restPeriodDays || '');
+  const [restPeriodStartDate, setRestPeriodStartDate] = useState<Date | undefined>(
+    initialData?.restPeriodStartDate ? new Date(initialData.restPeriodStartDate) : new Date()
+  );
+  const [treatmentFromDate, setTreatmentFromDate] = useState<Date | undefined>(
+    initialData?.treatmentFromDate ? new Date(initialData.treatmentFromDate) : new Date()
+  );
+  const [rejoinDate, setRejoinDate] = useState<Date | undefined>(
+    initialData?.rejoinDate ? new Date(initialData.rejoinDate) : undefined
+  );
+  const [rejoinActivity, setRejoinActivity] = useState(initialData?.rejoinActivity || '');
 
-  const [certificateDate, setCertificateDate] = useState<Date | undefined>(new Date());
-  const [consultationDate, setConsultationDate] = useState<Date | undefined>(new Date());
+  const [certificateDate, setCertificateDate] = useState<Date | undefined>(
+    initialData?.certificateDate ? new Date(initialData.certificateDate) : new Date()
+  );
+  const [consultationDate, setConsultationDate] = useState<Date | undefined>(
+    initialData?.consultationDate ? new Date(initialData.consultationDate) : new Date()
+  );
 
   // Picker visibility states
   const [isRestPeriodDatePickerOpen, setIsRestPeriodDatePickerOpen] = useState(false);
@@ -263,9 +255,29 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
   useEffect(() => {
     if (isOpen) {
       setStep('input');
-      setEditorContent('');
+      setEditorContent(initialData?.customContent || '');
+      
+      // Update states from initialData if provided (useful if initialData changes while open or for fresh open)
+      if (initialData) {
+        setRestPeriodDays(initialData.restPeriodDays || '');
+        setRestPeriodStartDate(initialData.restPeriodStartDate ? new Date(initialData.restPeriodStartDate) : new Date());
+        setTreatmentFromDate(initialData.treatmentFromDate ? new Date(initialData.treatmentFromDate) : new Date());
+        setRejoinDate(initialData.rejoinDate ? new Date(initialData.rejoinDate) : undefined);
+        setRejoinActivity(initialData.rejoinActivity || '');
+        setCertificateDate(initialData.certificateDate ? new Date(initialData.certificateDate) : new Date());
+        setConsultationDate(initialData.consultationDate ? new Date(initialData.consultationDate) : new Date());
+      } else {
+        // Reset to defaults if no initialData
+        setRestPeriodDays('');
+        setRestPeriodStartDate(new Date());
+        setTreatmentFromDate(new Date());
+        setRejoinDate(undefined);
+        setRejoinActivity('');
+        setCertificateDate(new Date());
+        setConsultationDate(new Date());
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const handleNext = () => {
     if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate || !certificateDate || !consultationDate) {

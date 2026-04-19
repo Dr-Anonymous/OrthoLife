@@ -19,8 +19,8 @@ import TextShortcutManagementModal from '@/components/consultation/TextShortcutM
 import { useLocation, Navigate, useNavigate } from "react-router-dom";
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
-import { MedicalCertificate, MedicalCertificateModal, CertificateData } from '@/components/consultation/MedicalCertificate';
-import { Receipt, ReceiptModal, ReceiptData } from '@/components/consultation/Receipt';
+import { MedicalCertificate, MedicalCertificateModal } from '@/components/consultation/MedicalCertificate';
+import { Receipt, ReceiptModal } from '@/components/consultation/Receipt';
 import { useHospitals } from '@/context/HospitalsContext';
 import { useAuth } from "@/hooks/useAuth";
 import { useConsultant } from "@/context/ConsultantContext";
@@ -47,7 +47,8 @@ import { ClinicalNotesForm } from '@/components/consultation/ClinicalNotesForm';
 import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { FollowUpSection } from '@/components/consultation/FollowUpSection';
 import { ConsultationActions } from '@/components/consultation/ConsultationActions';
-import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol } from '@/types/consultation';
+import { SavedDocumentsSection } from '@/components/consultation/SavedDocumentsSection';
+import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol, CertificateData, ReceiptData } from '@/types/consultation';
 
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
@@ -231,6 +232,8 @@ const ConsultationPage = () => {
     visit_type: 'paid', // default
     affordabilityPreference: 'none',
     orthotics: '',
+    certificates: [],
+    receipts: [],
   });
 
   const extraDataRef = useRef(extraData);
@@ -268,6 +271,8 @@ const ConsultationPage = () => {
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [completionMessage, setCompletionMessage] = useState('');
   const [isMessageManuallyEdited, setIsMessageManuallyEdited] = useState(false);
+  const [editingCertificateIndex, setEditingCertificateIndex] = useState<number | null>(null);
+  const [editingReceiptIndex, setEditingReceiptIndex] = useState<number | null>(null);
 
 
 
@@ -549,6 +554,15 @@ const ConsultationPage = () => {
       affordabilityPreference: savedData.affordabilityPreference || 'none',
       orthotics: savedData.orthotics || '',
       investigation_reports: savedData.investigation_reports || [],
+      certificates: (savedData.certificates || []).map(cert => ({
+        ...cert,
+        restPeriodStartDate: cert.restPeriodStartDate ? new Date(cert.restPeriodStartDate) : new Date(),
+        treatmentFromDate: cert.treatmentFromDate ? new Date(cert.treatmentFromDate) : new Date(),
+        rejoinDate: cert.rejoinDate ? new Date(cert.rejoinDate) : undefined,
+        certificateDate: cert.certificateDate ? new Date(cert.certificateDate) : new Date(),
+        consultationDate: cert.consultationDate ? new Date(cert.consultationDate) : new Date(),
+      })),
+      receipts: savedData.receipts || [],
     };
     setExtraData(newExtraData);
     setInitialExtraData(newExtraData);
@@ -1914,12 +1928,52 @@ const ConsultationPage = () => {
 
   const handleMedicalCertificateSubmit = async (data: CertificateData) => {
     const latestData = syncExtraDataFromRefs();
-    // Ensure data is saved before printing certificate, to capture any ref-based changes
-    await saveChanges({ extraDataOverride: latestData });
+    
+    let updatedCertificates: CertificateData[];
+    if (editingCertificateIndex !== null) {
+      // Update existing
+      updatedCertificates = [...(latestData.certificates || [])];
+      updatedCertificates[editingCertificateIndex] = data;
+    } else {
+      // Add new
+      updatedCertificates = [data, ...(latestData.certificates || [])];
+    }
+    
+    const dataToSave = { ...latestData, certificates: updatedCertificates };
+    
+    setExtraData(dataToSave);
+    await saveChanges({ extraDataOverride: dataToSave });
 
     setCertificateData(data);
     setIsMedicalCertificateModalOpen(false);
+    setEditingCertificateIndex(null); // Reset
     setIsReadyToPrintCertificate(true);
+  };
+
+  const handleEditCertificate = (index: number) => {
+    setEditingCertificateIndex(index);
+    setIsMedicalCertificateModalOpen(true);
+  };
+
+  const handleDeleteCertificate = async (index: number) => {
+    const latestData = syncExtraDataFromRefs();
+    const updatedCertificates = (latestData.certificates || []).filter((_, i) => i !== index);
+    const dataToSave = { ...latestData, certificates: updatedCertificates };
+    setExtraData(dataToSave);
+    await saveChanges({ extraDataOverride: dataToSave });
+  };
+
+  const handleEditReceipt = (index: number) => {
+    setEditingReceiptIndex(index);
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleDeleteReceipt = async (index: number) => {
+    const latestData = syncExtraDataFromRefs();
+    const updatedReceipts = (latestData.receipts || []).filter((_, i) => i !== index);
+    const dataToSave = { ...latestData, receipts: updatedReceipts };
+    setExtraData(dataToSave);
+    await saveChanges({ extraDataOverride: dataToSave });
   };
 
 
@@ -2279,6 +2333,16 @@ const ConsultationPage = () => {
                   isReadOnly={isReadOnly}
                 />
 
+                <SavedDocumentsSection
+                  className="mt-6"
+                  certificates={extraData.certificates || []}
+                  receipts={extraData.receipts || []}
+                  onEditCertificate={handleEditCertificate}
+                  onDeleteCertificate={handleDeleteCertificate}
+                  onEditReceipt={handleEditReceipt}
+                  onDeleteReceipt={handleDeleteReceipt}
+                />
+
                 {(extraData.procedure || extraData.referred_by) && (
                   <div className="border rounded-md p-4 space-y-4">
                     <div
@@ -2483,15 +2547,15 @@ const ConsultationPage = () => {
         selectedConsultation && editablePatientDetails && (
           <MedicalCertificateModal
             isOpen={isMedicalCertificateModalOpen}
-            onClose={() => setIsMedicalCertificateModalOpen(false)}
+            onClose={() => {
+              setIsMedicalCertificateModalOpen(false);
+              setEditingCertificateIndex(null);
+            }}
             onSubmit={handleMedicalCertificateSubmit}
             patientName={editablePatientDetails.name}
-            patient={{
-              id: editablePatientDetails.id, // Using existing data structure
-              name: editablePatientDetails.name,
-              sex: editablePatientDetails.sex || 'M' // Fallback
-            }}
+            patient={editablePatientDetails}
             diagnosis={extraData.diagnosis}
+            initialData={editingCertificateIndex !== null ? extraData.certificates?.[editingCertificateIndex] : null}
           />
         )
       }
@@ -2499,13 +2563,37 @@ const ConsultationPage = () => {
         selectedConsultation && editablePatientDetails && (
           <ReceiptModal
             isOpen={isReceiptModalOpen}
-            onClose={() => setIsReceiptModalOpen(false)}
-            onSubmit={(data) => {
+            onClose={() => {
+              setIsReceiptModalOpen(false);
+              setEditingReceiptIndex(null);
+            }}
+            onSubmit={async (data) => {
+              const latestData = syncExtraDataFromRefs();
+              
+              let updatedReceipts: ReceiptData[];
+              if (editingReceiptIndex !== null) {
+                updatedReceipts = [...(latestData.receipts || [])];
+                updatedReceipts[editingReceiptIndex] = { 
+                  ...data, 
+                  created_at: latestData.receipts?.[editingReceiptIndex]?.created_at || new Date().toISOString() 
+                };
+              } else {
+                const receiptWithDate = { ...data, created_at: new Date().toISOString() };
+                updatedReceipts = [receiptWithDate, ...(latestData.receipts || [])];
+              }
+              
+              const dataToSave = { ...latestData, receipts: updatedReceipts };
+              
+              setExtraData(dataToSave);
+              await saveChanges({ extraDataOverride: dataToSave });
+              
               setReceiptData(data);
               setIsReceiptModalOpen(false);
+              setEditingReceiptIndex(null);
               setIsReadyToPrintReceipt(true);
             }}
             patientName={editablePatientDetails.name}
+            initialData={editingReceiptIndex !== null ? extraData.receipts?.[editingReceiptIndex] : null}
           />
         )
       }

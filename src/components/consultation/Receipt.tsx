@@ -6,20 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
-import { Consultant, ConsultantText } from '@/types/consultation';
-
-// --- Interfaces ---
-
-interface Patient {
-  id: string;
-  name: string;
-  sex: string;
-}
-
-export interface ReceiptData {
-  amountPaid: number;
-  serviceName: string;
-}
+import { Consultant, ConsultantText, Patient, ReceiptData } from '@/types/consultation';
 
 interface ReceiptProps {
   patient: Patient;
@@ -32,6 +19,7 @@ interface ReceiptModalProps {
   onClose: () => void;
   onSubmit: (data: ReceiptData) => void;
   patientName: string;
+  initialData?: ReceiptData | null;
 }
 
 // --- Receipt Component (Print Layout) ---
@@ -126,10 +114,23 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consulta
  * - Inputs for Amount and Service Name.
  * - Default service name "OP consultation charges".
  */
-export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, onSubmit, patientName }) => {
-  const [amountPaid, setAmountPaid] = useState<number | ''>('');
-  const [serviceName, setServiceName] = useState('OP consultation charges');
+export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, onSubmit, patientName, initialData }) => {
+  const [amountPaid, setAmountPaid] = useState<number | ''>(initialData?.amountPaid || '');
+  const [serviceName, setServiceName] = useState(initialData?.serviceName || 'OP consultation charges');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update state when initialData changes or modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setAmountPaid(initialData.amountPaid || '');
+        setServiceName(initialData.serviceName || 'OP consultation charges');
+      } else {
+        setAmountPaid('');
+        setServiceName('OP consultation charges');
+      }
+    }
+  }, [isOpen, initialData]);
 
   const handleSubmit = () => {
     if (!amountPaid) {
