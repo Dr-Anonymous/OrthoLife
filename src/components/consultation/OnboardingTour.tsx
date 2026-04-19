@@ -21,6 +21,15 @@ export const OnboardingTour = ({ run, onComplete }: OnboardingTourProps) => {
             skipBeacon: true,
         },
         {
+            target: '#profile-settings-button',
+            content: (
+                <div className="space-y-2 text-left">
+                    <h4 className="font-bold text-primary">Your Practice Profile</h4>
+                    <p className="text-sm">Manage your profile, clinic locations and review periods in your <strong>Profile</strong>. Use the <strong>Handbook (📖)</strong> right next to it for quick references of clinical shortcuts and logic.</p>
+                </div>
+            ),
+        },
+        {
             target: '#registration-button',
             content: (
                 <div className="space-y-2 text-left">

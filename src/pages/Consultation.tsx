@@ -2253,7 +2253,6 @@ const ConsultationPage = () => {
 
   return (
     <>
-      <OnboardingTour run={showTour} onComplete={handleTourComplete} />
       <div className="container mx-auto p-4 max-w-[1600px]">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <ConsultationSidebar

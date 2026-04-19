@@ -266,6 +266,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 size="icon"
                                 className="h-8 w-8 text-primary hover:bg-primary/10"
                                 onClick={onProfileClick}
+                                id="profile-settings-button"
                             >
                                 <UserCog className="h-5 w-5" />
                                 <span className="sr-only">My Profile</span>
@@ -641,6 +642,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 isOpen={isHandbookOpen}
                 onClose={() => setIsHandbookOpen(false)}
                 onShortcutsClick={onShortcutsClick}
+                onProfileClick={onProfileClick}
             />
         </div>
     );
