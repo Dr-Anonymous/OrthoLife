@@ -25,10 +25,20 @@ export interface Medication {
     duration: string;
     instructions: string;
     notes: string;
+    /** Metadata used for safety warning lookups. These are not persisted in prescription records. */
+    contraindications?: string[];
+    /** Metadata used for safety warning lookups. These are not persisted in prescription records. */
+    interactions?: string[];
     instructions_te?: string;
     frequency_te?: string;
     duration_te?: string;
     notes_te?: string;
+}
+
+export interface DrugWarning {
+    medIndex: number;
+    type: 'allergy' | 'contraindication' | 'interaction';
+    message: string;
 }
 
 export interface Patient {

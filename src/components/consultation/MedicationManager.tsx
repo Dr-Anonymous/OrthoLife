@@ -2,14 +2,15 @@ import React from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
-import { Stethoscope, Plus } from 'lucide-react';
+import { Stethoscope, Plus, AlertTriangle } from 'lucide-react';
 import { SortableMedicationItem } from '@/components/consultation/SortableMedicationItem';
-import { Medication } from '@/types/consultation';
+import { Medication, DrugWarning } from '@/types/consultation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MedicationManagerProps {
+    drugWarnings?: DrugWarning[];
     medications: Medication[];
     initialMedications?: Medication[];
     sensors: any; // Using any for dnd-kit sensors mainly due to complex types
@@ -47,6 +48,7 @@ interface MedicationManagerProps {
  * - Integration with `SortableMedicationItem` for individual row logic.
  */
 export const MedicationManager: React.FC<MedicationManagerProps> = ({
+    drugWarnings = [],
     medications,
     sensors,
     handleDragEnd,
@@ -278,6 +280,25 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                 </div>
             </div>
 
+            {drugWarnings.length > 0 && (() => {
+                const affectedMedsCount = new Set(drugWarnings.map(w => w.medIndex)).size;
+                return (
+                    <div className="mb-4 mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                        <div className="bg-amber-100 p-2 rounded-full shadow-sm">
+                            <AlertTriangle className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-bold text-amber-900 leading-tight">
+                                {drugWarnings.length} safety {drugWarnings.length === 1 ? 'alert' : 'alerts'} detected across {affectedMedsCount} {affectedMedsCount === 1 ? 'medication' : 'medications'}
+                            </p>
+                            <p className="text-[11px] text-amber-800 mt-0.5">
+                                Please review the highlighted items below for potential allergies, interactions, or contraindications.
+                            </p>
+                        </div>
+                    </div>
+                );
+            })()}
+
             <div className="space-y-4 pl-6">
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={medications.map(m => m.id)} strategy={verticalListSortingStrategy}>
@@ -286,6 +307,7 @@ export const MedicationManager: React.FC<MedicationManagerProps> = ({
                                 key={med.id}
                                 med={med}
                                 index={index}
+                                warnings={drugWarnings.filter(w => w.medIndex === index)}
                                 handleMedChange={handleMedChange}
                                 removeMedication={removeMedication}
                                 savedMedications={savedMedications}

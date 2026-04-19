@@ -34,6 +34,8 @@ interface Medication {
   instructions_te?: string;
   frequency_te?: string;
   notes_te?: string;
+  contraindications?: string[];
+  interactions?: string[];
 }
 
 interface SavedMedicationsModalProps {
@@ -73,7 +75,11 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     instructions_te: '',
     frequency_te: '',
     notes_te: '',
+    contraindications: [],
+    interactions: [],
   });
+  const [localContra, setLocalContra] = useState('');
+  const [localInter, setLocalInter] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const debouncedInstructions = useDebounce(newMed.instructions, 500);
   const debouncedFrequency = useDebounce(newMed.frequency, 500);
@@ -86,8 +92,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
-  const filteredMeds = medications.filter(med => 
-    med.composition.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredMeds = medications.filter(med =>
+    med.composition.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (med.brand_metadata && med.brand_metadata.some(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
@@ -253,6 +259,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
         instructions_te: newMed.instructions_te,
         frequency_te: newMed.frequency_te,
         notes_te: newMed.notes_te,
+        contraindications: newMed.contraindications || [],
+        interactions: newMed.interactions || [],
       }).eq('id', isEditing)
       : await supabase.from('saved_medications').insert([{
         composition: newMed.composition,
@@ -269,6 +277,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
         instructions_te: newMed.instructions_te,
         frequency_te: newMed.frequency_te,
         notes_te: newMed.notes_te,
+        contraindications: newMed.contraindications || [],
+        interactions: newMed.interactions || [],
       }]);
 
     if (error) {
@@ -300,11 +310,16 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
     setIsEditing(med.id!);
     setNewMed(med);
     setIsCustom(!!med.frequency);
+    setLocalContra((med.contraindications || []).join(', '));
+    setLocalInter((med.interactions || []).join(', '));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
     setIsEditing(null);
-    setNewMed({ composition: '', brand_metadata: [], dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', duration_te: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '' });
+    setNewMed({ composition: '', brand_metadata: [], dose: '', freqMorning: false, freqNoon: false, freqNight: false, frequency: '', duration: '', duration_te: '', instructions: '', notes: '', instructions_te: '', frequency_te: '', notes_te: '', contraindications: [], interactions: [] });
+    setLocalContra('');
+    setLocalInter('');
     setIsCustom(false);
   };
 
@@ -337,7 +352,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                   <Plus className="w-3 h-3 mr-1" /> Add Brand
                 </Button>
               </div>
-              
+
               <div className="space-y-3">
                 {(newMed.brand_metadata || []).map((b, i) => (
                   <div key={i} className="bg-background border rounded-lg p-3 shadow-sm relative group space-y-3">
@@ -345,23 +360,23 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                     <div className="flex items-end gap-3">
                       <div className="flex-1 space-y-1.5">
                         <Label className="text-[10px] uppercase text-muted-foreground font-bold">Brand Name</Label>
-                        <Input 
-                          placeholder="e.g. Dolo 650" 
-                          value={b.name} 
+                        <Input
+                          placeholder="e.g. Dolo 650"
+                          value={b.name}
                           className="h-8 text-xs"
                           onChange={e => {
                             const newValue = e.target.value;
-                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) => 
+                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) =>
                               idx === i ? { ...item, name: newValue } : item
                             ));
-                          }} 
+                          }}
                         />
                       </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0" 
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
                         onClick={() => {
                           const arr = [...(newMed.brand_metadata || [])];
                           arr.splice(i, 1);
@@ -376,33 +391,33 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                     <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase text-muted-foreground font-bold">MRP (₹)</Label>
-                        <Input 
-                          type="number" 
-                          placeholder="0" 
-                          value={b.cost?.toString() || ''} 
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={b.cost?.toString() || ''}
                           className="h-8 text-xs font-mono"
                           onChange={e => {
                             const newValue = e.target.value ? Number(e.target.value) : undefined;
-                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) => 
+                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) =>
                               idx === i ? { ...item, cost: newValue } : item
                             ));
-                          }} 
+                          }}
                         />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase text-muted-foreground font-bold">Pack</Label>
-                        <Input 
-                          type="number" 
-                          placeholder="10" 
+                        <Input
+                          type="number"
+                          placeholder="10"
                           title="Number of units per pack (e.g. 10 tablets)"
-                          value={b.packSize?.toString() || ''} 
+                          value={b.packSize?.toString() || ''}
                           className="h-8 text-xs font-mono"
                           onChange={e => {
                             const newValue = e.target.value ? Number(e.target.value) : undefined;
-                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) => 
+                            handleInputChange('brand_metadata', (newMed.brand_metadata || []).map((item, idx) =>
                               idx === i ? { ...item, packSize: newValue } : item
                             ));
-                          }} 
+                          }}
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -421,21 +436,21 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                               <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Available At</p>
                               {hospitals.map(h => (
                                 <div key={h.id} className="flex items-center space-x-2">
-                                  <Checkbox 
-                                    id={`loc-${i}-${h.id}`} 
-                                    checked={(b.locations || []).includes(h.name)} 
+                                  <Checkbox
+                                    id={`loc-${i}-${h.id}`}
+                                    checked={(b.locations || []).includes(h.name)}
                                     onCheckedChange={(checked) => {
                                       const currentBrands = newMed.brand_metadata || [];
                                       const newBrands = currentBrands.map((brand, idx) => {
                                         if (idx !== i) return brand;
                                         const currentLocs = brand.locations || [];
-                                        const newLocs = checked 
+                                        const newLocs = checked
                                           ? [...currentLocs, h.name]
                                           : currentLocs.filter(name => name !== h.name);
                                         return { ...brand, locations: newLocs };
                                       });
                                       handleInputChange('brand_metadata', newBrands);
-                                    }} 
+                                    }}
                                   />
                                   <label htmlFor={`loc-${i}-${h.id}`} className="text-[10px] cursor-pointer truncate font-medium">
                                     {h.name}
@@ -493,8 +508,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                         handleInputChange('freqNight', false);
                         // Auto-fill defaults if empty
                         if (!newMed.frequency) {
-                          setNewMed(prev => ({ 
-                            ...prev, 
+                          setNewMed(prev => ({
+                            ...prev,
                             frequency: 'if needed',
                             frequency_te: prev.frequency_te || 'అవసరమైతే'
                           }));
@@ -650,6 +665,38 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                 <Input id="med-notes-te" value={newMed.notes_te} onChange={e => handleInputChange('notes_te', e.target.value)} disabled={isTranslating} className="h-9" />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="med-contraindications" className="text-xs font-semibold text-orange-500">Avoid in (Conditions)</Label>
+                <Input
+                  id="med-contraindications"
+                  placeholder="e.g. diabetes, pregnancy"
+                  value={localContra}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setLocalContra(val);
+                    handleInputChange('contraindications', val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean));
+                  }}
+                  className="h-9 border-orange-200 focus-visible:ring-orange-500"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="med-interactions" className="text-xs font-semibold text-yellow-600">Do not combine with</Label>
+                <Input
+                  id="med-interactions"
+                  placeholder="e.g. warfarin, aspirin"
+                  value={localInter}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setLocalInter(val);
+                    handleInputChange('interactions', val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean));
+                  }}
+                  className="h-9 border-yellow-200 focus-visible:ring-yellow-500"
+                />
+              </div>
+            </div>
+
             <div className="flex justify-end space-x-2">
               {isEditing && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}
               <Button onClick={handleAddOrUpdateMedication} disabled={isLoading}>
@@ -680,66 +727,68 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                 </div>
               ) : (
                 filteredMeds.map((med, idx) => (
-                    <div 
-                      key={med.id} 
-                      className={`flex flex-col p-3 border rounded-md transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10 border-primary/50' : ''}`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-semibold text-sm truncate">{med.composition}</span>
-                            {med.dose && (
-                              <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border shrink-0">
-                                {med.dose}
-                              </span>
-                            )}
-                          </div>
-                          {med.brand_metadata && med.brand_metadata.length > 0 && (
-                            <span className="text-[10px] text-muted-foreground block line-clamp-2">
-                              {med.brand_metadata.map(b => {
-                                const up = b.cost && b.packSize ? (b.cost / b.packSize).toFixed(2) : b.cost;
-                                return `${b.name} (₹${up}${b.packSize && b.packSize > 1 ? '/u' : ''})`;
-                              }).join(', ')}
+                  <div
+                    key={med.id}
+                    className={`flex flex-col p-3 border rounded-md transition-colors ${idx === activeSuggestionIndex ? 'bg-primary/10 border-primary/50' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-semibold text-sm truncate">{med.composition}</span>
+                          {med.dose && (
+                            <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border shrink-0">
+                              {med.dose}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            title="Duplicate as new"
-                            onClick={() => {
-                              const { id, ...copyData } = med;
-                              setNewMed(copyData);
-                              setIsEditing(null);
-                              setIsCustom(!!med.frequency);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                              toast({ title: 'Template Loaded', description: `New variant of ${med.composition} initialized.` });
-                            }}
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            onClick={() => startEditing(med)}
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-destructive hover:bg-destructive/10" 
-                            onClick={() => handleDeleteMedication(med.id!)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
+                        {med.brand_metadata && med.brand_metadata.length > 0 && (
+                          <span className="text-[10px] text-muted-foreground block line-clamp-2">
+                            {med.brand_metadata.map(b => {
+                              const up = b.cost && b.packSize ? (b.cost / b.packSize).toFixed(2) : b.cost;
+                              return `${b.name} (₹${up}${b.packSize && b.packSize > 1 ? '/u' : ''})`;
+                            }).join(', ')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          title="Duplicate as new"
+                          onClick={() => {
+                            const { id, ...copyData } = med;
+                            setNewMed(copyData);
+                            setLocalContra((copyData.contraindications || []).join(', '));
+                            setLocalInter((copyData.interactions || []).join(', '));
+                            setIsEditing(null);
+                            setIsCustom(!!med.frequency);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            toast({ title: 'Template Loaded', description: `New variant of ${med.composition} initialized.` });
+                          }}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={() => startEditing(med)}
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteMedication(med.id!)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </div>
-                  ))
+                  </div>
+                ))
               )}
             </div>
           </div>

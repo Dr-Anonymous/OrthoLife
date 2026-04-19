@@ -254,3 +254,10 @@ export function stripFollowUpPrefix(text: string | null | undefined): string {
   
   return stripped || '-';
 }
+
+/**
+ * Escapes special characters in a string for use in a regular expression.
+ */
+export function escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

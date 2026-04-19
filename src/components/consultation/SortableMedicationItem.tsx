@@ -11,11 +11,14 @@ import { Check, GripVertical, Loader2, PlusCircle, X } from 'lucide-react';
 import { cn, normalizeMedName } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Medication } from '@/types/consultation';
+import { Medication, DrugWarning } from '@/types/consultation';
+import { AlertTriangle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SortableMedicationItemProps {
     med: Medication;
     index: number;
+    warnings?: DrugWarning[];
     handleMedChange: (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => void;
     removeMedication: (index: number) => void;
     savedMedications: Medication[];
@@ -40,6 +43,7 @@ interface SortableMedicationItemProps {
 export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
     med,
     index,
+    warnings = [],
     handleMedChange,
     removeMedication,
     savedMedications,
@@ -208,7 +212,43 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label className="text-sm font-medium">Medicine Name</Label>
+                                <div className="flex items-center gap-2">
+                                    <Label className="text-sm font-medium">Medicine Name</Label>
+                                    {warnings.length > 0 && (() => {
+                                        const hasAllergy = warnings.some(w => w.type === 'allergy');
+                                        const hasContra = warnings.some(w => w.type === 'contraindication');
+                                        const severityColor = hasAllergy ? "text-red-600" : hasContra ? "text-orange-500" : "text-yellow-500";
+                                        
+                                        return (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center cursor-help">
+                                                        <AlertTriangle className={cn("h-4 w-4", severityColor)} />
+                                                        <span className={cn("text-xs ml-1 font-semibold", severityColor)}>
+                                                            {warnings.length > 1 ? `${warnings.length} warnings` : warnings[0].message}
+                                                        </span>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="max-w-[300px] p-3">
+                                                    <div className="space-y-2">
+                                                        <p className="font-bold text-xs border-b pb-1 mb-1">Safety Alerts</p>
+                                                        {warnings.map((w, i) => (
+                                                            <div key={i} className="flex gap-2 text-xs">
+                                                                <span className={cn(
+                                                                    "shrink-0 w-2 h-2 rounded-full mt-1",
+                                                                    w.type === 'allergy' ? "bg-red-600" :
+                                                                    w.type === 'contraindication' ? "bg-orange-500" :
+                                                                    "bg-yellow-500"
+                                                                )} />
+                                                                <span className="leading-tight">{w.message}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        );
+                                    })()}
+                                </div>
                                 <div className="flex items-center">
                                     <Button
                                         type="button"

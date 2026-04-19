@@ -6,7 +6,7 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } fr
 import { Loader2, IndianRupee, ChevronDown } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
-import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName } from '@/lib/utils';
+import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName, escapeRegex } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { fetchRecentHistory, generateAutofillData, calculateLastVisitString } from '@/lib/consultation-history';
@@ -50,7 +50,7 @@ import { ConsultationActions } from '@/components/consultation/ConsultationActio
 import { OnboardingTour } from '@/components/consultation/OnboardingTour';
 import { SavedDocumentsSection } from '@/components/consultation/SavedDocumentsSection';
 import PatientHealthDashboard from '@/components/consultation/PatientHealthDashboard';
-import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol, CertificateData, ReceiptData } from '@/types/consultation';
+import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol, CertificateData, ReceiptData, DrugWarning } from '@/types/consultation';
 
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
@@ -1104,6 +1104,8 @@ const ConsultationPage = () => {
         delete cleaned.duration_te;
         delete cleaned.instructions_te;
         delete cleaned.notes_te;
+        delete cleaned.contraindications;
+        delete cleaned.interactions;
 
         if (!cleaned.freqMorning) delete cleaned.freqMorning;
         if (!cleaned.freqNoon) delete cleaned.freqNoon;
@@ -2107,6 +2109,103 @@ const ConsultationPage = () => {
     }
   };
 
+  const drugWarnings = useMemo((): DrugWarning[] => {
+    const warnings: DrugWarning[] = [];
+    const clinicalTextRaw = [
+      extraData.complaints,
+      extraData.medicalHistory,
+      extraData.diagnosis,
+      extraData.findings
+    ].join(' ').toLowerCase();
+
+    // 1. Negation Pre-masking: Remove clauses that likely refer to absence/negative findings
+    // We strip text starting from a negation keyword up until the next major punctuation
+    const clinicalTextSanitized = clinicalTextRaw.replace(
+      /\b(no|nil|denies|denied|r\/o|rule out|ruled out|without|absent)\b[^.,;]*/gi, 
+      ''
+    );
+
+    const allergiesText = (editablePatientDetails?.allergies || '').toLowerCase();
+    const ALLERGY_STOPWORDS = new Set(['known', 'none', 'nkda', 'nil', 'mild', 'rash', 'allergies', 'allergy', 'stated', 'to', 'no', 'h/o', 'f/h/o', 'past', 'previous', 'suspected']);
+
+    // Set to track unique interactions to avoid duplicates: medA_idx|medB_idx|substance
+    const interactionSet = new Set<string>();
+
+    extraData.medications.forEach((med, idx) => {
+      const composition = med.composition?.toLowerCase()?.trim();
+      if (!composition) return;
+
+      // 2. Allergy check with word boundaries and stopwords
+      if (allergiesText) {
+        const allergyTokens = allergiesText.split(/[,;\s]+/).filter(t => t.length > 2 && !ALLERGY_STOPWORDS.has(t));
+        for (const token of allergyTokens) {
+          try {
+            const allergyRe = new RegExp(`\\b${escapeRegex(token)}\\b`, 'i');
+            if (allergyRe.test(composition)) {
+              warnings.push({ medIndex: idx, type: 'allergy', message: `Patient may be allergic to ${token} (matches ${med.composition})` });
+              break; 
+            }
+          } catch (e) { console.error("Regex error in allergy check", e); }
+        }
+      }
+
+      // 3. SavedMed Lookup (ID then Fallback to Name)
+      let savedMed = savedMedications.find(s => String(s.id) === String(med.savedMedicationId));
+      if (!savedMed) {
+        savedMed = savedMedications.find(s => normalizeMedName(s.composition) === normalizeMedName(med.composition));
+      }
+      if (!savedMed) return;
+
+      // 4. Contraindication check with Negation Detection
+      (savedMed.contraindications || []).forEach(condition => {
+        const cond = condition.trim().toLowerCase();
+        if (!cond) return;
+        
+        try {
+          // Since clinicalTextSanitized has negated bits removed, we can just do a direct word boundary match
+          const contraRe = new RegExp(`\\b${escapeRegex(cond)}\\b`, 'i');
+          if (contraRe.test(clinicalTextSanitized)) {
+            warnings.push({ medIndex: idx, type: 'contraindication', message: `Avoid in ${condition}` });
+          }
+        } catch (e) { console.error("Regex error in contraindication check", e); }
+      });
+
+      // 5. Drug-drug interaction check (symmetric and properly deduped)
+      (savedMed.interactions || []).forEach(interactingComp => {
+        const interCompLower = interactingComp.toLowerCase().trim();
+        if (!interCompLower) return;
+
+        extraData.medications.forEach((otherMed, otherIdx) => {
+          if (idx === otherIdx || !otherMed.composition) return;
+          
+          if (otherMed.composition.toLowerCase().includes(interCompLower)) {
+            const medA_comp = med.composition || '';
+            const medB_comp = otherMed.composition || '';
+            
+            // Unique key for this specific interaction pair
+            const iKey = `${idx}|${otherIdx}|${interCompLower}`;
+            const reverseKey = `${otherIdx}|${idx}|${interCompLower}`;
+
+            if (!interactionSet.has(iKey)) {
+              warnings.push({ medIndex: idx, type: 'interaction', message: `Interacts with ${medB_comp} (${interactingComp})` });
+              interactionSet.add(iKey);
+            }
+            if (!interactionSet.has(reverseKey)) {
+              warnings.push({ medIndex: otherIdx, type: 'interaction', message: `Interacts with ${medA_comp} (${interactingComp})` });
+              interactionSet.add(reverseKey);
+            }
+          }
+        });
+      });
+    });
+
+    return warnings;
+  }, [
+    extraData.medications, extraData.complaints, extraData.medicalHistory,
+    extraData.diagnosis, extraData.findings,
+    editablePatientDetails?.allergies, savedMedications
+  ]);
+
   // Filter Consultations
   const filteredConsultations = useMemo(() => {
     return allConsultations.filter(c => {
@@ -2384,6 +2483,7 @@ const ConsultationPage = () => {
 
                 <div id="medications-section">
                   <MedicationManager
+                    drugWarnings={drugWarnings}
                     medications={extraData.medications}
                     initialMedications={initialExtraData?.medications}
                     sensors={sensors}
