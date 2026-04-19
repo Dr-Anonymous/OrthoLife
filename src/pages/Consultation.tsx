@@ -227,6 +227,35 @@ const ConsultationPage = () => {
         phone: '1234567890',
         dob: '1980-01-01',
         sex: 'M',
+        drive_id: null,
+      };
+
+      const sampleExtraData: ExtraData = {
+        complaints: 'Sample joint pain for demonstration.',
+        medicalHistory: 'None',
+        findings: 'Normal movements',
+        diagnosis: 'Mild Strain',
+        medications: [],
+        advice: 'Rest and ice pack.',
+        followup: 'after 2 weeks',
+        weight: '70',
+        bp: '130/85',
+        temperature: '98.4',
+        height: '170',
+        pulse: '72',
+        spo2: '98',
+        bmi: '24.2',
+        investigations: '',
+        procedure: '',
+        procedure_fee: '0',
+        procedure_consultant_cut: '0',
+        referred_to: '',
+        referred_to_list: [],
+        referred_by: '',
+        referral_amount: '0',
+        visit_type: 'Paid',
+        affordabilityPreference: 'none',
+        personalNote: 'This is a sample consultation for training.',
       };
 
       const sampleConsultation: Consultation = {
@@ -234,24 +263,13 @@ const ConsultationPage = () => {
         created_at: new Date().toISOString(),
         status: 'under_evaluation',
         patient: samplePatient,
-        consultation_data: {
-          complaints: '',
-          medicalHistory: '',
-          findings: '',
-          diagnosis: '',
-          medications: [],
-          advice: '',
-          investigations: '',
-          procedure: '',
-          referred_to: '',
-          weight: '70',
-          bp: '130/85',
-        }
+        patient_id: samplePatient.id,
+        consultation_data: sampleExtraData,
       };
 
       setSelectedConsultation(sampleConsultation);
       setEditablePatientDetails(samplePatient);
-      setExtraData(sampleConsultation.consultation_data as any);
+      setExtraData(sampleExtraData);
     }
   }, [showTour, selectedConsultation]);
 
@@ -2235,7 +2253,7 @@ const ConsultationPage = () => {
 
   return (
     <>
-      {showTour && <OnboardingTour onComplete={handleTourComplete} />}
+      <OnboardingTour run={showTour} onComplete={handleTourComplete} />
       <div className="container mx-auto p-4 max-w-[1600px]">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <ConsultationSidebar
