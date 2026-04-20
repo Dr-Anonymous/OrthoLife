@@ -60,6 +60,7 @@ interface ClinicalNotesFormProps {
     onLanguageChange: (lang: string) => void;
     initialData?: Partial<ClinicalNotesFormProps['extraData']>;
     isReadOnly?: boolean;
+    onShortcutsClick?: () => void;
 }
 
 
@@ -103,7 +104,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     onLanguageChange,
     initialData,
     patientId,
-    isReadOnly = false
+    isReadOnly = false,
+    onShortcutsClick
 }) => {
     const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
     const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
@@ -268,7 +270,18 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         className={cn("min-h-[100px]", getStyle('complaints', extraData.complaints))}
                         disabled={isReadOnly}
                     />
-                    {!isReadOnly && <p className="text-[10px] text-muted-foreground/70 leading-none">Example: Type a custom shortcut (like <code className="font-bold">ra.</code> or <code className="font-bold">2w.</code>) to expand text. Manage these in **More Actions &gt; Shortcuts**.</p>}
+                    {!isReadOnly && (
+                        <p className="text-[10px] text-muted-foreground/70 leading-none">
+                            Example: Type a custom shortcut (like <code className="font-bold">ra.</code> or <code className="font-bold">acl.</code>) to expand text. Manage these in{" "}
+                            <button 
+                                onClick={onShortcutsClick}
+                                className="font-bold text-primary hover:underline underline-offset-2"
+                            >
+                                More Actions &gt; Shortcuts
+                            </button>
+                            .
+                        </p>
+                    )}
                 </div>
 
                 <div className="space-y-2">

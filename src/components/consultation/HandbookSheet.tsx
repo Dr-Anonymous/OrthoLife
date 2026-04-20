@@ -7,11 +7,11 @@ import {
     SheetTitle,
     SheetDescription,
 } from "@/components/ui/sheet";
-import { 
-    Keyboard, 
-    Stethoscope, 
-    History, 
-    Smartphone, 
+import {
+    Keyboard,
+    Stethoscope,
+    History,
+    Smartphone,
     Activity,
     Info,
     CheckCircle2,
@@ -46,11 +46,11 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                 <div className="flex-1 overflow-hidden">
                     <ScrollArea className="h-full">
                         <div className="p-6 pb-20 space-y-8">
-                            {/* Keyboard Shortcuts */}
+                            {/* 1. Global Keyboard Shortcuts */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Keyboard className="w-4 h-4" />
-                                    <h4>Keyboard Shortcuts</h4>
+                                    <h4>Global Keyboard Shortcuts</h4>
                                 </div>
                                 <div className="grid grid-cols-1 gap-2">
                                     {[
@@ -72,15 +72,29 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 </div>
                             </section>
 
-                            {/* Shorthand/Text Triggers */}
+                            {/* 2. Smart Vitals */}
+                            <section className="space-y-3">
+                                <div className="flex items-center gap-2 text-primary font-semibold">
+                                    <Activity className="w-4 h-4" />
+                                    <h4>Smart Vitals</h4>
+                                </div>
+                                <p className="text-xs leading-relaxed text-muted-foreground">
+                                    Track Weight, BP, and SpO2. Notice how the BP field automatically highlights categories:
+                                    <span className="text-amber-600 font-bold ml-1">Amber (Stage 1)</span>,
+                                    <span className="text-red-500 font-bold ml-1">Red (Stage 2)</span>, and
+                                    <span className="text-rose-700 font-bold ml-1">Deep Red (Crisis)</span>.
+                                </p>
+                            </section>
+
+                            {/* 3. Clinical Shorthand (Clinical Notes) */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Stethoscope className="w-4 h-4" />
                                     <h4>Example Clinical Shorthand</h4>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Configure these in{" "}
-                                    <button 
+                                    Used in <strong>Clinical Notes</strong>. Configure your personal abbreviations in{" "}
+                                    <button
                                         onClick={() => {
                                             onClose();
                                             onShortcutsClick?.();
@@ -89,7 +103,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                     >
                                         More Actions &gt; Shortcuts
                                     </button>
-                                    . Type your trigger followed by a <span className="font-bold underline">period (.) and Space</span> to expand.
+                                    . Type trigger + <span className="font-bold underline">period (.) and Space</span> to expand.
                                 </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     {[
@@ -106,15 +120,34 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                         </div>
                                     ))}
                                 </div>
+                            </section>
+
+                            {/* 4. Medication Protocols */}
+                            <section className="space-y-3">
+                                <div className="flex items-center gap-2 text-primary font-semibold">
+                                    <Info className="w-4 h-4" />
+                                    <h4>Medication Bundles (Protocols)</h4>
+                                </div>
                                 <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 flex gap-3">
                                     <Info className="w-5 h-5 text-amber-600 shrink-0" />
                                     <p className="text-xs text-amber-900 leading-relaxed">
-                                        <strong>Bundle Trigger:</strong> Type <code className="font-bold">//</code> in the Medication field to open the Protocols modal and load saved drug bundles.
+                                        <strong>Bundle Trigger:</strong> Type <code className="font-bold">//</code> in the Medication name field to open the Protocols modal and load complete drug sets in one click.
                                     </p>
                                 </div>
                             </section>
 
-                            {/* Visit Logic */}
+                            {/* 5. Bilingual Patient Advice */}
+                            <section className="space-y-3">
+                                <div className="flex items-center gap-2 text-primary font-semibold">
+                                    <Activity className="w-4 h-4" />
+                                    <h4>Bilingual Patient Advice</h4>
+                                </div>
+                                <p className="text-xs leading-relaxed text-muted-foreground">
+                                    The EMR supports dual-language prescriptions. Use the <strong className="text-primary">EN/తె</strong> toggle in the <strong>Advice</strong> section to switch between English and Telugu instructions. Saved protocols will automatically load the instructions, medication and followup in the selected language.
+                                </p>
+                            </section>
+
+                            {/* 6. Visit Type Logic */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <History className="w-4 h-4" />
@@ -127,7 +160,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                             <p className="font-bold text-green-900">Custom Free Review Period</p>
                                             <p className="text-green-800/80">
                                                 If a patient visits within your specified review period (e.g., 14 days) of their last "Paid" visit, the system auto-assigns "Free" visit type. Configure this in{" "}
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         onClose();
                                                         onProfileClick?.();
@@ -142,8 +175,8 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                     </div>
                                 </div>
                             </section>
-                            
-                            {/* Family & Relations */}
+
+                            {/* 7. Family & Relations */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Users className="w-4 h-4" />
@@ -152,7 +185,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 <p className="text-xs leading-relaxed text-muted-foreground"> Group patients together for clinical continuity. Link family members (parents, spouses, children) by clicking the <strong>+ icon</strong> in the <strong>Family & Relations</strong> section of the sidebar to view shared medical patterns.</p>
                             </section>
 
-                            {/* Digital Portal */}
+                            {/* 8. Digital Portal */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Smartphone className="w-4 h-4" />
