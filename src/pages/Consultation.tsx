@@ -968,9 +968,15 @@ const ConsultationPage = () => {
   });
 
   // Modification: Added consultant dependency for scoped messaging
-  const generateCompletionMessage = useCallback((patient: Patient, guidesMatched: any[]) => {
+  const generateCompletionMessage = useCallback((patient: Patient, guidesMatched: any[], adviceOverride?: string) => {
     // Pass consultant profile and advice for personalized messages
-    return generateCompletionMessageUtil(patient, guidesMatched, consultationLanguage, consultant?.name, extraData.advice);
+    return generateCompletionMessageUtil(
+      patient, 
+      guidesMatched, 
+      consultationLanguage, 
+      consultant?.name, 
+      adviceOverride || extraData.advice
+    );
   }, [consultationLanguage, consultant, extraData.advice]);
 
   // --- Completion Message Logic ---
@@ -978,7 +984,8 @@ const ConsultationPage = () => {
     if (!editablePatientDetails || !selectedConsultation) return;
 
     if (!isMessageManuallyEdited) {
-      const message = generateCompletionMessage(editablePatientDetails, matchedGuides);
+      const latestData = syncExtraDataFromRefs();
+      const message = generateCompletionMessage(editablePatientDetails, matchedGuides, latestData.advice);
       setCompletionMessage(message);
     }
     // If manually edited, keep the existing 'completionMessage' state

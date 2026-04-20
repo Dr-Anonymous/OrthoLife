@@ -24,7 +24,6 @@ export const GlobalSyncManager = () => {
 
     const finalConsultantId = consultant?.is_legacy_handler ? "legacy" : consultant?.id;
     const {
-        pendingSyncIds,
         conflictData,
         setConflictData,
         resolveConflict,
@@ -34,7 +33,8 @@ export const GlobalSyncManager = () => {
     } = useOfflineSync({ 
       isOnline, 
       consultantName: consultant?.name as any, 
-      consultantId: finalConsultantId
+      consultantId: finalConsultantId,
+      isWhatsAutoActive: consultant?.is_whatsauto_active
     });
 
     const content = (

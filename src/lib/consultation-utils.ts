@@ -1,11 +1,10 @@
-
 import { Guide } from '@/types/consultation';
 
 export const generateCompletionMessage = (
     patient: any,
     matchedGuides: any[],
     language: string,
-    consultantName?: { en: string; te: string },
+    consultantName?: { en: string; te: string } | string,
     advice: string = ''
 ): string => {
     const isTelugu = language === 'te';

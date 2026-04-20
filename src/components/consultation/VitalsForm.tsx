@@ -147,6 +147,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             id="weight"
                             value={weight}
                             onChange={e => onExtraChange('weight', e.target.value)}
+                            onFocus={e => e.target.select()}
                             placeholder="e.g., 70"
                             className={cn("pl-9", getStyle('weight', weight))}
                             disabled={isReadOnly}
@@ -161,6 +162,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             id="height"
                             value={height}
                             onChange={e => onExtraChange('height', e.target.value)}
+                            onFocus={e => e.target.select()}
                             placeholder="e.g., 170"
                             className={cn("pl-9", getStyle('height', height))}
                             disabled={isReadOnly}
@@ -193,6 +195,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             placeholder="Sys"
                             value={bp ? bp.split('/')[0] : ''}
                             onChange={e => handleBpPartChange('systolic', e.target.value)}
+                            onFocus={e => e.target.select()}
                             className={cn(
                                 "text-center pl-8 pr-1 transition-colors duration-300",
                                 bpCategory ? bpCategory.color : getStyle('bp', bp)
@@ -205,6 +208,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             ref={diastolicRef}
                             value={bp ? bp.split('/')[1] || '' : ''}
                             onChange={e => handleBpPartChange('diastolic', e.target.value)}
+                            onFocus={e => e.target.select()}
                             className={cn(
                                 "text-center px-1 transition-colors duration-300",
                                 bpCategory ? bpCategory.color : getStyle('bp', bp)
@@ -222,6 +226,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             id="pulse"
                             value={pulse}
                             onChange={e => onExtraChange('pulse', e.target.value)}
+                            onFocus={e => e.target.select()}
                             placeholder="e.g., 72"
                             className={cn("pl-9", getStyle('pulse', pulse))}
                             disabled={isReadOnly}
@@ -236,6 +241,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             id="spo2"
                             value={spo2}
                             onChange={e => onExtraChange('spo2', e.target.value)}
+                            onFocus={e => e.target.select()}
                             placeholder="e.g., 98"
                             className={cn("pl-9", getStyle('spo2', spo2))}
                             disabled={isReadOnly}
@@ -250,6 +256,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             id="temperature"
                             value={temperature}
                             onChange={e => onExtraChange('temperature', e.target.value)}
+                            onFocus={e => e.target.select()}
                             placeholder="98.6"
                             className={cn("pl-9", getStyle('temperature', temperature))}
                             disabled={isReadOnly}
@@ -264,6 +271,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                             id="allergy"
                             value={allergy}
                             onChange={e => onExtraChange('allergy', e.target.value)}
+                            onFocus={e => e.target.select()}
                             placeholder="e.g., Penicillin"
                             className={cn("pl-9", getAllergyStyle(allergy))}
                             disabled={isReadOnly}

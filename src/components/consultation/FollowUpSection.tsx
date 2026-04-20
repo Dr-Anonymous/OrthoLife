@@ -60,11 +60,20 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
         const currentTargetDate = calculateFollowUpDate(followup, baseDate);
         if (!currentTargetDate) return;
 
-        const dateObj = new Date(currentTargetDate);
+        // Parse YYYY-MM-DD manually to create local Date object
+        const parseLocal = (s: string) => {
+            const [y, m, d] = s.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        };
+
+        const dateObj = parseLocal(currentTargetDate);
         dateObj.setDate(dateObj.getDate() + days);
 
         // 2. Calculate the difference from baseDate in days
-        const baseRef = baseDate || new Date();
+        // Zero out time components of baseRef to ensure clean calendar-day difference
+        const rawBase = baseDate || new Date();
+        const baseRef = new Date(rawBase.getFullYear(), rawBase.getMonth(), rawBase.getDate());
+        
         const diffMs = dateObj.getTime() - baseRef.getTime();
         const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
@@ -128,7 +137,9 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                         </Button>
 
                         {(() => {
-                            const dateObj = new Date(calculatedDate);
+                            // Parse YYYY-MM-DD manually to create local Date object for display
+                            const [y, m, d] = String(calculatedDate).split('-').map(Number);
+                            const dateObj = new Date(y, m - 1, d);
                             const isSunday = dateObj.getDay() === 0;
                             const dayName = dateObj.toLocaleDateString('en-IN', { weekday: 'short' });
                             return (
