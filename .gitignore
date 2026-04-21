@@ -28,6 +28,8 @@ yarn-error.log*
 
 # scratch
 jules-scratch
+.claude/
+*.sql
 
 # logs
 *.log
@@ -36,3 +38,4 @@ jules-scratch
 *.temp
 .temp/
 public/sitemap.xml
+public/discovered-routes.json

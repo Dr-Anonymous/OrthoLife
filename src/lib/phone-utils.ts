@@ -5,7 +5,7 @@
  */
 export const sanitizePhoneNumber = (phone: string): string => {
     if (!phone) return '';
-    return phone.replace(/\D/g, '');
+    return phone.replace(/[^\d+]/g, '');
 };
 
 /**
@@ -50,9 +50,9 @@ export const formatPhoneNumber = (phone: string): string => {
  * @returns The phone number ready for WhatsApp URL.
  */
 export const formatWhatsAppLink = (phone: string): string => {
-    const sanitized = sanitizePhoneNumber(phone);
-    if (sanitized.length === 10) {
-        return `91${sanitized}`;
+    const numericOnly = phone.replace(/\D/g, '');
+    if (numericOnly.length === 10) {
+        return `91${numericOnly}`;
     }
-    return sanitized;
+    return numericOnly;
 };

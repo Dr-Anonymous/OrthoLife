@@ -140,9 +140,9 @@ export function pruneEmptyFields(data: any): any {
       // Recursively prune objects
       if (typeof value === 'object') {
         const pruned = pruneEmptyFields(value);
-        // If object becomes empty (and wasn't originally an empty array/object we wanted to keep), maybe remove? 
-        // For now, let's keep empty objects/arrays if they are significant, 
-        // but for consultation data like empty medications array, it's fine.
+        // If it's an empty array or object, don't include it unless it carries meaning
+        if (Array.isArray(pruned) && pruned.length === 0) return acc;
+        if (typeof pruned === 'object' && pruned !== null && Object.keys(pruned).length === 0 && !(pruned instanceof Date)) return acc;
         acc[key] = pruned;
       } else {
         acc[key] = value;

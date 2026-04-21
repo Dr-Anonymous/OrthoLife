@@ -1033,7 +1033,7 @@ const ConsultationPage = () => {
     // Actually status is usually changed by printing. 
     // Let's stick to explicit fields for "unsaved" warning.
 
-    const locationChanged = selectedHospital.name !== initialLocation;
+    const locationChanged = (selectedHospital.name || '').toLowerCase() !== (initialLocation || '').toLowerCase();
     const languageChanged = consultationLanguage !== initialLanguage;
 
     return patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
