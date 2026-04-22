@@ -4,7 +4,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-export async function sendWhatsAppMessage(number: string, message: string, consultantId: string = "legacy", mediaUrl?: string) {
+export async function sendWhatsAppMessage(number: string, message: string, consultantId: string = "general_notifications", mediaUrl?: string) {
   try {
     if (!number || (!message && !mediaUrl)) {
       throw new Error('Missing number or content (message/media)')

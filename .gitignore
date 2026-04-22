@@ -29,7 +29,6 @@ yarn-error.log*
 # scratch
 jules-scratch
 .claude/
-*.sql
 
 # logs
 *.log

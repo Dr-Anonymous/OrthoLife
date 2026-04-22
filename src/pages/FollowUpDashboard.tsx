@@ -127,7 +127,7 @@ const FollowUpDashboard = () => {
         body: {
           number: phone,
           message: whatsappMessage,
-          consultant_id: consultant.is_legacy_handler ? "legacy" : consultant.id
+          consultant_id: consultant.phone
         },
       });
 
@@ -614,7 +614,7 @@ const FollowUpDashboard = () => {
               WhatsApp Web
             </Button>
 
-            {(consultant?.is_legacy_handler || consultant?.is_whatsauto_active) && (
+            {consultant?.is_whatsauto_active && (
               <Button
                 className="bg-green-600 hover:bg-green-700"
                 onClick={confirmAndSendWhatsApp}

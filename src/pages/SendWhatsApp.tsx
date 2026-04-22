@@ -118,7 +118,7 @@ const SendWhatsApp = () => {
           number,
           message,
           media_url: mediaUrl || undefined,
-          consultant_id: consultant?.id || "legacy"
+          consultant_id: consultant?.phone || "general_notifications"
         },
       });
 

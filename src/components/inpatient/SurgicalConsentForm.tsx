@@ -33,6 +33,7 @@ import { auth } from '@/integrations/firebase/client';
 import { useQuery } from '@tanstack/react-query';
 import RichTextEditor from '@/components/RichTextEditor';
 import { CONSENT_RISKS } from '@/utils/consentConstants';
+import { useConsultant } from '@/context/ConsultantContext';
 
 interface SurgicalConsentFormProps {
     patient: InPatient;
@@ -55,6 +56,7 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
     const [firstTemplateName, setFirstTemplateName] = useState<string | null>(null);
     const lang = patient.language === 'te' ? 'te' : 'en';
     const content = CONSENT_RISKS[lang as keyof typeof CONSENT_RISKS] || CONSENT_RISKS.en;
+    const { consultant } = useConsultant();
 
     const [formData, setFormData] = useState<Partial<SurgicalConsent>>({
         in_patient_id: patient.id,
@@ -535,8 +537,9 @@ export const SurgicalConsentForm: React.FC<SurgicalConsentFormProps> = ({
                     : `👋 Hello ${patient.patient.name},\nPlease review and sign your consent for ${formData.procedure_name} here:\n${link}`;
 
                 try {
+                    if (!consultant?.is_whatsauto_active) throw new Error("WhatsAuto is not active for this consultant");
                     const { error } = await supabase.functions.invoke('send-whatsapp', {
-                        body: { number: formData.patient_phone, message: message },
+                        body: { number: formData.patient_phone, message: message, consultant_id: consultant?.phone },
                     });
 
                     if (error) throw error;

@@ -423,8 +423,9 @@ const InPatientManagement = () => {
 
     const sendWhatsAppMutation = useMutation({
         mutationFn: async ({ phone, message }: { phone: string, message: string }) => {
+            if (!consultant?.is_whatsauto_active) return;
             const { error } = await supabase.functions.invoke('send-whatsapp', {
-                body: { number: phone, message },
+                body: { number: phone, message, consultant_id: consultant?.phone },
             });
             if (error) throw error;
         },
@@ -549,8 +550,9 @@ const InPatientManagement = () => {
             : `Dear ${patient.patient.name},\nYour discharge process has started. You can view/download your discharge summary here:\n\n${link}`;
 
         try {
+            if (!consultant?.is_whatsauto_active) return;
             await supabase.functions.invoke('send-whatsapp', {
-                body: { number: patient.patient.phone, message },
+                body: { number: patient.patient.phone, message, consultant_id: consultant?.phone },
             });
             console.log("Discharge Notification Sent");
         } catch (error) {

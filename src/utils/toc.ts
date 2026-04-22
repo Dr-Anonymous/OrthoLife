@@ -17,7 +17,7 @@ export function generateTocAndInjectIds(htmlString: string): { processedHtml: st
     const headingElements = doc.querySelectorAll('h2, h3');
 
     headingElements.forEach((heading) => {
-        const text = heading.textContent || heading.innerText || '';
+        const text = heading.textContent || (heading as HTMLElement).innerText || '';
         if (!text.trim()) return;
 
         // Generate a URL-safe ID

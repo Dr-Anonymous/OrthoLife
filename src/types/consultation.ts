@@ -89,7 +89,7 @@ export interface Consultant {
     password?: string;
     reception_phone?: string;
     reception_password?: string;
-    is_legacy_handler?: boolean;
+    handles_general_notifications?: boolean;
     is_whatsauto_active?: boolean;
 }
 

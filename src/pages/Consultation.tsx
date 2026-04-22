@@ -2637,7 +2637,7 @@ const ConsultationPage = () => {
                   onToggleOnlyMeds={setIsOnlyConsultation}
 
                   isReadOnly={isReadOnly}
-                  isWhatsAppEnabled={consultant?.is_legacy_handler || consultant?.is_whatsauto_active}
+                  isWhatsAppEnabled={consultant?.is_whatsauto_active}
                 />
               </div>
             ) : (
@@ -2820,8 +2820,8 @@ const ConsultationPage = () => {
         onClose={() => setIsCompletionModalOpen(false)}
         patientPhone={editablePatientDetails?.phone || ''}
         initialMessage={completionMessage}
-        consultantId={consultant?.is_legacy_handler ? "legacy" : consultant?.id}
-        isWhatsAppIntegrated={consultant?.is_legacy_handler || consultant?.is_whatsauto_active}
+        consultantId={consultant?.phone}
+        isWhatsAppIntegrated={consultant?.is_whatsauto_active}
         onMessageChange={(newMessage) => {
           setCompletionMessage(newMessage);
           setIsMessageManuallyEdited(true);

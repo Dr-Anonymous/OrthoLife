@@ -28,6 +28,7 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
   const [consultants, setConsultants] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  
   const [newDoctor, setNewDoctor] = useState({
     name_en: '',
     name_te: '',
@@ -104,16 +105,16 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
     }
   };
 
-  const toggleLegacyStatus = async (id: string, current: boolean) => {
+  const toggleGeneralNotificationHandler = async (id: string, current: boolean) => {
     try {
       const { error } = await supabase
         .from('consultants')
-        .update({ is_legacy_handler: !current })
+        .update({ handles_general_notifications: !current })
         .eq('id', id);
 
       if (error) throw error;
       fetchConsultants();
-      toast({ title: 'Success', description: 'Legacy handler status updated.' });
+      toast({ title: 'Success', description: 'General notification handler status updated.' });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Error', description: err.message });
     }
@@ -246,7 +247,7 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                     <TableHead className="font-semibold">Doctor Name</TableHead>
                     <TableHead className="font-semibold">Phone/ID</TableHead>
                     <TableHead className="font-semibold text-center">Status</TableHead>
-                    <TableHead className="font-semibold text-center">Clinic Phone</TableHead>
+                    <TableHead className="font-semibold text-center">Handles Gen. Notifications</TableHead>
                     <TableHead className="font-semibold text-center">Has WhatsAuto</TableHead>
                     <TableHead className="font-semibold text-right text-muted-foreground pr-6">Management</TableHead>
                   </TableRow>
@@ -282,8 +283,8 @@ export const TeamManagementModal: React.FC<TeamManagementModalProps> = ({ isOpen
                           </TableCell>
                           <TableCell className="text-center">
                             <Switch
-                              checked={c.is_legacy_handler}
-                              onCheckedChange={() => toggleLegacyStatus(c.id, c.is_legacy_handler)}
+                              checked={c.handles_general_notifications}
+                              onCheckedChange={() => toggleGeneralNotificationHandler(c.id, c.handles_general_notifications)}
                             />
                           </TableCell>
                           <TableCell className="text-center">

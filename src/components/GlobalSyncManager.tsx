@@ -22,7 +22,7 @@ export const GlobalSyncManager = () => {
         '/op', '/registration', '/ip', '/pharmacy', '/diagnostics', '/admin'
     ].some(path => location.pathname.toLowerCase().includes(path));
 
-    const finalConsultantId = consultant?.is_legacy_handler ? "legacy" : consultant?.id;
+    const finalConsultantId = consultant?.phone;
     const {
         conflictData,
         setConflictData,
