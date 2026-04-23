@@ -30,6 +30,7 @@ interface ConsultationActionsProps {
     onToggleOnlyMeds?: (checked: boolean) => void;
     isReadOnly?: boolean;
     isWhatsAppEnabled?: boolean;
+    hasChanges?: boolean;
 }
 
 /**
@@ -65,13 +66,14 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onlyMedicationsAndFollowup,
     onToggleOnlyMeds,
     isReadOnly = false,
-    isWhatsAppEnabled = true
+    isWhatsAppEnabled = true,
+    hasChanges = false
 }) => {
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
             <div className="flex items-center gap-2 w-full sm:w-auto">
                 {!isOnline && <CloudOff className="h-5 w-5 text-yellow-600" />}
-                <Button type="button" size="lg" onClick={onSave} disabled={isSaving || isReadOnly}>
+                <Button type="button" size="lg" onClick={onSave} disabled={isSaving || isReadOnly || !hasChanges}>
                     {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
                     {isReadOnly ? 'Read Only' : 'Save Changes'}
                 </Button>

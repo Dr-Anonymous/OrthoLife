@@ -488,7 +488,11 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     </div>
                     <Input
                         ref={searchInputRef}
-                        placeholder="Search patients... (Cmd+D)"
+                        placeholder={`Search patients... (${
+                            typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+                                ? '2 Finger Tap'
+                                : (typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl') + '+D'
+                        })`}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleSearchKeyDown}

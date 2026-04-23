@@ -1012,9 +1012,9 @@ const ConsultationPage = () => {
     return String(selectedConsultation.consultant_id) !== String(consultant.id);
   }, [selectedConsultation, consultant]);
 
-  const hasChanges = useMemo(() => {
-    if (isReadOnly) return false;
-    if (!selectedConsultation || !editablePatientDetails || !initialPatientDetails) return false;
+  const { hasChanges, hasSignificantChanges } = useMemo(() => {
+    if (isReadOnly) return { hasChanges: false, hasSignificantChanges: false };
+    if (!selectedConsultation || !editablePatientDetails || !initialPatientDetails) return { hasChanges: false, hasSignificantChanges: false };
 
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
 
@@ -1033,18 +1033,21 @@ const ConsultationPage = () => {
     // Actually status is usually changed by printing. 
     // Let's stick to explicit fields for "unsaved" warning.
 
-    const locationChanged = (selectedHospital.name || '').toLowerCase() !== (initialLocation || '').toLowerCase();
+    const locationChanged = (selectedLocation || '').toLowerCase() !== (initialLocation || '').toLowerCase();
     const languageChanged = consultationLanguage !== initialLanguage;
 
-    return patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
-  }, [selectedConsultation, editablePatientDetails, initialPatientDetails, extraData, initialExtraData, selectedHospital, initialLocation, consultationLanguage, initialLanguage]);
+    const baseChanges = patientDetailsChanged || extraDataChanged || languageChanged;
+    const allChanges = baseChanges || locationChanged;
 
-  /**
-   * Persists changes to the current consultation.
-   * 
-   * Handles:
-   * - Determining if changes exist (`hasChanges`).
-   * - Cleaning and preparing data for Supabase/Offline Store.
+    // Check if it's a saved consultation (not a new/offline one)
+    const isSavedConsultation = selectedConsultation?.id && !String(selectedConsultation.id).startsWith('offline-');
+
+    return {
+      hasChanges: allChanges,
+      hasSignificantChanges: isSavedConsultation ? baseChanges : allChanges
+    };
+  }, [isReadOnly, selectedConsultation, editablePatientDetails, initialPatientDetails, extraData, initialExtraData, selectedHospital, initialLocation, consultationLanguage, initialLanguage]);
+
   /**
    * Persists changes to the current consultation.
    * 
@@ -1230,12 +1233,12 @@ const ConsultationPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedConsultation, editablePatientDetails, extraData, hasChanges, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline]);
+  }, [selectedConsultation, editablePatientDetails, extraData, hasChanges, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline, initialExtraData, initialLocation, initialPatientDetails, initialLanguage]);
 
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasChanges) {
+      if (hasSignificantChanges) {
         e.preventDefault();
         e.returnValue = ''; // Trigger browser's native confirmation dialog
       }
@@ -1243,7 +1246,7 @@ const ConsultationPage = () => {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasChanges]);
+  }, [hasSignificantChanges]);
 
 
 
@@ -1259,7 +1262,7 @@ const ConsultationPage = () => {
 
   const handleSelectConsultation = async (consultation: Consultation) => {
     // If passing from fetch logic, we might need to skip unsaved check or handle it
-    if (hasChanges) {
+    if (hasSignificantChanges) {
       setPendingSelection(consultation);
       setPendingPath(null);
       setIsUnsavedModalOpen(true);
@@ -1269,14 +1272,14 @@ const ConsultationPage = () => {
   };
 
   const handleNavigate = useCallback((path: string) => {
-    if (hasChanges) {
+    if (hasSignificantChanges) {
       setPendingPath(path);
       setPendingSelection(null);
       setIsUnsavedModalOpen(true);
     } else {
       navigate(path);
     }
-  }, [hasChanges, navigate]);
+  }, [hasSignificantChanges, navigate]);
 
 
 
@@ -2291,6 +2294,87 @@ const ConsultationPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveChanges, handleSaveAndPrint]);
 
+  // Touch Gestures for Mobile/Tablet
+  useEffect(() => {
+    let touchStartTime = 0;
+    let touchCount = 0;
+    let startY = 0;
+    let lastY = 0;
+    let longPressTimer: NodeJS.Timeout | null = null;
+    let hasSignificantMove = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartTime = Date.now();
+      touchCount = e.touches.length;
+      startY = e.touches[0].clientY;
+      lastY = startY;
+      hasSignificantMove = false;
+
+      if (touchCount === 3) {
+        longPressTimer = setTimeout(() => {
+          if (!hasSignificantMove) {
+            // 3 finger long press: Save & Print
+            handleSaveAndPrint().catch(err => {
+              console.error("Touch print failed:", err);
+              toast({ variant: 'destructive', title: 'Print Failed', description: String(err) });
+            });
+            if (navigator.vibrate) navigator.vibrate(50);
+          }
+        }, 800); // 800ms for long press
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const currentY = e.touches[0].clientY;
+      if (Math.abs(currentY - startY) > 10) {
+        hasSignificantMove = true;
+      }
+      lastY = currentY;
+      if (longPressTimer) clearTimeout(longPressTimer);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (longPressTimer) clearTimeout(longPressTimer);
+      const duration = Date.now() - touchStartTime;
+      const deltaY = lastY - startY;
+
+      if (touchCount === 2) {
+        if (deltaY > 50 && Math.abs(deltaY) > 30) {
+          // 2 finger swipe down: Search Old Consultations (Cmd+F)
+          setIsSearchModalOpen(true);
+          if (navigator.vibrate) navigator.vibrate(30);
+        } else if (!hasSignificantMove && duration < 300) {
+          // 2 finger tap: Focus Search Bar (Cmd+D)
+          window.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'd',
+            metaKey: true,
+            ctrlKey: true,
+            bubbles: true
+          }));
+        }
+      } else if (touchCount === 3) {
+        if (!hasSignificantMove && duration < 300) {
+          // 3 finger tap: Quick Save (Cmd+S)
+          saveChanges().catch(err => {
+            console.error("Touch save failed:", err);
+            toast({ variant: 'destructive', title: 'Save Failed', description: String(err) });
+          });
+          if (navigator.vibrate) navigator.vibrate(30);
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [saveChanges, handleSaveAndPrint]);
+
   const handleRegistrationSuccess = async (newConsultation: Consultation, consultationData?: Partial<ExtraData>) => {
     setIsRegistrationModalOpen(false);
 
@@ -2661,6 +2745,7 @@ const ConsultationPage = () => {
 
                   isReadOnly={isReadOnly}
                   isWhatsAppEnabled={consultant?.is_whatsauto_active}
+                  hasChanges={hasChanges}
                 />
               </div>
             ) : (

@@ -28,6 +28,10 @@ interface HandbookSheetProps {
 }
 
 export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClick }: HandbookSheetProps) => {
+    const isApple = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+    const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    const modKey = isApple ? 'Cmd' : 'Ctrl';
+
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="sm:max-w-xl w-[90vw] p-0 flex flex-col h-full">
@@ -46,26 +50,32 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                 <div className="flex-1 overflow-hidden">
                     <ScrollArea className="h-full">
                         <div className="p-6 pb-20 space-y-8">
-                            {/* 1. Global Keyboard Shortcuts */}
+                            {/* 1. Global Keyboard Shortcuts / Gestures */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Keyboard className="w-4 h-4" />
-                                    <h4>Global Keyboard Shortcuts</h4>
+                                    <h4>{isTouch ? 'Global Touch Gestures' : 'Global Keyboard Shortcuts'}</h4>
                                 </div>
                                 <div className="grid grid-cols-1 gap-2">
                                     {[
-                                        { keys: ['Ctrl', 'S'], action: 'Quick Save' },
-                                        { keys: ['Ctrl', 'P'], action: 'Save & Print Prescription' },
-                                        { keys: ['Ctrl', 'F'], action: 'Search Consultations' },
-                                        { keys: ['Ctrl', 'D'], action: 'Focus Search Bar' },
-                                        { keys: ['Ctrl', 'M'], action: 'Add New Medication row' },
+                                        { keys: [modKey, 'S'], action: 'Save', gesture: '3 Finger Tap' },
+                                        { keys: [modKey, 'P'], action: 'Save & Print Prescription', gesture: '3 Finger Long Press' },
+                                        { keys: [modKey, 'F'], action: 'Search Old Consultations', gesture: '2 Finger Swipe Down' },
+                                        { keys: [modKey, 'D'], action: 'Focus Search Bar', gesture: '2 Finger Tap' },
+                                        { keys: [modKey, 'M'], action: 'Add New Medication row' },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-center p-2 rounded-md bg-secondary/5 border border-secondary/10">
                                             <span className="text-sm">{item.action}</span>
                                             <div className="flex gap-1">
-                                                {item.keys.map(k => (
-                                                    <kbd key={k} className="px-1.5 py-0.5 rounded border bg-white shadow-sm text-[10px] font-mono font-bold tracking-tighter">{k}</kbd>
-                                                ))}
+                                                {isTouch && item.gesture ? (
+                                                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-tight">
+                                                        {item.gesture}
+                                                    </span>
+                                                ) : (
+                                                    item.keys.map(k => (
+                                                        <kbd key={k} className="px-1.5 py-0.5 rounded border bg-white shadow-sm text-[10px] font-mono font-bold tracking-tighter">{k}</kbd>
+                                                    ))
+                                                )}
                                             </div>
                                         </div>
                                     ))}
