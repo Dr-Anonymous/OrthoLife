@@ -1987,6 +1987,10 @@ const ConsultationPage = () => {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
+    onBeforePrint: useCallback(async () => {
+      // Small delay to ensure layout is settled and styles are parsed
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }, []),
   });
 
   const handleAfterPrintCertificate = useCallback(() => {
@@ -1996,6 +2000,9 @@ const ConsultationPage = () => {
   const handleCertificatePrint = useReactToPrint({
     contentRef: certificatePrintRef,
     onAfterPrint: handleAfterPrintCertificate,
+    onBeforePrint: useCallback(async () => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }, []),
   });
 
   const handleAfterPrintReceipt = useCallback(() => {
@@ -2005,6 +2012,9 @@ const ConsultationPage = () => {
   const handleReceiptPrint = useReactToPrint({
     contentRef: receiptPrintRef,
     onAfterPrint: handleAfterPrintReceipt,
+    onBeforePrint: useCallback(async () => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }, []),
   });
 
   const handleSaveAndPrint = useCallback(async () => {
@@ -2016,6 +2026,8 @@ const ConsultationPage = () => {
     const saved = await saveChanges({ markAsCompleted: true, extraDataOverride: latestData });
     if (saved) {
       await waitForNextPaint();
+      // Additional wait to ensure DOM settles after save/state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
       handlePrint();
     }
   }, [syncExtraDataFromRefs, saveChanges, handlePrint]);

@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
+import { notifyConsultant } from '@/lib/consultation-utils';
 
 interface PainEntry {
   level: number;
@@ -101,6 +102,12 @@ const PainTracker: React.FC = () => {
         }
 
         toast.success(t('common.success', 'Pain level logged successfully'));
+
+        // Notify consultant if pain is severe (> 7)
+        if (painLevel > 7) {
+          const phone = user?.phoneNumber?.slice(-10) || "";
+          notifyConsultant(supabase, phone, `SEVERE PAIN ALERT: Patient logged a pain score of ${painLevel}/10.`);
+        }
       } catch (err) {
         console.error("Error saving pain log:", err);
         toast.error('Failed to sync. Please try again.');

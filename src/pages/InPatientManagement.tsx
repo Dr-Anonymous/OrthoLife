@@ -131,6 +131,10 @@ const InPatientManagement = () => {
     const handlePrint = useReactToPrint({
         contentRef: printRef,
         onAfterPrint: () => setIsReadyToPrint(false),
+        onBeforePrint: useCallback(async () => {
+            // Small delay to ensure layout is settled and styles are parsed
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }, []),
         pageStyle: `
             @page {
                 /* Custom size: Width (210mm) followed by Height (310mm) */

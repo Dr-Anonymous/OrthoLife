@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,6 +84,10 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     onAfterPrint: () => setPrintingConsultation(null),
+    onBeforePrint: useCallback(async () => {
+      // Small delay to ensure layout is settled and styles are parsed
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }, []),
   });
 
   useEffect(() => {

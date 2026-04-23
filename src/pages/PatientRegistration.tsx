@@ -141,14 +141,18 @@ const PatientRegistration = () => {
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     onAfterPrint: () => setPrintingConsultation(null),
+    onBeforePrint: useCallback(async () => {
+      // Small delay to ensure layout is settled and styles are parsed
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }, []),
   });
 
   useEffect(() => {
     if (printingConsultation) {
-      // Small timeout to ensure state update has propagated to the hidden component
+      // Extra safety delay to ensure state update has propagated to the hidden component
       setTimeout(() => {
         handlePrint();
-      }, 100);
+      }, 300);
     }
   }, [printingConsultation, handlePrint]);
 

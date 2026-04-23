@@ -89,16 +89,10 @@ const RecoveryProgressTracker: React.FC = () => {
     }
   }, [completedMilestones, area]);
 
-  const handleAreaSelect = (selectedArea: string) => {
+  const handleAreaSelect = async (selectedArea: string) => {
+    if (selectedArea === area) return;
     setArea(selectedArea);
     setCompletedMilestones({}); // Reset milestones when area changes
-    if (patientId) {
-      supabase.from('patient_health_logs').insert({
-        patient_id: patientId,
-        log_type: 'recovery',
-        value_data: { area: selectedArea, milestones: {} }
-      }).then();
-    }
   };
 
   const handleMilestoneChange = async (id: string, checked: boolean) => {
@@ -110,7 +104,7 @@ const RecoveryProgressTracker: React.FC = () => {
         await supabase.from('patient_health_logs').insert({
           patient_id: patientId,
           log_type: 'recovery',
-          value_data: { area, milestones: newState }
+          value_data: { area, milestones: newState, latestMilestone: id }
         });
       } catch (err) {
         console.error("Error saving recovery log:", err);
@@ -123,18 +117,27 @@ const RecoveryProgressTracker: React.FC = () => {
     setArea(null);
     localStorage.removeItem('recoveryProgress');
     localStorage.removeItem('recoveryArea');
-    
+
     if (patientId) {
       try {
-        await supabase.from('patient_health_logs').insert({
-          patient_id: patientId,
-          log_type: 'recovery',
-          value_data: {}
-        });
-        toast.success(t('common.success', 'Progress reset successfully'));
+        // Delete all recovery history for this patient to ensure a clean reset
+        const { error } = await supabase
+          .from('patient_health_logs')
+          .delete()
+          .eq('patient_id', patientId)
+          .eq('log_type', 'recovery');
+
+        if (error) {
+          console.error("Error deleting recovery history:", error);
+          toast.error("Failed to clear progress from cloud");
+        } else {
+          toast.success(t('common.success', 'Progress reset successfully'));
+        }
       } catch (err) {
         console.error("Error resetting recovery log:", err);
       }
+    } else {
+      toast.success(t('common.success', 'Local progress reset successfully'));
     }
   };
 
@@ -160,8 +163,8 @@ const RecoveryProgressTracker: React.FC = () => {
           <p className="text-sm text-muted-foreground italic">{t('recovery.select_area_desc')}</p>
         </div>
         <div className="grid grid-cols-1 gap-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="h-auto py-6 justify-start px-6 text-lg font-bold hover:bg-primary/5 hover:border-primary/30 group"
             onClick={() => handleAreaSelect('upper')}
           >
@@ -175,8 +178,8 @@ const RecoveryProgressTracker: React.FC = () => {
               </div>
             </div>
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="h-auto py-6 justify-start px-6 text-lg font-bold hover:bg-primary/5 hover:border-primary/30 group"
             onClick={() => handleAreaSelect('lower')}
           >
@@ -190,8 +193,8 @@ const RecoveryProgressTracker: React.FC = () => {
               </div>
             </div>
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="h-auto py-6 justify-start px-6 text-lg font-bold hover:bg-primary/5 hover:border-primary/30 group"
             onClick={() => handleAreaSelect('spine')}
           >
@@ -215,7 +218,7 @@ const RecoveryProgressTracker: React.FC = () => {
       {showCelebration && (
         <div className="absolute inset-0 pointer-events-none z-10">
           {[...Array(20)].map((_, i) => (
-            <div 
+            <div
               key={i}
               className="absolute animate-bounce"
               style={{
@@ -226,11 +229,11 @@ const RecoveryProgressTracker: React.FC = () => {
                 opacity: 0.6
               }}
             >
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ 
-                  backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#6366f1'][Math.floor(Math.random() * 5)] 
-                }} 
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#6366f1'][Math.floor(Math.random() * 5)]
+                }}
               />
             </div>
           ))}
@@ -264,13 +267,12 @@ const RecoveryProgressTracker: React.FC = () => {
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {milestones.map(milestone => (
-            <div 
-              key={milestone.id} 
-              className={`flex items-start space-x-3 p-4 rounded-lg border transition-all ${
-                completedMilestones[milestone.id] 
-                  ? 'bg-primary/5 border-primary/20 shadow-sm' 
-                  : 'bg-background border-muted'
-              }`}
+            <div
+              key={milestone.id}
+              className={`flex items-start space-x-3 p-4 rounded-lg border transition-all ${completedMilestones[milestone.id]
+                ? 'bg-primary/5 border-primary/20 shadow-sm'
+                : 'bg-background border-muted'
+                }`}
             >
               <Checkbox
                 id={milestone.id}
@@ -280,16 +282,15 @@ const RecoveryProgressTracker: React.FC = () => {
               />
               <label
                 htmlFor={milestone.id}
-                className={`text-sm font-semibold leading-tight cursor-pointer ${
-                  completedMilestones[milestone.id] ? 'text-primary' : 'text-foreground'
-                }`}
+                className={`text-sm font-semibold leading-tight cursor-pointer ${completedMilestones[milestone.id] ? 'text-primary' : 'text-foreground'
+                  }`}
               >
                 {t(milestone.labelKey)}
               </label>
             </div>
           ))}
         </div>
-        
+
         <div className="flex justify-center pt-4">
           <Button variant="ghost" size="sm" onClick={resetProgress} className="text-destructive hover:text-destructive hover:bg-destructive/10 font-bold">
             {t('common.reset')}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -150,6 +150,10 @@ export const OTNotesTemplateContent: React.FC<OTNotesTemplateContentProps> = ({ 
     const handlePrintLaunch = useReactToPrint({
         contentRef: printRef,
         documentTitle: `OTNote_${printingTemplate?.name || 'Template'}`,
+        onBeforePrint: useCallback(async () => {
+            // Small delay to ensure layout is settled and styles are parsed
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }, []),
         onAfterPrint: () => {
             setPrintingTemplate(null);
         }

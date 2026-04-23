@@ -99,11 +99,11 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
         <div
             ref={ref}
             className={cn(
-                "font-sans text-sm bg-background text-foreground min-h-[296mm] print:p-0",
+                "font-sans text-sm bg-background text-foreground min-h-[296mm] print:p-0 mx-auto",
                 showMargins ? "pl-16 pr-8 py-8" : "px-8 py-8",
                 className
             )}
-            style={{ fontFamily: 'var(--font-sans)' }}
+            style={{ fontFamily: 'var(--font-sans)', width: '210mm' }}
         >
             <table className="w-full text-left">
                 <thead className="print:table-header-group">

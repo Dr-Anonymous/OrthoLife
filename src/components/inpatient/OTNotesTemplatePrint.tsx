@@ -80,7 +80,7 @@ export const OTNotesTemplatePrint = forwardRef<HTMLDivElement, OTNotesTemplatePr
         const finalHtml = customContent ? customContent : replacePlaceholders(template.content);
 
         return (
-            <div ref={ref} className="p-12 text-black bg-white min-h-screen font-serif" style={{ fontSize: '13pt' }}>
+            <div ref={ref} className="p-12 text-black bg-white min-h-screen font-serif mx-auto" style={{ width: '210mm', fontSize: '13pt' }}>
                 <div className="text-center mb-8 border-b-2 pb-4">
                     <h1 className="text-2xl font-bold uppercase tracking-tight">Operation Theater Notes</h1>
                     <p className="text-sm mt-1">Professional Medical Record | OrthoLife</p>

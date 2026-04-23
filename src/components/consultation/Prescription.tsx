@@ -111,9 +111,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   );
 
   return (
-    <div ref={ref} className={cn("font-sans text-sm bg-background text-foreground", className)} style={{ fontFamily: 'var(--font-sans)' }} data-testid="prescription">
+    <div ref={ref} className={cn("font-sans text-sm bg-background text-foreground mx-auto print:m-0", className)} style={{ fontFamily: 'var(--font-sans)', width: '210mm' }} data-testid="prescription">
       <div className={cn(
-        "min-h-[296mm] py-8 flex flex-col relative box-border",
+        "min-h-[296mm] py-8 flex flex-col relative box-border w-full",
         showMargins ? "pl-16 pr-8" : "px-8"
       )}>
         {/* Header */}

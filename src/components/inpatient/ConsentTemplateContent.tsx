@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Edit, Trash2, ArrowLeft, BookOpen, Loader2, Printer, X, Calendar as CalendarIcon, Search } from 'lucide-react';
@@ -82,6 +82,10 @@ export const ConsentTemplateContent: React.FC<ConsentTemplateContentProps> = ({ 
     const handlePrintLaunch = useReactToPrint({
         contentRef: printRef,
         documentTitle: `Consent_${printingTemplate?.name || 'Template'}`,
+        onBeforePrint: useCallback(async () => {
+            // Small delay to ensure layout is settled and styles are parsed
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }, []),
     });
 
     const handlePrint = (template: SurgicalConsentTemplate) => {

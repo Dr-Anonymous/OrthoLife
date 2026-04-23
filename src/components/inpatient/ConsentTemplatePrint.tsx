@@ -28,9 +28,8 @@ export const ConsentTemplatePrint = forwardRef<HTMLDivElement, ConsentTemplatePr
     const displayDate = printInfo?.date ? new Date(printInfo.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
     const displayUhidAge = [printInfo?.uhid, printInfo?.patientAge].filter(Boolean).join(' / ');
     const displayTemplateName = cleanName(template.name);
-
     return (
-        <div ref={ref} className="p-0">
+        <div ref={ref} className="p-0 mx-auto" style={{ width: '210mm' }}>
             {/* English Version */}
             {language === 'en' && (
                 <div className="p-8 min-h-screen bg-white text-black font-serif">

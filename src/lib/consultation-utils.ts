@@ -137,7 +137,7 @@ export const notifyConsultant = async (supabase: any, patientPhone: string, mess
             body: {
                 number: consultant.phone,
                 message: alertBody,
-                consultant_id: consultantId
+                consultant_id: consultant.phone
             }
         });
 
