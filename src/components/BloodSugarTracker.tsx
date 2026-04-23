@@ -33,8 +33,8 @@ interface SugarEntry {
 
 const BloodSugarTracker: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const phone = user?.phoneNumber?.slice(-10);
+  const { user, selectedPatient } = useAuth();
+  const patientId = selectedPatient?.id;
 
   const [level, setLevel] = useState<string>('100');
   const [type, setType] = useState<string>('random');
@@ -56,12 +56,12 @@ const BloodSugarTracker: React.FC = () => {
 
   // Sync with Supabase if logged in
   useEffect(() => {
-    if (phone) {
+    if (patientId) {
       const fetchRemoteLogs = async () => {
         const { data, error } = await supabase
           .from('patient_health_logs')
           .select('*')
-          .eq('phone', phone)
+          .eq('patient_id', patientId)
           .eq('log_type', 'sugar')
           .order('created_at', { ascending: false });
 
@@ -77,7 +77,7 @@ const BloodSugarTracker: React.FC = () => {
       };
       fetchRemoteLogs();
     }
-  }, [phone]);
+  }, [patientId]);
 
   useEffect(() => {
     localStorage.setItem('sugarHistory', JSON.stringify(history));
@@ -98,10 +98,10 @@ const BloodSugarTracker: React.FC = () => {
     setHistory([newEntry, ...history]);
 
     // Save to Supabase if logged in
-    if (phone) {
+    if (patientId) {
       try {
         const { data, error } = await supabase.from('patient_health_logs').insert({
-          phone,
+          patient_id: patientId,
           log_type: 'sugar',
           value_data: { level: l, type }
         }).select();
@@ -119,7 +119,7 @@ const BloodSugarTracker: React.FC = () => {
 
         // Check for critical thresholds
         if (l > 300 || l < 70) {
-          notifyConsultant(supabase, phone, `CRITICAL SUGAR ALERT: Patient logged ${l} mg/dL (${type}).`);
+          notifyConsultant(supabase, user?.phoneNumber?.slice(-10) || '', `CRITICAL SUGAR ALERT: Patient logged ${l} mg/dL (${type}).`);
         }
       } catch (err) {
         console.error("Error saving Sugar log:", err);

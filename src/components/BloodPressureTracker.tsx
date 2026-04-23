@@ -27,8 +27,8 @@ interface BPEntry {
 
 const BloodPressureTracker: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const phone = user?.phoneNumber?.slice(-10);
+  const { user, selectedPatient } = useAuth();
+  const patientId = selectedPatient?.id;
 
   const [systolic, setSystolic] = useState<string>('120');
   const [diastolic, setDiastolic] = useState<string>('80');
@@ -50,12 +50,12 @@ const BloodPressureTracker: React.FC = () => {
 
   // Sync with Supabase if logged in
   useEffect(() => {
-    if (phone) {
+    if (patientId) {
       const fetchRemoteLogs = async () => {
         const { data, error } = await supabase
           .from('patient_health_logs')
           .select('*')
-          .eq('phone', phone)
+          .eq('patient_id', patientId)
           .eq('log_type', 'bp')
           .order('created_at', { ascending: false });
 
@@ -67,13 +67,12 @@ const BloodPressureTracker: React.FC = () => {
             timestamp: new Date(log.created_at),
           }));
           
-          // Merge or replace? Let's use remote as source of truth if phone is present
           setHistory(remoteHistory);
         }
       };
       fetchRemoteLogs();
     }
-  }, [phone]);
+  }, [patientId]);
 
   useEffect(() => {
     localStorage.setItem('bpHistory', JSON.stringify(history));
@@ -95,10 +94,10 @@ const BloodPressureTracker: React.FC = () => {
     setHistory([newEntry, ...history]);
 
     // Save to Supabase if logged in
-    if (phone) {
+    if (patientId) {
       try {
         const { data, error } = await supabase.from('patient_health_logs').insert({
-          phone,
+          patient_id: patientId,
           log_type: 'bp',
           value_data: { systolic: s, diastolic: d }
         }).select();
@@ -116,7 +115,7 @@ const BloodPressureTracker: React.FC = () => {
 
         // Check for critical thresholds
         if (s > 160 || s < 90 || d > 100) {
-          notifyConsultant(supabase, phone, `CRITICAL BP ALERT: Patient logged ${s}/${d} mmHg.`);
+          notifyConsultant(supabase, user?.phoneNumber?.slice(-10) || '', `CRITICAL BP ALERT: Patient logged ${s}/${d} mmHg.`);
         }
       } catch (err) {
         console.error("Error saving BP log:", err);

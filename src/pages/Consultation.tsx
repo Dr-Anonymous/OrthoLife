@@ -971,10 +971,10 @@ const ConsultationPage = () => {
   const generateCompletionMessage = useCallback((patient: Patient, guidesMatched: any[], adviceOverride?: string) => {
     // Pass consultant profile and advice for personalized messages
     return generateCompletionMessageUtil(
-      patient, 
-      guidesMatched, 
-      consultationLanguage, 
-      consultant?.name, 
+      patient,
+      guidesMatched,
+      consultationLanguage,
+      consultant?.name,
       adviceOverride || extraData.advice
     );
   }, [consultationLanguage, consultant, extraData.advice]);
@@ -1667,7 +1667,7 @@ const ConsultationPage = () => {
     setExtraData(prev => {
       const meds = [...prev.medications];
       const emptyIdx = meds.findIndex(m => !m.composition || m.composition.trim() === "");
-      
+
       if (emptyIdx !== -1) {
         // Use existing row but update all fields. Keep original stable ID for dnd-kit
         const existingId = meds[emptyIdx].id;
@@ -1727,8 +1727,8 @@ const ConsultationPage = () => {
       }
 
       if (field === 'composition') {
-        newMeds[index] = { 
-          ...newMeds[index], 
+        newMeds[index] = {
+          ...newMeds[index],
           [field]: value,
           brandName: undefined, // Reset brand name when composition is manually edited
           brand_metadata: []    // Reset brand metadata when composition is manually edited
@@ -1820,7 +1820,7 @@ const ConsultationPage = () => {
 
   const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications, suggestedOrthotics } = useMemo(() => {
     const inputDerivedSuggestions = {
-      advice: new Set<{ text: string; translatedText?: string }>(),
+      advice: new Set<{ text: string; translatedText?: string; badge?: string }>(),
       investigations: new Set<string>(),
       followup: new Set<{ text: string; translatedText?: string }>(),
       orthotics: new Set<{ text: string; translatedText?: string }>(),
@@ -1836,22 +1836,32 @@ const ConsultationPage = () => {
       {
         keywords: ['diabetes', 'diabetic', 'sugar', 'dm', 'iddm', 'niddm'],
         en: 'Regular sugar monitoring/logging at home',
-        te: 'ఇంట్లో క్రమం తప్పకుండా షుగర్ లెవల్స్ నమోదు చేయండి'
+        te: 'ఇంట్లో క్రమం తప్పకుండా షుగర్ లెవల్స్ నమోదు చేయండి',
+        badge: 'Sugar Tracking'
       },
       {
         keywords: ['hypertension', 'htn', 'bp', 'high bp', 'hypertensive'],
         en: 'Regular BP monitoring/logging at home',
-        te: 'ఇంట్లో క్రమం తప్పకుండా బీపీ నమోదు చేయండి'
+        te: 'ఇంట్లో క్రమం తప్పకుండా బీపీ నమోదు చేయండి',
+        badge: 'BP Tracking'
       },
       {
         keywords: ['fever', 'temp', 'febrile', 'chills'],
         en: 'Regular temperature/fever monitoring at home',
-        te: 'ఇంట్లో క్రమం తప్పకుండా జ్వరం/ఉష్ణోగ్రత నమోదు చేయండి'
+        te: 'ఇంట్లో క్రమం తప్పకుండా జ్వరం/ఉష్ణోగ్రత నమోదు చేయండి',
+        badge: 'Temp Tracking'
       },
       {
         keywords: ['operated case of', 'post-op', 'postop', 'post operative'],
         en: 'Monitor recovery progress regularly',
-        te: 'రికవరీ పురోగతిని క్రమం తప్పకుండా పర్యవేక్షించండి'
+        te: 'రికవరీ పురోగతిని క్రమం తప్పకుండా ఇంట్లో నమోదు చేయండి',
+        badge: 'Recovery Tracking'
+      },
+      {
+        keywords: ['operated case of', 'post-op', 'postop', 'post operative', 'joint pain', 'pain', 'severe pain', 'chronic pain', 'acute pain', 'persistent pain'],
+        en: 'Regular pain monitoring/logging at home',
+        te: 'ఇంట్లో క్రమం తప్పకుండా నొప్పి తీవ్రతను నమోదు చేయండి',
+        badge: 'Pain Tracking'
       }
     ];
 
@@ -1859,7 +1869,8 @@ const ConsultationPage = () => {
       if (hk.keywords.some(k => activeText.includes(k))) {
         inputDerivedSuggestions.advice.add({
           text: isTelugu ? hk.te : hk.en,
-          translatedText: isTelugu ? hk.en : hk.te
+          translatedText: isTelugu ? hk.en : hk.te,
+          badge: hk.badge
         });
       }
     });
@@ -2016,7 +2027,7 @@ const ConsultationPage = () => {
 
   const handleMedicalCertificateSubmit = async (data: CertificateData) => {
     const latestData = syncExtraDataFromRefs();
-    
+
     let updatedCertificates: CertificateData[];
     if (editingCertificateIndex !== null) {
       // Update existing
@@ -2026,9 +2037,9 @@ const ConsultationPage = () => {
       // Add new
       updatedCertificates = [data, ...(latestData.certificates || [])];
     }
-    
+
     const dataToSave = { ...latestData, certificates: updatedCertificates };
-    
+
     setExtraData(dataToSave);
     await saveChanges({ extraDataOverride: dataToSave });
 
@@ -2128,7 +2139,7 @@ const ConsultationPage = () => {
     // 1. Negation Pre-masking: Remove clauses that likely refer to absence/negative findings
     // We strip text starting from a negation keyword up until the next major punctuation
     const clinicalTextSanitized = clinicalTextRaw.replace(
-      /\b(no|nil|denies|denied|r\/o|rule out|ruled out|without|absent)\b[^.,;]*/gi, 
+      /\b(no|nil|denies|denied|r\/o|rule out|ruled out|without|absent)\b[^.,;]*/gi,
       ''
     );
 
@@ -2150,7 +2161,7 @@ const ConsultationPage = () => {
             const allergyRe = new RegExp(`\\b${escapeRegex(token)}\\b`, 'i');
             if (allergyRe.test(composition)) {
               warnings.push({ medIndex: idx, type: 'allergy', message: `Patient may be allergic to ${token} (matches ${med.composition})` });
-              break; 
+              break;
             }
           } catch (e) { console.error("Regex error in allergy check", e); }
         }
@@ -2167,7 +2178,7 @@ const ConsultationPage = () => {
       (savedMed.contraindications || []).forEach(condition => {
         const cond = condition.trim().toLowerCase();
         if (!cond) return;
-        
+
         try {
           // Since clinicalTextSanitized has negated bits removed, we can just do a direct word boundary match
           const contraRe = new RegExp(`\\b${escapeRegex(cond)}\\b`, 'i');
@@ -2184,11 +2195,11 @@ const ConsultationPage = () => {
 
         extraData.medications.forEach((otherMed, otherIdx) => {
           if (idx === otherIdx || !otherMed.composition) return;
-          
+
           if (otherMed.composition.toLowerCase().includes(interCompLower)) {
             const medA_comp = med.composition || '';
             const medB_comp = otherMed.composition || '';
-            
+
             // Unique key for this specific interaction pair
             const iKey = `${idx}|${otherIdx}|${interCompLower}`;
             const reverseKey = `${otherIdx}|${idx}|${interCompLower}`;
@@ -2451,8 +2462,8 @@ const ConsultationPage = () => {
                   />
                 </div>
 
-                <PatientHealthDashboard 
-                  phone={editablePatientDetails.phone || ''} 
+                <PatientHealthDashboard
+                  patientId={String(selectedConsultation.patient.id)}
                 />
 
                 <div id="clinical-notes-section">
@@ -2769,24 +2780,24 @@ const ConsultationPage = () => {
             }}
             onSubmit={async (data) => {
               const latestData = syncExtraDataFromRefs();
-              
+
               let updatedReceipts: ReceiptData[];
               if (editingReceiptIndex !== null) {
                 updatedReceipts = [...(latestData.receipts || [])];
-                updatedReceipts[editingReceiptIndex] = { 
-                  ...data, 
-                  created_at: latestData.receipts?.[editingReceiptIndex]?.created_at || new Date().toISOString() 
+                updatedReceipts[editingReceiptIndex] = {
+                  ...data,
+                  created_at: latestData.receipts?.[editingReceiptIndex]?.created_at || new Date().toISOString()
                 };
               } else {
                 const receiptWithDate = { ...data, created_at: new Date().toISOString() };
                 updatedReceipts = [receiptWithDate, ...(latestData.receipts || [])];
               }
-              
+
               const dataToSave = { ...latestData, receipts: updatedReceipts };
-              
+
               setExtraData(dataToSave);
               await saveChanges({ extraDataOverride: dataToSave });
-              
+
               setReceiptData(data);
               setIsReceiptModalOpen(false);
               setEditingReceiptIndex(null);

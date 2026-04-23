@@ -221,15 +221,24 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
                                 // Update the automatically created consultation with actual local data
                                 if (createdConsultationId) {
                                     const consultationPayload = offlineData.consultation || {};
+                                    const finalStatus = consultationPayload.status || offlineData.status || 'pending';
                                     const { error: updateError } = await supabase.from('consultations').update({
                                         consultation_data: consultationPayload.consultation_data || offlineData.consultationData || {},
-                                        status: consultationPayload.status || offlineData.status || 'pending',
+                                        status: finalStatus,
                                         visit_type: consultationPayload.visit_type || 'paid',
                                         location: location, // Ensure location is updated if backend default differs
                                         next_review_date: consultationPayload.next_review_date || offlineData.next_review_date || null
                                     }).eq('id', createdConsultationId);
 
                                     if (updateError) throw updateError;
+
+                                    if (finalStatus === 'completed') {
+                                        await sendNotification(
+                                            data.patient || offlineData.patient,
+                                            consultationPayload.consultation_data || offlineData.consultationData || {},
+                                            consultationPayload.language || offlineData.language || 'te'
+                                        );
+                                    }
                                 }
 
                                 if (createdConsultationId) {
@@ -297,12 +306,16 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
                                 const { error: consError } = await supabase.from('consultations').insert({
                                     patient_id: patientDetails.id,
                                     consultation_data: extraData || {},
-                                    status: 'pending',
+                                    status: offlineData.status || 'pending',
                                     visit_type: extraData.visit_type || 'paid',
                                     next_review_date: offlineData.next_review_date || null
-                                }).select().single(); // select to ensure we wait? not needed if we trust insert
+                                });
 
                                 if (consError) throw consError;
+
+                                if (offlineData.status === 'completed') {
+                                    await sendNotification(patientDetails, extraData || {}, offlineData.language || 'te');
+                                }
 
                                 await offlineStore.removeItem(key);
                                 setPendingSyncIds(prev => prev.filter(id => id !== key));

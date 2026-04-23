@@ -23,6 +23,8 @@ import BloodPressureTracker from '@/components/BloodPressureTracker';
 import BloodSugarTracker from '@/components/BloodSugarTracker';
 import TemperatureTracker from '@/components/TemperatureTracker';
 
+import PatientSelectionModal from '@/components/PatientSelectionModal';
+
 const ResourcesPage = () => {
   const { t } = useTranslation();
   const { toolId } = useParams();
@@ -30,9 +32,10 @@ const ResourcesPage = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const phoneParam = searchParams.get('p');
-  const { user, loading } = useAuth();
+  const { user, loading, patients, selectedPatient, setSelectedPatient } = useAuth();
   const [openToolId, setOpenToolId] = useState<string | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
 
   const toolsAndCalculators = [
     { id: 1, routeId: 'bmi-calculator', titleKey: 'resources.tool1.title', descriptionKey: 'resources.tool1.description', icon: Calculator, type: 'Interactive Tool', component: <BMICalculator /> },
@@ -57,6 +60,18 @@ const ResourcesPage = () => {
       setShowLoginPrompt(true);
     }
   }, [loading, phoneParam, user, toolId]);
+
+  // Open selection modal if multiple patients and none selected
+  useEffect(() => {
+    if (!loading && user && patients.length > 1 && !selectedPatient) {
+      setIsPatientSelectionModalOpen(true);
+    }
+  }, [loading, user, patients.length, selectedPatient]);
+
+  const handlePatientSelect = (patient: any) => {
+    setSelectedPatient(patient);
+    setIsPatientSelectionModalOpen(false);
+  };
 
   const handleOpenChange = (open: boolean, routeId: string) => {
     if (open) {
@@ -127,6 +142,12 @@ const ResourcesPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PatientSelectionModal
+        isOpen={isPatientSelectionModalOpen}
+        patients={patients}
+        onSelect={handlePatientSelect}
+      />
 
       <main className="flex-grow bg-muted/50 pt-20">
         <div className="container mx-auto px-4 py-8">

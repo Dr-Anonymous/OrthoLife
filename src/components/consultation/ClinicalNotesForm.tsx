@@ -41,11 +41,11 @@ interface ClinicalNotesFormProps {
 
     // Suggestions
     suggestedInvestigations: string[];
-    suggestedAdvice: (string | { text: string; translatedText?: string })[];
+    suggestedAdvice: (string | { text: string; translatedText?: string; badge?: string })[];
     suggestedOrthotics: (string | { text: string; translatedText?: string })[];
 
     onInvestigationSuggestionClick: (val: string) => void;
-    onAdviceSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
+    onAdviceSuggestionClick: (val: string | { text: string; translatedText?: string; badge?: string }) => void;
     onOrthoticsSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
 
     matchedGuides: MatchedGuide[];
@@ -570,9 +570,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     </div>
 
                     {suggestedAdvice.map((advice) => {
-                        const text = typeof advice === 'string' ? advice : advice.text;
+                        const text = typeof advice === 'string' ? advice : (advice.badge || advice.text);
+                        const key = typeof advice === 'string' ? advice : advice.text;
                         return (
-                            <Button key={text} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)} disabled={isReadOnly}>
+                            <Button key={key} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)} disabled={isReadOnly}>
                                 {text}
                             </Button>
                         );

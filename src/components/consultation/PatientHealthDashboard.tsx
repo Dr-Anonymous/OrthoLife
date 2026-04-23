@@ -16,25 +16,22 @@ import {
 import { format } from 'date-fns';
 
 interface PatientHealthDashboardProps {
-  phone: string;
+  patientId: string;
 }
 
-const PatientHealthDashboard: React.FC<PatientHealthDashboardProps> = ({ phone }) => {
+const PatientHealthDashboard: React.FC<PatientHealthDashboardProps> = ({ patientId }) => {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!phone) return;
+    if (!patientId) return;
 
     const fetchLogs = async () => {
       setLoading(true);
-      // Clean phone to last 10 digits
-      const cleanedPhone = phone.replace(/\D/g, '').slice(-10);
-      
       const { data, error } = await supabase
         .from('patient_health_logs')
         .select('*')
-        .eq('phone', cleanedPhone)
+        .eq('patient_id', patientId)
         .order('created_at', { ascending: true });
 
       if (!error && data) {
@@ -44,9 +41,9 @@ const PatientHealthDashboard: React.FC<PatientHealthDashboardProps> = ({ phone }
     };
 
     fetchLogs();
-  }, [phone]);
+  }, [patientId]);
 
-  if (!phone) return null;
+  if (!patientId) return null;
 
   const bpData = logs
     .filter(l => l.log_type === 'bp')
@@ -82,6 +79,19 @@ const PatientHealthDashboard: React.FC<PatientHealthDashboardProps> = ({ phone }
     .filter(l => l.log_type === 'recovery')
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
+  const calculateRecoveryPercentage = (valueData: any) => {
+    if (!valueData || !valueData.milestones) return 0;
+    const completed = Object.values(valueData.milestones as object).filter(Boolean).length;
+    return Math.round((completed / 5) * 100);
+  };
+
+  const recoveryData = logs
+    .filter(l => l.log_type === 'recovery')
+    .map(l => ({
+      date: format(new Date(l.created_at), 'MMM dd, HH:mm'),
+      percentage: calculateRecoveryPercentage(l.value_data),
+    }));
+
   if (loading) {
      return <div className="h-40 flex items-center justify-center border rounded-lg bg-muted/5 animate-pulse">
        <UserCheck className="w-6 h-6 animate-bounce text-muted-foreground mr-2" />
@@ -89,7 +99,15 @@ const PatientHealthDashboard: React.FC<PatientHealthDashboardProps> = ({ phone }
      </div>;
   }
 
-  if (logs.length === 0) {
+  const availableTabs = [
+    { id: 'bp', label: 'BP', data: bpData, icon: Activity },
+    { id: 'sugar', label: 'Sugar', data: sugarData, icon: Droplets },
+    { id: 'temp', label: 'Temp', data: tempData, icon: Thermometer },
+    { id: 'pain', label: 'Pain', data: painData, icon: AlertCircle },
+    { id: 'recovery', label: 'Recovery', data: recoveryData, icon: TrendingUp },
+  ].filter(tab => tab.data.length > 0);
+
+  if (availableTabs.length === 0) {
     return null;
   }
 
@@ -108,96 +126,100 @@ const PatientHealthDashboard: React.FC<PatientHealthDashboardProps> = ({ phone }
              <div className="text-right">
                 <span className="text-xs font-bold text-muted-foreground uppercase">Latest Recovery</span>
                 <div className="text-xl font-black text-primary">
-                  {Math.round((Object.values(latestRecovery.value_data as object).filter(Boolean).length / 5) * 100)}%
+                  {calculateRecoveryPercentage(latestRecovery.value_data)}%
                 </div>
              </div>
           )}
         </div>
       </CardHeader>
       <CardContent className="pt-6">
-        <Tabs defaultValue="bp" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 h-auto p-1 bg-muted/20">
-            <TabsTrigger value="bp" className="gap-2 py-2">
-              <Activity className="w-4 h-4" /> BP
-            </TabsTrigger>
-            <TabsTrigger value="sugar" className="gap-2 py-2">
-              <Droplets className="w-4 h-4" /> Sugar
-            </TabsTrigger>
-            <TabsTrigger value="temp" className="gap-2 py-2">
-              <Thermometer className="w-4 h-4" /> Temp
-            </TabsTrigger>
-            <TabsTrigger value="pain" className="gap-2 py-2">
-              <AlertCircle className="w-4 h-4" /> Pain
-            </TabsTrigger>
+        <Tabs defaultValue={availableTabs[0].id} className="w-full">
+          <TabsList 
+            className="grid w-full mb-8 h-auto p-1 bg-muted/20" 
+            style={{ gridTemplateColumns: `repeat(${availableTabs.length}, minmax(0, 1fr))` }}
+          >
+            {availableTabs.map(tab => (
+              <TabsTrigger key={tab.id} value={tab.id} className="gap-2 py-2">
+                <tab.icon className="w-4 h-4" /> {tab.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          <TabsContent value="bp" className="h-[300px]">
-            {bpData.length > 0 ? (
-               <ResponsiveContainer width="100%" height="100%">
-                 <LineChart data={bpData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                    <XAxis dataKey="date" fontSize={10} tick={{fill: 'currentColor'}} />
-                    <YAxis fontSize={10} domain={['dataMin - 10', 'dataMax + 10']} />
-                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
-                    <Legend />
-                    <Line type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={3} dot={{r: 4}} />
-                    <Line type="monotone" dataKey="diastolic" stroke="#3b82f6" strokeWidth={3} dot={{r: 4}} />
-                 </LineChart>
-               </ResponsiveContainer>
-            ) : <NoDataMessage />}
-          </TabsContent>
+          {availableTabs.some(t => t.id === 'bp') && (
+            <TabsContent value="bp" className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={bpData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="date" fontSize={10} tick={{fill: 'currentColor'}} />
+                  <YAxis fontSize={10} domain={['dataMin - 10', 'dataMax + 10']} />
+                  <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
+                  <Legend />
+                  <Line type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={3} dot={{r: 4}} />
+                  <Line type="monotone" dataKey="diastolic" stroke="#3b82f6" strokeWidth={3} dot={{r: 4}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          )}
 
-          <TabsContent value="sugar" className="h-[300px]">
-             {sugarData.length > 0 ? (
-               <ResponsiveContainer width="100%" height="100%">
-                 <LineChart data={sugarData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                    <XAxis dataKey="date" fontSize={10} />
-                    <YAxis fontSize={10} domain={['dataMin - 20', 'dataMax + 20']} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="level" stroke="#10b981" strokeWidth={3} dot={{r: 4}} />
-                 </LineChart>
-               </ResponsiveContainer>
-            ) : <NoDataMessage />}
-          </TabsContent>
+          {availableTabs.some(t => t.id === 'sugar') && (
+            <TabsContent value="sugar" className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={sugarData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="date" fontSize={10} />
+                  <YAxis fontSize={10} domain={['dataMin - 20', 'dataMax + 20']} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="level" stroke="#10b981" strokeWidth={3} dot={{r: 4}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          )}
 
-          <TabsContent value="temp" className="h-[300px]">
-             {tempData.length > 0 ? (
-               <ResponsiveContainer width="100%" height="100%">
-                 <LineChart data={tempData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                    <XAxis dataKey="date" fontSize={10} />
-                    <YAxis fontSize={10} domain={['auto', 'auto']} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={3} dot={{r: 4}} />
-                 </LineChart>
-               </ResponsiveContainer>
-            ) : <NoDataMessage />}
-          </TabsContent>
+          {availableTabs.some(t => t.id === 'temp') && (
+            <TabsContent value="temp" className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={tempData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="date" fontSize={10} />
+                  <YAxis fontSize={10} domain={['auto', 'auto']} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={3} dot={{r: 4}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          )}
 
-          <TabsContent value="pain" className="h-[300px]">
-             {painData.length > 0 ? (
-               <ResponsiveContainer width="100%" height="100%">
-                 <LineChart data={painData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                    <XAxis dataKey="date" fontSize={10} />
-                    <YAxis fontSize={10} domain={[0, 10]} ticks={[0,2,4,6,8,10]} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="level" stroke="#6366f1" strokeWidth={3} dot={{r: 4}} />
-                 </LineChart>
-               </ResponsiveContainer>
-            ) : <NoDataMessage />}
-          </TabsContent>
+          {availableTabs.some(t => t.id === 'pain') && (
+            <TabsContent value="pain" className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={painData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="date" fontSize={10} />
+                  <YAxis fontSize={10} domain={[0, 10]} ticks={[0,2,4,6,8,10]} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="level" stroke="#6366f1" strokeWidth={3} dot={{r: 4}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          )}
+
+          {availableTabs.some(t => t.id === 'recovery') && (
+            <TabsContent value="recovery" className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={recoveryData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="date" fontSize={10} />
+                  <YAxis fontSize={10} domain={[0, 100]} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="percentage" stroke="#f97316" strokeWidth={3} dot={{r: 4}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          )}
         </Tabs>
       </CardContent>
     </Card>
   );
 };
-
-const NoDataMessage = () => (
-  <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5 rounded-lg border border-dashed">
-    <p className="text-sm italic">No data logged for this category yet.</p>
-  </div>
-);
 
 export default PatientHealthDashboard;

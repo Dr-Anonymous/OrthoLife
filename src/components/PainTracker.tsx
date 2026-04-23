@@ -24,8 +24,8 @@ interface PainEntry {
 
 const PainTracker: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const phone = user?.phoneNumber?.slice(-10);
+  const { user, selectedPatient } = useAuth();
+  const patientId = selectedPatient?.id;
 
   const [painLevel, setPainLevel] = useState<number>(5);
   const [isLogging, setIsLogging] = useState(false);
@@ -46,12 +46,12 @@ const PainTracker: React.FC = () => {
 
   // Sync with Supabase on mount
   useEffect(() => {
-    if (phone) {
+    if (patientId) {
       const fetchRemoteLogs = async () => {
         const { data, error } = await supabase
           .from('patient_health_logs')
           .select('*')
-          .eq('phone', phone)
+          .eq('patient_id', patientId)
           .eq('log_type', 'pain')
           .order('created_at', { ascending: false });
 
@@ -66,7 +66,7 @@ const PainTracker: React.FC = () => {
       };
       fetchRemoteLogs();
     }
-  }, [phone]);
+  }, [patientId]);
 
   useEffect(() => {
     localStorage.setItem('painHistory', JSON.stringify(painHistory));
@@ -83,10 +83,10 @@ const PainTracker: React.FC = () => {
     setPainHistory([newEntry, ...painHistory]);
 
     // Save to Supabase
-    if (phone) {
+    if (patientId) {
       try {
         const { data, error } = await supabase.from('patient_health_logs').insert({
-          phone,
+          patient_id: patientId,
           log_type: 'pain',
           value_data: { level: painLevel }
         }).select();

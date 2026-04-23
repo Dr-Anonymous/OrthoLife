@@ -19,7 +19,7 @@ import PatientSelectionModal from '@/components/PatientSelectionModal';
 
 const MySpace = () => {
   const { t } = useTranslation();
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading, patients, selectedPatient, setSelectedPatient } = useAuth();
   const navigate = useNavigate();
 
   const [medications, setMedications] = useState<any[]>([]);
@@ -28,13 +28,11 @@ const MySpace = () => {
   const [patientName, setPatientName] = useState<string>('');
   const [patientId, setPatientId] = useState<string | undefined>(undefined);
   const [patientPhone, setPatientPhone] = useState<string | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
   const [isLanguageSelected, setIsLanguageSelected] = useState(false);
   const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
-  const [patientList, setPatientList] = useState<any[]>([]);
-  const [isSelectionPending, setIsSelectionPending] = useState(true);
 
   useEffect(() => {
     const hasSetLanguage = localStorage.getItem('languageSet');
@@ -57,51 +55,47 @@ const MySpace = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const fetchPatientData = async (patientId?: string) => {
-    if (!authLoading && user?.phoneNumber) {
-      try {
-        setLoading(true);
-        const phoneNumber = user.phoneNumber.slice(-10);
-        const { data, error } = await supabase.functions.invoke('search-patients', {
-          body: patientId ? { patientId } : { searchTerm: phoneNumber, searchType: 'phone' },
-        });
+  // Open selection modal if multiple patients and none selected
+  useEffect(() => {
+    if (!authLoading && user && patients.length > 1 && !selectedPatient) {
+      setIsPatientSelectionModalOpen(true);
+    }
+  }, [authLoading, user, patients.length, selectedPatient]);
 
-        if (error) throw new Error(`Error fetching patient data: ${error.message}`);
+  const fetchPatientData = async (targetId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data, error } = await supabase.functions.invoke('search-patients', {
+        body: { patientId: targetId },
+      });
 
-        if (Array.isArray(data) && data.length > 1) {
-          setPatientList(data);
-          setIsPatientSelectionModalOpen(true);
-        } else {
-          const patientData = Array.isArray(data) ? data[0] : data;
-          setMedications(patientData?.medications || []);
-          setInvestigations(patientData?.investigations || '');
-          setAdvice(patientData?.advice || '');
-          setPatientName(patientData?.name || '');
-          setPatientId(patientData?.id || undefined);
-          setPatientPhone(patientData?.phone || undefined);
-          setIsSelectionPending(false);
-        }
+      if (error) throw new Error(`Error fetching patient data: ${error.message}`);
 
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    } else if (!authLoading) {
+      const patientData = Array.isArray(data) ? data[0] : data;
+      setMedications(patientData?.medications || []);
+      setInvestigations(patientData?.investigations || '');
+      setAdvice(patientData?.advice || '');
+      setPatientName(patientData?.name || '');
+      setPatientId(patientData?.id || undefined);
+      setPatientPhone(patientData?.phone || undefined);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-      setIsSelectionPending(false);
     }
   };
 
   useEffect(() => {
-    if (isLanguageSelected) {
-      fetchPatientData();
+    if (isLanguageSelected && selectedPatient) {
+      fetchPatientData(selectedPatient.id);
     }
-  }, [user, authLoading, isLanguageSelected]);
+  }, [selectedPatient?.id, isLanguageSelected]);
 
-  const handlePatientSelect = (selectedPatient: any) => {
+  const handlePatientSelect = (patient: any) => {
+    setSelectedPatient(patient);
     setIsPatientSelectionModalOpen(false);
-    fetchPatientData(selectedPatient.id);
   };
 
   const handleLogout = async () => {
@@ -127,7 +121,7 @@ const MySpace = () => {
             </div>
             <div className="flex flex-col items-end gap-2 mt-4 sm:mt-0">
               <div className="flex items-center gap-4">
-                {patientList.length > 1 && (
+                {patients.length > 1 && (
                   <Button onClick={() => setIsPatientSelectionModalOpen(true)} variant="outline">
                     {t('mySpace.switchPatient')}
                   </Button>
@@ -143,13 +137,13 @@ const MySpace = () => {
           <LanguagePreferenceModal isOpen={isLanguageModalOpen} onClose={handleModalClose} />
           <PatientSelectionModal
             isOpen={isPatientSelectionModalOpen}
-            patients={patientList}
+            patients={patients}
             onSelect={handlePatientSelect}
           />
 
           <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {loading || isSelectionPending ? (
+            {loading ? (
               <>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>
                 <div className="lg:col-span-1 p-4 bg-gray-100 rounded-lg h-48 animate-pulse"></div>

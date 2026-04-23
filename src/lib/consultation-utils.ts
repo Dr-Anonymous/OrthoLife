@@ -58,6 +58,11 @@ export const generateCompletionMessage = (
             ? `మీ రికవరీ పురోగతిని నమోదు చేయండి 📍\nhttps://ortho.life/resources/recovery-tracker?${patientParams}`
             : `Log your recovery progress 📍\nhttps://ortho.life/resources/recovery-tracker?${patientParams}`);
     }
+    if (normalizedAdvice.includes('pain monitoring') || normalizedAdvice.includes('నొప్పి తీవ్రతను నమోదు')) {
+        trackerLinks.push(isTelugu
+            ? `ఇంట్లో నొప్పి తీవ్రతను (Pain Score) నమోదు చేయండి 📍\nhttps://ortho.life/resources/pain-tracker?${patientParams}`
+            : `Log your pain intensity score at home 📍\nhttps://ortho.life/resources/pain-tracker?${patientParams}`);
+    }
 
     const sections = [];
 
@@ -138,7 +143,7 @@ export const notifyConsultant = async (supabase: any, patientPhone: string, mess
 
         if (functionError) throw functionError;
         console.log("Consultant notified successfully:", data);
-        
+
     } catch (err) {
         console.error("Error notifying consultant:", err);
     }

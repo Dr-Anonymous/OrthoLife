@@ -25,8 +25,8 @@ interface TempEntry {
 
 const TemperatureTracker: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const phone = user?.phoneNumber?.slice(-10);
+  const { user, selectedPatient } = useAuth();
+  const patientId = selectedPatient?.id;
 
   const [value, setValue] = useState<string>('98.6');
   const [isLogging, setIsLogging] = useState(false);
@@ -47,12 +47,12 @@ const TemperatureTracker: React.FC = () => {
 
   // Sync with Supabase if logged in
   useEffect(() => {
-    if (phone) {
+    if (patientId) {
       const fetchRemoteLogs = async () => {
         const { data, error } = await supabase
           .from('patient_health_logs')
           .select('*')
-          .eq('phone', phone)
+          .eq('patient_id', patientId)
           .eq('log_type', 'temp')
           .order('created_at', { ascending: false });
 
@@ -67,7 +67,7 @@ const TemperatureTracker: React.FC = () => {
       };
       fetchRemoteLogs();
     }
-  }, [phone]);
+  }, [patientId]);
 
   useEffect(() => {
     localStorage.setItem('tempHistory', JSON.stringify(history));
@@ -87,10 +87,10 @@ const TemperatureTracker: React.FC = () => {
     setHistory([newEntry, ...history]);
 
     // Save to Supabase if logged in
-    if (phone) {
+    if (patientId) {
       try {
         const { data, error } = await supabase.from('patient_health_logs').insert({
-          phone,
+          patient_id: patientId,
           log_type: 'temp',
           value_data: { value: v }
         }).select();
@@ -108,7 +108,7 @@ const TemperatureTracker: React.FC = () => {
 
         // Check for critical thresholds
         if (v > 102.0) {
-          notifyConsultant(supabase, phone, `CRITICAL TEMPERATURE ALERT: Patient logged ${v}°F.`);
+          notifyConsultant(supabase, user?.phoneNumber?.slice(-10) || '', `CRITICAL TEMPERATURE ALERT: Patient logged ${v}°F.`);
         }
       } catch (err) {
         console.error("Error saving Temp log:", err);

@@ -9,8 +9,8 @@ import { toast } from 'sonner';
 
 const BMICalculator: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const phone = user?.phoneNumber?.slice(-10);
+  const { user, selectedPatient } = useAuth();
+  const patientId = selectedPatient?.id;
 
   const [height, setHeight] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
@@ -27,10 +27,10 @@ const BMICalculator: React.FC = () => {
       interpretBmi(bmiValue);
 
       // Save to Supabase
-      if (phone) {
+      if (patientId) {
         try {
           await supabase.from('patient_health_logs').insert({
-            phone,
+            patient_id: patientId,
             log_type: 'bmi',
             value_data: { bmi: bmiValue, height: h, weight: w }
           });
