@@ -218,6 +218,7 @@ const PrescriptionDownload = () => {
                         age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                         language={consultation.language || i18n.language}
                         logoUrl={getHospitalByName(consultation.location)?.logoUrl || consultationConsultant?.logo_url || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                        hospitalName={consultation.location}
                         className="min-h-[297mm]"
                         showMargins={false}
                         consultant={consultationConsultant}
@@ -269,6 +270,7 @@ const PrescriptionDownload = () => {
                             age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
                             language={consultation.language || i18n.language}
                             logoUrl={getHospitalByName(consultation.location)?.logoUrl || consultationConsultant?.logo_url || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
+                            hospitalName={consultation.location}
                             qrCodeUrl="/images/assets/qr-code.png"
                             noBackground={true}
                             forceDesktop={true}

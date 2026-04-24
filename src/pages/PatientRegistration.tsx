@@ -636,6 +636,7 @@ const PatientRegistration = () => {
                 age={calculateAge(new Date(printingConsultation.patient.dob))}
                 language={printingConsultation.language || i18n.language}
                 logoUrl={hospital?.logoUrl || '/images/logos/logo.png'}
+                hospitalName={hospital?.name || locationName}
                 visitType={printingConsultation.visit_type}
                 className="min-h-[297mm]"
                 forceDesktop={true}

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { User, Folder, Calendar as CalendarIcon, History, Link as LinkIcon, Phone, Briefcase, MapPin, Users } from 'lucide-react';
+import { User, Folder, Calendar as CalendarIcon, History, Link as LinkIcon, Phone, Briefcase, MapPin, Users, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Patient } from '@/types/consultation';
@@ -149,22 +149,42 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                             <Input id="phone" value={patient.phone} onChange={e => onPatientDetailsChange('phone', e.target.value)} className="pl-9" />
                         </div>
                         {showSecondaryPhone && (
-                            <div className="relative flex-1">
-                                <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 z-10" />
-                                <Input
-                                    id="secondary_phone"
-                                    value={patient.secondary_phone || ''}
-                                    onChange={e => onPatientDetailsChange('secondary_phone', e.target.value)}
-                                    onBlur={() => {
-                                        if (!patient.secondary_phone?.trim()) {
-                                            setShowSecondaryPhone(false);
-                                            onPatientDetailsChange('secondary_phone', ''); // Ensure it's clean empty string
-                                        }
-                                    }}
-                                    placeholder="Alt Phone"
-                                    className="pl-9"
-                                />
-                            </div>
+                            <>
+                                <div className="flex items-center">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors shrink-0"
+                                        onClick={() => {
+                                            const primary = patient.phone;
+                                            const secondary = patient.secondary_phone || '';
+                                            onPatientDetailsChange('phone', secondary);
+                                            onPatientDetailsChange('secondary_phone', primary);
+                                        }}
+                                        title="Swap Numbers"
+                                        disabled={isReadOnly}
+                                    >
+                                        <ArrowLeftRight className="h-4 w-4 text-primary" />
+                                    </Button>
+                                </div>
+                                <div className="relative flex-1">
+                                    <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                                    <Input
+                                        id="secondary_phone"
+                                        value={patient.secondary_phone || ''}
+                                        onChange={e => onPatientDetailsChange('secondary_phone', e.target.value)}
+                                        onBlur={() => {
+                                            if (!patient.secondary_phone?.trim()) {
+                                                setShowSecondaryPhone(false);
+                                                onPatientDetailsChange('secondary_phone', ''); // Ensure it's clean empty string
+                                            }
+                                        }}
+                                        placeholder="Alt Phone"
+                                        className="pl-9"
+                                    />
+                                </div>
+                            </>
                         )}
                         {!showSecondaryPhone && (
                             <Button

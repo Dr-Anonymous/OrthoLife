@@ -2768,6 +2768,7 @@ const ConsultationPage = () => {
               age={age}
               language={consultationLanguage}
               logoUrl={selectedHospital.logoUrl}
+              hospitalName={selectedHospital.name}
               className="min-h-[297mm]"
               visitType={extraData.visit_type}
               forceDesktop={true}

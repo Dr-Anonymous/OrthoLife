@@ -74,6 +74,7 @@ export interface TeamMember {
     qualifications: ConsultantText;
     specialization: ConsultantText;
     photo_url?: string;
+    services?: ConsultantText[];
 }
 
 export interface Consultant {
@@ -91,6 +92,7 @@ export interface Consultant {
     logo_url?: string;
     bio?: ConsultantBio;
     services?: ConsultantService[];
+    team_grid_services?: ConsultantText[];
     is_admin: boolean;
     is_active: boolean;
     password?: string;

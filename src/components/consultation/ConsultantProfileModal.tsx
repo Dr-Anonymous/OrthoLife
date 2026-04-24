@@ -21,6 +21,7 @@ import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Ph
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { TeamMember } from '@/types/consultation';
 
 interface ConsultantProfileModalProps {
   isOpen: boolean;
@@ -50,11 +51,12 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     seal_url: consultant?.seal_url || '',
     bio: consultant?.bio || { en: '', te: '' },
     services: consultant?.services || [],
+    team_grid_services: consultant?.team_grid_services || [],
+    team_members: consultant?.team_members || [],
     password: consultant?.password || '',
     reception_phone: (consultant as any)?.reception_phone || '',
     reception_password: (consultant as any)?.reception_password || '',
     profile_layout: consultant?.profile_layout || 'single',
-    team_members: consultant?.team_members || [],
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showReceptionPassword, setShowReceptionPassword] = useState(false);
@@ -77,11 +79,12 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         seal_url: consultant.seal_url || '',
         bio: consultant.bio || { en: '', te: '' },
         services: consultant.services || [],
+        team_grid_services: consultant.team_grid_services || [],
+        team_members: consultant.team_members || [],
         password: consultant.password || '',
         reception_phone: (consultant as any).reception_phone || '',
         reception_password: (consultant as any).reception_password || '',
         profile_layout: consultant.profile_layout || 'single',
-        team_members: consultant.team_members || [],
       });
       fetchConsultantHospitals();
     }
@@ -360,6 +363,12 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     setFormData(prev => ({ ...prev, team_members: newMembers }));
   };
 
+  const updateTeamMemberDirect = (index: number, updates: Partial<TeamMember>) => {
+    const newMembers = [...formData.team_members];
+    newMembers[index] = { ...newMembers[index], ...updates };
+    setFormData(prev => ({ ...prev, team_members: newMembers }));
+  };
+
   const deleteTeamMember = (index: number) => {
     setFormData(prev => ({
       ...prev,
@@ -565,6 +574,38 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       </div>
                     </div>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div className="space-y-2">
+                      <Label>Key Services for Team Grid (English)</Label>
+                      <Textarea 
+                        placeholder="Comma separated: Joint Replacement, Arthroscopy, Trauma" 
+                        className="h-16 text-xs"
+                        value={formData.team_grid_services?.map(s => s.en).join(', ') || ''}
+                        onChange={e => {
+                          const services = e.target.value.split(',').map((s, i) => ({
+                            en: s.trim(),
+                            te: formData.team_grid_services?.[i]?.te || ''
+                          }));
+                          setFormData(prev => ({ ...prev, team_grid_services: services }));
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Key Services for Team Grid (Telugu)</Label>
+                      <Textarea 
+                        placeholder="కామాతో వేరు చేయండి: కీళ్ల మార్పిడి, ఆర్థ్రోస్కోపీ" 
+                        className="h-16 text-xs"
+                        value={formData.team_grid_services?.map(s => s.te).join(', ') || ''}
+                        onChange={e => {
+                          const services = e.target.value.split(',').map((s, i) => ({
+                            en: formData.team_grid_services?.[i]?.en || '',
+                            te: s.trim()
+                          }));
+                          setFormData(prev => ({ ...prev, team_grid_services: services }));
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Digital Assets (Front Page Only) */}
@@ -768,6 +809,40 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                                 <Label className="text-[10px] font-bold uppercase text-muted-foreground">Specialization (EN/TE)</Label>
                                 <Input value={member.specialization?.en} onChange={e => updateTeamMember(idx, 'specialization', e.target.value, 'en')} placeholder="English Spec" className="h-8 text-sm" />
                                 <Input value={member.specialization?.te} onChange={e => updateTeamMember(idx, 'specialization', e.target.value, 'te')} placeholder="Telugu Spec" className="h-8 text-sm" />
+                              </div>
+                              <div className="md:col-span-2 grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (EN)</Label>
+                                  <Textarea 
+                                    className="h-12 text-[10px] leading-tight" 
+                                    placeholder="Comma separated services"
+                                    value={member.services?.map((s: any) => s.en).join(', ') || ''}
+                                    onChange={e => {
+                                      const raw = e.target.value.split(',');
+                                      const services = raw.map((s, i) => ({
+                                        en: s.trim(),
+                                        te: member.services?.[i]?.te || ''
+                                      }));
+                                      updateTeamMemberDirect(idx, { services });
+                                    }}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (TE)</Label>
+                                  <Textarea 
+                                    className="h-12 text-[10px] leading-tight" 
+                                    placeholder="కామాతో వేరు చేయండి"
+                                    value={member.services?.map((s: any) => s.te).join(', ') || ''}
+                                    onChange={e => {
+                                      const raw = e.target.value.split(',');
+                                      const services = raw.map((s, i) => ({
+                                        en: member.services?.[i]?.en || '',
+                                        te: s.trim()
+                                      }));
+                                      updateTeamMemberDirect(idx, { services });
+                                    }}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>

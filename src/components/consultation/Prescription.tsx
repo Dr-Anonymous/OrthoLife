@@ -36,6 +36,7 @@ interface PrescriptionProps {
   age: number | '';
   language: string;
   logoUrl: string;
+  hospitalName?: string;
   qrCodeUrl?: string;
   noBackground?: boolean;
   className?: string;
@@ -59,7 +60,7 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, onlyMedicationsAndFollowup = false, showMargins = true, consultant }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, hospitalName, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, onlyMedicationsAndFollowup = false, showMargins = true, consultant }, ref) => {
   const TRANSLATIONS = {
     en: {
       'prescription.advice': 'Advice',
@@ -481,70 +482,112 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <img src={logoUrl} alt="Clinic Logo" className="h-16 sm:h-20 w-auto" />
                     <div>
                       <h2 className="text-2xl sm:text-3xl font-black text-primary font-heading tracking-tight uppercase">
-                        {language === 'te' ? 'ఆర్థోలైఫ్ మల్టీ స్పెషాలిటీ హాస్పిటల్' : (cAddress?.split(',')[0] || 'OrthoLife Multispeciality Hospital')}
+                        {hospitalName || cAddress?.split(',')[0] || (language === 'te' ? 'ఆర్థోలైఫ్ మల్టీ స్పెషాలిటీ హాస్పిటల్' : 'OrthoLife Multispeciality Hospital')}
                       </h2>
                       <p className="text-sm text-muted-foreground font-medium">{cAddress}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Team Members Grid */}
+                {/* Team Members Grid (Lead + Team) */}
                 <div className={cn(
                   "grid gap-4",
-                  (consultant?.team_members?.length || 0) <= 2 ? "grid-cols-2" : "grid-cols-2"
+                  (consultant?.team_members?.length || 0) + 1 <= 2 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-3"
                 )}>
-                  {(consultant?.team_members || []).map((member, idx) => (
-                    <div key={idx} className="flex flex-col items-center text-center p-4 rounded-2xl bg-gradient-to-b from-primary/5 to-transparent border border-primary/10 shadow-sm">
-                      <div className="relative mb-3">
-                        <div className="absolute inset-0 bg-primary/10 rounded-full scale-110 blur-sm" />
-                        <img
-                          src={member.photo_url || consultant?.photo_url || "/images/assets/doctor-placeholder.png"}
-                          alt={member.name?.[language === 'te' ? 'te' : 'en']}
-                          className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white relative z-10 shadow-md"
-                        />
-                      </div>
-                      <h3 className="text-lg sm:text-xl font-extrabold text-primary leading-tight mb-1">
-                        {member.name?.[language === 'te' ? 'te' : 'en'] || member.name?.en}
-                      </h3>
-                      <p className="text-sm font-bold text-foreground/80 mb-0.5">
-                        {member.qualifications?.[language === 'te' ? 'te' : 'en'] || member.qualifications?.en}
-                      </p>
-                      <p className="text-xs font-semibold text-primary/70">
-                        {member.specialization?.[language === 'te' ? 'te' : 'en'] || member.specialization?.en}
-                      </p>
+                  {/* Lead Consultant (Self) */}
+                  <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-gradient-to-b from-primary/10 to-transparent border border-primary/20 shadow-md relative">
+                    <div className="relative mb-3">
+                      <div className="absolute inset-0 bg-primary/10 rounded-full scale-110 blur-sm" />
+                      <img
+                        src={consultant?.photo_url || "/images/assets/doctor-placeholder.png"}
+                        alt={cName}
+                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white relative z-10 shadow-md bg-white"
+                      />
                     </div>
-                  ))}
+                    <h3 className="text-base sm:text-lg font-black text-primary uppercase leading-tight mb-1">{cName}</h3>
+                    <p className="text-[10px] sm:text-xs font-bold text-foreground/80 uppercase mb-0.5">{cQuals}</p>
+                    <p className="text-[10px] sm:text-xs font-black text-primary uppercase">{cSpec}</p>
+                    
+                    {consultant?.team_grid_services && consultant.team_grid_services.length > 0 && (
+                      <div className="mt-2 w-full pt-2 border-t border-primary/10">
+                        <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
+                          {consultant.team_grid_services.map((s, i) => (
+                            <span key={i} className="text-[9px] sm:text-[10px] font-bold text-muted-foreground whitespace-nowrap">
+                              • {language === 'te' ? (s.te || s.en) : (s.en || s.te)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rest of the Team */}
+                  {(consultant?.team_members || []).map((member, idx) => {
+                    const mName = member.name?.[language === 'te' ? 'te' : 'en'] || member.name?.en;
+                    const mQuals = member.qualifications?.[language === 'te' ? 'te' : 'en'] || member.qualifications?.en;
+                    const mSpec = member.specialization?.[language === 'te' ? 'te' : 'en'] || member.specialization?.en;
+
+                    return (
+                      <div key={idx} className="flex flex-col items-center text-center p-4 rounded-2xl bg-gradient-to-b from-primary/5 to-transparent border border-primary/10 shadow-sm">
+                        <div className="relative mb-3">
+                          <div className="absolute inset-0 bg-primary/5 rounded-full scale-110 blur-sm" />
+                          <img
+                            src={member.photo_url || "/images/assets/doctor-placeholder.png"}
+                            alt={mName}
+                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white relative z-10 shadow-md bg-white"
+                          />
+                        </div>
+                        <h3 className="text-sm sm:text-base font-extrabold text-primary uppercase leading-tight mb-1">{mName}</h3>
+                        <p className="text-[10px] sm:text-xs font-bold text-foreground/80 uppercase mb-0.5">{mQuals}</p>
+                        <p className="text-[9px] sm:text-[10px] font-semibold text-primary/70 uppercase">{mSpec}</p>
+
+                        {member.services && member.services.length > 0 && (
+                          <div className="mt-2 w-full pt-2 border-t border-primary/5">
+                            <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
+                              {member.services.map((s, i) => (
+                                <span key={i} className="text-[8px] sm:text-[9px] font-medium text-muted-foreground/80 whitespace-nowrap">
+                                  • {language === 'te' ? (s.te || s.en) : (s.en || s.te)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Services Section in Two Columns */}
-                <div className="flex-grow mt-4">
-                  <div className="flex items-center gap-3 mb-4 border-b border-primary/20 pb-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    <h3 className="text-xl font-black text-primary uppercase tracking-tighter">
-                      {language === 'te' ? 'మా ప్రత్యేక సేవలు' : 'Our Specialized Services'}
-                    </h3>
-                  </div>
+                {activeServices.length > 0 && (
+                  <div className="flex-grow mt-4">
+                    <div className="flex items-center gap-3 mb-4 border-b border-primary/20 pb-2">
+                      <Activity className="h-5 w-5 text-primary" />
+                      <h3 className="text-xl font-black text-primary uppercase tracking-tighter">
+                        {language === 'te' ? 'మా ప్రత్యేక సేవలు' : 'Our Specialized Services'}
+                      </h3>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                    {activeServices.map((service, idx) => {
-                      const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
-                      const sTitle = service.title?.[language === 'te' ? 'te' : 'en'] || service.title?.en;
-                      const sDesc = service.description?.[language === 'te' ? 'te' : 'en'] || service.description?.en;
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                      {activeServices.map((service, idx) => {
+                        const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
+                        const sTitle = service.title?.[language === 'te' ? 'te' : 'en'] || service.title?.en;
+                        const sDesc = service.description?.[language === 'te' ? 'te' : 'en'] || service.description?.en;
 
-                      return (
-                        <div key={idx} className="flex items-start gap-3 group">
-                          <div className="mt-1 p-1 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                            <Icon className="h-4 w-4" />
+                        return (
+                          <div key={idx} className="flex items-start gap-3 group">
+                            <div className="mt-1 p-1 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <strong className="block text-sm sm:text-base text-primary font-bold leading-tight mb-0.5">{sTitle}</strong>
+                              <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{sDesc}</p>
+                            </div>
                           </div>
-                          <div>
-                            <strong className="block text-sm sm:text-base text-primary font-bold leading-tight mb-0.5">{sTitle}</strong>
-                            <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{sDesc}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Shared Bio if exists */}
                 {consultant?.bio?.[language === 'te' ? 'te' : 'en'] && (
