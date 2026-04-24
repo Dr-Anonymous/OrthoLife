@@ -472,212 +472,229 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           style={{ pageBreakBefore: 'always' }}
         >
           <div className="border-4 border-primary/20 rounded-xl p-4 flex flex-col justify-start bg-white h-full relative overflow-hidden">
+            {consultant?.profile_layout === 'team' ? (
+              // --- HOSPITAL TEAM LAYOUT ---
+              <div className="text-foreground relative z-10 flex flex-col gap-4 h-full">
+                {/* Hospital Header */}
+                <div className="flex justify-between items-center border-b-2 border-primary/20 pb-4 mb-2">
+                  <div className="flex items-center gap-5">
+                    <img src={logoUrl} alt="Clinic Logo" className="h-16 sm:h-20 w-auto" />
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-black text-primary font-heading tracking-tight uppercase">
+                        {language === 'te' ? 'ఆర్థోలైఫ్ మల్టీ స్పెషాలిటీ హాస్పిటల్' : (cAddress?.split(',')[0] || 'OrthoLife Multispeciality Hospital')}
+                      </h2>
+                      <p className="text-sm text-muted-foreground font-medium">{cAddress}</p>
+                    </div>
+                  </div>
+                </div>
 
-            {language === 'te' ? (
-              // Telugu Content
-              <div className="text-foreground relative z-10 flex flex-col gap-3 h-full">
-
-                {/* Top Section: Split Layout (Name & Image) */}
-                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-3 pb-3">
-                  {/* Left: Text Info */}
-                  <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
-                    <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
-
-                    {/* Mobile Image */}
-                    {consultant?.photo_url && (
-                      <div className="block sm:hidden print:hidden flex justify-center py-4">
+                {/* Team Members Grid */}
+                <div className={cn(
+                  "grid gap-4",
+                  (consultant?.team_members?.length || 0) <= 2 ? "grid-cols-2" : "grid-cols-2"
+                )}>
+                  {(consultant?.team_members || []).map((member, idx) => (
+                    <div key={idx} className="flex flex-col items-center text-center p-4 rounded-2xl bg-gradient-to-b from-primary/5 to-transparent border border-primary/10 shadow-sm">
+                      <div className="relative mb-3">
+                        <div className="absolute inset-0 bg-primary/10 rounded-full scale-110 blur-sm" />
                         <img
-                          src={consultant.photo_url}
-                          alt={cName || "Doctor"}
-                          className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
+                          src={member.photo_url || consultant?.photo_url || "/images/assets/doctor-placeholder.png"}
+                          alt={member.name?.[language === 'te' ? 'te' : 'en']}
+                          className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white relative z-10 shadow-md"
                         />
                       </div>
-                    )}
-
-                    <div className="space-y-1">
-                      <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-none mb-2">{cName}</h3>
-                      <p className="text-lg sm:text-xl font-bold text-primary/80">{cQuals}</p>
+                      <h3 className="text-lg sm:text-xl font-extrabold text-primary leading-tight mb-1">
+                        {member.name?.[language === 'te' ? 'te' : 'en'] || member.name?.en}
+                      </h3>
+                      <p className="text-sm font-bold text-foreground/80 mb-0.5">
+                        {member.qualifications?.[language === 'te' ? 'te' : 'en'] || member.qualifications?.en}
+                      </p>
+                      <p className="text-xs font-semibold text-primary/70">
+                        {member.specialization?.[language === 'te' ? 'te' : 'en'] || member.specialization?.en}
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Right: Image */}
-                  {consultant?.photo_url && (
-                    <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
-                      <img
-                        src={consultant.photo_url}
-                        alt={cName || "Doctor"}
-                        className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
-                      />
-                    </div>
-                  )}
+                  ))}
                 </div>
 
-                {/* Specialty Section (Full Width) */}
-                {cSpec && (
-                  <p className="text-lg sm:text-2xl font-medium text-foreground/80 leading-tight text-center sm:text-left -mt-1 mb-2">
-                    {cSpec}
-                  </p>
-                )}
-
-                {/* Experience Banner */}
-                {cExp && (
-                  <div className="w-full bg-gradient-to-r from-primary/5 via-primary/[0.08] to-primary/5 border-y border-primary/20 py-2.5 px-6 -mx-4 mb-3 relative">
-                    <div className="absolute left-0 top-0 w-1.5 h-full bg-primary" />
-                    <div className="flex items-center justify-center">
-                      <span className="text-lg sm:text-2xl font-black text-primary tracking-tighter text-center leading-tight">
-                        {cExp}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Middle: Full Width About Section */}
-                {consultant?.bio?.te && (
-                  <div className="border-b-2 border-primary/10 pb-3">
-                    <p className="text-lg leading-relaxed text-justify text-muted-foreground whitespace-pre-wrap">
-                      {consultant.bio.te}
-                    </p>
-                  </div>
-                )}
-
-                {/* Bottom Section: Full Width Services */}
-                {activeServices.some(s => s.title?.te?.trim()) && (
-                  <div className="flex-grow">
-                    <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
-                      <Activity className="h-4 w-4 text-primary" />
-                      ప్రత్యేక సేవలు
+                {/* Services Section in Two Columns */}
+                <div className="flex-grow mt-4">
+                  <div className="flex items-center gap-3 mb-4 border-b border-primary/20 pb-2">
+                    <Activity className="h-5 w-5 text-primary" />
+                    <h3 className="text-xl font-black text-primary uppercase tracking-tighter">
+                      {language === 'te' ? 'మా ప్రత్యేక సేవలు' : 'Our Specialized Services'}
                     </h3>
+                  </div>
 
-                    <ul className="space-y-1.5 text-base">
-                      {activeServices.filter(s => s.title?.te?.trim()).map((service, idx) => {
-                        const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
-                        return (
-                          <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
-                            <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                            <div>
-                              <strong className="block text-primary text-lg mb-0.5">{service.title.te}</strong>
-                              <span className="text-muted-foreground text-sm">{service.description.te}</span>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                    {activeServices.map((service, idx) => {
+                      const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
+                      const sTitle = service.title?.[language === 'te' ? 'te' : 'en'] || service.title?.en;
+                      const sDesc = service.description?.[language === 'te' ? 'te' : 'en'] || service.description?.en;
+
+                      return (
+                        <div key={idx} className="flex items-start gap-3 group">
+                          <div className="mt-1 p-1 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <strong className="block text-sm sm:text-base text-primary font-bold leading-tight mb-0.5">{sTitle}</strong>
+                            <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{sDesc}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Shared Bio if exists */}
+                {consultant?.bio?.[language === 'te' ? 'te' : 'en'] && (
+                  <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 italic text-sm text-center text-muted-foreground">
+                    "{consultant.bio[language === 'te' ? 'te' : 'en']}"
                   </div>
                 )}
 
-                {/* Footer Note */}
-                <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
-                  <p className="font-semibold text-primary">{cAddress || 'ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03'}</p>
-                  <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">{(consultant?.reception_phone || consultant?.phone || '99 838 49 838').replace(/(\d{5})(\d{5})/, '$1 $2')}</strong></p>
+                {/* Footer Info */}
+                <div className="text-center pt-4 border-t border-primary/20">
+                  <p className="text-lg font-black text-primary uppercase tracking-tight mb-1">
+                    {language === 'te' ? 'అపాయింట్‌మెంట్ కోసం సంప్రదించండి' : 'For Appointments, Contact'}
+                  </p>
+                  <p className="text-2xl font-black text-foreground tabular-nums">
+                    📞 {(consultant?.reception_phone || consultant?.phone || '99 838 49 838').replace(/(\d{5})(\d{5})/, '$1 $2')}
+                  </p>
                 </div>
               </div>
-
             ) : (
-              // English Content
-              <div className="text-foreground relative z-10 flex flex-col gap-3 h-full">
-
-                {/* Top Section: Split Layout (Name & Image) */}
-                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-3 pb-3">
-                  {/* Left: Text Info */}
-                  <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
-                    <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
-
-                    {/* Mobile Image */}
+              // --- SINGLE DOCTOR LAYOUT (CURRENT) ---
+              language === 'te' ? (
+                <div className="text-foreground relative z-10 flex flex-col gap-3 h-full">
+                  {/* Top Section: Split Layout (Name & Image) */}
+                  <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-3 pb-3">
+                    <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
+                      <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">మీ వైద్యుని గురించి తెలుసుకోండి</h2>
+                      {consultant?.photo_url && (
+                        <div className="block sm:hidden print:hidden flex justify-center py-4">
+                          <img src={consultant.photo_url} alt={cName || "Doctor"} className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md" />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-none mb-2">{cName}</h3>
+                        <p className="text-lg sm:text-xl font-bold text-primary/80">{cQuals}</p>
+                      </div>
+                    </div>
                     {consultant?.photo_url && (
-                      <div className="block sm:hidden print:hidden flex justify-center py-4">
-                        <img
-                          src={consultant.photo_url}
-                          alt={cName || "Doctor"}
-                          className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md"
-                        />
+                      <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
+                        <img src={consultant.photo_url} alt={cName || "Doctor"} className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md" />
                       </div>
                     )}
-
-                    <div className="space-y-0.5">
-                      <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-none mb-2">{cName}</h3>
-                      <p className="text-lg sm:text-xl font-bold text-primary/80">{cQuals}</p>
-                    </div>
                   </div>
-
-                  {/* Right: Image */}
-                  {consultant?.photo_url && (
-                    <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
-                      <img
-                        src={consultant.photo_url}
-                        alt={cName || "Doctor"}
-                        className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md grayscale-0 print:grayscale-[30%]"
-                      />
+                  {cSpec && <p className="text-lg sm:text-2xl font-medium text-foreground/80 leading-tight text-center sm:text-left -mt-1 mb-2">{cSpec}</p>}
+                  {consultant?.bio?.te && (
+                    <div className="border-b-2 border-primary/10 pb-3">
+                      <p className="text-lg leading-relaxed text-justify text-muted-foreground whitespace-pre-wrap">{consultant.bio.te}</p>
                     </div>
                   )}
-                </div>
-
-                {/* Specialty Section (Full Width) */}
-                {cSpec && (
-                  <p className="text-lg sm:text-2xl font-medium text-foreground/80 leading-tight text-center sm:text-left -mt-1 mb-2">
-                    {cSpec}
-                  </p>
-                )}
-
-                {/* Experience Banner */}
-                {cExp && (
-                  <div className="w-full bg-gradient-to-r from-primary/5 via-primary/[0.08] to-primary/5 border-y border-primary/20 py-2.5 px-6 -mx-4 mb-3 relative">
-                    <div className="absolute left-0 top-0 w-1.5 h-full bg-primary" />
-                    <div className="flex items-center justify-center">
-                      <span className="text-lg sm:text-2xl font-black text-primary tracking-tighter text-center leading-tight">
-                        {cExp}
-                      </span>
+                  {cExp && (
+                    <div className="w-full bg-gradient-to-r from-primary/5 via-primary/[0.08] to-primary/5 border-y border-primary/20 py-2.5 px-6 -mx-4 mb-3 relative">
+                      <div className="absolute left-0 top-0 w-1.5 h-full bg-primary" />
+                      <div className="flex items-center justify-center">
+                        <span className="text-lg sm:text-2xl font-black text-primary tracking-tighter text-center leading-tight">{cExp}</span>
+                      </div>
                     </div>
+                  )}
+                  {activeServices.some(s => s.title?.te?.trim()) && (
+                    <div className="flex-grow">
+                      <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
+                        <Activity className="h-4 w-4 text-primary" /> ప్రత్యేక సేవలు
+                      </h3>
+                      <ul className="space-y-1.5 text-base">
+                        {activeServices.filter(s => s.title?.te?.trim()).map((service, idx) => {
+                          const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
+                          return (
+                            <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
+                              <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                              <div>
+                                <strong className="block text-primary text-lg mb-0.5">{service.title.te}</strong>
+                                <span className="text-muted-foreground text-sm">{service.description.te}</span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
+                    <p className="font-semibold text-primary">{cAddress || 'ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, RTO కార్యాలయం దగ్గర, కాకినాడ -03'}</p>
+                    <p>అపాయింట్‌మెంట్ కోసం సంప్రదించండి: <strong className="whitespace-nowrap">{(consultant?.reception_phone || consultant?.phone || '99 838 49 838').replace(/(\d{5})(\d{5})/, '$1 $2')}</strong></p>
                   </div>
-                )}
-
-                {/* Middle: Full Width About Section */}
-                {consultant?.bio?.en && (
-                  <div className="border-b-2 border-primary/10 pb-3">
-                    <p className="text-lg leading-relaxed text-justify text-muted-foreground whitespace-pre-wrap">
-                      {consultant.bio.en}
-                    </p>
-                  </div>
-                )}
-                {!consultant?.bio?.en && !consultant && (
-                  <div className="border-b-2 border-primary/10 pb-3">
-                    <p className="text-lg leading-relaxed text-justify text-muted-foreground italic">
-                      Doctor profile is being optimized for clinical excellence...
-                    </p>
-                  </div>
-                )}
-
-                {/* Bottom Section: Full Width Services */}
-                {activeServices.some(s => s.title?.en?.trim()) && (
-                  <div className="flex-grow">
-                    <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
-                      <Activity className="h-4 w-4 text-primary" />
-                      Specialized Services
-                    </h3>
-
-                    <ul className="space-y-1.5 text-base">
-                      {activeServices.filter(s => s.title?.en?.trim()).map((service, idx) => {
-                        const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
-                        return (
-                          <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
-                            <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                            <div>
-                              <strong className="block text-primary text-lg mb-0.5">{service.title.en}</strong>
-                              <span className="text-muted-foreground text-sm">{service.description.en}</span>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Footer Note */}
-                <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
-                  <p className="font-semibold text-primary">{cAddress || 'OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03'}</p>
-                  <p>For Appointments, Contact: <strong className="whitespace-nowrap">{(consultant?.reception_phone || consultant?.phone || '99 838 49 838').replace(/(\d{5})(\d{5})/, '$1 $2')}</strong></p>
                 </div>
-
-              </div>
+              ) : (
+                <div className="text-foreground relative z-10 flex flex-col gap-3 h-full">
+                  {/* Top Section: Split Layout (Name & Image) */}
+                  <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-3 pb-3">
+                    <div className="flex-1 space-y-2 sm:space-y-4 text-center sm:text-left w-full">
+                      <h2 className="text-2xl sm:text-4xl font-bold text-primary font-heading tracking-tight">Know Your Doctor</h2>
+                      {consultant?.photo_url && (
+                        <div className="block sm:hidden print:hidden flex justify-center py-4">
+                          <img src={consultant.photo_url} alt={cName || "Doctor"} className="w-32 h-32 rounded-xl border-4 border-primary/20 object-cover shadow-md" />
+                        </div>
+                      )}
+                      <div className="space-y-0.5">
+                        <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-none mb-2">{cName}</h3>
+                        <p className="text-lg sm:text-xl font-bold text-primary/80">{cQuals}</p>
+                      </div>
+                    </div>
+                    {consultant?.photo_url && (
+                      <div className="hidden sm:block print:block flex-shrink-0 pt-2 sm:pt-0">
+                        <img src={consultant.photo_url} alt={cName || "Doctor"} className="w-32 h-32 sm:w-48 sm:h-48 rounded-xl border-4 border-primary/20 object-cover shadow-md" />
+                      </div>
+                    )}
+                  </div>
+                  {cSpec && <p className="text-lg sm:text-2xl font-medium text-foreground/80 leading-tight text-center sm:text-left -mt-1 mb-2">{cSpec}</p>}
+                  {consultant?.bio?.en && (
+                    <div className="border-b-2 border-primary/10 pb-3">
+                      <p className="text-lg leading-relaxed text-justify text-muted-foreground whitespace-pre-wrap">{consultant.bio.en}</p>
+                    </div>
+                  )}
+                  {!consultant?.bio?.en && !consultant && (
+                    <div className="border-b-2 border-primary/10 pb-3">
+                      <p className="text-lg leading-relaxed text-justify text-muted-foreground italic">Doctor profile is being optimized for clinical excellence...</p>
+                    </div>
+                  )}
+                  {cExp && (
+                    <div className="w-full bg-gradient-to-r from-primary/5 via-primary/[0.08] to-primary/5 border-y border-primary/20 py-2.5 px-6 -mx-4 mb-3 relative">
+                      <div className="absolute left-0 top-0 w-1.5 h-full bg-primary" />
+                      <div className="flex items-center justify-center">
+                        <span className="text-lg sm:text-2xl font-black text-primary tracking-tighter text-center leading-tight">{cExp}</span>
+                      </div>
+                    </div>
+                  )}
+                  {activeServices.some(s => s.title?.en?.trim()) && (
+                    <div className="flex-grow">
+                      <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2 border-b border-primary/10 pb-1">
+                        <Activity className="h-4 w-4 text-primary" /> Specialized Services
+                      </h3>
+                      <ul className="space-y-1.5 text-base">
+                        {activeServices.filter(s => s.title?.en?.trim()).map((service, idx) => {
+                          const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
+                          return (
+                            <li key={idx} className="flex items-start gap-2 p-1.5 rounded-lg bg-muted/20 border border-primary/5">
+                              <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                              <div>
+                                <strong className="block text-primary text-lg mb-0.5">{service.title.en}</strong>
+                                <span className="text-muted-foreground text-sm">{service.description.en}</span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="text-center text-sm text-muted-foreground pt-4 border-t border-primary/10">
+                    <p className="font-semibold text-primary">{cAddress || 'OrthoLife, Road No. 3, R R Nagar, Near RTO office, Kakinada -03'}</p>
+                    <p>For Appointments, Contact: <strong className="whitespace-nowrap">{(consultant?.reception_phone || consultant?.phone || '99 838 49 838').replace(/(\d{5})(\d{5})/, '$1 $2')}</strong></p>
+                  </div>
+                </div>
+              )
             )}
           </div>
         </section>

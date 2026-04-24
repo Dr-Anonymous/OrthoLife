@@ -69,6 +69,13 @@ export interface ConsultantService {
     icon: string;
 }
 
+export interface TeamMember {
+    name: ConsultantText;
+    qualifications: ConsultantText;
+    specialization: ConsultantText;
+    photo_url?: string;
+}
+
 export interface Consultant {
     id: string;
     phone: string;
@@ -91,6 +98,8 @@ export interface Consultant {
     reception_password?: string;
     handles_general_notifications?: boolean;
     is_whatsauto_active?: boolean;
+    profile_layout?: 'single' | 'team';
+    team_members?: TeamMember[];
 }
 
 export interface Consultation {
