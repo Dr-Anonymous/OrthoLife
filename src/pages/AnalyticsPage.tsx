@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header';
-import { cn } from "@/lib/utils";
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -10,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Calendar } from '@/components/ui/calendar';
 import { Loader2, ArrowRight, User, Calendar as CalendarIcon, Activity } from 'lucide-react';
 import { format, getMonth, getYear } from 'date-fns';
+import { cn, formatLocalTime } from '@/lib/utils';
 
 const AnalyticsPage = () => {
   const [analyticsData, setAnalyticsData] = useState<any[]>([]);
@@ -405,15 +405,15 @@ const Trail = ({ trail }: { trail: any[] }) => {
         <React.Fragment key={activity.created_at}>
           <div className={cn(
             "group relative flex items-center border rounded-full px-3 py-1 transition-all duration-200 shadow-sm",
-            activity.event_type === 'consent_template_print' 
-              ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" 
+            activity.event_type === 'consent_template_print'
+              ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
               : activity.event_type === 'consent_portal_access'
-              ? "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
-              : "bg-muted/50 border-transparent hover:bg-primary/5 hover:border-primary/20"
+                ? "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                : "bg-muted/50 border-transparent hover:bg-primary/5 hover:border-primary/20"
           )}>
             <span className="font-medium truncate max-w-[200px]">{getLabel(activity)}</span>
             <span className="ml-2 text-[10px] opacity-60 border-l border-current/20 pl-2">
-              {format(new Date(activity.created_at), 'p')}
+              {formatLocalTime(activity.created_at)}
             </span>
           </div>
           {index < trail.length - 1 && <ArrowRight className="w-3 h-3 text-muted-foreground/40" />}

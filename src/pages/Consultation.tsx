@@ -566,10 +566,49 @@ const ConsultationPage = () => {
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     activeConsultationIdRef.current = consultation.id;
     setSelectedConsultation(consultation);
+
+    // If consultation has no data (e.g. registered by receptionist) OR missing precomputed last visit date, 
+    // try to autofill on the fly. Skip for offline patients.
+    let effectiveConsultationData = consultation.consultation_data;
+    let effectiveReferredBy = consultation.referred_by;
+    let effectiveLastVisitDate = consultation.last_visit_date;
+    const isOffline = String(consultation.patient_id).startsWith('offline-');
+
+    if (isOffline) {
+      effectiveLastVisitDate = null;
+    } else if (!effectiveConsultationData || (typeof effectiveConsultationData === 'object' && Object.keys(effectiveConsultationData).length === 0) || effectiveLastVisitDate === undefined) {
+      try {
+        const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(consultation.patient_id, consultation.created_at);
+
+        // Race condition guard: If user selected another consultation while this was in flight, abort
+        if (activeConsultationIdRef.current !== consultation.id) return;
+
+        // Only apply autofill if the data part is actually missing
+        if (!effectiveConsultationData || (typeof effectiveConsultationData === 'object' && Object.keys(effectiveConsultationData).length === 0)) {
+          effectiveConsultationData = generateAutofillData(consultation, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
+        }
+
+        // Only apply last visit date if it was missing
+        if (effectiveLastVisitDate === undefined) {
+          effectiveLastVisitDate = calculateLastVisitString(lastOpDate, lastDischargeDate);
+        }
+
+        // Fallback for referred_by if missing in current but present in last
+        if (!effectiveReferredBy && lastConsultation?.referred_by) {
+          effectiveReferredBy = lastConsultation.referred_by;
+        }
+      } catch (err) {
+        if (activeConsultationIdRef.current !== consultation.id) return;
+        console.warn('Failed to perform on-the-fly autofill:', err);
+        // Ensure we don't stay in "Loading..." state if we add it later
+        if (effectiveLastVisitDate === undefined) effectiveLastVisitDate = 'First Consultation';
+      }
+    }
+
     const normalizedPatient = {
       ...consultation.patient,
       secondary_phone: consultation.patient.secondary_phone || '',
-      allergies: consultation.patient.allergies || (consultation.consultation_data as any)?.allergy || '',
+      allergies: consultation.patient.allergies || (effectiveConsultationData as any)?.allergy || '',
     };
     setEditablePatientDetails(normalizedPatient);
     setInitialPatientDetails(normalizedPatient);
@@ -581,7 +620,10 @@ const ConsultationPage = () => {
       setCalendarDate(new Date());
     }
 
-    const savedData = (consultation.consultation_data || {}) as Partial<ExtraData>;
+    // Update last visit date from either pre-calculated or on-the-fly value
+    setLastVisitDate(effectiveLastVisitDate || consultation.last_visit_date || 'First Consultation');
+
+    const savedData = (effectiveConsultationData || {}) as Partial<ExtraData>;
     const loadedMedications = (() => {
       if (Array.isArray(savedData.medications)) return savedData.medications;
       if (typeof savedData.medications === 'string') {
@@ -623,7 +665,7 @@ const ConsultationPage = () => {
 
       procedure_fee: consultation.procedure_fee !== null ? String(consultation.procedure_fee) : '',
       procedure_consultant_cut: consultation.procedure_consultant_cut !== null ? String(consultation.procedure_consultant_cut) : '',
-      referred_by: consultation.referred_by || '',
+      referred_by: effectiveReferredBy || '',
       referral_amount: consultation.referral_amount !== null ? String(consultation.referral_amount) : '',
 
       referred_to: savedData.referred_to || '',
@@ -657,37 +699,6 @@ const ConsultationPage = () => {
     setIsReferredToExpanded(!!newExtraData.referred_to);
     setIsFinancialExpanded(false);
 
-
-    // --- Last Visit Date Logic ---
-    // We display the last visit date in the Patient Demographics header.
-    // 1. Optimized Path: Check if the backend already provided `last_visit_date` (Existing Consultations).
-    // 2. Fallback Path: If not (New Consultations), explicitly fetch it from the backend using the 'last_visit' action.
-    if (consultation.patient.id && !String(consultation.patient.id).startsWith('offline-')) {
-      if (consultation.last_visit_date !== undefined) {
-        setLastVisitDate(consultation.last_visit_date || 'First Consultation');
-      } else {
-        setLastVisitDate('Loading...');
-        const targetConsultationId = consultation.id;
-        // Fallback: fetch the complete history to extract the correct last_visit_date for this specific consultation
-        supabase.functions.invoke('get-consultations', {
-          body: { patientId: consultation.patient.id }
-        }).then(({ data, error }) => {
-          if (activeConsultationIdRef.current !== targetConsultationId) return;
-          if (!error && data?.consultations) {
-            const matched = data.consultations.find((c: any) => c.id === consultation.id);
-            setLastVisitDate(matched?.last_visit_date || 'First Consultation');
-          } else {
-            setLastVisitDate('First Consultation');
-          }
-        }).catch(() => {
-          if (activeConsultationIdRef.current === targetConsultationId) {
-            setLastVisitDate('First Consultation');
-          }
-        });
-      }
-    } else {
-      setLastVisitDate(null);
-    }
 
     setIsEvaluationCollapsed(true);
     setIsCompletedCollapsed(true);

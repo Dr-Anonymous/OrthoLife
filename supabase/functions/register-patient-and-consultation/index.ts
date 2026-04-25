@@ -7,11 +7,10 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
-async function generateIncrementalId(supabaseClient: SupabaseClient) {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
+async function generateIncrementalId(supabaseClient: SupabaseClient, localDate: Date) {
+  const yyyy = localDate.getUTCFullYear();
+  const mm = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(localDate.getUTCDate()).padStart(2, '0');
   const dateKey = `${yyyy}${mm}${dd}`;
   try {
     const { data, error } = await supabaseClient.rpc('increment_patient_counter', {
@@ -28,7 +27,7 @@ async function generateIncrementalId(supabaseClient: SupabaseClient) {
 }
 
 // Helper to determine visit type based on 14-day rule (or hospital specific)
-async function getVisitType(supabaseClient: SupabaseClient, patientId: string | number, currentLocation: string, consultantId?: string, freeVisitDurationDays = 14) {
+async function getVisitType(supabaseClient: SupabaseClient, patientId: string | number, currentLocation: string, clientNow: Date, consultantId?: string, freeVisitDurationDays = 14) {
   let query = supabaseClient
     .from('consultations')
     .select('created_at, location')
@@ -51,7 +50,7 @@ async function getVisitType(supabaseClient: SupabaseClient, patientId: string | 
     }
 
     const lastDate = new Date(lastPaidConsultation.created_at);
-    const now = new Date();
+    const now = clientNow;
     const diffTime = Math.abs(now.getTime() - lastDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -102,8 +101,14 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { id, name, dob, sex, phone, secondary_phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days, consultant_id, hometown, occupation, blood_group, allergies } = await req.json();
+    const { id, name, dob, sex, phone, secondary_phone, driveId: existingDriveId, location, is_dob_estimated, referred_by, language, free_visit_duration_days, consultant_id, hometown, occupation, blood_group, allergies, clientOffset } = await req.json();
     const freeDuration = free_visit_duration_days ? Number(free_visit_duration_days) : 14;
+
+    const now = new Date();
+    // Adjust for local day logic if offset is provided (clientOffset is in minutes, e.g. -330 for IST)
+    const localDate = clientOffset !== undefined 
+      ? new Date(now.getTime() - (clientOffset * 60 * 1000))
+      : now;
 
     // Sanitize phone and support matching both full international form and legacy last-10 form.
     const sanitizedPhone = sanitizePhoneNumber(phone);
@@ -268,10 +273,18 @@ serve(async (req: Request) => {
     };
 
     const createConsultationForPatient = async (patient: { id: string | number; name: string; drive_id: string | null }, similarity: number) => {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date();
-      todayEnd.setHours(23, 59, 59, 999);
+      const localTodayStart = new Date(localDate);
+      localTodayStart.setUTCHours(0, 0, 0, 0);
+      const localTodayEnd = new Date(localDate);
+      localTodayEnd.setUTCHours(23, 59, 59, 999);
+
+      // Convert back to UTC instants for querying
+      const todayStart = clientOffset !== undefined
+        ? new Date(localTodayStart.getTime() + (clientOffset * 60 * 1000))
+        : localTodayStart;
+      const todayEnd = clientOffset !== undefined
+        ? new Date(localTodayEnd.getTime() + (clientOffset * 60 * 1000))
+        : localTodayEnd;
 
       const { data: existingConsultations } = await supabase
         .from('consultations')
@@ -291,7 +304,7 @@ serve(async (req: Request) => {
         });
       }
 
-      const visitTypePromise = getVisitType(supabase, patient.id, location, consultant_id, freeDuration);
+      const visitTypePromise = getVisitType(supabase, patient.id, location, now, consultant_id, freeDuration);
       const languagePromise = language
         ? Promise.resolve(language)
         : getLastLanguage(supabase, patient.id);
@@ -340,7 +353,7 @@ serve(async (req: Request) => {
     // No matches, proceed with registration
     const driveId = existingDriveId; // Keep existing driveId if patient is being migrated
 
-    const newPatientId = id || await generateIncrementalId(supabase);
+    const newPatientId = id || await generateIncrementalId(supabase, localDate);
     const { data: newPatient, error: newPatientError } = await supabase
       .from('patients')
       .insert({

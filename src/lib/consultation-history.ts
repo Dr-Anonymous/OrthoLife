@@ -52,7 +52,11 @@ export async function fetchRecentHistory(patientId: string, referenceDateIso: st
  * Generates the "Last visit: ..." string.
  */
 export function calculateLastVisitString(lastOpDate: Date | null, lastDischargeDate: Date | null): string {
-  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+  const lastDischargeDay = lastDischargeDate ? format(lastDischargeDate, 'yyyy-MM-dd') : null;
+  const lastOpDay = lastOpDate ? format(lastOpDate, 'yyyy-MM-dd') : null;
+
+  // Prefer Discharge if it's more recent OR on the same day as the last visit
+  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate || lastDischargeDay === lastOpDay)) {
     return `Discharged ${formatDistanceToNow(lastDischargeDate, { addSuffix: true })} (${format(lastDischargeDate, 'dd MMM yyyy')})`;
   } else if (lastOpDate) {
     return `Visited ${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
@@ -70,8 +74,11 @@ export function generateAutofillData(
   lastOpDate: Date | null,
   lastDischargeDate: Date | null
 ) {
-  // Priority: Discharge Summary (if more recent) > Last Consultation
-  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+  // Priority: Discharge Summary (if more recent or same day) > Last Consultation
+  const lastDischargeDay = lastDischargeDate ? format(lastDischargeDate, 'yyyy-MM-dd') : null;
+  const lastOpDay = lastOpDate ? format(lastOpDate, 'yyyy-MM-dd') : null;
+
+  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate || lastDischargeDay === lastOpDay)) {
     try {
       const summary: any = lastDischarge.discharge_summary;
       const course = summary.course_details || {};
@@ -100,7 +107,7 @@ export function generateAutofillData(
         procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? new Date(lastDischarge.procedure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}` : '',
         medications: (discharge.medications || []).map((m: any) => ({ ...m, composition: m.composition || m.name || '' })),
         advice: discharge.post_op_care || '',
-        findings: discharge.clinical_notes || '',
+        findings: discharge.clinical_notes || course.operation_notes || '',
         followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         investigations: '',
         visit_type: currentConsultation.visit_type || 'paid',

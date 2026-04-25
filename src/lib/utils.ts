@@ -14,13 +14,13 @@ export function normalizeMedName(name: string | null | undefined): string {
   let clean = name.toLowerCase().trim();
   // Strip common pharmaceutical prefixes repeatedly (e.g., "Tab. T. OMNACORTIL")
   const prefixRegex = /^(t|c|cap|tab|inj|syr|syt|syp|ointment|cream|gel|pow|powder|drops|susp|mist|crm|lot|caps|tabs|pint|p\.int|p\.inj|supp|pdr|tab\.|cap\.|syr\.|inj\.|syp\.|syp|t\.|c\.|g\.|s\.|m\.|tab\s|cap\s|inj\s|syr\s|t\s|c\s)[\s.]*/i;
-  
+
   let oldClean;
   do {
     oldClean = clean;
     clean = clean.replace(prefixRegex, '').trim();
   } while (clean !== oldClean);
-  
+
   return clean;
 }
 
@@ -162,7 +162,7 @@ export function calculateFollowUpDate(message: string, baseDate: Date = new Date
   if (!message) return null;
 
   const text = message.toLowerCase();
-  
+
   // Handle explicit dates like DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY, or YYYY variations
   const dateStrRegex = /(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/;
   const dateMatch = text.match(dateStrRegex);
@@ -182,19 +182,19 @@ export function calculateFollowUpDate(message: string, baseDate: Date = new Date
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
   }
-  
+
   // Hande special keywords
   if (text.includes('tomorrow') || text.includes('రేపు')) {
     const date = new Date(baseDate);
     date.setDate(date.getDate() + 1);
-    
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
   }
-  
+
   // Define patterns
   const patterns = [
     { regex: /(\d+)?\s*(year|years|సంవత్సరం|సంవత్సరాలు|సంవత్సరాల)/i, unit: 'years' },
@@ -209,19 +209,19 @@ export function calculateFollowUpDate(message: string, baseDate: Date = new Date
       // If digit (\d+) is missing, assume 1 (e.g., "వారం తర్వాత")
       const countString = match[1];
       const count = countString ? parseInt(countString) : 1;
-      
+
       const date = new Date(baseDate);
-      
+
       if (unit === 'days') date.setDate(date.getDate() + count);
       else if (unit === 'weeks') date.setDate(date.getDate() + count * 7);
       else if (unit === 'months') date.setMonth(date.getMonth() + count);
       else if (unit === 'years') date.setFullYear(date.getFullYear() + count);
-      
+
       // Fix UTC shift: use local date components to build YYYY-MM-DD
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      
+
       return `${year}-${month}-${day}`;
     }
   }
@@ -235,29 +235,72 @@ export function calculateFollowUpDate(message: string, baseDate: Date = new Date
  */
 export function stripFollowUpPrefix(text: string | null | undefined): string {
   if (!text) return '-';
-  
+
   // Standard templates from Consultation.tsx
   // EN: after {{count}} {{unit}}, or immediately if symptoms worsen.
   // TE: {{count}} {{unit}} / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే.
-  
+
   // Regex to match the common prefix patterns
   // Telugu pattern: \d+ (unit name) (after/later) / immediately...
   const teluguPrefixRegex = /^\d+\s*(రోజు|రోజుల|వారం|వారాల|నెల|నెలల|సంవత్సరం|సంవత్సరాల)?\s*(తర్వాత)?\s*\/\s*వెంటనే-\s*ఏవైనా\s*లక్షణాలు\s*తీవ్రమైతే\.?\s*/i;
-  
+
   // English pattern: after \d+ (units), or immediately...
   const englishPrefixRegex = /^after\s*\d+\s*(day|days|week|weeks|month|months|year|years),?\s*or\s*immediately\s*if\s*symptoms\s*worsen\.?\s*/i;
 
   let stripped = text.replace(teluguPrefixRegex, '').replace(englishPrefixRegex, '');
-  
+
   // Also handle cases where there might be a trailing dot or space left over
   stripped = stripped.trim();
-  
+
   return stripped || '-';
 }
 
 /**
- * Escapes special characters in a string for use in a regular expression.
+ * Formats a Date or timestamp string into a local time string (h:mm a).
+ * Standard UTC-to-Local conversion.
  */
+export function formatLocalTime(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return '';
+  try {
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    if (isNaN(date.getTime())) return '';
+    
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+    
+    return `${hours}:${strMinutes} ${ampm}`;
+  } catch (e) {
+    return '';
+  }
+}
+
+/**
+ * Formats a Date or timestamp string into a local date string (MMM d, yyyy).
+ * Standard UTC-to-Local conversion.
+ */
+export function formatLocalDate(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return '';
+  try {
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    if (isNaN(date.getTime())) return '';
+    
+    return date.toLocaleDateString('en-US', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  } catch (e) {
+    return '';
+  }
+}
+
+/**
+* Escapes special characters in a string for use in a regular expression.
+*/
 export function escapeRegex(s: string): string {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

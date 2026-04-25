@@ -202,7 +202,11 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
  * Helper: Generates the "Last visit: ..." string.
  */
 function calculateLastVisitString(lastOpDate: Date | null, lastDischargeDate: Date | null): string {
-  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+  const lastDischargeDay = lastDischargeDate ? format(lastDischargeDate, 'yyyy-MM-dd') : null;
+  const lastOpDay = lastOpDate ? format(lastOpDate, 'yyyy-MM-dd') : null;
+
+  // Prefer Discharge if it's more recent OR on the same day as the last visit
+  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate || lastDischargeDay === lastOpDay)) {
     return `Discharged ${formatDistanceToNow(lastDischargeDate, { addSuffix: true })} (${format(lastDischargeDate, 'dd MMM yyyy')})`;
   } else if (lastOpDate) {
     return `Visited ${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
@@ -225,8 +229,11 @@ function generateAutofillData(
   lastOpDate: Date | null,
   lastDischargeDate: Date | null
 ) {
-  // Priority: Discharge Summary (if more recent) > Last Consultation
-  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate)) {
+  // Priority: Discharge Summary (if more recent or same day) > Last Consultation
+  const lastDischargeDay = lastDischargeDate ? format(lastDischargeDate, 'yyyy-MM-dd') : null;
+  const lastOpDay = lastOpDate ? format(lastOpDate, 'yyyy-MM-dd') : null;
+
+  if (lastDischargeDate && (!lastOpDate || lastDischargeDate > lastOpDate || lastDischargeDay === lastOpDay)) {
     try {
       const summary: any = lastDischarge.discharge_summary;
       const course = summary.course_details || {};

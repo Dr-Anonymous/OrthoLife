@@ -218,7 +218,6 @@ const FollowUpDashboard = () => {
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 className="rounded-md border mx-auto"
-                disabled={(date) => date < startOfToday()}
               />
             </CardContent>
           </Card>

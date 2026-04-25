@@ -5,8 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MapPin, Search, UserPlus, BookOpen, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { MapPin, Search, UserPlus, BookOpen, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog, Filter, Check, X } from 'lucide-react';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
@@ -15,6 +15,14 @@ import { Input } from '@/components/ui/input';
 import { addSeconds } from 'date-fns';
 import { FamilyMemberManager } from './FamilyMemberManager';
 import { HandbookSheet } from './HandbookSheet';
+import { Badge } from '@/components/ui/badge';
+import {
+    Command,
+    CommandGroup,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+} from '@/components/ui/command';
 
 interface ConsultationSidebarProps {
     selectedHospitalName: string;
@@ -144,9 +152,51 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     const searchInputRef = React.useRef<HTMLInputElement>(null);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-    const filteredPending = pendingConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    const filteredEvaluation = evaluationConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    const filteredCompleted = completedConsultations.filter(c => c.patient.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const [sexFilter, setSexFilter] = useState<'all' | 'male' | 'female'>('all');
+    const [ageFilter, setAgeFilter] = useState<'all' | 'pediatric' | 'adult' | 'senior'>('all');
+    const [visitTypeFilter, setVisitTypeFilter] = useState<'all' | 'paid' | 'free'>('all');
+
+    const calculateAge = (dob: string) => {
+        if (!dob) return 0;
+        try {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        } catch (e) {
+            return 0;
+        }
+    };
+
+    const applyFilters = (consultations: Consultation[]) => {
+        return consultations.filter(c => {
+            const matchesSearch = c.patient.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+            const matchesSex = sexFilter === 'all' ||
+                (sexFilter === 'male' && (c.patient.sex?.toLowerCase() === 'm' || c.patient.sex?.toLowerCase() === 'male')) ||
+                (sexFilter === 'female' && (c.patient.sex?.toLowerCase() === 'f' || c.patient.sex?.toLowerCase() === 'female'));
+
+            const age = calculateAge(c.patient.dob);
+            const matchesAge = ageFilter === 'all' ||
+                (ageFilter === 'pediatric' && age < 18) ||
+                (ageFilter === 'adult' && age >= 18 && age <= 60) ||
+                (ageFilter === 'senior' && age > 60);
+
+            const matchesVisitType = visitTypeFilter === 'all' ||
+                (visitTypeFilter === 'paid' && c.visit_type?.toLowerCase() === 'paid') ||
+                (visitTypeFilter === 'free' && c.visit_type?.toLowerCase() === 'free');
+
+            return matchesSearch && matchesSex && matchesAge && matchesVisitType;
+        });
+    };
+
+    const filteredPending = applyFilters(pendingConsultations);
+    const filteredEvaluation = applyFilters(evaluationConsultations);
+    const filteredCompleted = applyFilters(completedConsultations);
 
     const visibleConsultations = [...filteredPending, ...filteredEvaluation, ...filteredCompleted];
 
@@ -486,18 +536,152 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     <div className="font-semibold">
                         Total Consultations: {totalConsultationsCount}
                     </div>
-                    <Input
-                        ref={searchInputRef}
-                        placeholder={`Search patients... (${
-                            typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
-                                ? '2 Finger Tap'
-                                : (typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl') + '+D'
-                        })`}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={handleSearchKeyDown}
-                        className="h-8"
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            ref={searchInputRef}
+                            placeholder={`Search patients... (${typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+                                    ? '2 Finger Tap'
+                                    : (typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl') + '+D'
+                                })`}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={handleSearchKeyDown}
+                            className="h-8"
+                        />
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 border-dashed bg-background/50 px-2">
+                                    <Filter className="h-3.5 w-3.5" />
+                                    {(sexFilter !== 'all' || ageFilter !== 'all' || visitTypeFilter !== 'all') && (
+                                        <Badge variant="secondary" className="ml-1 rounded-sm px-1 font-normal text-[10px] bg-primary/10 text-primary border-none">
+                                            {([sexFilter, ageFilter, visitTypeFilter].filter(f => f !== 'all').length)}
+                                        </Badge>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[200px] p-0" align="end">
+                                <Command>
+                                    <CommandList>
+                                        <CommandGroup heading="Sex">
+                                            <CommandItem onSelect={() => setSexFilter('all')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    sexFilter === 'all' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {sexFilter === 'all' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>All</span>
+                                            </CommandItem>
+                                            <CommandItem onSelect={() => setSexFilter('male')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    sexFilter === 'male' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {sexFilter === 'male' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>Male</span>
+                                            </CommandItem>
+                                            <CommandItem onSelect={() => setSexFilter('female')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    sexFilter === 'female' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {sexFilter === 'female' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>Female</span>
+                                            </CommandItem>
+                                        </CommandGroup>
+                                        <CommandSeparator />
+                                        <CommandGroup heading="Age Group">
+                                            <CommandItem onSelect={() => setAgeFilter('all')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    ageFilter === 'all' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {ageFilter === 'all' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>All Ages</span>
+                                            </CommandItem>
+                                            <CommandItem onSelect={() => setAgeFilter('pediatric')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    ageFilter === 'pediatric' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {ageFilter === 'pediatric' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>Pediatric (&lt;18)</span>
+                                            </CommandItem>
+                                            <CommandItem onSelect={() => setAgeFilter('adult')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    ageFilter === 'adult' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {ageFilter === 'adult' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>Adult (18-60)</span>
+                                            </CommandItem>
+                                            <CommandItem onSelect={() => setAgeFilter('senior')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    ageFilter === 'senior' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {ageFilter === 'senior' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>Senior (&gt;60)</span>
+                                            </CommandItem>
+                                        </CommandGroup>
+                                        <CommandSeparator />
+                                        <CommandGroup heading="Visit Type">
+                                            <CommandItem onSelect={() => setVisitTypeFilter('all')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    visitTypeFilter === 'all' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {visitTypeFilter === 'all' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>All Visits</span>
+                                            </CommandItem>
+                                            <CommandItem onSelect={() => setVisitTypeFilter('paid')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    visitTypeFilter === 'paid' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {visitTypeFilter === 'paid' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>Paid Visit</span>
+                                            </CommandItem>
+                                            <CommandItem onSelect={() => setVisitTypeFilter('free')}>
+                                                <div className={cn(
+                                                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                    visitTypeFilter === 'free' ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                )}>
+                                                    {visitTypeFilter === 'free' && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <span>Free Visit</span>
+                                            </CommandItem>
+                                        </CommandGroup>
+                                        {(sexFilter !== 'all' || ageFilter !== 'all' || visitTypeFilter !== 'all') && (
+                                            <>
+                                                <CommandSeparator />
+                                                <CommandGroup>
+                                                    <CommandItem
+                                                        onSelect={() => {
+                                                            setSexFilter('all');
+                                                            setAgeFilter('all');
+                                                            setVisitTypeFilter('all');
+                                                        }}
+                                                        className="justify-center text-center text-xs font-medium text-destructive hover:text-destructive"
+                                                    >
+                                                        Clear filters
+                                                    </CommandItem>
+                                                </CommandGroup>
+                                            </>
+                                        )}
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
                 <div>
                     <Label>Pending Consultations: {filteredPending.length}</Label>
@@ -512,12 +696,17 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
                                     <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
-                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3" onClick={() => {
                                             onSelectConsultation(c);
                                             setSearchQuery('');
                                         }}>
-                                            <span>{c.patient.name}</span>
-                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                            <div className="flex flex-col items-start overflow-hidden">
+                                                <span className="truncate w-full text-left">{c.patient.name}</span>
+                                                <span className="text-[10px] opacity-70 font-normal">
+                                                    {formatLocalTime(c.created_at)}
+                                                </span>
+                                            </div>
+                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500 shrink-0" />}
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
                                             <Trash2 className="h-4 w-4" />
@@ -545,12 +734,17 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
                                     <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
-                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3" onClick={() => {
                                             onSelectConsultation(c);
                                             setSearchQuery('');
                                         }}>
-                                            <span>{c.patient.name}</span>
-                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                            <div className="flex flex-col items-start overflow-hidden">
+                                                <span className="truncate w-full text-left">{c.patient.name}</span>
+                                                <span className="text-[10px] opacity-70 font-normal">
+                                                    {formatLocalTime(c.created_at)}
+                                                </span>
+                                            </div>
+                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500 shrink-0" />}
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
                                             <Trash2 className="h-4 w-4" />
@@ -578,12 +772,17 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
                                     <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
-                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between" onClick={() => {
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3" onClick={() => {
                                             onSelectConsultation(c);
                                             setSearchQuery('');
                                         }}>
-                                            <span>{c.patient.name}</span>
-                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500" />}
+                                            <div className="flex flex-col items-start overflow-hidden">
+                                                <span className="truncate w-full text-left">{c.patient.name}</span>
+                                                <span className="text-[10px] opacity-70 font-normal">
+                                                    {formatLocalTime(c.created_at)}
+                                                </span>
+                                            </div>
+                                            {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500 shrink-0" />}
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0" onClick={(e) => onDeleteClick(e, c)}>
                                             <Trash2 className="h-4 w-4" />

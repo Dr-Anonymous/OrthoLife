@@ -109,6 +109,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const justSelected = useRef(false);
   const lastSearch = useRef({ term: '', type: '' as 'name' | 'phone' | '' });
+  const isBusy = useRef(false);
+  const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
 
 
 
@@ -196,34 +198,42 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     if (justSelected.current) {
       justSelected.current = false;
       setShowSuggestions(false);
+      setIsSuggestionLoading(false);
+      isBusy.current = false;
       return;
     }
 
     if (!phone || phone.length < 3) {
       setShowSuggestions(false);
+      setIsSuggestionLoading(false);
+      isBusy.current = false;
       return;
     }
 
+    // Set loading state immediately to disable manual Enter during debounce/fetch
+    setIsSuggestionLoading(true);
+    isBusy.current = true;
+
     const fetchCandidates = async () => {
-      // 1. Local Cache Check (Duplicate Fetch Prevention)
-      // If we have a full number (10+ digits), check if we already found this patient in previous fetches (e.g. prefix search)
-      if (phone.length >= 10) {
-        const alreadyHasMatch = cachedPatients.some(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
-        if (alreadyHasMatch) {
-          // Filter locally and show
-          const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
-          setSearchResults(filtered);
-          setShowSuggestions(filtered.length > 0);
-          return;
+      try {
+        // 1. Local Cache Check (Duplicate Fetch Prevention)
+        // If we have a full number (10+ digits), check if we already found this patient in previous fetches (e.g. prefix search)
+        if (phone.length >= 10) {
+          const alreadyHasMatch = cachedPatients.some(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+          if (alreadyHasMatch) {
+            // Filter locally and show
+            const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+            setSearchResults(filtered);
+            setShowSuggestions(filtered.length > 0);
+            return;
+          }
         }
-      }
 
-      // 2. Fetch from DB if needed
-      // Use the first 8 digits to fetch once and prevent a double-query at 10 digits
-      const currentPrefix = phone.slice(0, 8);
+        // 2. Fetch from DB if needed
+        // Use the first 8 digits to fetch once and prevent a double-query at 10 digits
+        const currentPrefix = phone.slice(0, 8);
 
-      if (phone.length >= 8 && currentPrefix !== lastFetchedPrefix) {
-        try {
+        if (phone.length >= 8 && currentPrefix !== lastFetchedPrefix) {
           let patients: Patient[] = [];
 
           if (isOnline) {
@@ -254,16 +264,19 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           setSuggestionSource('phone');
           setActiveSuggestionIndex(0);
 
-        } catch (err) {
-          console.error("Instant search error:", err);
+        } else if (cachedPatients.length > 0) {
+          // Local filtering on existing cache (for 3-9 digits typing or continued typing without new fetch)
+          const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+          setSearchResults(filtered);
+          setShowSuggestions(filtered.length > 0);
+          setSuggestionSource('phone');
+          setActiveSuggestionIndex(0);
         }
-      } else if (cachedPatients.length > 0) {
-        // Local filtering on existing cache (for 3-9 digits typing or continued typing without new fetch)
-        const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
-        setSearchResults(filtered);
-        setShowSuggestions(filtered.length > 0);
-        setSuggestionSource('phone');
-        setActiveSuggestionIndex(0);
+      } catch (err) {
+        console.error("Instant search error:", err);
+      } finally {
+        setIsSuggestionLoading(false);
+        isBusy.current = false;
       }
     };
 
@@ -288,6 +301,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
   };
 
   const handleSearch = async (searchType: 'name' | 'phone') => {
+    if (isBusy.current) return;
+    isBusy.current = true;
     setSuggestionSource(searchType);
     let searchTerm = searchType === 'name' ? formData.name : formData.phone;
 
@@ -300,6 +315,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
         description: `Please enter a ${searchType} to search.`,
         variant: 'destructive',
       });
+      isBusy.current = false;
       return;
     }
 
@@ -379,6 +395,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       });
     } finally {
       setIsSearching(false);
+      isBusy.current = false;
     }
   };
 
@@ -436,7 +453,9 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBusy.current) return;
     if (!validateForm()) return;
+    isBusy.current = true;
     setIsSubmitting(true);
 
     const saveOfflinePatient = async () => {
@@ -455,6 +474,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
             description: 'This patient is already registered for today at this location.',
           });
           setIsSubmitting(false);
+          isBusy.current = false;
           return;
         }
       }
@@ -540,7 +560,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
               allergies: formData.allergies,
               language: formData.language,
               free_visit_duration_days: location ? getHospitalByName(location)?.settings.free_visit_duration_days : 14,
-              consultant_id: consultantId
+              consultant_id: consultantId,
+              clientOffset: new Date().getTimezoneOffset()
             },
           });
 
@@ -598,6 +619,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       });
     } finally {
       setIsSubmitting(false);
+      isBusy.current = false;
     }
   };
 
@@ -630,7 +652,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                     if (showSuggestions) handleSuggestionKeyDown(e);
                     else if (e.key === 'Enter') {
                       e.preventDefault();
-                      if (isSearching) return;
+                      if (isBusy.current) return;
 
                       const sanitizedPhone = sanitizePhoneNumber(formData.phone);
                       const isSameAsLastSearch = lastSearch.current.type === 'phone' && lastSearch.current.term === sanitizedPhone;
@@ -677,7 +699,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                     if (showSuggestions) handleSuggestionKeyDown(e);
                     else if (e.key === 'Enter') {
                       e.preventDefault();
-                      if (isSearching) return;
+                      if (isBusy.current) return;
 
                       const isSameAsLastSearch = lastSearch.current.type === 'name' && lastSearch.current.term === formData.name;
 
@@ -708,7 +730,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                   />
                 )}
 
-                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching}>
+                <button type="button" onClick={() => handleSearch('name')} className="absolute right-3 top-1/2 -translate-y-1/2" disabled={isSearching || isSubmitting || isSuggestionLoading}>
                   {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 text-muted-foreground" />}
                 </button>
               </div>
