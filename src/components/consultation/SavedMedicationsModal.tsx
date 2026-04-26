@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
+
 import {
   Dialog,
   DialogContent,
@@ -80,16 +80,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   });
   const [localContra, setLocalContra] = useState('');
   const [localInter, setLocalInter] = useState('');
-  const [isTranslating, setIsTranslating] = useState(false);
-  const debouncedInstructions = useDebounce(newMed.instructions, 500);
-  const debouncedFrequency = useDebounce(newMed.frequency, 500);
-  const debouncedDuration = useDebounce(newMed.duration, 500);
-  const debouncedNotes = useDebounce(newMed.notes, 500);
-  const debouncedInstructionsTe = useDebounce(newMed.instructions_te, 500);
-  const debouncedFrequencyTe = useDebounce(newMed.frequency_te, 500);
-  const debouncedDurationTe = useDebounce(newMed.duration_te, 500);
-  const debouncedNotesTe = useDebounce(newMed.notes_te, 500);
   const [searchQuery, setSearchQuery] = useState('');
+
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
   const filteredMeds = medications.filter(med =>
@@ -120,100 +112,7 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
   };
 
 
-  useEffect(() => {
-    const translateField = async (text: string, field: keyof Medication, targetLang: string, sourceLang: string) => {
-      if (!text || !text.trim()) return;
-      setIsTranslating(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('translate-content', {
-          body: { text, targetLanguage: targetLang, sourceLanguage: sourceLang },
-        });
-        if (error) throw error;
-        if (data?.translatedText) {
-          setNewMed(prev => ({ ...prev, [field]: data.translatedText }));
-        }
-      } catch (err) {
-        console.error(`Translation error for ${field}:`, err);
-        toast({ variant: 'destructive', title: `Translation Error`, description: `Could not translate ${field}.` });
-      } finally {
-        setIsTranslating(false);
-      }
-    };
 
-    if (!isEditing) {
-      // English -> Telugu
-      if (newMed.instructions && debouncedInstructions === newMed.instructions && debouncedInstructions !== newMed.instructions_te) {
-        translateField(debouncedInstructions, 'instructions_te', 'te', 'en');
-      }
-      if (newMed.frequency && debouncedFrequency === newMed.frequency && debouncedFrequency !== newMed.frequency_te) {
-        translateField(debouncedFrequency, 'frequency_te', 'te', 'en');
-      }
-      if (newMed.duration && debouncedDuration === newMed.duration && debouncedDuration !== newMed.duration_te) {
-        translateField(debouncedDuration, 'duration_te', 'te', 'en');
-      }
-      if (newMed.notes && debouncedNotes === newMed.notes && debouncedNotes !== newMed.notes_te) {
-        translateField(debouncedNotes, 'notes_te', 'te', 'en');
-      }
-
-      // Telugu -> English
-      if (newMed.instructions_te && debouncedInstructionsTe === newMed.instructions_te && debouncedInstructionsTe !== newMed.instructions) {
-        translateField(debouncedInstructionsTe, 'instructions', 'en', 'te');
-      }
-      if (newMed.frequency_te && debouncedFrequencyTe === newMed.frequency_te && debouncedFrequencyTe !== newMed.frequency) {
-        translateField(debouncedFrequencyTe, 'frequency', 'en', 'te');
-      }
-      if (newMed.duration_te && debouncedDurationTe === newMed.duration_te && debouncedDurationTe !== newMed.duration) {
-        translateField(debouncedDurationTe, 'duration', 'en', 'te');
-      }
-      if (newMed.notes_te && debouncedNotesTe === newMed.notes_te && debouncedNotesTe !== newMed.notes) {
-        translateField(debouncedNotesTe, 'notes', 'en', 'te');
-      }
-    }
-  }, [
-    debouncedInstructions, debouncedFrequency, debouncedDuration, debouncedNotes,
-    debouncedInstructionsTe, debouncedFrequencyTe, debouncedDurationTe, debouncedNotesTe,
-    newMed.instructions, newMed.frequency, newMed.duration, newMed.notes,
-    newMed.instructions_te, newMed.frequency_te, newMed.duration_te, newMed.notes_te,
-    isEditing
-  ]);
-
-
-  useEffect(() => {
-    if (isEditing && newMed.id) {
-      const translateFields = async () => {
-        setIsTranslating(true);
-        try {
-          const translate = async (text: string) => {
-            if (!text || !text.trim()) return '';
-            const { data, error } = await supabase.functions.invoke('translate-content', {
-              body: { text, targetLanguage: 'te' },
-            });
-            if (error) throw error;
-            return data?.translatedText || '';
-          };
-
-          const [instructions_te, frequency_te, duration_te, notes_te] = await Promise.all([
-            newMed.instructions ? translate(newMed.instructions) : Promise.resolve(''),
-            newMed.frequency ? translate(newMed.frequency) : Promise.resolve(''),
-            newMed.duration ? translate(newMed.duration) : Promise.resolve(''),
-            newMed.notes ? translate(newMed.notes) : Promise.resolve(''),
-          ]);
-
-          setNewMed(prev => ({ ...prev, instructions_te, frequency_te, duration_te, notes_te }));
-
-        } catch (err) {
-          console.error('Translation error:', err);
-          toast({ variant: 'destructive', title: 'Translation Error', description: (err as Error).message });
-        } finally {
-          setIsTranslating(false);
-        }
-      };
-
-      if (!newMed.instructions_te && !newMed.frequency_te && !newMed.duration_te && !newMed.notes_te) {
-        translateFields();
-      }
-    }
-  }, [isEditing, newMed.id]);
 
   const fetchMedications = async () => {
     setIsLoading(true);
@@ -546,7 +445,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
                   {isCustom && (
                     <div className="space-y-2">
                       <Label htmlFor="med-frequency-te">Frequency (Telugu)</Label>
-                      <Input id="med-frequency-te" value={newMed.frequency_te} onChange={e => handleInputChange('frequency_te', e.target.value)} disabled={isTranslating} />
+                      <Input id="med-frequency-te" value={newMed.frequency_te} onChange={e => handleInputChange('frequency_te', e.target.value)} />
+
                       {!newMed.frequency_te && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {["అవసరమైతే", "రోజు విడిచి రోజు", "వారానికి ఒకసారి", "వారానికి 2 సార్లు", "నెలకోసారి"].map(text => (
@@ -585,7 +485,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
               </div>
               <div className="space-y-1.5 opacity-80">
                 <Label htmlFor="med-instructions-te" className="text-xs font-semibold text-muted-foreground">Instructions (Te)</Label>
-                <Input id="med-instructions-te" value={newMed.instructions_te} onChange={e => handleInputChange('instructions_te', e.target.value)} disabled={isTranslating} className="h-9" />
+                <Input id="med-instructions-te" value={newMed.instructions_te} onChange={e => handleInputChange('instructions_te', e.target.value)} className="h-9" />
+
                 {!newMed.instructions_te && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {["ఆహరం ముందు", "ఆహరం తర్వాత"].map(text => (
@@ -630,7 +531,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
               </div>
               <div className="space-y-1.5 opacity-80">
                 <Label htmlFor="med-duration-te" className="text-xs font-semibold text-muted-foreground">Duration (Te)</Label>
-                <Input id="med-duration-te" value={newMed.duration_te || ''} onChange={e => handleInputChange('duration_te', e.target.value)} disabled={isTranslating} className="h-9" />
+                <Input id="med-duration-te" value={newMed.duration_te || ''} onChange={e => handleInputChange('duration_te', e.target.value)} className="h-9" />
+
                 {(() => {
                   const val = (newMed.duration_te || '').trim();
                   const match = val.match(/^(\d+)/);
@@ -662,7 +564,8 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
               </div>
               <div className="space-y-1.5 opacity-80">
                 <Label htmlFor="med-notes-te" className="text-xs font-semibold text-muted-foreground">Notes (Te)</Label>
-                <Input id="med-notes-te" value={newMed.notes_te} onChange={e => handleInputChange('notes_te', e.target.value)} disabled={isTranslating} className="h-9" />
+                <Input id="med-notes-te" value={newMed.notes_te} onChange={e => handleInputChange('notes_te', e.target.value)} className="h-9" />
+
               </div>
             </div>
 

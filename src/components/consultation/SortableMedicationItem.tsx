@@ -139,37 +139,10 @@ export const SortableMedicationItem: React.FC<SortableMedicationItemProps> = ({
                 instructions_te: isTelugu ? med.instructions : med.instructions_te,
                 notes: isTelugu ? med.notes_te : med.notes,
                 notes_te: isTelugu ? med.notes : med.notes_te,
+                contraindications: med.contraindications || [],
+                interactions: med.interactions || [],
             };
 
-            // Translation Logic
-            const translate = async (text: string, targetLang: string, sourceLang: string = 'en') => {
-                if (!text || !text.trim()) return '';
-                try {
-                    const { data, error } = await supabase.functions.invoke('translate-content', {
-                        body: { text, targetLanguage: targetLang, sourceLanguage: sourceLang },
-                    });
-                    if (error) throw error;
-                    return data?.translatedText || '';
-                } catch (e) {
-                    console.error('Translation error:', e);
-                    return '';
-                }
-            };
-
-            // Bidirectional Translation based on current input
-            if (isTelugu) {
-                // If Telugu is the active language, translate missing English fields
-                if (payload.instructions_te && !payload.instructions) payload.instructions = await translate(payload.instructions_te, 'en', 'te');
-                if (payload.duration_te && !payload.duration) payload.duration = await translate(payload.duration_te, 'en', 'te');
-                if (payload.frequency_te && !payload.frequency) payload.frequency = await translate(payload.frequency_te, 'en', 'te');
-                if (payload.notes_te && !payload.notes) payload.notes = await translate(payload.notes_te, 'en', 'te');
-            } else {
-                // If English is the active language, translate missing Telugu fields
-                if (payload.instructions && !payload.instructions_te) payload.instructions_te = await translate(payload.instructions, 'te', 'en');
-                if (payload.duration && !payload.duration_te) payload.duration_te = await translate(payload.duration, 'te', 'en');
-                if (payload.frequency && !payload.frequency_te) payload.frequency_te = await translate(payload.frequency, 'te', 'en');
-                if (payload.notes && !payload.notes_te) payload.notes_te = await translate(payload.notes, 'te', 'en');
-            }
 
             // If we have a brandName that isn't already the composition name
             // and it's not in brand_metadata, record it

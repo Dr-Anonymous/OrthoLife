@@ -28,6 +28,7 @@ interface ConsultantProfileModalProps {
   onClose: () => void;
 }
 
+
 export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ isOpen, onClose }) => {
   const { consultant, refreshConsultant } = useConsultant();
   const { refreshHospitals } = useHospitals();
@@ -51,8 +52,13 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     seal_url: consultant?.seal_url || '',
     bio: consultant?.bio || { en: '', te: '' },
     services: consultant?.services || [],
-    lead_services: consultant?.lead_services || [],
-    team_members: consultant?.team_members || [],
+    lead_services_en: consultant?.lead_services?.map(s => s.en).join(', ') || '',
+    lead_services_te: consultant?.lead_services?.map(s => s.te).join(', ') || '',
+    team_members: consultant?.team_members?.map((m: any) => ({
+      ...m,
+      services_en: m.services?.map((s: any) => s.en).join(', ') || '',
+      services_te: m.services?.map((s: any) => s.te).join(', ') || ''
+    })) || [],
     password: consultant?.password || '',
     reception_phone: (consultant as any)?.reception_phone || '',
     reception_password: (consultant as any)?.reception_password || '',
@@ -60,6 +66,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showReceptionPassword, setShowReceptionPassword] = useState(false);
+
 
   // Locations State (fetched separately for editing)
   const [editableHospitals, setEditableHospitals] = useState<any[]>([]);
@@ -79,8 +86,13 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         seal_url: consultant.seal_url || '',
         bio: consultant.bio || { en: '', te: '' },
         services: consultant.services || [],
-        lead_services: consultant.lead_services || [],
-        team_members: consultant.team_members || [],
+        lead_services_en: consultant.lead_services?.map(s => s.en).join(', ') || '',
+        lead_services_te: consultant.lead_services?.map(s => s.te).join(', ') || '',
+        team_members: consultant.team_members?.map((m: any) => ({
+          ...m,
+          services_en: m.services?.map((s: any) => s.en).join(', ') || '',
+          services_te: m.services?.map((s: any) => s.te).join(', ') || ''
+        })) || [],
         password: consultant.password || '',
         reception_phone: (consultant as any).reception_phone || '',
         reception_password: (consultant as any).reception_password || '',
@@ -89,6 +101,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
       fetchConsultantHospitals();
     }
   }, [isOpen, consultant]);
+
 
   const fetchConsultantHospitals = async () => {
     if (!consultant) return;
@@ -106,6 +119,29 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
     setIsSaving(true);
     try {
+      // Zip Lead Services
+      const leadEnArr = formData.lead_services_en.split(',').map(s => s.trim());
+      const leadTeArr = formData.lead_services_te.split(',').map(s => s.trim());
+      const leadMaxLen = Math.max(leadEnArr.length, leadTeArr.length);
+      const lead_services = Array.from({ length: leadMaxLen }).map((_, i) => ({
+        en: leadEnArr[i] || '',
+        te: leadTeArr[i] || ''
+      }));
+
+      // Zip Team Services
+      const team_members = formData.team_members.map((m: any) => {
+        const enArr = m.services_en.split(',').map((s: any) => s.trim());
+        const teArr = m.services_te.split(',').map((s: any) => s.trim());
+        const maxLen = Math.max(enArr.length, teArr.length);
+        const services = Array.from({ length: maxLen }).map((_, i) => ({
+          en: enArr[i] || '',
+          te: teArr[i] || ''
+        }));
+        // Strip the temporary text fields before saving
+        const { services_en, services_te, ...cleanMember } = m;
+        return { ...cleanMember, services };
+      });
+
       const { error } = await supabase
         .from('consultants')
         .update({
@@ -125,8 +161,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           reception_phone: formData.reception_phone,
           reception_password: formData.reception_password,
           profile_layout: formData.profile_layout,
-          team_members: formData.team_members,
-          lead_services: formData.lead_services,
+          team_members,
+          lead_services,
           updated_at: new Date().toISOString()
         })
         .eq('id', consultant.id);
@@ -347,7 +383,9 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         {
           name: { en: '', te: '' },
           qualifications: { en: '', te: '' },
-          specialization: { en: '', te: '' }
+          specialization: { en: '', te: '' },
+          services_en: '',
+          services_te: ''
         }
       ]
     }));
@@ -694,7 +732,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label>{formData.profile_layout === 'team' ? 'Description (English)' : 'Bio (English)'}</Label>
+                      <Label>English</Label>
                       <Textarea
                         className="h-32 text-sm leading-relaxed"
                         value={formData.bio.en}
@@ -703,7 +741,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{formData.profile_layout === 'team' ? 'Description (Telugu / తెలుగు)' : 'Bio (Telugu / తెలుగు)'}</Label>
+                      <Label>Telugu / తెలుగు</Label>
                       <Textarea
                         className="h-32 text-sm leading-relaxed"
                         value={formData.bio.te}
@@ -787,15 +825,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                                 <Textarea
                                   className="h-12 text-[10px] leading-tight"
                                   placeholder="List services to show in team grid (comma separated)"
-                                  value={formData.lead_services?.map((s: any) => s.en).join(', ') || ''}
-                                  onChange={e => {
-                                    const raw = e.target.value.split(',');
-                                    const services = raw.map((s, i) => ({
-                                      en: s.trim(),
-                                      te: formData.lead_services?.[i]?.te || ''
-                                    }));
-                                    setFormData(prev => ({ ...prev, lead_services: services }));
-                                  }}
+                                  value={formData.lead_services_en}
+                                  onChange={e => setFormData(prev => ({ ...prev, lead_services_en: e.target.value }))}
                                 />
                               </div>
                               <div className="space-y-1">
@@ -803,18 +834,12 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                                 <Textarea
                                   className="h-12 text-[10px] leading-tight"
                                   placeholder="మీ సేవలు (కామాతో వేరు చేయండి)"
-                                  value={formData.lead_services?.map((s: any) => s.te).join(', ') || ''}
-                                  onChange={e => {
-                                    const raw = e.target.value.split(',');
-                                    const services = raw.map((s, i) => ({
-                                      en: formData.lead_services?.[i]?.en || '',
-                                      te: s.trim()
-                                    }));
-                                    setFormData(prev => ({ ...prev, lead_services: services }));
-                                  }}
+                                  value={formData.lead_services_te}
+                                  onChange={e => setFormData(prev => ({ ...prev, lead_services_te: e.target.value }))}
                                 />
                               </div>
                             </div>
+
                           </div>
                         </div>
                       </div>
@@ -867,14 +892,11 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                                   <Textarea
                                     className="h-12 text-[10px] leading-tight"
                                     placeholder="Comma separated services"
-                                    value={member.services?.map((s: any) => s.en).join(', ') || ''}
+                                    value={member.services_en}
                                     onChange={e => {
-                                      const raw = e.target.value.split(',');
-                                      const services = raw.map((s, i) => ({
-                                        en: s.trim(),
-                                        te: member.services?.[i]?.te || ''
-                                      }));
-                                      updateTeamMemberDirect(idx, { services });
+                                      const newMembers = [...formData.team_members];
+                                      newMembers[idx].services_en = e.target.value;
+                                      setFormData(prev => ({ ...prev, team_members: newMembers }));
                                     }}
                                   />
                                 </div>
@@ -883,18 +905,16 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                                   <Textarea
                                     className="h-12 text-[10px] leading-tight"
                                     placeholder="కామాతో వేరు చేయండి"
-                                    value={member.services?.map((s: any) => s.te).join(', ') || ''}
+                                    value={member.services_te}
                                     onChange={e => {
-                                      const raw = e.target.value.split(',');
-                                      const services = raw.map((s, i) => ({
-                                        en: member.services?.[i]?.en || '',
-                                        te: s.trim()
-                                      }));
-                                      updateTeamMemberDirect(idx, { services });
+                                      const newMembers = [...formData.team_members];
+                                      newMembers[idx].services_te = e.target.value;
+                                      setFormData(prev => ({ ...prev, team_members: newMembers }));
                                     }}
                                   />
                                 </div>
                               </div>
+
                             </div>
                           </div>
                         </div>
