@@ -8,7 +8,7 @@ import { Loader2, Printer, Pencil, Calendar as CalendarIcon, Trash2 } from 'luci
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
-import { cleanConsultationData } from '@/lib/utils';
+import { cleanConsultationData, formatLocalTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { useLocation } from 'react-router-dom';
@@ -545,7 +545,7 @@ const PatientRegistration = () => {
                       <div>
                         <p className="font-semibold text-lg">{c.patient.name}</p>
                         <div className="text-sm text-muted-foreground">
-                          <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex}</div>
+                          <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} • {formatLocalTime(c.created_at)}</div>
                           {c.patient.phone && c.patient.phone !== '0000000000' ? (
                             <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
                           ) : (

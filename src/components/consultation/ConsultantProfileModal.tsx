@@ -417,11 +417,11 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col mt-4 overflow-hidden">
-          <div className="px-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="front">Prescription Front</TabsTrigger>
-              <TabsTrigger value="marketing">Marketing Page</TabsTrigger>
-              <TabsTrigger value="locations">Practice Locations</TabsTrigger>
+          <div className="px-6 overflow-x-auto scrollbar-hide">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:grid-cols-3 bg-muted p-1">
+              <TabsTrigger value="front" className="whitespace-nowrap flex-1">Prescription Front</TabsTrigger>
+              <TabsTrigger value="marketing" className="whitespace-nowrap flex-1">Marketing Page</TabsTrigger>
+              <TabsTrigger value="locations" className="whitespace-nowrap flex-1">Practice Locations</TabsTrigger>
             </TabsList>
           </div>
 

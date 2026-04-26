@@ -160,6 +160,28 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         
         lastSavedIdRef.current = 'active';
     }, [extraData.investigation_reports, initialData?.investigation_reports, pendingDeletions]);
+    
+    // Auto-focus Procedure textarea when expanded
+    React.useEffect(() => {
+        if (isProcedureExpanded && procedureRef?.current) {
+            // Use a small timeout to ensure DOM is ready and visible
+            const timer = setTimeout(() => {
+                procedureRef.current?.focus();
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [isProcedureExpanded, procedureRef]);
+
+    // Auto-focus Referred To input when expanded
+    React.useEffect(() => {
+        if (isReferredToExpanded && referredToRef?.current) {
+            // Use a small timeout to ensure DOM is ready and visible
+            const timer = setTimeout(() => {
+                referredToRef.current?.focus();
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [isReferredToExpanded, referredToRef]);
 
     const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
