@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send, Users } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { PrintOptions } from '@/types/consultation';
 
 interface ConsultationActionsProps {
     isOnline: boolean;
@@ -26,8 +28,8 @@ interface ConsultationActionsProps {
     onToggleDoctorProfile?: (checked: boolean) => void;
     showSignSeal?: boolean;
     onToggleSignSeal?: (checked: boolean) => void;
-    onlyMedicationsAndFollowup?: boolean;
-    onToggleOnlyMeds?: (checked: boolean) => void;
+    printOptions?: PrintOptions;
+    onUpdatePrintOptions?: (options: PrintOptions) => void;
     isReadOnly?: boolean;
     isWhatsAppEnabled?: boolean;
     hasChanges?: boolean;
@@ -63,8 +65,8 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onToggleDoctorProfile,
     showSignSeal,
     onToggleSignSeal,
-    onlyMedicationsAndFollowup,
-    onToggleOnlyMeds,
+    printOptions,
+    onUpdatePrintOptions,
     isReadOnly = false,
     isWhatsAppEnabled = true,
     hasChanges = false
@@ -192,24 +194,44 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             </p>
                         </div>
 
-                        <div
-                            className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                onToggleOnlyMeds?.(!onlyMedicationsAndFollowup);
-                            }}
-                        >
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Print Meds & Follow-up Only</span>
-                                <Switch
-                                    checked={onlyMedicationsAndFollowup}
-                                    onCheckedChange={() => { }} // Handled by parent div click
-                                    className="scale-75"
-                                />
+                        <div className="p-3 bg-muted/30 rounded-md border border-primary/10">
+                            <h3 className="text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Include in Print</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                                {[
+                                    { id: 'vitals', label: 'Vitals' },
+                                    { id: 'clinicalNotes', label: 'Clinical Notes' },
+                                    { id: 'investigations', label: 'Investigations' },
+                                    { id: 'diagnosis', label: 'Diagnosis' },
+                                    { id: 'procedure', label: 'Procedure' },
+                                    { id: 'advice', label: 'Advice' },
+                                    { id: 'medications', label: 'Medications' },
+                                    { id: 'orthotics', label: 'Orthotics' },
+                                    { id: 'referrals', label: 'Referrals' },
+                                    { id: 'followup', label: 'Follow-up' }
+                                ].map((field) => {
+                                    const isSelected = printOptions?.[field.id as keyof PrintOptions];
+                                    return (
+                                        <Badge
+                                            key={field.id}
+                                            variant={isSelected ? "default" : "outline"}
+                                            className={cn(
+                                                "cursor-pointer px-2 py-0.5 text-[10px] transition-all",
+                                                isSelected ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
+                                            )}
+                                            onClick={() => {
+                                                if (printOptions && onUpdatePrintOptions) {
+                                                    onUpdatePrintOptions({
+                                                        ...printOptions,
+                                                        [field.id]: !isSelected
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            {field.label}
+                                        </Badge>
+                                    );
+                                })}
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                                Hide medical notes, show only medications.
-                            </p>
                         </div>
 
 

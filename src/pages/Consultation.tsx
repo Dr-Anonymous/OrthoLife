@@ -50,7 +50,7 @@ import { ConsultationActions } from '@/components/consultation/ConsultationActio
 import { OnboardingTour } from '@/components/consultation/OnboardingTour';
 import { SavedDocumentsSection } from '@/components/consultation/SavedDocumentsSection';
 import PatientHealthDashboard from '@/components/consultation/PatientHealthDashboard';
-import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol, CertificateData, ReceiptData, DrugWarning } from '@/types/consultation';
+import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillProtocol, CertificateData, ReceiptData, DrugWarning, PrintOptions } from '@/types/consultation';
 
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
@@ -490,25 +490,38 @@ const ConsultationPage = () => {
   // Doctor Profile Visibility (Location-Aware)
   const [showDoctorProfile, setShowDoctorProfile] = useState<boolean>(true);
   const [showSignSeal, setShowSignSeal] = useState<boolean>(false);
-  const [onlyMedicationsAndFollowup, setOnlyMedicationsAndFollowup] = useState<boolean>(false);
+  const [printOptions, setPrintOptions] = useState<PrintOptions>({
+    vitals: true,
+    clinicalNotes: true,
+    diagnosis: true,
+    investigations: true,
+    medications: true,
+    advice: true,
+    followup: true,
+    procedure: true,
+    referrals: true,
+    orthotics: true
+  });
 
   // Load profile preference on location change
   useEffect(() => {
     if (selectedHospital.name) {
       const profileKey = `showDoctorProfile_${selectedHospital.name}`;
       const signSealKey = `showSignSeal_${selectedHospital.name}`;
-      const onlyMedsKey = `onlyMedicationsAndFollowup_${selectedHospital.name}`;
+      const printOptionsKey = `printOptions_${selectedHospital.name}`;
 
       const storedProfile = localStorage.getItem(profileKey);
       const storedSignSeal = localStorage.getItem(signSealKey);
-      const storedOnlyMeds = localStorage.getItem(onlyMedsKey);
+      const storedPrintOptions = localStorage.getItem(printOptionsKey);
 
       // Default to true for profiles if not set
       setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
       // Default to false for sign+seal if not set
       setShowSignSeal(storedSignSeal !== null ? JSON.parse(storedSignSeal) : false);
-      // Default to false for only meds if not set
-      setOnlyMedicationsAndFollowup(storedOnlyMeds !== null ? JSON.parse(storedOnlyMeds) : false);
+      
+      if (storedPrintOptions) {
+        setPrintOptions(JSON.parse(storedPrintOptions));
+      }
     }
   }, [selectedHospital.name]);
 
@@ -526,10 +539,10 @@ const ConsultationPage = () => {
     }
   };
 
-  const toggleOnlyMeds = (checked: boolean) => {
-    setOnlyMedicationsAndFollowup(checked);
+  const updatePrintOptions = (options: PrintOptions) => {
+    setPrintOptions(options);
     if (selectedHospital.name) {
-      localStorage.setItem(`onlyMedicationsAndFollowup_${selectedHospital.name}`, JSON.stringify(checked));
+      localStorage.setItem(`printOptions_${selectedHospital.name}`, JSON.stringify(options));
     }
   };
 
@@ -942,14 +955,20 @@ const ConsultationPage = () => {
    */
   useEffect(() => {
     // GPS Logic
-    if (isGpsEnabled && navigator.geolocation && hospitals.length > 0) {
+    if (isGpsEnabled && navigator.geolocation && hospitals.length > 0 && consultant) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          let closest = hospitals[0];
+          
+          // Only consider hospitals that are explicitly part of this consultant's list
+          // if any such hospitals exist. This prevents switching to "global" defaults.
+          const consultantHospitals = hospitals.filter(h => h.consultantId === consultant.id);
+          const candidates = consultantHospitals.length > 0 ? consultantHospitals : hospitals;
+          
+          let closest = candidates[0];
           let minDistance = Infinity;
 
-          hospitals.forEach(hospital => {
+          candidates.forEach(hospital => {
             const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
             if (distance < minDistance) {
               minDistance = distance;
@@ -970,7 +989,7 @@ const ConsultationPage = () => {
         }
       );
     }
-  }, [isGpsEnabled, selectedHospital.name, hospitals]);
+  }, [isGpsEnabled, selectedHospital.name, hospitals, consultant]);
 
   // State for auto-sending WhatsApp messages
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(() => {
@@ -2751,8 +2770,8 @@ const ConsultationPage = () => {
                   onToggleDoctorProfile={toggleDoctorProfile}
                   showSignSeal={showSignSeal}
                   onToggleSignSeal={toggleSignSeal}
-                  onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
-                  onToggleOnlyMeds={setIsOnlyConsultation}
+                  printOptions={printOptions}
+                  onUpdatePrintOptions={updatePrintOptions}
 
                   isReadOnly={isReadOnly}
                   isWhatsAppEnabled={consultant?.is_whatsauto_active}
@@ -2785,7 +2804,7 @@ const ConsultationPage = () => {
               forceDesktop={true}
               showDoctorProfile={showDoctorProfile}
               showSignSeal={showSignSeal}
-              onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
+              printOptions={printOptions}
               consultant={consultant}
             />
           )}

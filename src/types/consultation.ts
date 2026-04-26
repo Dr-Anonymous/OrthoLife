@@ -92,7 +92,7 @@ export interface Consultant {
     logo_url?: string;
     bio?: ConsultantBio;
     services?: ConsultantService[];
-    team_grid_services?: ConsultantText[];
+    lead_services?: ConsultantText[];
     is_admin: boolean;
     is_active: boolean;
     password?: string;
@@ -214,4 +214,16 @@ export interface AutofillProtocol {
     followup_te?: string;
     orthotics?: string;
     orthotics_te?: string;
+}
+export interface PrintOptions {
+    vitals: boolean;
+    clinicalNotes: boolean;
+    diagnosis: boolean;
+    investigations: boolean;
+    medications: boolean;
+    advice: boolean;
+    followup: boolean;
+    procedure: boolean;
+    referrals: boolean;
+    orthotics: boolean;
 }

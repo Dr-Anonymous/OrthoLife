@@ -17,7 +17,7 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { compressImage } from '@/lib/image-utils';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, User, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff, Bone, Activity, Syringe, ChevronUp, ChevronDown, Heart, Brain, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, User, Users, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff, Bone, Activity, Syringe, ChevronUp, ChevronDown, Heart, Brain, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -51,7 +51,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     seal_url: consultant?.seal_url || '',
     bio: consultant?.bio || { en: '', te: '' },
     services: consultant?.services || [],
-    team_grid_services: consultant?.team_grid_services || [],
+    lead_services: consultant?.lead_services || [],
     team_members: consultant?.team_members || [],
     password: consultant?.password || '',
     reception_phone: (consultant as any)?.reception_phone || '',
@@ -79,7 +79,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         seal_url: consultant.seal_url || '',
         bio: consultant.bio || { en: '', te: '' },
         services: consultant.services || [],
-        team_grid_services: consultant.team_grid_services || [],
+        lead_services: consultant.lead_services || [],
         team_members: consultant.team_members || [],
         password: consultant.password || '',
         reception_phone: (consultant as any).reception_phone || '',
@@ -126,6 +126,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           reception_password: formData.reception_password,
           profile_layout: formData.profile_layout,
           team_members: formData.team_members,
+          lead_services: formData.lead_services,
           updated_at: new Date().toISOString()
         })
         .eq('id', consultant.id);
@@ -417,11 +418,11 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col mt-4 overflow-hidden">
-          <div className="px-6 overflow-x-auto scrollbar-hide">
-            <TabsList className="inline-flex w-auto min-w-full md:grid md:grid-cols-3 bg-muted p-1">
-              <TabsTrigger value="front" className="whitespace-nowrap flex-1">Prescription Front</TabsTrigger>
-              <TabsTrigger value="marketing" className="whitespace-nowrap flex-1">Marketing Page</TabsTrigger>
-              <TabsTrigger value="locations" className="whitespace-nowrap flex-1">Practice Locations</TabsTrigger>
+          <div className="px-6">
+            <TabsList className="flex w-full overflow-x-auto scrollbar-hide h-10 bg-muted p-1 justify-start md:grid md:grid-cols-3">
+              <TabsTrigger value="front" className="flex-shrink-0 md:flex-1 whitespace-nowrap">Prescription Front</TabsTrigger>
+              <TabsTrigger value="marketing" className="flex-shrink-0 md:flex-1 whitespace-nowrap">Marketing Page</TabsTrigger>
+              <TabsTrigger value="locations" className="flex-shrink-0 md:flex-1 whitespace-nowrap">Practice Locations</TabsTrigger>
             </TabsList>
           </div>
 
@@ -436,6 +437,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input id="phone" value={formData.phone} onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))} className="pl-9" placeholder="9866812555" required />
                     </div>
+                    <p className="text-[10px] text-muted-foreground">This number will also be displayed on the front of the prescription.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -443,6 +445,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input id="email" type="email" value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} className="pl-9" placeholder="info@ortho.life" />
                     </div>
+                    <p className="text-[10px] text-muted-foreground">This email will also be displayed on the front of the prescription.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gate-password">Workspace Password</Label>
@@ -490,6 +493,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                           placeholder="Reception Phone Number"
                         />
                       </div>
+                      <p className="text-[10px] text-muted-foreground">This will be displayed on the back for appointment booking.</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="reception_password">Receptionist Password</Label>
@@ -572,38 +576,6 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                         <Stethoscope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input id="spec_te" value={formData.specialization.te} onChange={e => setFormData(prev => ({ ...prev, specialization: { ...prev.specialization, te: e.target.value } }))} className="pl-9" placeholder="ఆర్థోపెడిక్ సర్జన్" />
                       </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <div className="space-y-2">
-                      <Label>Key Services for Team Grid (English)</Label>
-                      <Textarea 
-                        placeholder="Comma separated: Joint Replacement, Arthroscopy, Trauma" 
-                        className="h-16 text-xs"
-                        value={formData.team_grid_services?.map(s => s.en).join(', ') || ''}
-                        onChange={e => {
-                          const services = e.target.value.split(',').map((s, i) => ({
-                            en: s.trim(),
-                            te: formData.team_grid_services?.[i]?.te || ''
-                          }));
-                          setFormData(prev => ({ ...prev, team_grid_services: services }));
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Key Services for Team Grid (Telugu)</Label>
-                      <Textarea 
-                        placeholder="కామాతో వేరు చేయండి: కీళ్ల మార్పిడి, ఆర్థ్రోస్కోపీ" 
-                        className="h-16 text-xs"
-                        value={formData.team_grid_services?.map(s => s.te).join(', ') || ''}
-                        onChange={e => {
-                          const services = e.target.value.split(',').map((s, i) => ({
-                            en: formData.team_grid_services?.[i]?.en || '',
-                            te: s.trim()
-                          }));
-                          setFormData(prev => ({ ...prev, team_grid_services: services }));
-                        }}
-                      />
                     </div>
                   </div>
                 </div>
@@ -693,73 +665,80 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                 </div>
 
                 {/* 2. Profile Photo (Top of Single Layout) */}
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-primary" /> Profile Photo
-                  </h3>
-                  <div className="flex items-center gap-6">
-                    <div className="border rounded-xl p-2 w-32 h-32 flex items-center justify-center bg-secondary/10 relative overflow-hidden group">
-                      {formData.photo_url ? <img src={formData.photo_url} alt="Profile" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-muted-foreground/30" />}
-                      <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <span className="text-white text-xs font-medium">Upload New</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'photo')} />
-                      </label>
-                    </div>
-                    <div className="flex-1 text-sm text-muted-foreground">
-                      <p className="font-semibold text-foreground">Main Profile Photo</p>
-                      <p>This photo appears prominently on your single doctor layout.</p>
+                {formData.profile_layout === 'single' && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-primary" /> Profile Photo
+                    </h3>
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+                      <div className="border rounded-xl p-2 w-32 h-32 flex items-center justify-center bg-secondary/10 relative overflow-hidden group shrink-0">
+                        {formData.photo_url ? <img src={formData.photo_url} alt="Profile" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-muted-foreground/30" />}
+                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                          <span className="text-white text-xs font-medium">Upload New</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'photo')} />
+                        </label>
+                      </div>
+                      <div className="flex-1 text-sm text-muted-foreground">
+                        <p className="font-semibold text-foreground">Main Profile Photo</p>
+                        <p>This photo appears prominently on your single doctor layout.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* 3. Biography Section (Middle) */}
                 <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Professional Biography</h3>
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-primary" />
+                    {formData.profile_layout === 'team' ? 'Team/Hospital Description' : 'Professional Biography'}
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label>Bio (English)</Label>
+                      <Label>{formData.profile_layout === 'team' ? 'Description (English)' : 'Bio (English)'}</Label>
                       <Textarea
                         className="h-32 text-sm leading-relaxed"
                         value={formData.bio.en}
                         onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, en: e.target.value } }))}
-                        placeholder="Write your professional bio in English..."
+                        placeholder={formData.profile_layout === 'team' ? "Write a description for your team/hospital in English..." : "Write your professional bio in English..."}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Bio (Telugu / తెలుగు)</Label>
+                      <Label>{formData.profile_layout === 'team' ? 'Description (Telugu / తెలుగు)' : 'Bio (Telugu / తెలుగు)'}</Label>
                       <Textarea
                         className="h-32 text-sm leading-relaxed"
                         value={formData.bio.te}
                         onChange={e => setFormData(prev => ({ ...prev, bio: { ...prev.bio, te: e.target.value } }))}
-                        placeholder="మీ వృత్తిపరమైన వివరాలను తెలుగులో వ్రాయండి..."
+                        placeholder={formData.profile_layout === 'team' ? "మీ టీమ్/హాస్పిటల్ వివరాలను తెలుగులో వ్రాయండి..." : "మీ వృత్తిపరమైన వివరాలను తెలుగులో వ్రాయండి..."}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* 4. Experience Tagline (Banner below Bio) */}
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-sm font-semibold flex items-center gap-2 text-primary uppercase tracking-wider">
-                    <Award className="w-4 h-4" /> Experience Banner Tagline
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="exp_en">Experience (English)</Label>
-                      <Input id="exp_en" value={formData.experience.en} onChange={e => setFormData(prev => ({ ...prev, experience: { ...prev.experience, en: e.target.value } }))} placeholder="8+ years and 5000+ surgeries experience" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="exp_te">Experience (Telugu)</Label>
-                      <Input id="exp_te" value={formData.experience.te} onChange={e => setFormData(prev => ({ ...prev, experience: { ...prev.experience, te: e.target.value } }))} placeholder="8+ ఏళ్ల అనుభవం..." />
+                {/* 4. Experience Tagline (Banner below Bio) - Only for Single Layout */}
+                {formData.profile_layout === 'single' && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-primary uppercase tracking-wider">
+                      <Award className="w-4 h-4" /> Experience Banner Tagline
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="exp_en">Experience (English)</Label>
+                        <Input id="exp_en" value={formData.experience.en} onChange={e => setFormData(prev => ({ ...prev, experience: { ...prev.experience, en: e.target.value } }))} placeholder="8+ years and 5000+ surgeries experience" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="exp_te">Experience (Telugu)</Label>
+                        <Input id="exp_te" value={formData.experience.te} onChange={e => setFormData(prev => ({ ...prev, experience: { ...prev.experience, te: e.target.value } }))} placeholder="8+ ఏళ్ల అనుభవం..." />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* 5. Team Members Section (Visible only for Team Layout) */}
                 {formData.profile_layout === 'team' && (
                   <div className="space-y-6 pt-6 border-t animate-in fade-in slide-in-from-top-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-semibold flex items-center gap-2">
-                        <UserCog className="w-4 h-4 text-primary" /> Team Members (up to 4)
+                        <Users className="w-4 h-4 text-primary" /> Practice Team (Lead + up to 4 members)
                       </h3>
                       <Button type="button" variant="outline" size="sm" onClick={addTeamMember} disabled={formData.team_members.length >= 4}>
                         <Plus className="h-4 w-4 mr-1" /> Add Member
@@ -767,6 +746,78 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">
+                      {/* Lead Consultant (Fixed as First Member) */}
+                      <div className="border rounded-xl p-4 bg-primary/5 relative group border-primary/20">
+                        <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-6">
+                          <div className="space-y-2 flex justify-center md:block">
+                            <div className="aspect-square w-32 md:w-full rounded-lg border-2 border-primary/20 flex items-center justify-center bg-background relative overflow-hidden group/photo">
+                              {formData.photo_url ? (
+                                <img src={formData.photo_url} alt="Lead Consultant" className="w-full h-full object-cover" />
+                              ) : (
+                                <User className="h-8 w-8 text-muted-foreground/30" />
+                              )}
+                              <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity cursor-pointer text-white text-[10px] font-bold text-center p-2">
+                                Upload Photo
+                                <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'photo')} />
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col justify-center">
+                            <div className="inline-flex items-center gap-2 mb-2">
+                              <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">Lead Consultant</span>
+                            </div>
+                            <h4 className="text-lg font-bold text-foreground">
+                              {formData.name.en || 'Lead Doctor'}
+                              {formData.name.te && <span className="text-sm font-normal text-muted-foreground ml-2">({formData.name.te})</span>}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {formData.qualifications.en}
+                              {formData.qualifications.te && ` | ${formData.qualifications.te}`}
+                            </p>
+                            <p className="text-xs font-medium text-primary mt-1">
+                              {formData.specialization.en}
+                              {formData.specialization.te && ` | ${formData.specialization.te}`}
+                            </p>
+
+                            {/* Team Grid Services for Lead */}
+                            <div className="mt-4 pt-4 border-t border-dashed border-primary/20 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (English)</Label>
+                                <Textarea
+                                  className="h-12 text-[10px] leading-tight"
+                                  placeholder="List services to show in team grid (comma separated)"
+                                  value={formData.lead_services?.map((s: any) => s.en).join(', ') || ''}
+                                  onChange={e => {
+                                    const raw = e.target.value.split(',');
+                                    const services = raw.map((s, i) => ({
+                                      en: s.trim(),
+                                      te: formData.lead_services?.[i]?.te || ''
+                                    }));
+                                    setFormData(prev => ({ ...prev, lead_services: services }));
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (Telugu)</Label>
+                                <Textarea
+                                  className="h-12 text-[10px] leading-tight"
+                                  placeholder="మీ సేవలు (కామాతో వేరు చేయండి)"
+                                  value={formData.lead_services?.map((s: any) => s.te).join(', ') || ''}
+                                  onChange={e => {
+                                    const raw = e.target.value.split(',');
+                                    const services = raw.map((s, i) => ({
+                                      en: formData.lead_services?.[i]?.en || '',
+                                      te: s.trim()
+                                    }));
+                                    setFormData(prev => ({ ...prev, lead_services: services }));
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       {formData.team_members.map((member: any, idx: number) => (
                         <div key={idx} className="border rounded-xl p-4 bg-muted/20 relative group">
                           <Button
@@ -780,8 +831,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                           </Button>
 
                           <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-6">
-                            <div className="space-y-2">
-                              <div className="aspect-square rounded-lg border-2 border-dashed flex items-center justify-center bg-background relative overflow-hidden group/photo">
+                            <div className="space-y-2 flex justify-center md:block">
+                              <div className="aspect-square w-32 md:w-full rounded-lg border-2 border-dashed flex items-center justify-center bg-background relative overflow-hidden group/photo">
                                 {member.photo_url ? (
                                   <img src={member.photo_url} alt={member.name?.en} className="w-full h-full object-cover" />
                                 ) : (
@@ -796,25 +847,25 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Name (EN/TE)</Label>
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Name (English / Telugu)</Label>
                                 <Input value={member.name?.en} onChange={e => updateTeamMember(idx, 'name', e.target.value, 'en')} placeholder="English Name" className="h-8 text-sm" />
                                 <Input value={member.name?.te} onChange={e => updateTeamMember(idx, 'name', e.target.value, 'te')} placeholder="Telugu Name" className="h-8 text-sm" />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Quals (EN/TE)</Label>
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Qualifications (English / Telugu)</Label>
                                 <Input value={member.qualifications?.en} onChange={e => updateTeamMember(idx, 'qualifications', e.target.value, 'en')} placeholder="English Quals" className="h-8 text-sm" />
                                 <Input value={member.qualifications?.te} onChange={e => updateTeamMember(idx, 'qualifications', e.target.value, 'te')} placeholder="Telugu Quals" className="h-8 text-sm" />
                               </div>
                               <div className="md:col-span-2 space-y-2">
-                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Specialization (EN/TE)</Label>
-                                <Input value={member.specialization?.en} onChange={e => updateTeamMember(idx, 'specialization', e.target.value, 'en')} placeholder="English Spec" className="h-8 text-sm" />
-                                <Input value={member.specialization?.te} onChange={e => updateTeamMember(idx, 'specialization', e.target.value, 'te')} placeholder="Telugu Spec" className="h-8 text-sm" />
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Specialization (English / Telugu)</Label>
+                                <Input value={member.specialization?.en} onChange={e => updateTeamMember(idx, 'specialization', e.target.value, 'en')} placeholder="English Specialization" className="h-8 text-sm" />
+                                <Input value={member.specialization?.te} onChange={e => updateTeamMember(idx, 'specialization', e.target.value, 'te')} placeholder="Telugu Specialization" className="h-8 text-sm" />
                               </div>
-                              <div className="md:col-span-2 grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
+                              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-dashed">
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (EN)</Label>
-                                  <Textarea 
-                                    className="h-12 text-[10px] leading-tight" 
+                                  <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (English)</Label>
+                                  <Textarea
+                                    className="h-12 text-[10px] leading-tight"
                                     placeholder="Comma separated services"
                                     value={member.services?.map((s: any) => s.en).join(', ') || ''}
                                     onChange={e => {
@@ -828,9 +879,9 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (TE)</Label>
-                                  <Textarea 
-                                    className="h-12 text-[10px] leading-tight" 
+                                  <Label className="text-[10px] font-bold uppercase text-primary/70">Key Services (Telugu)</Label>
+                                  <Textarea
+                                    className="h-12 text-[10px] leading-tight"
                                     placeholder="కామాతో వేరు చేయండి"
                                     value={member.services?.map((s: any) => s.te).join(', ') || ''}
                                     onChange={e => {
@@ -871,8 +922,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 pb-3 mb-3 border-b border-primary/10">
                           <Label className="text-[10px] uppercase text-muted-foreground font-bold whitespace-nowrap">Service Icon</Label>
                           <div className="flex flex-wrap gap-1 p-0.5 w-full">
-                            {['Bone', 'Activity', 'User', 'Stethoscope', 'Syringe', 'Heart', 'Brain', 'Eye', 'Pill', 'FlaskConical', 'Thermometer', 'Baby', 'BriefcaseMedical'].map((key) => {
-                              const IconComp = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[key] as any;
+                            {['Bone', 'Activity', 'User', 'Stethoscope', 'Syringe', 'Heart', 'Brain', 'Eye', 'Pill', 'FlaskConical', 'Thermometer', 'Baby', 'BriefcaseMedical', 'Dna', 'Microscope', 'Shield', 'Droplet', 'Ear', 'Hand', 'Bandage'].map((key) => {
+                              const IconComp = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage }[key] as any;
                               return (
                                 <Button key={key} type="button" variant={service.icon === key ? 'default' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => updateService(idx, 'icon', key)}>
                                   <IconComp className="h-4 w-4" />

@@ -3,8 +3,8 @@ import { format } from 'date-fns';
 import { cn, calculateFollowUpDate } from '@/lib/utils';
 import { Patient, Medication } from '@/types/consultation';
 import { cleanAdviceLine } from '@/lib/utils';
-import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope, Heart, Brain, Eye, FlaskConical, Thermometer, Baby, BriefcaseMedical } from 'lucide-react';
-import { Consultant } from '@/types/consultation';
+import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope, Heart, Brain, Eye, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage } from 'lucide-react';
+import { Consultant, PrintOptions } from '@/types/consultation';
 
 // Interfaces are imported from @/types/consultation
 
@@ -44,7 +44,7 @@ interface PrescriptionProps {
   visitType?: string;
   showDoctorProfile?: boolean;
   showSignSeal?: boolean;
-  onlyMedicationsAndFollowup?: boolean;
+  printOptions?: PrintOptions;
   showMargins?: boolean;
   consultant?: Consultant | null;
 }
@@ -60,7 +60,19 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, hospitalName, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, onlyMedicationsAndFollowup = false, showMargins = true, consultant }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, hospitalName, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, printOptions, showMargins = true, consultant }, ref) => {
+    const effectivePrintOptions: PrintOptions = printOptions || {
+        vitals: true,
+        clinicalNotes: true,
+        diagnosis: true,
+        investigations: true,
+        medications: true,
+        advice: true,
+        followup: true,
+        procedure: true,
+        referrals: true,
+        orthotics: true
+    };
   const TRANSLATIONS = {
     en: {
       'prescription.advice': 'Advice',
@@ -163,7 +175,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           {/* Title */}
           <div className="text-center">
             <h1 className={cn("text-lg font-bold uppercase tracking-wide text-primary", visitType === 'paid' && "underline decoration-2 underline-offset-4")}>
-              {onlyMedicationsAndFollowup ? "Prescription" : "Out-Patient Summary"}
+              {(!effectivePrintOptions.clinicalNotes && !effectivePrintOptions.diagnosis) ? "Prescription" : "Out-Patient Summary"}
             </h1>
           </div>
           {/* Patient Info */}
@@ -184,7 +196,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
 
           {/* Vitals */}
-          {(consultation.bp || consultation.temperature || consultation.weight || consultation.height || consultation.pulse || consultation.spo2 || patient.allergies || patient.blood_group) && !onlyMedicationsAndFollowup && (
+          {(consultation.bp || consultation.temperature || consultation.weight || consultation.height || consultation.pulse || consultation.spo2 || patient.allergies || patient.blood_group) && effectivePrintOptions.vitals && (
             <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               {patient.blood_group && (
                 <div className="flex items-center">
@@ -238,9 +250,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
 
           {/* Medical Info */}
-          {!onlyMedicationsAndFollowup && (
-            <section className="space-y-4">
-              {consultation.complaints && (
+          <section className="space-y-4">
+            {consultation.complaints && effectivePrintOptions.clinicalNotes && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                     <Stethoscope className="h-4 w-4" />
@@ -249,7 +260,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <p className="whitespace-pre-wrap">{consultation.complaints}</p>
                 </div>
               )}
-              {consultation.medicalHistory && (
+              {consultation.medicalHistory && effectivePrintOptions.clinicalNotes && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                     <Activity className="h-4 w-4" />
@@ -258,25 +269,25 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <p className="whitespace-pre-wrap">{consultation.medicalHistory}</p>
                 </div>
               )}
-              {consultation.findings && (
+              {consultation.findings && effectivePrintOptions.clinicalNotes && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="font-heading font-semibold text-primary mb-1">Findings:</h3>
                   <p className="whitespace-pre-wrap">{consultation.findings}</p>
                 </div>
               )}
-              {consultation.investigations && (
+              {consultation.investigations && effectivePrintOptions.investigations && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="font-heading font-semibold text-primary mb-1">Investigations:</h3>
                   <p className="whitespace-pre-wrap">{consultation.investigations}</p>
                 </div>
               )}
-              {consultation.diagnosis && (
+              {consultation.diagnosis && effectivePrintOptions.diagnosis && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis:</h3>
                   <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
                 </div>
               )}
-              {consultation.procedure && (
+              {consultation.procedure && effectivePrintOptions.procedure && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
                     <Syringe className="h-4 w-4" />
@@ -285,7 +296,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <p className="whitespace-pre-wrap">{consultation.procedure}</p>
                 </div>
               )}
-              {consultation.advice && (
+              {consultation.advice && effectivePrintOptions.advice && (
                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
                     <MessageSquare className="h-4 w-4" />
@@ -302,10 +313,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 </div>
               )}
             </section>
-          )}
 
           {/* Medications */}
-          {hasMedications && (
+          {hasMedications && effectivePrintOptions.medications && (
             <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               <h3 className="font-heading font-semibold text-primary mb-2 flex items-center gap-2 leading-none">
                 <Pill className="h-4 w-4" />
@@ -390,7 +400,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
 
           {/* Orthotics (Braces / Splints / Plaster) */}
-          {consultation.orthotics && (
+          {consultation.orthotics && effectivePrintOptions.orthotics && (
             <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
                 <Bone className="h-4 w-4" />
@@ -401,7 +411,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
 
           {/* Referred To */}
-          {consultation.referred_to && (
+          {consultation.referred_to && effectivePrintOptions.referrals && (
             <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
                 <Share className="h-4 w-4" />
@@ -412,7 +422,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
 
           {/* Followup */}
-          {consultation.followup && (
+          {consultation.followup && effectivePrintOptions.followup && (
             <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               <div className="flex items-center gap-3 mb-1">
                 <h3 className="font-heading font-semibold text-primary flex items-center gap-2 leading-none">
@@ -508,10 +518,10 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <p className="text-[10px] sm:text-xs font-bold text-foreground/80 uppercase mb-0.5">{cQuals}</p>
                     <p className="text-[10px] sm:text-xs font-black text-primary uppercase">{cSpec}</p>
                     
-                    {consultant?.team_grid_services && consultant.team_grid_services.length > 0 && (
+                    {consultant?.lead_services && consultant.lead_services.length > 0 && (
                       <div className="mt-2 w-full pt-2 border-t border-primary/10">
                         <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
-                          {consultant.team_grid_services.map((s, i) => (
+                          {consultant.lead_services.map((s, i) => (
                             <span key={i} className="text-[9px] sm:text-[10px] font-bold text-muted-foreground whitespace-nowrap">
                               • {language === 'te' ? (s.te || s.en) : (s.en || s.te)}
                             </span>
@@ -569,7 +579,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
                     <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                       {activeServices.map((service, idx) => {
-                        const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical }[service.icon] || Activity;
+                        const Icon = { Bone, Activity, User, Stethoscope, Syringe, Heart, Brain, Eye, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage }[service.icon] || Activity;
                         const sTitle = service.title?.[language === 'te' ? 'te' : 'en'] || service.title?.en;
                         const sDesc = service.description?.[language === 'te' ? 'te' : 'en'] || service.description?.en;
 

@@ -15,6 +15,7 @@ export interface Hospital {
     lat: number;
     lng: number;
     settings: HospitalSettings;
+    consultantId?: string | null;
 }
 
 interface HospitalsContextType {
@@ -35,9 +36,13 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const { consultant } = useConsultant();
 
     const fetchHospitals = async () => {
-        const activeConsultantId = consultant?.id || 'fdeaf68e-251c-4ffc-a7c1-6bc574657729';
+        const activeConsultantId = consultant?.id;
         
-        if (!activeConsultantId) return;
+        if (!activeConsultantId) {
+            setHospitals([]);
+            setIsLoading(false);
+            return;
+        }
 
         // 1. Try to load from cache first
         const cacheKey = `hospitals_cache_${activeConsultantId}`;
@@ -66,7 +71,8 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 logoUrl: h.logo_url,
                 lat: h.lat,
                 lng: h.lng,
-                settings: h.settings || { op_fees: 0, free_visit_duration_days: 14 }
+                settings: h.settings || { op_fees: 0, free_visit_duration_days: 14 },
+                consultantId: h.consultant_id
             }));
 
             setHospitals(transformed);
