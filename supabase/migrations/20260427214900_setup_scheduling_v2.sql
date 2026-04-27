@@ -92,8 +92,9 @@ FOR EACH ROW
 EXECUTE FUNCTION update_scheduled_tasks_updated_at();
 
 -- 6. Cron Schedule
--- IMPORTANT: Ensure 'app.scheduler_secret' is set in your DB settings.
--- Example: ALTER DATABASE postgres SET app.scheduler_secret = 'your-secret-here';
+-- To secure this, you should ideally use a secret.
+-- 1. Set SCHEDULER_SECRET in your Supabase Edge Function secrets.
+-- 2. Replace 'YOUR_HARDCODED_SECRET' below with that same secret.
 DO $$ 
 BEGIN
   PERFORM cron.unschedule('dispatch-scheduled');
@@ -106,7 +107,7 @@ SELECT cron.schedule('dispatch-scheduled', '* * * * *', $$
     url := 'https://vqskeanwpnvuyxorymib.supabase.co/functions/v1/process-scheduled-tasks',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'x-scheduler-secret', current_setting('app.scheduler_secret', true)
+      'x-scheduler-secret', 'REPLACE_WITH_YOUR_SCHEDULER_SECRET'
     ),
     body := '{}'::jsonb
   );

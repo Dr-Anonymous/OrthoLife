@@ -56,7 +56,80 @@ serve(async (req) => {
               result: taskResult
           }).eq('id', task.id);
           results.push({ id: task.id, status: 'completed' });
-        } 
+        }
+        else if (task.task_type === 'subscription_reorder') {
+          const { subscription_id, patient_phone, message, consultant_id, reference_id } = task.payload;
+
+          // 1. Process the subscription (creates order and advances date)
+          const subResponse = await fetch(`${supabaseUrl}/functions/v1/process-subscriptions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`
+            },
+            body: JSON.stringify({ subscriptionId: subscription_id })
+          });
+
+          if (!subResponse.ok) {
+            const errText = await subResponse.text();
+            throw new Error(`process-subscriptions failed: ${errText}`);
+          }
+
+          const subRes = await subResponse.json();
+          const subResult = subRes.results?.[0];
+
+          if (!subResult || subResult.status !== 'success') {
+            throw new Error(`Failed to process subscription ${subscription_id}`);
+          }
+
+          // 2. Send the WhatsApp reminder for the current order
+          const waResult = await sendWhatsAppMessage(patient_phone, message, consultant_id);
+          if (!waResult) {
+            console.error(`[process-scheduled-tasks] WhatsApp reminder failed for subscription ${subscription_id}, but order was created.`);
+          }
+
+          // 3. Schedule the NEXT reorder task for the next run date (if enabled)
+          if (subResult.nextRunDate) {
+            // Check if auto-messaging is still enabled for this specific task type
+            const { data: consultant, error: consultantError } = await supabase
+              .from('consultants')
+              .select('messaging_settings, is_whatsauto_active')
+              .eq('id', task.consultant_id)
+              .single();
+
+            const settings = (consultant?.messaging_settings as any) || {};
+            const isPharmacy = task.source?.includes('auto_pharmacy');
+            const isDiagnostics = task.source?.includes('auto_diagnostics');
+            
+            const isEnabled = isPharmacy ? (settings.auto_pharmacy ?? false) 
+                            : isDiagnostics ? (settings.auto_diagnostics ?? false)
+                            : false;
+
+            if (!consultantError && isEnabled && consultant?.is_whatsauto_active) {
+              await supabase.from('scheduled_tasks').insert({
+                task_type: 'subscription_reorder',
+                scheduled_for: subResult.nextRunDate,
+                consultant_id: task.consultant_id,
+                source: task.source,
+                payload: {
+                  ...task.payload,
+                  scheduled_at: subResult.nextRunDate
+                }
+              });
+              console.log(`[process-scheduled-tasks] Scheduled next reorder (${isPharmacy ? 'pharmacy' : 'diagnostics'}) for ${task.consultant_id} on ${subResult.nextRunDate}`);
+            } else {
+              console.log(`[process-scheduled-tasks] Auto-messaging disabled or WhatsApp inactive for ${task.consultant_id}. NOT scheduling next reorder.`);
+            }
+          }
+
+          await supabase.from('scheduled_tasks').update({ 
+              status: 'completed', 
+              updated_at: new Date().toISOString(), 
+              error: null,
+              result: { order_id: subResult.orderId, whatsapp: waResult ? 'success' : 'failed' }
+          }).eq('id', task.id);
+          results.push({ id: task.id, status: 'completed' });
+        }
         else if (task.task_type === 'social_post') {
           // Pass the existing result to social-publish so it skips successful platforms
           const payloadWithSkip = {

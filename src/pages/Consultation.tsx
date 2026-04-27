@@ -515,16 +515,30 @@ const ConsultationPage = () => {
       const storedSignSeal = localStorage.getItem(signSealKey);
       const storedPrintOptions = localStorage.getItem(printOptionsKey);
 
-      // Default to true for profiles if not set
-      setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
-      // Default to false for sign+seal if not set
-      setShowSignSeal(storedSignSeal !== null ? JSON.parse(storedSignSeal) : false);
+      // 1. Try DB settings first (persistent across devices)
+      const settings = consultant?.messaging_settings as any;
+      const dbProfile = settings?.location_print_overrides?.[selectedLocation]?.show_profile;
+      const dbSignSeal = settings?.location_print_overrides?.[selectedLocation]?.show_sign_seal;
+
+      // 2. Default to true for profiles if not set
+      if (dbProfile !== undefined) {
+        setShowDoctorProfile(dbProfile);
+      } else {
+        setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
+      }
+
+      // 3. Default to false for sign+seal if not set
+      if (dbSignSeal !== undefined) {
+        setShowSignSeal(dbSignSeal);
+      } else {
+        setShowSignSeal(storedSignSeal !== null ? JSON.parse(storedSignSeal) : false);
+      }
 
       if (storedPrintOptions) {
         setPrintOptions(JSON.parse(storedPrintOptions));
       }
     }
-  }, [selectedHospital.name]);
+  }, [selectedHospital.name, consultant, selectedLocation]);
 
   const toggleDoctorProfile = (checked: boolean) => {
     setShowDoctorProfile(checked);
@@ -1261,6 +1275,9 @@ const ConsultationPage = () => {
             ? new Date(`${nextReviewDate}T10:00:00.000Z`) // 10 AM on the review date
             : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 1 week from now if not set
 
+          // Send reminder 1 day before the visit so they can plan ahead
+          scheduledDate.setDate(scheduledDate.getDate() - 1);
+
           const message = consultationLanguage === 'te'
             ? `నమస్కారం ${editablePatientDetails.name} గారు, ఇది మీ ఫాలో-అప్ రిమైండర్. దయచేసి క్లినిక్‌ని సంప్రదించండి.`
             : `Hello ${editablePatientDetails.name}, this is a gentle reminder for your follow-up consultation. Please contact the clinic.`;
@@ -1275,7 +1292,8 @@ const ConsultationPage = () => {
               reference_id: selectedConsultation.id
             },
             source: 'auto_post_consultation_followup',
-            consultant_id: consultant.id
+            consultant_id: consultant.id,
+            location: selectedConsultation.location
           });
         }
       }
@@ -2679,6 +2697,7 @@ const ConsultationPage = () => {
                     isMasterAdmin={isMasterAdmin}
                     isReadOnly={isReadOnly}
                   />
+
                 </div>
 
                 <FollowUpSection
@@ -2781,6 +2800,7 @@ const ConsultationPage = () => {
                   isSaving={isSaving}
                   onSave={saveChanges}
                   onSaveAndPrint={handleSaveAndPrint}
+                  currentLocation={selectedLocation}
                   onSaveBundleClick={handleSaveBundleClick}
                   onMedicalCertificateClick={handleOpenMedicalCertificate}
                   onReceiptClick={() => setIsReceiptModalOpen(true)}

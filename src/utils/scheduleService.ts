@@ -5,7 +5,7 @@ import { SYSTEM_CONSULTANT_ID } from '../../supabase/functions/_shared/constants
 
 export { SYSTEM_CONSULTANT_ID };
 
-export type TaskType = 'whatsapp_message' | 'social_post';
+export type TaskType = 'whatsapp_message' | 'social_post' | 'subscription_reorder';
 
 export interface ScheduleTaskParams {
   task_type: TaskType;
@@ -13,6 +13,7 @@ export interface ScheduleTaskParams {
   scheduled_for: string;
   source?: string;
   consultant_id?: string;
+  location?: string;
 }
 
 export const scheduleService = {
@@ -38,30 +39,70 @@ export const scheduleService = {
     }
   },
 
-  async upsertAutoTask({ task_type, payload, scheduled_for, source, consultant_id }: ScheduleTaskParams) {
+  async upsertAutoTask(params: ScheduleTaskParams & { source: string }) {
+    const { task_type, payload, scheduled_for, source, consultant_id, location } = params;
+    
     if (!source || !payload.reference_id) {
       console.error('Auto tasks require a source and payload.reference_id');
       return { success: false };
     }
 
     try {
-      // Because we have a unique index on (source, payload->>'reference_id') where status = 'pending',
-      // we can do an upsert or delete-then-insert.
-      // Upsert with ON CONFLICT isn't natively supported on partial indexes easily via PostgREST,
-      // so we'll first delete any pending task with the same source and reference_id, then insert.
-      
+      if (!consultant_id) {
+        console.warn('No consultant_id provided for auto-task. Skipping for safety.');
+        return { success: false, error: 'No consultant ID' };
+      }
+
+      const { data: consultant, error: consultantError } = await supabase
+        .from('consultants')
+        .select('messaging_settings, is_whatsauto_active')
+        .eq('id', consultant_id)
+        .single();
+
+      if (consultantError) {
+        console.warn('Could not verify messaging settings:', consultantError);
+        return { success: false, error: 'Settings unknown' };
+      }
+
+      const settings = consultant?.messaging_settings as any;
+      let isEnabled = false;
+
+      if (source.includes('auto_pharmacy')) {
+        isEnabled = settings?.auto_pharmacy ?? false;
+      } else if (source.includes('auto_diagnostics')) {
+        isEnabled = settings?.auto_diagnostics ?? false;
+      } else if (source.includes('auto_post_consultation_followup')) {
+        // Global toggle for followups
+        const globalFollowup = settings?.auto_followup ?? false;
+        // Location override
+        if (location && settings?.location_followup_overrides?.[location] !== undefined) {
+          isEnabled = settings.location_followup_overrides[location];
+        } else {
+          isEnabled = globalFollowup;
+        }
+      } else if (source.includes('discharge_review')) {
+        isEnabled = settings?.auto_discharge_review ?? false;
+      } else if (source.includes('npo_reminder')) {
+        isEnabled = settings?.auto_npo_reminder ?? false;
+      }
+
+      if (!isEnabled) {
+        console.log(`Auto-messaging is disabled for ${source} (${location || 'global'}). Skipping.`);
+        return { success: false, error: 'Disabled' };
+      }
+
+      // Clean up existing pending tasks from same source to prevent duplicates
       await supabase.from('scheduled_tasks')
         .delete()
         .eq('source', source)
         .eq('status', 'pending')
         .contains('payload', { reference_id: payload.reference_id });
 
-      // Then insert the new one
-      return await this.scheduleTask({ task_type, payload, scheduled_for, source, consultant_id });
-      
-    } catch (error: any) {
-      console.error('Error upserting auto task:', error);
-      return { success: false, error };
+      // Insert new task
+      return await this.scheduleTask(params);
+    } catch (e: any) {
+      console.error('Error in upsertAutoTask:', e);
+      return { success: false, error: e.message };
     }
   },
 

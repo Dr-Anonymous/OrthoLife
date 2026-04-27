@@ -18,13 +18,22 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
+        const { subscriptionId } = await req.json().catch(() => ({}));
+
         // 1. Query active due subscriptions
         const today = new Date().toISOString().split('T')[0]
-        const { data: subscriptions, error: subError } = await supabase
+        let query = supabase
             .from('subscriptions')
             .select('*')
-            .eq('status', 'active')
-            .lte('next_run_date', today)
+            .eq('status', 'active');
+        
+        if (subscriptionId) {
+            query = query.eq('id', subscriptionId);
+        } else {
+            query = query.lte('next_run_date', today);
+        }
+
+        const { data: subscriptions, error: subError } = await query;
 
         if (subError) throw subError
 
@@ -57,7 +66,7 @@ serve(async (req) => {
 
                 if (orderError) throw orderError
 
-                // 3. Update next_run_date
+                // 4. Update next_run_date
                 const nextRunDate = new Date(sub.next_run_date)
 
                 let count = 1;
@@ -82,10 +91,13 @@ serve(async (req) => {
 
                 if (updateError) throw updateError
 
-                // 4. Send Notification
-                await sendOrderNotification(order, 'processed')
-
-                results.push({ subscriptionId: sub.id, status: 'success', orderId: order.id })
+                results.push({ 
+                    subscriptionId: sub.id, 
+                    status: 'success', 
+                    orderId: order.id, 
+                    nextRunDate: nextRunDate.toISOString(),
+                    order: order 
+                })
 
             } catch (err) {
                 console.error(`Error processing subscription ${sub.id}:`, err)

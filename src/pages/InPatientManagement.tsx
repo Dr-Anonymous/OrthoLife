@@ -29,7 +29,8 @@ import {
     ExternalLink,
     ChevronDown,
     X,
-    ClipboardPen
+    ClipboardPen,
+    Settings2
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -108,7 +109,7 @@ const cleanText = (html: string) => html.replace(/<[^>]*>?/gm, ' ');
 
 
 const InPatientManagement = () => {
-    const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
+    const { consultant, isMasterAdmin, isLoading: isConsultantLoading, refreshConsultant } = useConsultant();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [dischargeDateStart, setDischargeDateStart] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));

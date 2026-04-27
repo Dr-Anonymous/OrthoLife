@@ -117,7 +117,7 @@ Appointment ID: ${appointmentId}`,
           nextRunDate.setDate(nextRunDate.getDate() + (count * 7))
         }
 
-        const { error: subError } = await supabase
+        const { data: subscriptionData, error: subError } = await supabase
           .from('subscriptions')
           .insert([
             {
@@ -129,18 +129,22 @@ Appointment ID: ${appointmentId}`,
               type: 'diagnostics'
             }
           ])
+          .select()
+          .single()
 
         if (subError) {
           console.error('Error creating diagnostics subscription:', subError)
         } else {
-          // Check if WhatsAuto is active for the system consultant before scheduling
+          // Check if auto-messaging is active for the system consultant before scheduling
           const { data: systemConsultant } = await supabase
             .from('consultants')
-            .select('is_whatsauto_active')
+            .select('is_whatsauto_active, messaging_settings')
             .eq('id', SYSTEM_CONSULTANT_ID)
             .single();
 
-          if (systemConsultant?.is_whatsauto_active) {
+          const isAutoMessagingEnabled = (systemConsultant?.messaging_settings as any)?.auto_diagnostics ?? false;
+
+          if (isAutoMessagingEnabled && systemConsultant?.is_whatsauto_active) {
             // Also create a scheduled task for the next run
             const testsList = items.map((item: any) => `${item.name} x${item.quantity}`).join(', ');
             const reorderMessage = `Hello, this is an automated reminder that your recurring diagnostics collection is due: \n\nTests: ${testsList}\n\nPlease contact us to confirm the collection time.`;
@@ -154,14 +158,15 @@ Appointment ID: ${appointmentId}`,
               .eq('status', 'pending');
 
             await supabase.from('scheduled_tasks').insert({
-              task_type: 'whatsapp_message',
+              task_type: 'subscription_reorder',
               scheduled_for: nextRunDate.toISOString(),
               consultant_id: SYSTEM_CONSULTANT_ID,
               payload: {
-                number: patientData.phone,
+                subscription_id: subscriptionData.id,
+                patient_phone: patientData.phone,
                 message: reorderMessage,
-                consultant_id: 'general_notifications', // Route to general notifications device
-                reference_id: patientData.phone // For unique index / duplicate prevention
+                consultant_id: 'general_notifications',
+                reference_id: patientData.phone
               },
               source
             });
@@ -180,7 +185,7 @@ Appointment ID: ${appointmentId}`,
         'Content-Type': 'application/json'
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error booking diagnostics:', error);
     return new Response(JSON.stringify({
       error: error.message,
@@ -194,7 +199,7 @@ Appointment ID: ${appointmentId}`,
     });
   }
 });
-function addMinutes(date) {
+function addMinutes(date: any) {
   // Convert IST to UTC for Google Calendar
   return new Date(new Date(date).getTime() - 330 * 60000).toISOString();
 }

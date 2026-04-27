@@ -46,7 +46,13 @@ interface Medicine {
   individual?: boolean;
 }
 
+import { Settings2, Bot } from 'lucide-react';
+import { useConsultant } from '@/context/ConsultantContext';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+
 const PharmacyPage = () => {
+  const { consultant, refreshConsultant } = useConsultant();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -613,6 +619,46 @@ const PharmacyPage = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
+                {consultant && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="icon" title="Messaging Settings">
+                        <Settings2 className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Bot className="h-4 w-4 text-primary" />
+                          <h4 className="font-bold leading-none">Auto-Messaging</h4>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 border-t pt-3">
+                          <Label htmlFor="auto-pharmacy-toggle" className="text-sm font-semibold">Reorder Reminders</Label>
+                          <Switch
+                            id="auto-pharmacy-toggle"
+                            checked={(consultant?.messaging_settings as any)?.auto_pharmacy ?? false}
+                            onCheckedChange={async (enabled) => {
+                              const { error } = await supabase
+                                .from('consultants')
+                                .update({
+                                  messaging_settings: {
+                                    ...(consultant.messaging_settings || {}),
+                                    auto_pharmacy: enabled
+                                  }
+                                })
+                                .eq('id', consultant.id);
+                              
+                              if (!error) {
+                                refreshConsultant();
+                                toast({ title: enabled ? "Enabled" : "Disabled", description: "Auto-reorder reminders updated." });
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
               <p className="text-xl text-muted-foreground">
                 Get great discounts on medicines delivered to your home

@@ -63,7 +63,7 @@ serve(async (req) => {
                 nextRunDate.setDate(nextRunDate.getDate() + (count * 7))
             }
 
-            const { error: subError } = await supabase
+            const { data: subscriptionData, error: subError } = await supabase
                 .from('subscriptions')
                 .insert([
                     {
@@ -75,18 +75,22 @@ serve(async (req) => {
                         type: 'pharmacy'
                     }
                 ])
+                .select()
+                .single()
 
             if (subError) {
                 console.error('Error creating subscription:', subError)
             } else {
-                // Check if WhatsAuto is active for the system consultant before scheduling
+                // Check if auto-messaging is active for the system consultant before scheduling
                 const { data: systemConsultant } = await supabase
                     .from('consultants')
-                    .select('is_whatsauto_active')
+                    .select('is_whatsauto_active, messaging_settings')
                     .eq('id', SYSTEM_CONSULTANT_ID)
                     .single();
 
-                if (systemConsultant?.is_whatsauto_active) {
+                const isAutoMessagingEnabled = (systemConsultant?.messaging_settings as any)?.auto_pharmacy ?? false;
+
+                if (isAutoMessagingEnabled && systemConsultant?.is_whatsauto_active) {
                     // Also create a scheduled task for the next run
                     const itemsList = items.map((item: any) => `${item.name} x${item.quantity}`).join(', ');
                     const reorderMessage = `Hello, this is an automated reminder that your recurring pharmacy order is due: \n\nItems: ${itemsList}\n\nPlease contact us to confirm delivery.`;
@@ -100,14 +104,15 @@ serve(async (req) => {
                         .eq('status', 'pending');
 
                     await supabase.from('scheduled_tasks').insert({
-                        task_type: 'whatsapp_message',
+                        task_type: 'subscription_reorder',
                         scheduled_for: nextRunDate.toISOString(),
                         consultant_id: SYSTEM_CONSULTANT_ID,
                         payload: {
-                            number: patientData.phone,
+                            subscription_id: subscriptionData.id,
+                            patient_phone: patientData.phone,
                             message: reorderMessage,
-                            consultant_id: 'general_notifications', // Route to general notifications device
-                            reference_id: userId // For unique index / duplicate prevention
+                            consultant_id: 'general_notifications',
+                            reference_id: userId
                         },
                         source
                     });
@@ -133,7 +138,7 @@ serve(async (req) => {
             JSON.stringify({ success: true, order }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
-    } catch (error) {
+    } catch (error: any) {
         return new Response(
             JSON.stringify({ error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

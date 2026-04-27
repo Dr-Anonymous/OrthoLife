@@ -1,19 +1,21 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send, Users } from 'lucide-react';
+import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send, Users, Bot, Settings2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { PrintOptions } from '@/types/consultation';
+import { useConsultant } from '@/context/ConsultantContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ConsultationActionsProps {
     isOnline: boolean;
     isSaving: boolean;
     onSave: () => void;
     onSaveAndPrint: () => void;
-
+    currentLocation?: string;
     onSaveBundleClick: () => void;
     onMedicalCertificateClick: () => void;
     onReceiptClick: () => void;
@@ -51,6 +53,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     isSaving,
     onSave,
     onSaveAndPrint,
+    currentLocation,
     onSaveBundleClick,
     onMedicalCertificateClick,
     onReceiptClick,
@@ -71,6 +74,88 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     isWhatsAppEnabled = true,
     hasChanges = false
 }) => {
+    const { consultant, refreshConsultant } = useConsultant();
+
+    const isAutoFollowupEnabled = (() => {
+        if (!consultant || !currentLocation) return false;
+        const settings = consultant.messaging_settings as any;
+        const locationOverride = settings?.location_followup_overrides?.[currentLocation];
+        if (locationOverride !== undefined) return locationOverride;
+        return settings?.auto_followup ?? false;
+    })();
+
+    const isDoctorProfileEnabled = (() => {
+        if (!consultant || !currentLocation) return showDoctorProfile ?? true;
+        const settings = consultant.messaging_settings as any;
+        const locationOverride = settings?.location_print_overrides?.[currentLocation]?.show_profile;
+        if (locationOverride !== undefined) return locationOverride;
+        return showDoctorProfile ?? true;
+    })();
+
+    const isSignSealEnabled = (() => {
+        if (!consultant || !currentLocation) return showSignSeal ?? true;
+        const settings = consultant.messaging_settings as any;
+        const locationOverride = settings?.location_print_overrides?.[currentLocation]?.show_sign_seal;
+        if (locationOverride !== undefined) return locationOverride;
+        return showSignSeal ?? true;
+    })();
+
+    const updateLocationSetting = async (key: 'followup' | 'profile' | 'sign_seal', value: boolean) => {
+        if (!consultant || !currentLocation || isReadOnly) return;
+
+        try {
+            const currentSettings = consultant.messaging_settings || {};
+            let newSettings = { ...currentSettings };
+
+            if (key === 'followup') {
+                newSettings.location_followup_overrides = {
+                    ...(currentSettings.location_followup_overrides || {}),
+                    [currentLocation]: value
+                };
+            } else {
+                const printOverrides = currentSettings.location_print_overrides || {};
+                const locationPrint = printOverrides[currentLocation] || {};
+                
+                newSettings.location_print_overrides = {
+                    ...printOverrides,
+                    [currentLocation]: {
+                        ...locationPrint,
+                        [key === 'profile' ? 'show_profile' : 'show_sign_seal']: value
+                    }
+                };
+            }
+
+            const { error } = await supabase
+                .from('consultants')
+                .update({ messaging_settings: newSettings })
+                .eq('id', consultant.id);
+
+            if (error) throw error;
+            
+            await refreshConsultant();
+            
+            // Call the parent toggle handlers if they exist to keep local state in sync
+            if (key === 'profile') onToggleDoctorProfile?.(value);
+            if (key === 'sign_seal') onToggleSignSeal?.(value);
+
+            toast({
+                title: "Settings Updated",
+                description: `Preference saved for ${currentLocation}`
+            });
+        } catch (error) {
+            console.error("Error updating setting:", error);
+            toast({
+                title: "Error",
+                description: "Failed to update preference",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const toggleAutoFollowup = () => updateLocationSetting('followup', !isAutoFollowupEnabled);
+    const toggleProfile = () => updateLocationSetting('profile', !isDoctorProfileEnabled);
+    const toggleSignSeal = () => updateLocationSetting('sign_seal', !isSignSealEnabled);
+
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -158,13 +243,13 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
                             onClick={(e) => {
                                 e.preventDefault();
-                                onToggleDoctorProfile?.(!showDoctorProfile);
+                                toggleProfile();
                             }}
                         >
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium">Print Doctor Profile</span>
                                 <Switch
-                                    checked={showDoctorProfile}
+                                    checked={isDoctorProfileEnabled}
                                     onCheckedChange={() => { }} // Handled by parent div click
                                     className="scale-75"
                                 />
@@ -178,13 +263,13 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
                             onClick={(e) => {
                                 e.preventDefault();
-                                onToggleSignSeal?.(!showSignSeal);
+                                toggleSignSeal();
                             }}
                         >
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium">Print Sign & Seal</span>
                                 <Switch
-                                    checked={showSignSeal}
+                                    checked={isSignSealEnabled}
                                     onCheckedChange={() => { }} // Handled by parent div click
                                     className="scale-75"
                                 />
@@ -194,7 +279,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             </p>
                         </div>
 
-                        <div className="p-3 bg-muted/30 rounded-md border border-primary/10">
+                        <div className="p-3 bg-muted/30 rounded-md border border-primary/10 mb-2">
                             <h3 className="text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Include in Print</h3>
                             <div className="flex flex-wrap gap-1.5">
                                 {[
@@ -234,41 +319,68 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                             </div>
                         </div>
 
-
-
-                        <div
-                            className={cn(
-                                "p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors",
-                                isReadOnly && "opacity-50 cursor-not-allowed"
-                            )}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                if (isReadOnly) return;
-                                if (isWhatsAppEnabled) {
-                                    onToggleAutoSend?.();
-                                } else {
-                                    toast({
-                                        title: "Auto-send Unavailable",
-                                        description: "WhatsApp bot registration is required. Contact admin to activate.",
-                                    });
-                                }
-                            }}
-                        >
-                            <div className="flex items-center justify-between">
-                                <span className={cn("text-sm font-medium", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")}>Auto-send WhatsApp</span>
-                                <Switch
-                                    checked={isWhatsAppEnabled && isAutoSendEnabled && !isReadOnly}
-                                    onCheckedChange={() => { }} // Handled by parent div click
-                                    className="scale-75"
-                                    disabled={isReadOnly}
-                                />
+                        <div className="space-y-2">
+                            <div
+                                className={cn(
+                                    "p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors",
+                                    isReadOnly && "opacity-50 cursor-not-allowed"
+                                )}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    if (isReadOnly) return;
+                                    if (isWhatsAppEnabled) {
+                                        onToggleAutoSend?.();
+                                    } else {
+                                        toast({
+                                            title: "Auto-send Unavailable",
+                                            description: "WhatsApp bot registration is required. Contact admin to activate.",
+                                        });
+                                    }
+                                }}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className={cn("text-sm font-medium", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")}>Auto-send WhatsApp</span>
+                                    <Switch
+                                        checked={isWhatsAppEnabled && isAutoSendEnabled && !isReadOnly}
+                                        onCheckedChange={() => { }} // Handled by parent div click
+                                        className="scale-75"
+                                        disabled={isReadOnly}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                    {isReadOnly ? "Read-only mode: Settings cannot be changed." :
+                                        isWhatsAppEnabled
+                                            ? "Auto-send consultation completed notification."
+                                            : "Personalize your patient experience. Contact admin to activate."}
+                                </p>
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                                {isReadOnly ? "Read-only mode: Settings cannot be changed." :
-                                    isWhatsAppEnabled
-                                        ? "Auto-send consultation completed notification."
-                                        : "Personalize your patient experience. Contact admin to activate."}
-                            </p>
+
+                            <div
+                                className={cn(
+                                    "p-2 bg-primary/5 border border-primary/10 rounded-md cursor-pointer hover:bg-primary/10 transition-colors",
+                                    (!currentLocation || isReadOnly) && "opacity-50 cursor-not-allowed"
+                                )}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    toggleAutoFollowup();
+                                }}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Bot size={14} className="text-primary" />
+                                        <span className="text-sm font-medium text-primary">Auto follow-up reminders</span>
+                                    </div>
+                                    <Switch
+                                        checked={isAutoFollowupEnabled && !isReadOnly}
+                                        onCheckedChange={() => { }} // Handled by parent div click
+                                        className="scale-75 data-[state=checked]:bg-primary"
+                                        disabled={isReadOnly}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-primary/60 mt-1">
+                                    {currentLocation ? `Automated reminders for ${currentLocation}.` : "Select a location to enable."}
+                                </p>
+                            </div>
                         </div>
                     </DropdownMenuContent>
                 </DropdownMenu>

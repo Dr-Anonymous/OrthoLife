@@ -100,6 +100,15 @@ export interface Consultant {
     reception_password?: string;
     handles_general_notifications?: boolean;
     is_whatsauto_active?: boolean;
+    messaging_settings?: {
+        auto_pharmacy?: boolean;
+        auto_diagnostics?: boolean;
+        auto_discharge_review?: boolean;
+        auto_followup?: boolean;
+        auto_npo_reminder?: boolean;
+        location_followup_overrides?: Record<string, boolean>;
+        location_print_overrides?: Record<string, { show_profile?: boolean; show_sign_seal?: boolean }>;
+    };
     profile_layout?: 'single' | 'team';
     team_members?: TeamMember[];
 }
