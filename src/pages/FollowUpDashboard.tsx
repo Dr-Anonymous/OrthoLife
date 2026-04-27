@@ -37,6 +37,9 @@ import { cn, stripFollowUpPrefix } from '@/lib/utils';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { SchedulePopover } from '@/components/SchedulePopover';
+import { scheduleService } from '@/utils/scheduleService';
+import { getLocalDateTime } from '@/utils/dateUtils';
 
 
 const FollowUpDashboard = () => {
@@ -53,6 +56,8 @@ const FollowUpDashboard = () => {
   const [targetConsultation, setTargetConsultation] = useState<Consultation | null>(null);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [fetchAll, setFetchAll] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState<Date>();
+  const [scheduledTime, setScheduledTime] = useState("09:00");
 
 
   useEffect(() => {
@@ -123,17 +128,42 @@ const FollowUpDashboard = () => {
     setIsSendingWhatsApp(true);
 
     try {
-      const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          number: phone,
-          message: whatsappMessage,
-          consultant_id: consultant.phone
-        },
-      });
+      const scheduledDateTime = scheduledDate ? getLocalDateTime(scheduledDate, scheduledTime) : undefined;
+      if (scheduledDate && !scheduledDateTime) {
+        throw new Error("Invalid schedule time.");
+      }
+      if (scheduledDateTime && scheduledDateTime <= new Date()) {
+        throw new Error("Scheduled time must be in the future.");
+      }
 
-      if (error) throw error;
-      toast.success(`Reminder sent to ${targetConsultation.patient.name}`);
+      if (scheduledDateTime) {
+        const { success, error } = await scheduleService.scheduleTask({
+          task_type: 'whatsapp_message',
+          scheduled_for: scheduledDateTime.toISOString(),
+          payload: {
+            number: phone,
+            message: whatsappMessage,
+            consultant_id: consultant.phone
+          },
+          source: 'manual_followup_reminder',
+          consultant_id: consultant.id
+        });
+        
+        if (!success) throw new Error("Failed to schedule task");
+      } else {
+        const { error } = await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            number: phone,
+            message: whatsappMessage,
+            consultant_id: consultant.phone
+          },
+        });
+        if (error) throw error;
+      }
+      toast.success(scheduledDate ? `Reminder scheduled for ${targetConsultation.patient.name}` : `Reminder sent to ${targetConsultation.patient.name}`);
       setWhatsappPreviewVisible(false);
+      setScheduledDate(undefined);
+      setScheduledTime("09:00");
     } catch (error: any) {
       console.error('WhatsApp Error:', error);
       toast.error(error.message || 'Failed to send WhatsApp reminder.');
@@ -614,17 +644,27 @@ const FollowUpDashboard = () => {
             </Button>
 
             {consultant?.is_whatsauto_active && (
-              <Button
-                className="bg-green-600 hover:bg-green-700"
-                onClick={confirmAndSendWhatsApp}
-                disabled={isSendingWhatsApp}
-              >
-                {isSendingWhatsApp ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
-                ) : (
-                  <><Send className="w-4 h-4 mr-2" /> Send via Bot</>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <SchedulePopover
+                  scheduledDate={scheduledDate}
+                  scheduledTime={scheduledTime}
+                  onDateChange={setScheduledDate}
+                  onTimeChange={setScheduledTime}
+                  disabled={isSendingWhatsApp}
+                  className="h-10 w-10 shrink-0"
+                />
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={confirmAndSendWhatsApp}
+                  disabled={isSendingWhatsApp}
+                >
+                  {isSendingWhatsApp ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {scheduledDate ? 'Scheduling...' : 'Sending...'}</>
+                  ) : (
+                    <><Send className="w-4 h-4 mr-2" /> {scheduledDate ? 'Schedule Bot' : 'Send via Bot'}</>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
         </DialogContent>

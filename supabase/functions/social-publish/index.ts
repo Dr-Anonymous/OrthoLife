@@ -98,66 +98,124 @@ serve(async (req: Request) => {
     try {
         const contentType = req.headers.get("content-type") || "";
 
-        // Check if it's multipart form data
-        if (!contentType.includes("multipart/form-data")) {
-            throw new Error("Expected multipart/form-data");
-        }
+        let content = "";
+        let platforms: (SocialPlatform | 'phone_bridge_only')[] = [];
+        let gbpLocationName: string | null = null;
+        let gbpLocationNamesStr: string | null = null;
+        let mediaUrls: string[] = [];
+        let scheduledAt: string | null = null;
+        let consultant_id: string | null = null;
+        let consultant_phone: string | null = null;
+        let isJsonRequest = false;
+        let skipPlatforms: string[] = [];
 
-        const formData = await req.formData();
+        if (contentType.includes("application/json")) {
+            const body = await req.json();
+            content = body.content || "";
+            platforms = body.platforms || [];
+            gbpLocationName = body.gbpLocationName || null;
+            gbpLocationNamesStr = body.gbpLocationNamesStr || null;
+            mediaUrls = body.mediaUrls || [];
+            skipPlatforms = body.skipPlatforms || [];
+            consultant_id = body.consultant_id || null;
+            consultant_phone = body.consultant_phone || null;
+            isJsonRequest = true;
+        } else if (contentType.includes("multipart/form-data")) {
+            const formData = await req.formData();
+            content = formData.get('content') as string;
+            platforms = JSON.parse((formData.get('platforms') as string) || '[]');
+            gbpLocationName = formData.get('gbpLocationName') as string | null;
+            gbpLocationNamesStr = formData.get('gbpLocationNames') as string | null;
+            scheduledAt = formData.get('scheduledAt') as string | null;
+            consultant_id = formData.get('consultant_id') as string | null;
+            consultant_phone = formData.get('consultant_phone') as string | null;
 
-        const content = formData.get('content') as string;
-        const platformsStr = formData.get('platforms') as string;
-        const gbpLocationName = formData.get('gbpLocationName') as string | null;
-        const gbpLocationNamesStr = formData.get('gbpLocationNames') as string | null;
-
-        const mediaFiles: File[] = [];
-        for (const [key, value] of formData.entries()) {
-            if (key === 'files' && value instanceof File) {
-                mediaFiles.push(value);
+            const mediaFiles: File[] = [];
+            for (const [key, value] of formData.entries()) {
+                if (key === 'files' && value instanceof File) {
+                    mediaFiles.push(value);
+                }
             }
+
+            if (!content && mediaFiles.length === 0) {
+                throw new Error("Content or media is required");
+            }
+
+            if (mediaFiles.length > 0) {
+                console.log(`[social-publish] Uploading ${mediaFiles.length} files to storage...`);
+                for (const file of mediaFiles) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `social-media/${crypto.randomUUID()}.${fileExt}`;
+
+                    const { data, error } = await supabase.storage
+                        .from('social-media')
+                        .upload(fileName, file, { contentType: file.type, upsert: true });
+
+                    if (error) {
+                        console.error("[social-publish] Storage upload failed:", error);
+                        continue;
+                    }
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('social-media')
+                        .getPublicUrl(fileName);
+
+                    mediaUrls.push(publicUrl);
+                    console.log(`[social-publish] Media uploaded: ${publicUrl}`);
+                }
+            }
+        } else {
+            throw new Error("Expected multipart/form-data or application/json");
         }
 
-        if (!content && mediaFiles.length === 0) {
-            throw new Error("Content or media is required");
-        }
-
-        let platforms: (SocialPlatform | 'phone_bridge_only')[] = JSON.parse(platformsStr || '[]');
         console.log(`[social-publish] Publishing to platforms: ${platforms.join(', ')}`);
 
-        if ((!platforms || platforms.length === 0) && mediaFiles.length === 0) {
+        if ((!platforms || platforms.length === 0) && mediaUrls.length === 0) {
             throw new Error("At least one platform or media file is required");
+        }
+
+        // Handle Scheduling
+        if (scheduledAt) {
+            const scheduledTime = new Date(scheduledAt);
+            if (scheduledTime > new Date()) {
+                console.log(`[social-publish] Queuing task for ${scheduledTime.toISOString()}`);
+                const { error } = await supabase.from('scheduled_tasks').insert({
+                    task_type: 'social_post',
+                    scheduled_for: scheduledTime.toISOString(),
+                    consultant_id,
+                    payload: {
+                        content,
+                        platforms,
+                        gbpLocationName,
+                        gbpLocationNamesStr,
+                        mediaUrls,
+                        consultant_phone
+                    }
+                });
+                
+                if (error) throw new Error(`Failed to queue task: ${error.message}`);
+                
+                return new Response(JSON.stringify({ 
+                    results: platforms.map(p => ({ platform: p, success: true, message: 'Scheduled successfully' })), 
+                    mediaUrls 
+                }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 200,
+                });
+            }
         }
 
         const results: PublishResult[] = [];
 
-        // Upload media to Supabase Storage if present
-        const mediaUrls: string[] = [];
-        if (mediaFiles.length > 0) {
-            console.log(`[social-publish] Uploading ${mediaFiles.length} files to storage...`);
-            for (const file of mediaFiles) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `social-media/${crypto.randomUUID()}.${fileExt}`;
 
-                // Note: Ensure the 'social-media' bucket exists in your Supabase dashboard
-                const { data, error } = await supabase.storage
-                    .from('social-media')
-                    .upload(fileName, file, { contentType: file.type, upsert: true });
-
-                if (error) {
-                    console.error("[social-publish] Storage upload failed:", error);
-                    continue;
-                }
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('social-media')
-                    .getPublicUrl(fileName);
-
-                mediaUrls.push(publicUrl);
-                console.log(`[social-publish] Media uploaded: ${publicUrl}`);
-            }
-        }
 
         for (const platform of platforms) {
+            if (skipPlatforms.includes(platform)) {
+                console.log(`[social-publish] Skipping platform ${platform} (already succeeded)`);
+                results.push({ platform, success: true, message: 'Skipped (already succeeded)' });
+                continue;
+            }
+
             try {
                 if (platform === 'gbp') {
                     console.log("[social-publish] Processing GBP publish...");
@@ -353,11 +411,43 @@ serve(async (req: Request) => {
                         data: await publishRes.json()
                     });
 
+                } else if (platform === 'phone_bridge_only') {
+                    console.log("[social-publish] Processing phone bridge (Facebook Personal)...");
+                    
+                    // Use the consultant_phone from payload or look it up
+                    let routingKey = consultant_phone;
+                    if (!routingKey && consultant_id) {
+                        const { data: c } = await supabase.from('consultants').select('phone').eq('id', consultant_id).single();
+                        routingKey = c?.phone;
+                    }
+
+                    if (!routingKey) {
+                        throw new Error("Consultant phone is required for phone bridge posts.");
+                    }
+
+                    const FIREBASE_URL = `https://whatsauto-9cf91-default-rtdb.firebaseio.com/${routingKey}.json`;
+                    const fbRes = await fetch(FIREBASE_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            platform: 'facebook',
+                            message: content,
+                            media_url: mediaUrls[0] || null,
+                            timestamp: Date.now(),
+                        }),
+                    });
+
+                    if (!fbRes.ok) {
+                        throw new Error(`Failed to push to phone bridge: ${fbRes.statusText}`);
+                    }
+
+                    results.push({
+                        platform: 'phone_bridge_only',
+                        success: true,
+                        message: "Successfully pushed to phone bridge."
+                    });
                 } else {
                     console.log(`[social-publish] Platform '${platform}' is currently not handled or mocked.`);
-
                 }
-
             } catch (err: any) {
                 console.error(`[social-publish] Error with platform ${platform}:`, err);
                 results.push({

@@ -36,7 +36,7 @@ const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const SymptomCheckerPage = lazy(() => import("./pages/SymptomCheckerPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const MySpace = lazy(() => import("./pages/MySpace"));
-const SendWhatsApp = lazy(() => import("./pages/SendWhatsApp"));
+const EngagementHub = lazy(() => import("./pages/EngagementHub"));
 const PrescriptionDownload = lazy(() => import("./pages/PrescriptionDownload"));
 const DischargeSummaryDownload = lazy(() => import("./pages/DischargeSummaryDownload"));
 
@@ -50,7 +50,6 @@ const PublicConsentVerification = lazy(() => import("./pages/PublicConsentVerifi
 const JointReplacementPage = lazy(() => import("./pages/services/JointReplacementPage"));
 const ArthroscopyPage = lazy(() => import("./pages/services/ArthroscopyPage"));
 const FractureCarePage = lazy(() => import("./pages/services/FractureCarePage"));
-const SocialMediaManager = lazy(() => import("./pages/SocialMediaManager"));
 const ConsentManagementPage = lazy(() => import("./pages/ConsentManagementPage"));
 const OTNotesManagementPage = lazy(() => import("./pages/OTNotesManagementPage"));
 
@@ -156,13 +155,13 @@ const App = () => {
                     <Route path="/my" element={<MySpace />} />
                     <Route path="/my-space" element={<Navigate to="/my" replace />} />
                     <Route path="/analytics" element={<AnalyticsPage />} />
-                    <Route path="/whatsapp" element={<SendWhatsApp />} />
+                    <Route path="/whatsapp" element={<EngagementHub />} />
                     <Route path="/p/:patientPhone" element={<PrescriptionDownload />} />
                     <Route path="/prescription" element={<PrescriptionDownload />} />
                     <Route path="/d/:patientPhone" element={<DischargeSummaryDownload />} />
                     <Route path="/d" element={<DischargeSummaryDownload />} />
                     <Route path="/consent-verify/:id" element={<PublicConsentVerification />} />
-                    <Route path="/smm" element={<SocialMediaManager />} />
+                    <Route path="/smm" element={<EngagementHub />} />
                     <Route
                       path="/consents"
                       element={

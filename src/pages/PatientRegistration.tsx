@@ -22,6 +22,7 @@ import { Patient } from '@/types/consultation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { SYSTEM_CONSULTANT_ID } from "@/utils/scheduleService";
 import { useConsultant } from '@/context/ConsultantContext';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 import { getDistance } from '@/lib/geolocation';
@@ -256,7 +257,7 @@ const PatientRegistration = () => {
           body: {
             date: selectedDateStr,
             hospital: locationName,
-            consultant_id: consultant?.id || 'fdeaf68e-251c-4ffc-a7c1-6bc574657729'
+            consultant_id: consultant?.id || SYSTEM_CONSULTANT_ID
           },
         });
 

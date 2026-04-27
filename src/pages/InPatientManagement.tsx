@@ -80,6 +80,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConsultant } from '@/context/ConsultantContext';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
+import { SchedulePopover } from '@/components/SchedulePopover';
+import { scheduleService } from '@/utils/scheduleService';
+import { getLocalDateTime } from '@/utils/dateUtils';
 
 // --- Types ---
 import { InPatient, DischargeSummary, DischargeData } from '@/types/inPatients';
@@ -101,6 +104,8 @@ interface AutofillProtocol {
 // --- Main Component ---
 
 const cleanText = (html: string) => html.replace(/<[^>]*>?/gm, ' ');
+
+
 
 const InPatientManagement = () => {
     const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
@@ -196,6 +201,8 @@ const InPatientManagement = () => {
     const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
     const [currentGuideLink, setCurrentGuideLink] = useState<string | null>(null);
     const [whatsAppPhone, setWhatsAppPhone] = useState('');
+    const [scheduledDate, setScheduledDate] = useState<Date>();
+    const [scheduledTime, setScheduledTime] = useState("09:00");
 
     // Admission Form State
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -418,6 +425,26 @@ const InPatientManagement = () => {
             // Send notification ONLY if this is NOT a draft AND it's the first time (status changing from admitted -> discharged)
             if (!variables.isDraft && selectedPatientForDischarge && selectedPatientForDischarge.status !== 'discharged') {
                 sendDischargeNotification(selectedPatientForDischarge, variables.language);
+                
+                // Auto-schedule Google Review Request (+3 days)
+                if (consultant?.is_whatsauto_active && selectedPatientForDischarge.patient?.phone) {
+                    const reviewMessage = variables.language === 'te'
+                        ? `నమస్కారం ${selectedPatientForDischarge.patient.name} గారు, మీ ఆరోగ్యం కుదుటపడుతోందని ఆశిస్తున్నాము. మీ అనుభవం బాగుంటే, దయచేసి మాకు గూగుల్ రివ్యూ ఇవ్వగలరు. మీ ఫీడ్‌బ్యాక్ మాకు చాలా ముఖ్యం!`
+                        : `Hello ${selectedPatientForDischarge.patient.name}, we hope you are recovering well. If you had a good experience with us, please consider leaving a Google Review. Your feedback is highly appreciated!`;
+                        
+                    scheduleService.upsertAutoTask({
+                        task_type: 'whatsapp_message',
+                        scheduled_for: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                        payload: {
+                            number: selectedPatientForDischarge.patient.phone,
+                            message: reviewMessage,
+                            consultant_id: consultant.phone,
+                            reference_id: selectedPatientForDischarge.id
+                        },
+                        source: 'auto_post_discharge_review',
+                        consultant_id: consultant.id
+                    });
+                }
             }
         },
         onError: (err: any) => {
@@ -426,16 +453,34 @@ const InPatientManagement = () => {
     });
 
     const sendWhatsAppMutation = useMutation({
-        mutationFn: async ({ phone, message }: { phone: string, message: string }) => {
+        mutationFn: async ({ phone, message, scheduled_at }: { phone: string, message: string, scheduled_at?: string }) => {
             if (!consultant?.is_whatsauto_active) return;
-            const { error } = await supabase.functions.invoke('send-whatsapp', {
-                body: { number: phone, message, consultant_id: consultant?.phone },
-            });
-            if (error) throw error;
+            
+            if (scheduled_at) {
+                const { success, error } = await scheduleService.scheduleTask({
+                    task_type: 'whatsapp_message',
+                    scheduled_for: scheduled_at,
+                    payload: {
+                        number: phone,
+                        message,
+                        consultant_id: consultant.phone
+                    },
+                    source: 'manual_inpatient_whatsapp',
+                    consultant_id: consultant.id
+                });
+                if (!success) throw new Error("Failed to schedule task");
+            } else {
+                const { error } = await supabase.functions.invoke('send-whatsapp', {
+                    body: { number: phone, message, consultant_id: consultant.phone },
+                });
+                if (error) throw error;
+            }
         },
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             setIsWhatsAppModalOpen(false);
-            toast({ title: "Sent", description: "WhatsApp message sent." });
+            toast({ title: variables.scheduled_at ? "Scheduled" : "Sent", description: variables.scheduled_at ? "WhatsApp message scheduled." : "WhatsApp message sent." });
+            setScheduledDate(undefined);
+            setScheduledTime("09:00");
         },
         onError: () => {
             toast({ variant: "destructive", title: "Error", description: "Failed to send message." });
@@ -1500,14 +1545,31 @@ const InPatientManagement = () => {
                             className="min-h-[150px]"
                         />
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex gap-2 justify-end sm:justify-end">
                         <Button variant="outline" onClick={() => setIsWhatsAppModalOpen(false)}>Cancel</Button>
+                        <SchedulePopover
+                            scheduledDate={scheduledDate}
+                            scheduledTime={scheduledTime}
+                            onDateChange={setScheduledDate}
+                            onTimeChange={setScheduledTime}
+                            disabled={sendWhatsAppMutation.isPending}
+                        />
                         <Button
                             onClick={() => {
                                 if (selectedPatientForWhatsApp) {
+                                    const scheduledDateTime = scheduledDate ? getLocalDateTime(scheduledDate, scheduledTime) : undefined;
+                                    if (scheduledDate && !scheduledDateTime) {
+                                        toast({ variant: "destructive", title: "Error", description: "Invalid schedule time." });
+                                        return;
+                                    }
+                                    if (scheduledDateTime && scheduledDateTime <= new Date()) {
+                                        toast({ variant: "destructive", title: "Error", description: "Scheduled time must be in the future." });
+                                        return;
+                                    }
                                     sendWhatsAppMutation.mutate({
                                         phone: whatsAppPhone,
-                                        message: whatsAppMessage
+                                        message: whatsAppMessage,
+                                        scheduled_at: scheduledDateTime?.toISOString()
                                     });
                                 }
                             }}
@@ -1515,7 +1577,7 @@ const InPatientManagement = () => {
                         >
                             {sendWhatsAppMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                             <Send className="w-4 h-4 mr-2" />
-                            Send Message
+                            {scheduledDate ? "Schedule Message" : "Send Message"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { sendOrderNotification, sendOrderEmail } from '../_shared/order-notification.ts'
 
+import { SYSTEM_CONSULTANT_ID } from '../_shared/constants.ts'
+
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -69,14 +71,48 @@ serve(async (req) => {
                         items,
                         frequency: subscription.frequency,
                         next_run_date: nextRunDate.toISOString(),
-                        frequency: subscription.frequency,
-                        next_run_date: nextRunDate.toISOString(),
                         status: 'active',
                         type: 'pharmacy'
                     }
                 ])
 
-            if (subError) console.error('Error creating subscription:', subError)
+            if (subError) {
+                console.error('Error creating subscription:', subError)
+            } else {
+                // Check if WhatsAuto is active for the system consultant before scheduling
+                const { data: systemConsultant } = await supabase
+                    .from('consultants')
+                    .select('is_whatsauto_active')
+                    .eq('id', SYSTEM_CONSULTANT_ID)
+                    .single();
+
+                if (systemConsultant?.is_whatsauto_active) {
+                    // Also create a scheduled task for the next run
+                    const itemsList = items.map((item: any) => `${item.name} x${item.quantity}`).join(', ');
+                    const reorderMessage = `Hello, this is an automated reminder that your recurring pharmacy order is due: \n\nItems: ${itemsList}\n\nPlease contact us to confirm delivery.`;
+                    
+                    const source = `auto_pharmacy_reorder:${userId}`;
+                    
+                    // Clean up existing pending reorder tasks for this user to prevent duplicates
+                    await supabase.from('scheduled_tasks')
+                        .delete()
+                        .eq('source', source)
+                        .eq('status', 'pending');
+
+                    await supabase.from('scheduled_tasks').insert({
+                        task_type: 'whatsapp_message',
+                        scheduled_for: nextRunDate.toISOString(),
+                        consultant_id: SYSTEM_CONSULTANT_ID,
+                        payload: {
+                            number: patientData.phone,
+                            message: reorderMessage,
+                            consultant_id: 'general_notifications', // Route to general notifications device
+                            reference_id: userId // For unique index / duplicate prevention
+                        },
+                        source
+                    });
+                }
+            }
         }
 
         // 3. Send Notification

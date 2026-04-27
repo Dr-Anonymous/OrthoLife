@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ConsultationSearchModal } from '@/components/consultation/ConsultationSearchModal';
 import { LinkPatientModal } from '@/components/consultation/LinkPatientModal';
 import { CompletionMessageModal } from '@/components/consultation/CompletionMessageModal';
+import { scheduleService } from '@/utils/scheduleService';
 import { ConsultantProfileModal } from '@/components/consultation/ConsultantProfileModal';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -518,7 +519,7 @@ const ConsultationPage = () => {
       setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
       // Default to false for sign+seal if not set
       setShowSignSeal(storedSignSeal !== null ? JSON.parse(storedSignSeal) : false);
-      
+
       if (storedPrintOptions) {
         setPrintOptions(JSON.parse(storedPrintOptions));
       }
@@ -959,12 +960,12 @@ const ConsultationPage = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          
+
           // Only consider hospitals that are explicitly part of this consultant's list
           // if any such hospitals exist. This prevents switching to "global" defaults.
           const consultantHospitals = hospitals.filter(h => h.consultantId === consultant.id);
           const candidates = consultantHospitals.length > 0 ? consultantHospitals : hospitals;
-          
+
           let closest = candidates[0];
           let minDistance = Infinity;
 
@@ -1253,6 +1254,30 @@ const ConsultationPage = () => {
 
       if (isOnline) {
         requestOfflineSyncNow();
+
+        // Auto-schedule Follow-up Reminder- better to send it the day before the actual visit- so they can plan ahead- currently we are sending it on the day of the visit
+        if (newStatus === 'completed' && consultant?.is_whatsauto_active && editablePatientDetails.phone) {
+          const scheduledDate = nextReviewDate
+            ? new Date(`${nextReviewDate}T10:00:00.000Z`) // 10 AM on the review date
+            : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 1 week from now if not set
+
+          const message = consultationLanguage === 'te'
+            ? `నమస్కారం ${editablePatientDetails.name} గారు, ఇది మీ ఫాలో-అప్ రిమైండర్. దయచేసి క్లినిక్‌ని సంప్రదించండి.`
+            : `Hello ${editablePatientDetails.name}, this is a gentle reminder for your follow-up consultation. Please contact the clinic.`;
+
+          scheduleService.upsertAutoTask({
+            task_type: 'whatsapp_message',
+            scheduled_for: scheduledDate.toISOString(),
+            payload: {
+              number: editablePatientDetails.phone,
+              message: message,
+              consultant_id: consultant.phone,
+              reference_id: selectedConsultation.id
+            },
+            source: 'auto_post_consultation_followup',
+            consultant_id: consultant.id
+          });
+        }
       }
 
       return true;

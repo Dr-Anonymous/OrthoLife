@@ -15,6 +15,9 @@ import { Loader2, Send, ExternalLink, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { formatWhatsAppLink } from '@/lib/phone-utils';
+import { SchedulePopover } from '@/components/SchedulePopover';
+import { scheduleService } from '@/utils/scheduleService';
+import { getLocalDateTime } from '@/utils/dateUtils';
 
 interface CompletionMessageModalProps {
     isOpen: boolean;
@@ -38,12 +41,16 @@ export const CompletionMessageModal = ({
     const [message, setMessage] = useState(initialMessage);
     const [editablePhone, setEditablePhone] = useState(patientPhone);
     const [isSending, setIsSending] = useState(false);
+    const [scheduledDate, setScheduledDate] = useState<Date>();
+    const [scheduledTime, setScheduledTime] = useState("09:00");
     const { toast } = useToast();
 
     useEffect(() => {
         if (isOpen) {
             setMessage(initialMessage);
             setEditablePhone(patientPhone);
+            setScheduledDate(undefined);
+            setScheduledTime("09:00");
         }
     }, [initialMessage, patientPhone, isOpen]);
 
@@ -75,17 +82,36 @@ export const CompletionMessageModal = ({
         // Automated/Integrated send
         setIsSending(true);
         try {
-            const { error } = await supabase.functions.invoke('send-whatsapp', {
-                body: {
-                    number: targetPhone,
-                    message: message,
+            const scheduledDateTime = scheduledDate ? getLocalDateTime(scheduledDate, scheduledTime) : null;
+            
+            if (scheduledDateTime) {
+                const { success, error } = await scheduleService.scheduleTask({
+                    task_type: 'whatsapp_message',
+                    scheduled_for: scheduledDateTime.toISOString(),
+                    payload: {
+                        number: targetPhone,
+                        message: message,
+                        consultant_id: consultantId
+                    },
+                    source: 'manual_completion_whatsapp',
                     consultant_id: consultantId
-                },
-            });
+                });
+                
+                if (!success) throw error || new Error("Failed to schedule message.");
+                toast({ title: "Success", description: "Message scheduled successfully." });
+            } else {
+                const { error } = await supabase.functions.invoke('send-whatsapp', {
+                    body: {
+                        number: targetPhone,
+                        message: message,
+                        consultant_id: consultantId
+                    },
+                });
 
-            if (error) throw error;
+                if (error) throw error;
+                toast({ title: "Success", description: "Message sent successfully via automation." });
+            }
 
-            toast({ title: "Success", description: "Message sent successfully via automation." });
             onClose();
         } catch (error: any) {
             toast({ variant: "destructive", title: "Error", description: error.message || "Failed to send message via automation. Try manual send if available." });
@@ -130,7 +156,18 @@ export const CompletionMessageModal = ({
                     </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="flex items-center gap-2">
+                    {isWhatsAppIntegrated && (
+                        <SchedulePopover
+                            scheduledDate={scheduledDate}
+                            scheduledTime={scheduledTime}
+                            onDateChange={setScheduledDate}
+                            onTimeChange={setScheduledTime}
+                            disabled={isSending}
+                            className="h-10 w-10 shrink-0"
+                        />
+                    )}
+                    <div className="flex-1" />
                     <Button variant="outline" onClick={onClose} disabled={isSending}>Cancel</Button>
                     <Button
                         onClick={handleSend}
@@ -142,7 +179,9 @@ export const CompletionMessageModal = ({
                         ) : (
                             isWhatsAppIntegrated ? <Send className="w-4 h-4 mr-2" /> : <ExternalLink className="w-4 h-4 mr-2" />
                         )}
-                        {isWhatsAppIntegrated ? 'Send via Automation' : 'Open in WhatsApp'}
+                        {scheduledDate 
+                            ? 'Schedule Message' 
+                            : (isWhatsAppIntegrated ? 'Send via Automation' : 'Open in WhatsApp')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

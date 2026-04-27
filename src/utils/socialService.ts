@@ -14,6 +14,8 @@ interface PublishAllPayload {
     platforms: SocialPlatform[];
     gbpLocationName?: string;
     gbpLocationNames?: string[];
+    consultant_id?: string;
+    consultant_phone?: string;
 }
 
 interface SocialPublishResult {
@@ -85,6 +87,12 @@ export const socialService = {
         if (payload.gbpLocationNames && payload.gbpLocationNames.length > 0) {
             formData.append('gbpLocationNames', JSON.stringify(payload.gbpLocationNames));
         }
+        if (payload.consultant_id) {
+            formData.append('consultant_id', payload.consultant_id);
+        }
+        if (payload.consultant_phone) {
+            formData.append('consultant_phone', payload.consultant_phone);
+        }
         payload.mediaFiles?.forEach((file) => formData.append('files', file));
 
         const { data, error } = await supabase.functions.invoke<SocialPublishResponse>('social-publish', {
@@ -114,8 +122,8 @@ export const socialService = {
         };
     },
 
-    async pushToPhoneBridge(consultantId: string, payload: { platform: string; content: string; mediaUrl?: string }) {
-        const FIREBASE_URL = `https://whatsauto-9cf91-default-rtdb.firebaseio.com/${consultantId}.json`;
+    async pushToPhoneBridge(routingKey: string, payload: { platform: string; content: string; mediaUrl?: string }) {
+        const FIREBASE_URL = `https://whatsauto-9cf91-default-rtdb.firebaseio.com/${routingKey}.json`;
         
         const response = await fetch(FIREBASE_URL, {
             method: 'POST',
