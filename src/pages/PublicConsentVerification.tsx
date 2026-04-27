@@ -212,6 +212,13 @@ const PublicConsentVerification = () => {
         fetchConsent();
     }, [id]);
 
+    // Autofill guardian name if available in fetched data
+    useEffect(() => {
+        if (consentData?.guardian_name && !guardianName) {
+            setGuardianName(consentData.guardian_name);
+        }
+    }, [consentData]);
+
     // --- OTP Logic (Real) ---
     useEffect(() => {
         if (!loading && consentData && !window.recaptchaVerifier) {
