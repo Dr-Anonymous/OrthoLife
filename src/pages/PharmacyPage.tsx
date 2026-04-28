@@ -14,10 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ShoppingCart, Pill, Plus, Minus, RefreshCw, CalendarClock, Trash2 } from 'lucide-react';
+import { ShoppingCart, Pill, Plus, Minus, RefreshCw, CalendarClock, Trash2, Bot, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizePhoneNumber } from '@/lib/phone-utils';
+import { useConsultant } from '@/context/ConsultantContext';
+import { MessagingSettingsModal } from '@/components/consultant/MessagingSettingsModal';
 
 interface SizeVariant {
   size: string;
@@ -46,13 +48,12 @@ interface Medicine {
   individual?: boolean;
 }
 
-import { Settings2, Bot } from 'lucide-react';
-import { useConsultant } from '@/context/ConsultantContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 
 const PharmacyPage = () => {
   const { consultant, refreshConsultant } = useConsultant();
+  const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +69,8 @@ const PharmacyPage = () => {
   const [patientData, setPatientData] = useState({
     name: '',
     phone: '',
-    address: ''
+    address: '',
+    language: 'en'
   });
   const { toast } = useToast();
   const location = useLocation();
@@ -588,7 +590,7 @@ const PharmacyPage = () => {
 
       setCart({});
       setShowPatientForm(false);
-      setPatientData({ name: '', phone: '', address: '' });
+      setPatientData({ name: '', phone: '', address: '', language: 'en' });
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -597,7 +599,7 @@ const PharmacyPage = () => {
       });
       setCart({});
       setShowPatientForm(false);
-      setPatientData({ name: '', phone: '', address: '' });
+      setPatientData({ name: '', phone: '', address: '', language: 'en' });
     }
   };
 
@@ -636,16 +638,21 @@ const PharmacyPage = () => {
                           <Label htmlFor="auto-pharmacy-toggle" className="text-sm font-semibold">Reorder Reminders</Label>
                           <Switch
                             id="auto-pharmacy-toggle"
-                            checked={(consultant?.messaging_settings as any)?.auto_pharmacy ?? false}
+                            checked={(consultant?.messaging_settings as any)?.auto_pharmacy_config?.enabled ?? (consultant?.messaging_settings as any)?.auto_pharmacy ?? false}
                             onCheckedChange={async (enabled) => {
+                              const currentSettings = consultant.messaging_settings || {};
+                              const newSettings = {
+                                ...currentSettings,
+                                auto_pharmacy: enabled,
+                                auto_pharmacy_config: {
+                                  ...((currentSettings as any).auto_pharmacy_config || {}),
+                                  enabled: enabled
+                                }
+                              };
+
                               const { error } = await supabase
                                 .from('consultants')
-                                .update({
-                                  messaging_settings: {
-                                    ...(consultant.messaging_settings || {}),
-                                    auto_pharmacy: enabled
-                                  }
-                                })
+                                .update({ messaging_settings: newSettings })
                                 .eq('id', consultant.id);
                               
                               if (!error) {
@@ -655,6 +662,14 @@ const PharmacyPage = () => {
                             }}
                           />
                         </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full text-[10px] h-7 mt-1 text-primary hover:text-primary hover:bg-primary/5 border border-primary/20 border-dashed"
+                          onClick={() => setIsMessagingSettingsModalOpen(true)}
+                        >
+                          Customize Frequency & Message
+                        </Button>
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -1052,6 +1067,11 @@ const PharmacyPage = () => {
         type="pharmacy"
       />
       <Footer />
+      <MessagingSettingsModal 
+        isOpen={isMessagingSettingsModalOpen} 
+        onClose={() => setIsMessagingSettingsModalOpen(false)} 
+        initialTab="pharmacy"
+      />
     </div>
   );
 };

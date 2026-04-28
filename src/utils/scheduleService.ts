@@ -68,12 +68,14 @@ export const scheduleService = {
       let isEnabled = false;
 
       if (source.includes('auto_pharmacy')) {
-        isEnabled = settings?.auto_pharmacy ?? false;
+        isEnabled = settings?.auto_pharmacy_config?.enabled ?? settings?.auto_pharmacy ?? false;
       } else if (source.includes('auto_diagnostics')) {
-        isEnabled = settings?.auto_diagnostics ?? false;
+        isEnabled = settings?.auto_diagnostics_config?.enabled ?? settings?.auto_diagnostics ?? false;
       } else if (source.includes('auto_post_consultation_followup')) {
-        // Global toggle for followups
-        const globalFollowup = settings?.auto_followup ?? false;
+        // Favor granular config enabled state
+        const configEnabled = settings?.auto_followup_config?.enabled;
+        const globalFollowup = configEnabled !== undefined ? configEnabled : (settings?.auto_followup ?? false);
+        
         // Location override
         if (location && settings?.location_followup_overrides?.[location] !== undefined) {
           isEnabled = settings.location_followup_overrides[location];
@@ -81,9 +83,9 @@ export const scheduleService = {
           isEnabled = globalFollowup;
         }
       } else if (source.includes('discharge_review')) {
-        isEnabled = settings?.auto_discharge_review ?? false;
+        isEnabled = settings?.auto_discharge_config?.enabled ?? settings?.auto_discharge_review ?? false;
       } else if (source.includes('npo_reminder')) {
-        isEnabled = settings?.auto_npo_reminder ?? false;
+        isEnabled = settings?.auto_npo_config?.enabled ?? settings?.auto_npo_reminder ?? false;
       }
 
       if (!isEnabled) {

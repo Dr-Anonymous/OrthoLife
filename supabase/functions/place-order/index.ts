@@ -88,12 +88,28 @@ serve(async (req) => {
                     .eq('id', SYSTEM_CONSULTANT_ID)
                     .single();
 
-                const isAutoMessagingEnabled = (systemConsultant?.messaging_settings as any)?.auto_pharmacy ?? false;
+                const settings = systemConsultant?.messaging_settings as any;
+                const config = settings?.auto_pharmacy_config;
+                const isEnabled = config ? config.enabled : (settings?.auto_pharmacy ?? false);
 
-                if (isAutoMessagingEnabled && systemConsultant?.is_whatsauto_active) {
-                    // Also create a scheduled task for the next run
+                if (isEnabled && systemConsultant?.is_whatsauto_active) {
+                    // Use custom frequency or default to 30 days
+                    const frequency = config?.frequency_days ?? 30;
+                    const nextRunDate = new Date();
+                    nextRunDate.setDate(nextRunDate.getDate() + frequency);
+
                     const itemsList = items.map((item: any) => `${item.name} x${item.quantity}`).join(', ');
-                    const reorderMessage = `Hello, this is an automated reminder that your recurring pharmacy order is due: \n\nItems: ${itemsList}\n\nPlease contact us to confirm delivery.`;
+                    
+                    // Use custom template or default
+                    const defaultEn = `Hello ${patientData.name || 'Patient'}, it's time to reorder your medications: ${itemsList}. Please reply to this message to confirm your order.`;
+                    const defaultTe = `నమస్కారం ${patientData.name || 'Patient'} గారు, మీ మందులను మళ్లీ ఆర్డర్ చేయడానికి సమయం అయింది: ${itemsList}. దయచేసి ఈ మెసేజ్‌కి రిప్లై ఇవ్వడం ద్వారా మీ ఆర్డర్‌ను ధృవీకరించండి.`;
+                    
+                    const isTelugu = patientData.language === 'te';
+                    const template = isTelugu 
+                        ? (config?.message_te || defaultTe) 
+                        : (config?.message_en || defaultEn);
+                    
+                    const reorderMessage = template.replace(/\{\{patient_name\}\}/g, patientData.name || 'Patient');
                     
                     const source = `auto_pharmacy_reorder:${userId}`;
                     

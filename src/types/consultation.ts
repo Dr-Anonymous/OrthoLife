@@ -106,6 +106,36 @@ export interface Consultant {
         auto_discharge_review?: boolean;
         auto_followup?: boolean;
         auto_npo_reminder?: boolean;
+        auto_discharge_config?: {
+            enabled: boolean;
+            delay_days: number;
+            message_en: string;
+            message_te: string;
+        };
+        auto_followup_config?: {
+            enabled: boolean;
+            days_before: number;
+            message_en: string;
+            message_te: string;
+        };
+        auto_npo_config?: {
+            enabled: boolean;
+            hours_before: number;
+            message_en: string;
+            message_te: string;
+        };
+        auto_pharmacy_config?: {
+            enabled: boolean;
+            frequency_days: number;
+            message_en: string;
+            message_te: string;
+        };
+        auto_diagnostics_config?: {
+            enabled: boolean;
+            frequency_days: number;
+            message_en: string;
+            message_te: string;
+        };
         location_followup_overrides?: Record<string, boolean>;
         location_print_overrides?: Record<string, { show_profile?: boolean; show_sign_seal?: boolean }>;
         location_print_options?: Record<string, PrintOptions>;

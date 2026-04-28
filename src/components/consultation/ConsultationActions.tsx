@@ -11,6 +11,7 @@ import { useConsultant } from '@/context/ConsultantContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown } from 'lucide-react';
+import { MessagingSettingsModal } from '@/components/consultant/MessagingSettingsModal';
 
 interface ConsultationActionsProps {
     isOnline: boolean;
@@ -77,6 +78,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     const { consultant, refreshConsultant } = useConsultant();
     const [showScrollHint, setShowScrollHint] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -113,7 +115,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
         const settings = consultant.messaging_settings as any;
         const locationOverride = settings?.location_followup_overrides?.[currentLocation];
         if (locationOverride !== undefined) return locationOverride;
-        return settings?.auto_followup ?? false;
+        return settings?.auto_followup_config?.enabled ?? settings?.auto_followup ?? false;
     })();
 
     const isDoctorProfileEnabled = (() => {
@@ -195,7 +197,9 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
         }
     };
 
-    const toggleAutoFollowup = () => updateLocationSetting('followup', !isAutoFollowupEnabled);
+    const toggleAutoFollowup = async () => {
+        await updateLocationSetting('followup', !isAutoFollowupEnabled);
+    };
     const toggleProfile = () => updateLocationSetting('profile', !isDoctorProfileEnabled);
     const toggleSignSeal = () => updateLocationSetting('sign_seal', !isSignSealEnabled);
 
@@ -436,6 +440,18 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                                                 !isWhatsAppEnabled ? "Contact admin to activate automated reminders." :
                                                     currentLocation ? `Automated reminders for ${currentLocation}.` : "Select a location to enable."}
                                         </p>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="w-full text-[10px] h-7 mt-2 text-primary hover:text-primary hover:bg-primary/5 border border-primary/20 border-dashed"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsMessagingSettingsModalOpen(true);
+                                            }}
+                                        >
+                                            Customize Timing & Messages
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -450,6 +466,11 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+            <MessagingSettingsModal 
+                isOpen={isMessagingSettingsModalOpen} 
+                onClose={() => setIsMessagingSettingsModalOpen(false)} 
+                initialTab="followup"
+            />
         </div>
     );
 };

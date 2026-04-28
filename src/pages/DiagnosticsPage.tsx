@@ -14,9 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, TestTubes, Plus, Minus, Clock, RefreshCw, Trash2 } from 'lucide-react';
+import { Calendar, TestTubes, Plus, Minus, Clock, RefreshCw, Trash2, Bot, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useConsultant } from '@/context/ConsultantContext';
+import { MessagingSettingsModal } from '@/components/consultant/MessagingSettingsModal';
 
 interface Test {
   id: string;
@@ -29,8 +31,6 @@ interface Test {
   duration?: string;
 }
 
-import { Settings2, Bot } from 'lucide-react';
-import { useConsultant } from '@/context/ConsultantContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 
@@ -48,11 +48,13 @@ const DiagnosticsPage = () => {
   const [patientData, setPatientData] = useState({
     name: '',
     phone: '',
-    address: ''
+    address: '',
+    language: 'en'
   });
   const [autoReorder, setAutoReorder] = useState(false);
   const [reorderFrequencyCount, setReorderFrequencyCount] = useState(1);
   const [reorderFrequencyUnit, setReorderFrequencyUnit] = useState('monthly');
+  const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const { user } = useAuth();
@@ -339,7 +341,7 @@ const DiagnosticsPage = () => {
       setShowPatientForm(false);
       setShowTimeSlotSelection(false);
       setTimeSlotData(null);
-      setPatientData({ name: '', phone: '', address: '' });
+      setPatientData({ name: '', phone: '', address: '', language: 'en' });
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -351,7 +353,7 @@ const DiagnosticsPage = () => {
       setShowPatientForm(false);
       setShowTimeSlotSelection(false);
       setTimeSlotData(null);
-      setPatientData({ name: '', phone: '', address: '' });
+      setPatientData({ name: '', phone: '', address: '', language: 'en' });
     }
   };
 
@@ -390,18 +392,23 @@ const DiagnosticsPage = () => {
                           <Label htmlFor="auto-diagnostics-toggle" className="text-sm font-semibold">Reorder Reminders</Label>
                           <Switch
                             id="auto-diagnostics-toggle"
-                            checked={(consultant?.messaging_settings as any)?.auto_diagnostics ?? false}
+                            checked={(consultant?.messaging_settings as any)?.auto_diagnostics_config?.enabled ?? (consultant?.messaging_settings as any)?.auto_diagnostics ?? false}
                             onCheckedChange={async (enabled) => {
+                              const currentSettings = consultant.messaging_settings || {};
+                              const newSettings = {
+                                ...currentSettings,
+                                auto_diagnostics: enabled,
+                                auto_diagnostics_config: {
+                                  ...((currentSettings as any).auto_diagnostics_config || {}),
+                                  enabled: enabled
+                                }
+                              };
+
                               const { error } = await supabase
                                 .from('consultants')
-                                .update({
-                                  messaging_settings: {
-                                    ...(consultant.messaging_settings || {}),
-                                    auto_diagnostics: enabled
-                                  }
-                                })
+                                .update({ messaging_settings: newSettings })
                                 .eq('id', consultant.id);
-                              
+
                               if (!error) {
                                 refreshConsultant();
                                 toast({ title: enabled ? "Enabled" : "Disabled", description: "Auto-reorder reminders updated." });
@@ -409,6 +416,14 @@ const DiagnosticsPage = () => {
                             }}
                           />
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-[10px] h-7 mt-1 text-primary hover:text-primary hover:bg-primary/5 border border-primary/20 border-dashed"
+                          onClick={() => setIsMessagingSettingsModalOpen(true)}
+                        >
+                          Customize Frequency & Message
+                        </Button>
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -692,6 +707,11 @@ const DiagnosticsPage = () => {
         type="diagnostics"
       />
       <Footer />
+      <MessagingSettingsModal
+        isOpen={isMessagingSettingsModalOpen}
+        onClose={() => setIsMessagingSettingsModalOpen(false)}
+        initialTab="diagnostics"
+      />
     </div>
   );
 };

@@ -299,6 +299,83 @@ export function formatLocalDate(dateStr: string | Date | null | undefined): stri
 }
 
 /**
+ * Compares two patient objects for equality, ignoring whitespace and treating null/undefined as empty strings.
+ */
+export function arePatientsEqual(p1: any, p2: any): boolean {
+  if (!p1 || !p2) return p1 === p2;
+  const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
+  
+  return (
+    normalize(p1.name) === normalize(p2.name) &&
+    normalize(p1.phone) === normalize(p2.phone) &&
+    normalize(p1.dob) === normalize(p2.dob) &&
+    normalize(p1.sex) === normalize(p2.sex) &&
+    normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
+    normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated) &&
+    normalize(p1.occupation) === normalize(p2.occupation) &&
+    normalize(p1.blood_group) === normalize(p2.blood_group) &&
+    normalize(p1.hometown) === normalize(p2.hometown) &&
+    normalize(p1.allergies) === normalize(p2.allergies)
+  );
+}
+
+/**
+ * Compares two extraData objects for equality, ignoring whitespace and pruning empty medications/lists.
+ */
+export function areExtraDataEqual(d1: any, d2: any): boolean {
+  if (!d1 || !d2) return d1 === d2;
+
+  const keysToCompare = [
+    'complaints', 'medicalHistory', 'findings', 'investigations',
+    'diagnosis', 'advice', 'followup', 'weight', 'bp', 'temperature',
+    'height', 'pulse', 'spo2', 'bmi', 'allergy', 'personalNote',
+    'procedure', 'procedure_fee', 'procedure_consultant_cut',
+    'referred_to', 'referral_amount', 'orthotics'
+  ];
+
+  for (const key of keysToCompare) {
+    const v1 = String(d1[key] || '').trim();
+    const v2 = String(d2[key] || '').trim();
+    if (v1 !== v2) return false;
+  }
+
+  // Medications
+  const meds1 = (d1.medications || []).filter((m: any) => m.composition && m.composition.trim().length > 0);
+  const meds2 = (d2.medications || []).filter((m: any) => m.composition && m.composition.trim().length > 0);
+
+  if (meds1.length !== meds2.length) return false;
+
+  for (let i = 0; i < meds1.length; i++) {
+    const m1 = meds1[i];
+    const m2 = meds2[i];
+
+    // Compare essential fields
+    const medFields = ['composition', 'dose', 'frequency', 'duration', 'instructions', 'notes', 'brandName', 'savedMedicationId'];
+    for (const field of medFields) {
+      if (String(m1[field] || '').trim() !== String(m2[field] || '').trim()) return false;
+    }
+    // Compare checkboxes
+    if (!!m1.freqMorning !== !!m2.freqMorning || !!m1.freqNoon !== !!m2.freqNoon || !!m1.freqNight !== !!m2.freqNight) return false;
+  }
+
+  // Referred to list
+  const ref1 = (d1.referred_to_list || []).filter((s: string) => s && s.trim());
+  const ref2 = (d2.referred_to_list || []).filter((s: string) => s && s.trim());
+  if (ref1.length !== ref2.length) return false;
+  for (let i = 0; i < ref1.length; i++) {
+    if (ref1[i].trim() !== ref2[i].trim()) return false;
+  }
+
+  // Certificates and Receipts - Use JSON stringify as they are complex objects 
+  // and less prone to simple whitespace mismatches that matter.
+  // Note: We might want to be more specific here if needed.
+  if (JSON.stringify(d1.certificates || []) !== JSON.stringify(d2.certificates || [])) return false;
+  if (JSON.stringify(d1.receipts || []) !== JSON.stringify(d2.receipts || [])) return false;
+
+  return true;
+}
+
+/**
 * Escapes special characters in a string for use in a regular expression.
 */
 export function escapeRegex(s: string): string {

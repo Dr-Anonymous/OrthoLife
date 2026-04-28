@@ -49,7 +49,7 @@ interface ConsultationSidebarProps {
     selectedConsultation?: Consultation | null;
     onSelectConsultation: (consultation: Consultation) => void;
     onDeleteClick: (e: React.MouseEvent, consultation: Consultation) => void;
-    onShowPatientHistory: (patientId: string) => void;
+    onShowPatientHistory: (patientId: string, patientName?: string) => void;
 
 
 

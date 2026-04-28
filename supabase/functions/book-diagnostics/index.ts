@@ -142,12 +142,28 @@ Appointment ID: ${appointmentId}`,
             .eq('id', SYSTEM_CONSULTANT_ID)
             .single();
 
-          const isAutoMessagingEnabled = (systemConsultant?.messaging_settings as any)?.auto_diagnostics ?? false;
+          const settings = systemConsultant?.messaging_settings as any;
+          const config = settings?.auto_diagnostics_config;
+          const isEnabled = config ? config.enabled : (settings?.auto_diagnostics ?? false);
 
-          if (isAutoMessagingEnabled && systemConsultant?.is_whatsauto_active) {
-            // Also create a scheduled task for the next run
+          if (isEnabled && systemConsultant?.is_whatsauto_active) {
+            // Use custom frequency or default to 90 days
+            const frequency = config?.frequency_days ?? 90;
+            const nextRunDate = new Date();
+            nextRunDate.setDate(nextRunDate.getDate() + frequency);
+
             const testsList = items.map((item: any) => `${item.name} x${item.quantity}`).join(', ');
-            const reorderMessage = `Hello, this is an automated reminder that your recurring diagnostics collection is due: \n\nTests: ${testsList}\n\nPlease contact us to confirm the collection time.`;
+            
+            // Use custom template or default
+            const defaultEn = `Hello ${patientData.name || 'Patient'}, it's time for your periodic lab tests: ${testsList}. Please contact us to confirm the collection time.`;
+            const defaultTe = `నమస్కారం ${patientData.name || 'Patient'} గారు, మీ ఆవర్తన ల్యాబ్ పరీక్షలకు సమయం అయింది: ${testsList}. దయచేసి సేకరణ సమయాన్ని ధృవీకరించడానికి మమ్మల్ని సంప్రదించండి.`;
+            
+            const isTelugu = patientData.language === 'te';
+            const template = isTelugu 
+                ? (config?.message_te || defaultTe) 
+                : (config?.message_en || defaultEn);
+            
+            const reorderMessage = template.replace(/\{\{patient_name\}\}/g, patientData.name || 'Patient');
             
             const source = `auto_diagnostics_reorder:${patientData.phone}`;
 

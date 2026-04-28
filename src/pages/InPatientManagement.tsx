@@ -30,7 +30,9 @@ import {
     ChevronDown,
     X,
     ClipboardPen,
-    Settings2
+    Settings2,
+    Bot,
+    Languages
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -84,6 +86,7 @@ import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 import { SchedulePopover } from '@/components/SchedulePopover';
 import { scheduleService } from '@/utils/scheduleService';
 import { getLocalDateTime } from '@/utils/dateUtils';
+import { MessagingSettingsModal } from '@/components/consultant/MessagingSettingsModal';
 
 // --- Types ---
 import { InPatient, DischargeSummary, DischargeData } from '@/types/inPatients';
@@ -110,6 +113,7 @@ const cleanText = (html: string) => html.replace(/<[^>]*>?/gm, ' ');
 
 const InPatientManagement = () => {
     const { consultant, isMasterAdmin, isLoading: isConsultantLoading, refreshConsultant } = useConsultant();
+    const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [dischargeDateStart, setDischargeDateStart] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -427,15 +431,25 @@ const InPatientManagement = () => {
             if (!variables.isDraft && selectedPatientForDischarge && selectedPatientForDischarge.status !== 'discharged') {
                 sendDischargeNotification(selectedPatientForDischarge, variables.language);
                 
-                // Auto-schedule Google Review Request (+3 days)
-                if (consultant?.is_whatsauto_active && selectedPatientForDischarge.patient?.phone) {
-                    const reviewMessage = variables.language === 'te'
-                        ? `నమస్కారం ${selectedPatientForDischarge.patient.name} గారు, మీ ఆరోగ్యం కుదుటపడుతోందని ఆశిస్తున్నాము. మీ అనుభవం బాగుంటే, దయచేసి మాకు గూగుల్ రివ్యూ ఇవ్వగలరు. మీ ఫీడ్‌బ్యాక్ మాకు చాలా ముఖ్యం!`
-                        : `Hello ${selectedPatientForDischarge.patient.name}, we hope you are recovering well. If you had a good experience with us, please consider leaving a Google Review. Your feedback is highly appreciated!`;
+                // Auto-schedule Google Review Request (Customizable)
+                const config = (consultant?.messaging_settings as any)?.auto_discharge_config;
+                const isEnabled = config ? config.enabled : (consultant?.messaging_settings as any)?.auto_discharge_review;
+
+                if (consultant?.is_whatsauto_active && selectedPatientForDischarge.patient?.phone && isEnabled) {
+                    const delayDays = config?.delay_days ?? 3;
+                    const defaultTe = `నమస్కారం ${selectedPatientForDischarge.patient.name} గారు, మీ ఆరోగ్యం కుదుటపడుతోందని ఆశిస్తున్నాము. మీ అనుభవం బాగుంటే, దయచేసి మాకు గూగుల్ రివ్యూ ఇవ్వగలరు. మీ ఫీడ్‌బ్యాక్ మాకు చాలా ముఖ్యం!`;
+                    const defaultEn = `Hello ${selectedPatientForDischarge.patient.name}, we hope you are recovering well. If you had a good experience with us, please consider leaving a Google Review. Your feedback is highly appreciated!`;
+                    
+                    const template = variables.language === 'te' 
+                        ? (config?.message_te || defaultTe) 
+                        : (config?.message_en || defaultEn);
+
+                    // Basic placeholder replacement
+                    const reviewMessage = template.replace(/\{\{patient_name\}\}/g, selectedPatientForDischarge.patient.name);
                         
                     scheduleService.upsertAutoTask({
                         task_type: 'whatsapp_message',
-                        scheduled_for: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                        scheduled_for: new Date(Date.now() + delayDays * 24 * 60 * 60 * 1000).toISOString(),
                         payload: {
                             number: selectedPatientForDischarge.patient.phone,
                             message: reviewMessage,
@@ -951,47 +965,121 @@ const InPatientManagement = () => {
                                 className="pl-9 h-10 w-full"
                             />
                         </div>
-                        <div className="flex bg-muted/40 p-1 rounded-lg border flex-none h-10 items-center" title="Default Language for IP area">
-                            {[
-                                { code: 'en', label: 'EN' },
-                                { code: 'te', label: 'తె' }
-                            ].map((lang) => (
-                                <Button
-                                    key={lang.code}
-                                    variant={inPatientLanguage === lang.code ? "default" : "ghost"}
-                                    size="sm"
-                                    onClick={() => updateLocalLanguage(lang.code)}
-                                    className={cn(
-                                        "h-8 px-3 text-xs font-bold transition-all duration-200",
-                                        inPatientLanguage === lang.code ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-primary"
-                                    )}
-                                >
-                                    {lang.label}
-                                </Button>
-                            ))}
-                        </div>
+
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center sm:justify-end">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full sm:w-auto gap-2">
+                                    <Settings2 size={16} />
+                                    Settings
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-64 p-2" align="end">
+                                <div className="p-2 space-y-4">
+                                    {/* Messaging Settings */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <Bot className="h-4 w-4 text-primary" />
+                                            <span className="font-bold text-sm">Messaging Settings</span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2 bg-muted/30 p-2 rounded-md">
+                                            <div className="flex flex-col">
+                                                <Label htmlFor="auto-discharge-toggle" className="text-xs font-semibold">Auto-Discharge Review</Label>
+                                                <span className="text-[9px] text-muted-foreground uppercase">3-day review request</span>
+                                            </div>
+                                            <Switch
+                                                id="auto-discharge-toggle"
+                                                checked={(consultant?.messaging_settings as any)?.auto_discharge_review ?? false}
+                                                onCheckedChange={async (enabled) => {
+                                                    if (!consultant) return;
+                                                    const currentSettings = (consultant.messaging_settings || {}) as any;
+                                                    const newSettings = {
+                                                        ...currentSettings,
+                                                        auto_discharge_review: enabled,
+                                                        auto_discharge_config: {
+                                                            ...(currentSettings.auto_discharge_config || {}),
+                                                            enabled: enabled
+                                                        }
+                                                    };
+                                                    const { error } = await supabase
+                                                        .from('consultants')
+                                                        .update({ messaging_settings: newSettings })
+                                                        .eq('id', consultant.id);
+
+                                                    if (!error) {
+                                                        await refreshConsultant();
+                                                        toast({ title: enabled ? "Enabled" : "Disabled", description: "Auto-discharge review reminders updated." });
+                                                    }
+                                                }}
+                                                className="scale-75"
+                                            />
+                                        </div>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="w-full text-[10px] h-7 text-primary hover:text-primary hover:bg-primary/5 border border-primary/20 border-dashed"
+                                            onClick={() => setIsMessagingSettingsModalOpen(true)}
+                                        >
+                                            Customize Timing & Messages
+                                        </Button>
+                                    </div>
+
+                                    <DropdownMenuSeparator />
+
+                                    {/* Language Selection */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <Languages className="h-4 w-4 text-primary" />
+                                            <span className="font-bold text-sm">Default Language</span>
+                                        </div>
+                                        <div className="flex bg-muted/40 p-1 rounded-lg border h-9 items-center w-full">
+                                            {[
+                                                { code: 'en', label: 'English' },
+                                                { code: 'te', label: 'తెలుగు' }
+                                            ].map((lang) => (
+                                                <Button
+                                                    key={lang.code}
+                                                    variant={inPatientLanguage === lang.code ? "default" : "ghost"}
+                                                    size="sm"
+                                                    onClick={() => updateLocalLanguage(lang.code)}
+                                                    className={cn(
+                                                        "flex-1 h-7 text-[10px] font-bold transition-all duration-200",
+                                                        inPatientLanguage === lang.code ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-primary"
+                                                    )}
+                                                >
+                                                    {lang.label}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {(isMasterAdmin) && (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <div className="space-y-1">
+                                                <DropdownMenuItem asChild>
+                                                    <Link to="/consents" className="flex items-center w-full cursor-pointer">
+                                                        <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                        <span className="text-sm">Consents Management</span>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link to="/ot-notes" className="flex items-center w-full cursor-pointer">
+                                                        <BookOpen className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                        <span className="text-sm">OT Notes Registry</span>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button onClick={() => setIsAdmitModalOpen(true)} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
                             <UserPlus className="w-4 h-4 mr-2" />
                             Admit
                         </Button>
-                        {isMasterAdmin && (
-                            <div className="flex gap-2 w-full sm:w-auto">
-                                <Button variant="outline" asChild className="flex-1 sm:flex-none">
-                                    <Link to="/consents">
-                                        <FileText className="w-4 h-4 mr-2" />
-                                        Consents
-                                    </Link>
-                                </Button>
-                                <Button variant="outline" asChild className="flex-1 sm:flex-none">
-                                    <Link to="/ot-notes">
-                                        <BookOpen className="w-4 h-4 mr-2" />
-                                        OT Notes
-                                    </Link>
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -1595,7 +1683,13 @@ const InPatientManagement = () => {
             />
 
             {/* Consent Templates Bank is now a separate page */}
-        </div >
+            
+            <MessagingSettingsModal 
+                isOpen={isMessagingSettingsModalOpen} 
+                onClose={() => setIsMessagingSettingsModalOpen(false)} 
+                initialTab="discharge"
+            />
+        </div>
     );
 };
 

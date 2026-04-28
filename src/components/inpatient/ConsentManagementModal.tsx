@@ -78,18 +78,31 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
         onSuccess: ({ shouldClose, saved }) => {
             queryClient.invalidateQueries({ queryKey: ['surgical-consents'] });
             
-            // Auto-schedule NPO reminder (-12h from surgery)
-            if (saved?.surgery_date && patient?.patient?.phone && consultant?.is_whatsauto_active) {
+            // Auto-schedule NPO reminder (Customizable)
+            const config = (consultant?.messaging_settings as any)?.auto_npo_config;
+            const isEnabled = config ? config.enabled : (consultant?.messaging_settings as any)?.auto_npo_reminder;
+
+            if (isEnabled && saved?.surgery_date && patient?.patient?.phone && consultant?.is_whatsauto_active) {
                 const surgeryDateObj = new Date(saved.surgery_date);
-                // Set default surgery time to 8:00 AM if no time component (assuming dates are entered as local midnight)
-                surgeryDateObj.setHours(8, 0, 0, 0); 
-                const reminderDate = new Date(surgeryDateObj.getTime() - 12 * 60 * 60 * 1000); // 12 hours before
+                // Set default surgery time to 8:00 AM if no time component
+                if (surgeryDateObj.getHours() === 0) {
+                    surgeryDateObj.setHours(8, 0, 0, 0); 
+                }
+                
+                const hoursBefore = config?.hours_before ?? 12;
+                const reminderDate = new Date(surgeryDateObj.getTime() - hoursBefore * 60 * 60 * 1000);
                 
                 // Only schedule if the reminder time is in the future
                 if (reminderDate > new Date()) {
-                    const message = patient.language === 'te' 
-                        ? `నమస్కారం ${patient.patient.name} గారు, రేపు మీకు సర్జరీ ఉన్నందున దయచేసి ఈ రోజు రాత్రి నుంచి ఏమీ తినవద్దు లేదా త్రాగవద్దు (NPO).`
-                        : `Hello ${patient.patient.name}, this is a gentle reminder to maintain NPO (nothing by mouth) starting tonight for your surgery tomorrow.`;
+                    const defaultTe = `నమస్కారం ${patient.patient.name} గారు, రేపు మీకు సర్జరీ ఉన్నందున దయచేసి ఈ రోజు రాత్రి నుంచి ఏమీ తినవద్దు లేదా త్రాగవద్దు (NPO).`;
+                    const defaultEn = `Hello ${patient.patient.name}, this is a gentle reminder to maintain NPO (nothing by mouth) starting tonight for your surgery tomorrow.`;
+                    
+                    const template = patient.language === 'te' 
+                        ? (config?.message_te || defaultTe) 
+                        : (config?.message_en || defaultEn);
+
+                    // Basic placeholder replacement
+                    const message = template.replace(/\{\{patient_name\}\}/g, patient.patient.name);
                         
                     scheduleService.upsertAutoTask({
                         task_type: 'whatsapp_message',

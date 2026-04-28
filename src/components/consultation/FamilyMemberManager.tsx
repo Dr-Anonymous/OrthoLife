@@ -15,7 +15,7 @@ interface FamilyMemberManagerProps {
     currentPatientId: string;
     currentPatientName: string;
     onSelectPatient?: (patientId: any) => void;
-    onViewHistory: (patientId: string) => void;
+    onViewHistory: (patientId: string, patientName?: string) => void;
 }
 
 interface Relationship {
@@ -290,7 +290,7 @@ export const FamilyMemberManager: React.FC<FamilyMemberManagerProps> = ({ curren
                                 <span className="font-medium shrink-0">{r.relationship_type} of</span>
                                 <span
                                     className="truncate text-primary cursor-pointer hover:underline"
-                                    onClick={() => onViewHistory(r.related_patient_id)}
+                                    onClick={() => onViewHistory(r.related_patient_id, r.related_patient?.name)}
                                     title="View History"
                                 >
                                     {r.related_patient?.name}
@@ -315,7 +315,7 @@ export const FamilyMemberManager: React.FC<FamilyMemberManagerProps> = ({ curren
                                 <span className="font-medium shrink-0">{r.relationship_type}:</span>
                                 <span
                                     className="truncate text-primary cursor-pointer hover:underline"
-                                    onClick={() => onViewHistory(r.patient_id)}
+                                    onClick={() => onViewHistory(r.patient_id, r.patient?.name)}
                                     title="View History"
                                 >
                                     {r.patient?.name}

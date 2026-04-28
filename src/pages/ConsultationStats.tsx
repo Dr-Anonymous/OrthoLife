@@ -5,7 +5,7 @@ import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, User, ChevronsRight, IndianRupee, BedDouble, X } from 'lucide-react';
+import { Loader2, User, ChevronsRight, IndianRupee, BedDouble, X, Settings, Users } from 'lucide-react';
 import { format, getMonth, getYear, parseISO, isValid } from 'date-fns';
 import { ConsultationDetailsTable } from '@/components/ConsultationDetailsTable';
 import { Consultation } from '@/types/consultation';
@@ -13,7 +13,6 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { useConsultant } from '@/context/ConsultantContext';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 import { TeamManagementModal } from '@/components/admin/TeamManagementModal';
-import { Settings, Users } from 'lucide-react';
 
 interface Admission {
   id: string;
@@ -89,7 +88,7 @@ const ConsultationStats = () => {
         fetchMonthlyDetails();
       }
     }
-  }, [selectedDate, selectedConsultantId, isConsultantLoading, isMasterAdmin]);
+  }, [selectedDate, selectedConsultantId, isConsultantLoading]);
 
   const fetchStats = async (date: Date) => {
     setShowDailyDetails(false);
@@ -319,7 +318,10 @@ const ConsultationStats = () => {
               <div className="pt-4 border-t space-y-4">
                 {/* Financial Breakdown */}
                 <div>
-                  <h3 className="text-sm font-semibold mb-2 text-primary">Financial Breakdown</h3>
+                  <h3 className="text-sm font-semibold mb-2 text-primary flex items-center gap-2">
+                    <IndianRupee className="w-4 h-4" />
+                    Financial Breakdown
+                  </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
 
                     <div className="bg-muted/30 p-2 rounded col-span-2">
@@ -464,12 +466,12 @@ const ConsultationStats = () => {
 
   if (!consultant) {
     return (
-      <DoctorLoginGate 
+      <DoctorLoginGate
         onLogin={(phone, name) => {
           localStorage.setItem('consultant_phone', phone);
           localStorage.setItem('consultant_name', name);
           window.location.reload();
-        }} 
+        }}
       />
     );
   }
@@ -556,7 +558,7 @@ const ConsultationStats = () => {
                   DayContent: (props) => {
                     const { date } = props;
                     const dayStr = format(date, 'yyyy-MM-dd');
-                    
+
                     const stats = filteredMonthlyData.length > 0 || showMonthlyDetails ? filteredMonthlyData : [];
 
                     const count = stats.filter(s => {
@@ -639,13 +641,13 @@ const ConsultationStats = () => {
         )}
       </div>
 
-      <TeamManagementModal 
-        isOpen={isTeamModalOpen} 
+      <TeamManagementModal
+        isOpen={isTeamModalOpen}
         onClose={() => {
           setIsTeamModalOpen(false);
           // Refresh consultants list to reflect any changes/additions
           fetchConsultantsList();
-        }} 
+        }}
       />
     </div>
   );

@@ -6,7 +6,7 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } fr
 import { Loader2, IndianRupee, ChevronDown } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
-import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName, escapeRegex } from '@/lib/utils';
+import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName, escapeRegex, areExtraDataEqual, arePatientsEqual } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { fetchRecentHistory, generateAutofillData, calculateLastVisitString } from '@/lib/consultation-history';
@@ -101,22 +101,7 @@ const t = (key: string, options?: { lng?: string, count?: number, unit?: string 
   return text;
 };
 
-// Keep patient comparison logic centralized so "dirty check" and "save path" stay consistent.
-const arePatientsEqual = (p1: Patient | null, p2: Patient | null) => {
-  if (!p1 || !p2) return p1 === p2;
-  const normalize = (val: any) => val === null || val === undefined ? '' : String(val).trim();
-  return (
-    normalize(p1.name) === normalize(p2.name) &&
-    normalize(p1.phone) === normalize(p2.phone) &&
-    normalize(p1.dob) === normalize(p2.dob) &&
-    normalize(p1.sex) === normalize(p2.sex) &&
-    normalize(p1.secondary_phone) === normalize(p2.secondary_phone) &&
-    normalize(p1.is_dob_estimated) === normalize(p2.is_dob_estimated) &&
-    normalize(p1.occupation) === normalize(p2.occupation) &&
-    normalize(p1.blood_group) === normalize(p2.blood_group) &&
-    normalize(p1.hometown) === normalize(p2.hometown)
-  );
-};
+// arePatientsEqual moved to @/lib/utils.ts
 
 /**
  * ConsultationPage Component
@@ -340,9 +325,11 @@ const ConsultationPage = () => {
   // History Modal State - generalized to support any patient
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyPatientId, setHistoryPatientId] = useState<string | null>(null);
+  const [historyPatientName, setHistoryPatientName] = useState<string | undefined>(undefined);
 
-  const handleOpenHistory = (patientId: string) => {
+  const handleOpenHistory = (patientId: string, patientName?: string) => {
     setHistoryPatientId(patientId);
+    setHistoryPatientName(patientName);
     setIsHistoryModalOpen(true);
   };
   const [isOnlyConsultation, setIsOnlyConsultation] = useState<boolean>(false);
@@ -1053,21 +1040,7 @@ const ConsultationPage = () => {
     if (!selectedConsultation || !editablePatientDetails || !initialPatientDetails) return { hasChanges: false, hasSignificantChanges: false };
 
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
-
-    // Prune empty strings before comparing extraData to avoid false positives on initialized fields
-    // Filter out empty medications before comparison
-    const pruneMeds = (data: any) => {
-      if (!data) return data;
-      const { medications, ...rest } = data;
-      const validMeds = (medications || []).filter((m: any) => m.composition && m.composition.trim().length > 0);
-      return { ...rest, medications: validMeds };
-    };
-
-    const extraDataChanged = JSON.stringify(pruneMeds(extraData)) !== JSON.stringify(pruneMeds(initialExtraData));
-
-    // Check Status Change (if manually changed? mostly status is derived or set on print)
-    // Actually status is usually changed by printing. 
-    // Let's stick to explicit fields for "unsaved" warning.
+    const extraDataChanged = !areExtraDataEqual(extraData, initialExtraData);
 
     const locationChanged = (selectedLocation || '').toLowerCase() !== (initialLocation || '').toLowerCase();
     const languageChanged = consultationLanguage !== initialLanguage;
@@ -1112,16 +1085,7 @@ const ConsultationPage = () => {
     }
     const statusChanged = newStatus !== selectedConsultation.status;
 
-    // Inside saveChanges, we must manually check for changes if extraDataOverride is provided
-    // to ensure we don't skip saving when passing fresh data from refs.
-    const pruneMeds = (data: any) => {
-      if (!data) return data;
-      const { medications, ...rest } = data;
-      const validMeds = (medications || []).filter((m: any) => m.composition && m.composition.trim().length > 0);
-      return { ...rest, medications: validMeds };
-    };
-
-    const extraDataChanged = JSON.stringify(pruneMeds(activeExtraData)) !== JSON.stringify(pruneMeds(initialExtraData));
+    const extraDataChanged = !areExtraDataEqual(activeExtraData, initialExtraData);
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
     const locationChanged = selectedHospital.name !== initialLocation;
     const languageChanged = consultationLanguage !== initialLanguage;
@@ -1262,23 +1226,32 @@ const ConsultationPage = () => {
 
         // Auto-schedule Follow-up Reminder- better to send it the day before the actual visit- so they can plan ahead- currently we are sending it on the day of the visit
         if (newStatus === 'completed' && consultant?.is_whatsauto_active && editablePatientDetails.phone) {
+          // Auto-schedule Follow-up Reminder (Customizable)
+          const config = (consultant?.messaging_settings as any)?.auto_followup_config;
           const scheduledDate = nextReviewDate
             ? new Date(`${nextReviewDate}T10:00:00.000Z`) // 10 AM on the review date
             : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 1 week from now if not set
 
-          // Send reminder 1 day before the visit so they can plan ahead
-          scheduledDate.setDate(scheduledDate.getDate() - 1);
+          // Use custom timing or default to 1 day before
+          const daysBefore = config?.days_before ?? 1;
+          scheduledDate.setDate(scheduledDate.getDate() - daysBefore);
 
-          const message = consultationLanguage === 'te'
-            ? `నమస్కారం ${editablePatientDetails.name} గారు, ఇది మీ ఫాలో-అప్ రిమైండర్. దయచేసి క్లినిక్‌ని సంప్రదించండి.`
-            : `Hello ${editablePatientDetails.name}, this is a gentle reminder for your follow-up consultation. Please contact the clinic.`;
+          const defaultTe = `నమస్కారం ${editablePatientDetails.name} గారు, ఇది మీ ఫాలో-అప్ రిమైండర్. దయచేసి క్లినిక్‌ని సంప్రదించండి.`;
+          const defaultEn = `Hello ${editablePatientDetails.name}, this is a gentle reminder for your follow-up consultation. Please contact the clinic.`;
+          
+          const template = consultationLanguage === 'te' 
+            ? (config?.message_te || defaultTe) 
+            : (config?.message_en || defaultEn);
+
+          // Basic placeholder replacement
+          const finalMessage = template.replace(/\{\{patient_name\}\}/g, editablePatientDetails.name);
 
           scheduleService.upsertAutoTask({
             task_type: 'whatsapp_message',
             scheduled_for: scheduledDate.toISOString(),
             payload: {
               number: editablePatientDetails.phone,
-              message: message,
+              message: finalMessage,
               consultant_id: consultant.phone,
               reference_id: selectedConsultation.id
             },
@@ -2571,7 +2544,7 @@ const ConsultationPage = () => {
                   lastVisitDate={lastVisitDate}
                   onHistoryClick={
                     (lastVisitDate && lastVisitDate !== 'First Consultation')
-                      ? () => selectedConsultation?.patient.id && handleOpenHistory(String(selectedConsultation.patient.id))
+                      ? () => selectedConsultation?.patient.id && handleOpenHistory(String(selectedConsultation.patient.id), selectedConsultation.patient.name)
                       : undefined
                   }
                   onPatientDetailsChange={handlePatientDetailsChange}
@@ -2851,6 +2824,7 @@ const ConsultationPage = () => {
           setHistoryPatientId(null);
         }}
         patientId={historyPatientId}
+        patientName={historyPatientName}
         onSelectConsultation={(consultation) => {
           const consultationDate = new Date(consultation.created_at);
           setSelectedDate(consultationDate);

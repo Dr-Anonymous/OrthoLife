@@ -12,8 +12,9 @@ interface PatientDetailsFormProps {
     name: string;
     phone: string;
     address: string;
+    language: string;
   };
-  onPatientDataChange: (data: { name: string; phone: string; address: string; }) => void;
+  onPatientDataChange: (data: { name: string; phone: string; address: string; language: string; }) => void;
   onSubmit: () => void;
   onBack: () => void;
 }
@@ -89,6 +90,29 @@ const PatientDetailsForm: React.FC<PatientDetailsFormProps> = ({
             rows={3}
             required
           />
+        </div>
+        <div className="space-y-2">
+          <Label>Preferred Language for Reminders</Label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={patientData.language === 'en' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 h-8 text-xs"
+              onClick={() => handleInputChange('language', 'en')}
+            >
+              English
+            </Button>
+            <Button
+              type="button"
+              variant={patientData.language === 'te' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 h-8 text-xs font-bold"
+              onClick={() => handleInputChange('language', 'te')}
+            >
+              తెలుగు
+            </Button>
+          </div>
         </div>
         <div className="p-4 bg-blue-50 rounded-lg">
           <div className="flex items-start gap-2">

@@ -10,6 +10,7 @@ interface PatientHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   patientId: string | null;
+  patientName?: string;
   onSelectConsultation?: (consultation: any) => void;
 }
 
@@ -24,7 +25,7 @@ interface PatientHistoryModalProps {
  * - Handles loading and error states.
  * - Clickable consultations to load into main view
  */
-const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClose, patientId, onSelectConsultation }) => {
+const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClose, patientId, patientName, onSelectConsultation }) => {
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -68,7 +69,7 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Patient Consultation History</DialogTitle>
+          <DialogTitle>Consultation History {patientName ? `of ${patientName}` : ''}</DialogTitle>
         </DialogHeader>
         <div className="py-4 max-h-[70vh] overflow-y-auto">
           {isLoading ? (
@@ -89,9 +90,9 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                   <div className="absolute -left-5 top-1.5 h-4 w-4 rounded-full bg-primary"></div>
                   <div className="pl-4">
                     <div className="p-4 bg-muted/50 rounded-lg">
-                      <ConsultationCard 
-                        data={{ 
-                          ...item.consultation_data, 
+                      <ConsultationCard
+                        data={{
+                          ...item.consultation_data,
                           referred_by: item.referred_by,
                           created_at: item.created_at,
                           location: item.location,
@@ -101,10 +102,10 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                           allergies: item.patient?.allergies,
                           sex: item.patient?.sex,
                           dob: item.patient?.dob,
-                          consultant_name: typeof item.consultant?.name === 'object' 
+                          consultant_name: typeof item.consultant?.name === 'object'
                             ? item.consultant.name.en
                             : (item.consultant?.name || '')
-                        }} 
+                        }}
                       />
                     </div>
                   </div>
