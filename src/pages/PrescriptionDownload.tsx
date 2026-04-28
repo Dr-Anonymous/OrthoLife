@@ -223,6 +223,12 @@ const PrescriptionDownload = () => {
                         showMargins={false}
                         consultant={consultationConsultant}
                         showSignSeal={true}
+                        printOptions={(() => {
+                            if (!consultationConsultant) return undefined;
+                            const settings = consultationConsultant.messaging_settings as any;
+                            const location = consultation.location || 'OrthoLife';
+                            return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                        })()}
                     />
                 )}
             </div>
@@ -278,6 +284,12 @@ const PrescriptionDownload = () => {
                             showMargins={false}
                             consultant={consultationConsultant}
                             showSignSeal={true}
+                            printOptions={(() => {
+                                if (!consultationConsultant) return undefined;
+                                const settings = consultationConsultant.messaging_settings as any;
+                                const location = consultation.location || 'OrthoLife';
+                                return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                            })()}
                         />
                     )}
                 </div>

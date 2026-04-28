@@ -486,7 +486,10 @@ const ConsultationPage = () => {
     followup: true,
     procedure: true,
     referrals: true,
-    orthotics: true
+    orthotics: true,
+    letterheadMode: false,
+    fontSize: 'standard',
+    signatureAlignment: 'right'
   });
 
   // Load profile preference on location change
@@ -505,7 +508,22 @@ const ConsultationPage = () => {
 
       // 3. Default to full print options if not set in DB
       if (dbPrintOptions !== undefined) {
-        setPrintOptions(dbPrintOptions);
+        setPrintOptions({
+          vitals: true,
+          clinicalNotes: true,
+          diagnosis: true,
+          investigations: true,
+          medications: true,
+          advice: true,
+          followup: true,
+          procedure: true,
+          referrals: true,
+          orthotics: true,
+          letterheadMode: false,
+          fontSize: 'standard',
+          signatureAlignment: 'right',
+          ...dbPrintOptions
+        });
       } else {
         setPrintOptions({
           vitals: true,
@@ -517,7 +535,10 @@ const ConsultationPage = () => {
           followup: true,
           procedure: true,
           referrals: true,
-          orthotics: true
+          orthotics: true,
+          letterheadMode: false,
+          fontSize: 'standard',
+          signatureAlignment: 'right'
         });
       }
     }

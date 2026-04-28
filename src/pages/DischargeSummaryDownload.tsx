@@ -114,6 +114,28 @@ const DischargeSummaryDownload = () => {
         }
     };
 
+    const getPrintOptions = () => {
+        if (!consultationConsultant?.messaging_settings) return undefined;
+        const settings = consultationConsultant.messaging_settings as any;
+        const locationPrintOptions = settings.location_print_options || {};
+        
+        // Try to get location from summaryData if available, or first key
+        const location = (summaryData as any)?.location || Object.keys(locationPrintOptions)[0];
+        if (!location) return undefined;
+
+        const dbOptions = locationPrintOptions[location];
+        if (!dbOptions) return undefined;
+
+        return {
+            letterheadMode: false,
+            fontSize: 'standard',
+            signatureAlignment: 'right',
+            ...dbOptions
+        };
+    };
+
+    const printOptions = getPrintOptions();
+
     const handlePatientSelect = (selectedPatient: any) => {
         setIsPatientSelectionModalOpen(false);
         fetchSummaryForPatient(selectedPatient);
@@ -220,6 +242,7 @@ const DischargeSummaryDownload = () => {
                         dischargeDate={summaryData.savedDischargeDate}
                         showMargins={false}
                         consultant={consultationConsultant}
+                        printOptions={printOptions}
                     />
                 )}
             </div>
@@ -269,6 +292,7 @@ const DischargeSummaryDownload = () => {
                             dischargeDate={summaryData.savedDischargeDate}
                             showMargins={false}
                             consultant={consultationConsultant}
+                            printOptions={printOptions}
                         />
                     )}
                 </div>

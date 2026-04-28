@@ -61,18 +61,21 @@ interface PrescriptionProps {
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
 export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, hospitalName, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, printOptions, showMargins = true, consultant }, ref) => {
-    const effectivePrintOptions: PrintOptions = printOptions || {
-        vitals: true,
-        clinicalNotes: true,
-        diagnosis: true,
-        investigations: true,
-        medications: true,
-        advice: true,
-        followup: true,
-        procedure: true,
-        referrals: true,
-        orthotics: true
-    };
+  const effectivePrintOptions: PrintOptions = printOptions || {
+    vitals: true,
+    clinicalNotes: true,
+    diagnosis: true,
+    investigations: true,
+    medications: true,
+    advice: true,
+    followup: true,
+    procedure: true,
+    referrals: true,
+    orthotics: true,
+    letterheadMode: false,
+    fontSize: 'standard',
+    signatureAlignment: 'right'
+  };
   const TRANSLATIONS = {
     en: {
       'prescription.advice': 'Advice',
@@ -124,52 +127,65 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   );
 
   return (
-    <div ref={ref} className={cn("font-sans text-sm bg-background text-foreground mx-auto print:m-0", className)} style={{ fontFamily: 'var(--font-sans)', width: '210mm' }} data-testid="prescription">
+    <div ref={ref}
+      className={cn(
+        "font-sans bg-background text-foreground mx-auto print:m-0",
+        effectivePrintOptions.fontSize === 'compact' ? 'text-[11px]' :
+          effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
+        className
+      )}
+      style={{ fontFamily: 'var(--font-sans)', width: '210mm' }}
+      data-testid="prescription"
+    >
       <div className={cn(
         "min-h-[296mm] py-8 flex flex-col relative box-border w-full",
         showMargins ? "pl-16 pr-8" : "px-8"
       )}>
-        {/* Header */}
-        <header
-          className={cn(
-            "flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg gap-4",
-            forceDesktop ? "flex-row" : "flex-col sm:flex-row"
-          )}
-          style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
-        >
-          <div className="flex items-center">
-            <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", forceDesktop ? "h-20" : "h-16 sm:h-20", logoUrl !== '/images/logos/logo.png' && (forceDesktop ? "h-24" : "sm:h-24"))} />
-          </div>
-          <div className={cn(forceDesktop ? "text-right" : "text-center sm:text-right")}>
-            <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>
-              {cName}
-            </h2>
-            <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
-              {cQuals}
-            </p>
-            <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
-              {cSpec}
-            </p>
-            <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
-              {consultant?.phone && (
-                <a href={`tel:+91${consultant.phone}`} className="font-semibold hover:underline">📞 {consultant.phone.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
-              )}
-              {consultant?.email && (
-                <>
-                  <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
-                  <a href={`mailto:${consultant.email}`} className="font-semibold hover:underline">📧 {consultant.email}</a>
-                </>
-              )}
-              {!consultant && (
-                <>
-                  <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
-                  <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
-                  <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
-                </>
-              )}
-            </p>
-          </div>
-        </header>
+        {/* Header or Spacer for Letterhead */}
+        {effectivePrintOptions.letterheadMode ? (
+          <div className="h-[3.3cm] w-full" />
+        ) : (
+          <header
+            className={cn(
+              "flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg gap-4",
+              forceDesktop ? "flex-row" : "flex-col sm:flex-row"
+            )}
+            style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
+          >
+            <div className="flex items-center">
+              <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", forceDesktop ? "h-20" : "h-16 sm:h-20", logoUrl !== '/images/logos/logo.png' && (forceDesktop ? "h-24" : "sm:h-24"))} />
+            </div>
+            <div className={cn(forceDesktop ? "text-right" : "text-center sm:text-right")}>
+              <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>
+                {cName}
+              </h2>
+              <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
+                {cQuals}
+              </p>
+              <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>
+                {cSpec}
+              </p>
+              <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
+                {consultant?.phone && (
+                  <a href={`tel:+91${consultant.phone}`} className="font-semibold hover:underline">📞 {consultant.phone.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
+                )}
+                {consultant?.email && (
+                  <>
+                    <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
+                    <a href={`mailto:${consultant.email}`} className="font-semibold hover:underline">📧 {consultant.email}</a>
+                  </>
+                )}
+                {!consultant && (
+                  <>
+                    <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
+                    <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
+                    <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
+                  </>
+                )}
+              </p>
+            </div>
+          </header>
+        )}
 
         <main className="flex-grow space-y-2 pt-1">
           {/* Title */}
@@ -252,67 +268,67 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           {/* Medical Info */}
           <section className="space-y-4">
             {consultation.complaints && effectivePrintOptions.clinicalNotes && (
-                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
-                    <Stethoscope className="h-4 w-4" />
-                    Complaints:
-                  </h3>
-                  <p className="whitespace-pre-wrap">{consultation.complaints}</p>
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4" />
+                  Complaints:
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.complaints}</p>
+              </div>
+            )}
+            {consultation.medicalHistory && effectivePrintOptions.clinicalNotes && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Past History:
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.medicalHistory}</p>
+              </div>
+            )}
+            {consultation.findings && effectivePrintOptions.clinicalNotes && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1">Findings:</h3>
+                <p className="whitespace-pre-wrap">{consultation.findings}</p>
+              </div>
+            )}
+            {consultation.investigations && effectivePrintOptions.investigations && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1">Investigations:</h3>
+                <p className="whitespace-pre-wrap">{consultation.investigations}</p>
+              </div>
+            )}
+            {consultation.diagnosis && effectivePrintOptions.diagnosis && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis:</h3>
+                <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
+              </div>
+            )}
+            {consultation.procedure && effectivePrintOptions.procedure && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
+                  <Syringe className="h-4 w-4" />
+                  <span>Procedure Done:</span>
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.procedure}</p>
+              </div>
+            )}
+            {consultation.advice && effectivePrintOptions.advice && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>{t('prescription.advice')}:</span>
+                </h3>
+                <div className="whitespace-pre-wrap">
+                  {consultation.advice.split('\n').map((line, i) => {
+                    if (!line.trim()) return <br key={i} />;
+                    const isGuide = line.toLowerCase().includes('guide');
+                    const displayLine = isGuide ? cleanAdviceLine(line) : line;
+                    return <div key={i}>{displayLine}</div>
+                  })}
                 </div>
-              )}
-              {consultation.medicalHistory && effectivePrintOptions.clinicalNotes && (
-                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
-                    Past History:
-                  </h3>
-                  <p className="whitespace-pre-wrap">{consultation.medicalHistory}</p>
-                </div>
-              )}
-              {consultation.findings && effectivePrintOptions.clinicalNotes && (
-                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1">Findings:</h3>
-                  <p className="whitespace-pre-wrap">{consultation.findings}</p>
-                </div>
-              )}
-              {consultation.investigations && effectivePrintOptions.investigations && (
-                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1">Investigations:</h3>
-                  <p className="whitespace-pre-wrap">{consultation.investigations}</p>
-                </div>
-              )}
-              {consultation.diagnosis && effectivePrintOptions.diagnosis && (
-                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis:</h3>
-                  <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
-                </div>
-              )}
-              {consultation.procedure && effectivePrintOptions.procedure && (
-                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
-                    <Syringe className="h-4 w-4" />
-                    <span>Procedure Done:</span>
-                  </h3>
-                  <p className="whitespace-pre-wrap">{consultation.procedure}</p>
-                </div>
-              )}
-              {consultation.advice && effectivePrintOptions.advice && (
-                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2 leading-none">
-                    <MessageSquare className="h-4 w-4" />
-                    <span>{t('prescription.advice')}:</span>
-                  </h3>
-                  <div className="whitespace-pre-wrap">
-                    {consultation.advice.split('\n').map((line, i) => {
-                      if (!line.trim()) return <br key={i} />;
-                      const isGuide = line.toLowerCase().includes('guide');
-                      const displayLine = isGuide ? cleanAdviceLine(line) : line;
-                      return <div key={i}>{displayLine}</div>
-                    })}
-                  </div>
-                </div>
-              )}
-            </section>
+              </div>
+            )}
+          </section>
 
           {/* Medications */}
           {hasMedications && effectivePrintOptions.medications && (
@@ -447,10 +463,13 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           )}
         </main>
 
-        {/* Footer Group */}
         <div className="mt-auto break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
           {showSignSeal && (consultant?.sign_url || consultant?.seal_url) && (
-            <div className="flex justify-end mb-2 mr-4">
+            <div className={cn(
+              "flex mb-2",
+              effectivePrintOptions.signatureAlignment === 'left' ? "justify-start ml-4" :
+                effectivePrintOptions.signatureAlignment === 'center' ? "justify-center" : "justify-end mr-4"
+            )}>
               <div className="relative flex items-center justify-center">
                 {consultant?.sign_url && (
                   <img src={consultant.sign_url} alt="Doctor's Signature" className="h-16 w-auto relative z-10" />
@@ -463,13 +482,15 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
               </div>
             </div>
           )}
-          <footer
-            className="mt-4 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center bg-white"
-            style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
-          >
-            <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
-            <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />
-          </footer>
+          {!effectivePrintOptions.letterheadMode && (
+            <footer
+              className="mt-4 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center bg-white"
+              style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
+            >
+              <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
+              <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />
+            </footer>
+          )}
         </div>
       </div>
 
@@ -517,7 +538,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <h3 className="text-base sm:text-lg font-black text-primary uppercase leading-tight mb-1">{cName}</h3>
                     <p className="text-[10px] sm:text-xs font-bold text-foreground/80 uppercase mb-0.5">{cQuals}</p>
                     <p className="text-[10px] sm:text-xs font-black text-primary uppercase">{cSpec}</p>
-                    
+
                     {consultant?.lead_services && consultant.lead_services.length > 0 && (
                       <div className="mt-2 w-full pt-2 border-t border-primary/10">
                         <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">

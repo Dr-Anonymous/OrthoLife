@@ -267,4 +267,7 @@ export interface PrintOptions {
     procedure: boolean;
     referrals: boolean;
     orthotics: boolean;
+    letterheadMode?: boolean;
+    fontSize?: 'standard' | 'compact' | 'large';
+    signatureAlignment?: 'left' | 'center' | 'right';
 }

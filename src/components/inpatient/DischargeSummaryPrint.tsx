@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { DischargeData, CourseDetails } from '@/types/inPatients';
 import { Clock, Calendar, Pill, Sun, CloudSun, Moon, AlertTriangle, ClipboardList, Activity } from 'lucide-react';
-import { Consultant } from '@/types/consultation';
+import { Consultant, PrintOptions } from '@/types/consultation';
 import { DAMA_TEXT } from '@/utils/dischargeConstants';
 
 interface DischargeSummaryPrintProps {
@@ -13,6 +13,7 @@ interface DischargeSummaryPrintProps {
         sex: string;
         phone: string;
         id: string;
+        location?: string;
     };
     courseDetails: CourseDetails;
     dischargeData: DischargeData;
@@ -24,6 +25,8 @@ interface DischargeSummaryPrintProps {
     dischargeDate?: string;
     showMargins?: boolean;
     consultant?: Consultant | null;
+    printOptions?: PrintOptions;
+    showSignSeal?: boolean;
 }
 
 export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeSummaryPrintProps>(({
@@ -37,8 +40,15 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     forceDesktop,
     dischargeDate,
     showMargins = true,
-    consultant
+    consultant,
+    printOptions,
+    showSignSeal = true
 }, ref) => {
+    const effectivePrintOptions = printOptions || {
+        letterheadMode: false,
+        fontSize: 'standard',
+        signatureAlignment: 'right'
+    };
     const TRANSLATIONS: any = {
         en: {
             'discharge.diagnosis': 'Diagnosis',
@@ -99,8 +109,10 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
         <div
             ref={ref}
             className={cn(
-                "font-sans text-sm bg-background text-foreground min-h-[296mm] print:p-0 mx-auto",
+                "font-sans bg-background text-foreground min-h-[296mm] print:p-0 mx-auto",
                 showMargins ? "pl-16 pr-8 py-8" : "px-8 py-8",
+                effectivePrintOptions.fontSize === 'compact' ? 'text-[11px]' :
+                    effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
                 className
             )}
             style={{ fontFamily: 'var(--font-sans)', width: '210mm' }}
@@ -110,46 +122,52 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                     <tr><td><div className="h-4"></div></td></tr>
                 </thead>
                 <tfoot className="print:table-footer-group">
-                    <tr>
-                        <td className="w-full">
-                            {/* Hidden spacer to reserve space in flow so content doesn't hit fixed footer */}
-                            <div className="h-28 print:block hidden"></div>
-                        </td>
-                    </tr>
+                    {!effectivePrintOptions.letterheadMode && (
+                        <tr>
+                            <td className="w-full">
+                                {/* Hidden spacer to reserve space in flow so content doesn't hit fixed footer */}
+                                <div className="h-28 print:block hidden"></div>
+                            </td>
+                        </tr>
+                    )}
                 </tfoot>
                 <tbody>
                     <tr>
                         <td className="w-full">
-                            {/* Header - Moved inside body to be part of flow, or could be in thead if repeating desired */}
-                            <header
-                                className={cn(
-                                    "flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg gap-4 mb-4",
-                                    forceDesktop ? "flex-row" : "flex-col sm:flex-row"
-                                )}
-                                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
-                            >
-                                <div className="flex items-center">
-                                    <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", forceDesktop ? "h-20" : "h-16 sm:h-20", logoUrl !== '/images/logos/logo.png' && (forceDesktop ? "h-24" : "sm:h-24"))} />
-                                </div>
-                                <div className={cn(forceDesktop ? "text-right" : "text-center sm:text-right")}>
-                                    <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>{cName}</h2>
-                                    <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cQuals}</p>
-                                    <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cSpec}</p>
-                                    <p className={cn("mt-2 text-gray-700 whitespace-nowrap", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
-                                        {consultant?.phone ? (
-                                            <a href={`tel:+91${consultant.phone}`} className="font-semibold hover:underline">📞 {consultant.phone.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
-                                        ) : (
-                                            <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
-                                        )}
-                                        <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
-                                        {consultant?.email ? (
-                                            <a href={`mailto:${consultant.email}`} className="font-semibold hover:underline">📧 {consultant.email}</a>
-                                        ) : (
-                                            <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
-                                        )}
-                                    </p>
-                                </div>
-                            </header>
+                            {/* Header or Spacer for Letterhead */}
+                            {effectivePrintOptions.letterheadMode ? (
+                                <div className="h-[3.3cm] w-full" />
+                            ) : (
+                                <header
+                                    className={cn(
+                                        "flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg gap-4 mb-4",
+                                        forceDesktop ? "flex-row" : "flex-col sm:flex-row"
+                                    )}
+                                    style={{ backgroundImage: noBackground ? 'none' : backgroundPattern }}
+                                >
+                                    <div className="flex items-center">
+                                        <img src={logoUrl} alt="Clinic Logo" className={cn("w-auto", forceDesktop ? "h-20" : "h-16 sm:h-20", logoUrl !== '/images/logos/logo.png' && (forceDesktop ? "h-24" : "sm:h-24"))} />
+                                    </div>
+                                    <div className={cn(forceDesktop ? "text-right" : "text-center sm:text-right")}>
+                                        <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>{cName}</h2>
+                                        <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cQuals}</p>
+                                        <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cSpec}</p>
+                                        <p className={cn("mt-2 text-gray-700 whitespace-nowrap", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
+                                            {consultant?.phone ? (
+                                                <a href={`tel:+91${consultant.phone}`} className="font-semibold hover:underline">📞 {consultant.phone.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
+                                            ) : (
+                                                <a href="tel:+919866812555" className="font-semibold hover:underline">📞 98668 12555</a>
+                                            )}
+                                            <span className={cn("mx-2", !forceDesktop && "hidden sm:inline")}>|</span>
+                                            {consultant?.email ? (
+                                                <a href={`mailto:${consultant.email}`} className="font-semibold hover:underline">📧 {consultant.email}</a>
+                                            ) : (
+                                                <a href="mailto:info@ortho.life" className="font-semibold hover:underline">📧 info@ortho.life</a>
+                                            )}
+                                        </p>
+                                    </div>
+                                </header>
+                            )}
 
                             <main className="flex-grow space-y-2 pt-1 pb-4">
                                 {/* Title */}
@@ -359,9 +377,12 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                 )}
 
                                 {/* Signature Block */}
-                                {(consultant?.sign_url || consultant?.seal_url) && (
-                                    <div className="mt-8 flex justify-between items-end px-8 break-inside-avoid relative z-[60]" style={{ pageBreakInside: 'avoid' }}>
-                                        <div></div>
+                                {showSignSeal && (consultant?.sign_url || consultant?.seal_url) && (
+                                    <div className={cn(
+                                        "mt-8 flex items-end px-8 break-inside-avoid relative z-[60]",
+                                        effectivePrintOptions.signatureAlignment === 'left' ? "justify-start" :
+                                            effectivePrintOptions.signatureAlignment === 'center' ? "justify-center" : "justify-end"
+                                    )} style={{ pageBreakInside: 'avoid' }}>
                                         <div className="text-center">
                                             {consultant?.sign_url && (
                                                 <img src={consultant.sign_url} alt="Doctor's Signature" className="h-16" />
@@ -381,16 +402,18 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
             </table>
 
             {/* Footer - Visual only, fixed for print, flex box for screen */}
-            <footer
-                className={cn(
-                    "mt-auto w-full p-2 border-t-2 border-primary-light flex justify-between items-center bg-white z-50 print:fixed print:bottom-0 print:left-0 print:right-0 print:mb-0 mb-4 break-inside-avoid",
-                    showMargins ? "print:pl-16 print:pr-8 pl-16 pr-8" : "print:px-8 px-8"
-                )}
-                style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
-            >
-                <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
-                <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
-            </footer>
+            {!effectivePrintOptions.letterheadMode && (
+                <footer
+                    className={cn(
+                        "mt-auto w-full p-2 border-t-2 border-primary-light flex justify-between items-center bg-white z-50 print:fixed print:bottom-0 print:left-0 print:right-0 print:mb-0 mb-4 break-inside-avoid",
+                        showMargins ? "print:pl-16 print:pr-8 pl-16 pr-8" : "print:px-8 px-8"
+                    )}
+                    style={{ backgroundImage: noBackground ? 'none' : backgroundPattern, pageBreakInside: 'avoid' }}
+                >
+                    <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
+                    <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
+                </footer>
+            )}
         </div>
     );
 });

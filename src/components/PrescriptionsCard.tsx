@@ -337,6 +337,13 @@ const PrescriptionsCard: React.FC<PrescriptionsCardProps> = ({ patientId, patien
                 showMargins={false}
                 consultant={printingConsultant && printingConsultant.id ? printingConsultant : null}
                 showSignSeal={true}
+                printOptions={(() => {
+                  const activeConsultant = printingConsultant && printingConsultant.id ? printingConsultant : null;
+                  if (!activeConsultant) return undefined;
+                  const settings = activeConsultant.messaging_settings as any;
+                  const location = printingConsultation.location || 'OrthoLife';
+                  return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                })()}
               />
             )}
           </div>

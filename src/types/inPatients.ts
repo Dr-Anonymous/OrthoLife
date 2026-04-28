@@ -6,6 +6,7 @@ export interface PatientSnapshot {
     dob: string | null;
     sex: string | null;
     phone: string;
+    location?: string;
 }
 
 export interface CourseDetails {
@@ -50,6 +51,7 @@ export interface InPatient {
     emergency_contact?: string;
     discharge_summary?: DischargeSummary | null;
     language?: string | null;
+    location?: string | null;
     payment_mode?: string;
     total_bill?: number;
     consultant_cut?: number;

@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Loader2, Save, Printer, MoreVertical, FileText, PackagePlus, CloudOff, Send, Users, Bot } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { PrintOptions } from '@/types/consultation';
@@ -12,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown } from 'lucide-react';
 import { MessagingSettingsModal } from '@/components/consultant/MessagingSettingsModal';
+import { PrintSettingsModal } from './PrintSettingsModal';
 
 interface ConsultationActionsProps {
     isOnline: boolean;
@@ -79,6 +79,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     const [showScrollHint, setShowScrollHint] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
+    const [isPrintSettingsModalOpen, setIsPrintSettingsModalOpen] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -197,11 +198,63 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
         }
     };
 
+    const batchUpdatePrintSettings = async (profile: boolean, signSeal: boolean, options: PrintOptions) => {
+        if (!consultant || !currentLocation || isReadOnly) return;
+
+        try {
+            const currentSettings = consultant.messaging_settings || {};
+            let newSettings = { ...currentSettings };
+
+            // Update print options
+            newSettings.location_print_options = {
+                ...(currentSettings.location_print_options || {}),
+                [currentLocation]: options
+            };
+
+            // Update overrides
+            const printOverrides = currentSettings.location_print_overrides || {};
+            newSettings.location_print_overrides = {
+                ...printOverrides,
+                [currentLocation]: {
+                    ...(printOverrides[currentLocation] || {}),
+                    show_profile: profile,
+                    show_sign_seal: signSeal
+                }
+            };
+
+            const { error } = await supabase
+                .from('consultants')
+                .update({ messaging_settings: newSettings })
+                .eq('id', consultant.id);
+
+            if (error) throw error;
+
+            await refreshConsultant();
+
+            // Sync parent states
+            onToggleDoctorProfile?.(profile);
+            onToggleSignSeal?.(signSeal);
+            onUpdatePrintOptions?.(options);
+
+            toast({
+                title: "Settings Updated",
+                description: `All preferences saved for ${currentLocation}`
+            });
+        } catch (error) {
+            console.error("Error batch updating settings:", error);
+            toast({
+                title: "Error",
+                description: "Failed to save settings",
+                variant: "destructive"
+            });
+        }
+    };
+
     const toggleAutoFollowup = async () => {
         await updateLocationSetting('followup', !isAutoFollowupEnabled);
     };
-    const toggleProfile = () => updateLocationSetting('profile', !isDoctorProfileEnabled);
-    const toggleSignSeal = () => updateLocationSetting('sign_seal', !isSignSealEnabled);
+    const toggleProfile = (val: boolean) => updateLocationSetting('profile', val);
+    const toggleSignSeal = (val: boolean) => updateLocationSetting('sign_seal', val);
 
     return (
         <div className="pt-6 flex flex-col sm:flex-row items-center sm:justify-end gap-4">
@@ -288,91 +341,24 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
 
                                 <DropdownMenuSeparator className="my-2" />
 
-                                <div
-                                    className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        toggleProfile();
-                                    }}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Print Doctor Profile</span>
-                                        <Switch
-                                            checked={isDoctorProfileEnabled}
-                                            onCheckedChange={() => { }} // Handled by parent div click
-                                            className="scale-75"
-                                        />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground mt-1">
-                                        Include doctor profile in print.
-                                    </p>
-                                </div>
-
-                                <div
-                                    className="p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors mb-2"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        toggleSignSeal();
-                                    }}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Print Sign & Seal</span>
-                                        <Switch
-                                            checked={isSignSealEnabled}
-                                            onCheckedChange={() => { }} // Handled by parent div click
-                                            className="scale-75"
-                                        />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground mt-1">
-                                        Add digital signature and seal.
-                                    </p>
-                                </div>
-
-                                <div className="p-3 bg-muted/30 rounded-md border border-primary/10 mb-2">
-                                    <h3 className="text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Include in Print</h3>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {[
-                                            { id: 'vitals', label: 'Vitals' },
-                                            { id: 'clinicalNotes', label: 'Clinical Notes' },
-                                            { id: 'investigations', label: 'Investigations' },
-                                            { id: 'diagnosis', label: 'Diagnosis' },
-                                            { id: 'procedure', label: 'Procedure' },
-                                            { id: 'advice', label: 'Advice' },
-                                            { id: 'medications', label: 'Medications' },
-                                            { id: 'orthotics', label: 'Orthotics' },
-                                            { id: 'referrals', label: 'Referrals' },
-                                            { id: 'followup', label: 'Follow-up' }
-                                        ].map((field) => {
-                                            const isSelected = printOptions?.[field.id as keyof PrintOptions];
-                                            return (
-                                                <Badge
-                                                    key={field.id}
-                                                    variant={isSelected ? "default" : "outline"}
-                                                    className={cn(
-                                                        "cursor-pointer px-2 py-0.5 text-[10px] transition-all",
-                                                        isSelected ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
-                                                    )}
-                                                    onClick={() => {
-                                                        if (printOptions) {
-                                                            const newPrintOptions = {
-                                                                ...printOptions,
-                                                                [field.id]: !isSelected
-                                                            };
-                                                            updateLocationSetting('print_options', newPrintOptions);
-                                                        }
-                                                    }}
-                                                >
-                                                    {field.label}
-                                                </Badge>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
                                 <div className="space-y-2">
+                                    <div 
+                                        onClick={() => setIsPrintSettingsModalOpen(true)} 
+                                        className="flex items-center justify-between p-2 cursor-pointer rounded-md hover:bg-accent transition-colors"
+                                    >
+                                        <div className="flex flex-col w-full">
+                                            <div className="flex items-center gap-2">
+                                                <Printer className="w-4 h-4 text-muted-foreground" />
+                                                <span className="text-sm">Print Settings</span>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground mt-1">
+                                                Configure profile, signature, and printable fields.
+                                            </p>
+                                        </div>
+                                    </div>
                                     <div
                                         className={cn(
-                                            "p-2 bg-muted/30 rounded-md cursor-pointer hover:bg-muted/50 transition-colors",
+                                            "p-2 rounded-md cursor-pointer hover:bg-accent transition-colors",
                                             (!currentLocation || isReadOnly) && "opacity-50 cursor-not-allowed"
                                         )}
                                         onClick={(e) => {
@@ -389,7 +375,10 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                                         }}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <span className={cn("text-sm font-medium", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")}>Auto-send WhatsApp</span>
+                                            <div className="flex items-center gap-2">
+                                                <Send size={14} className="text-muted-foreground" />
+                                                <span className="text-sm">Auto-send WhatsApp</span>
+                                            </div>
                                             <Switch
                                                 checked={isWhatsAppEnabled && isAutoSendEnabled && !isReadOnly}
                                                 onCheckedChange={() => { }} // Handled by parent div click
@@ -407,7 +396,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
 
                                     <div
                                         className={cn(
-                                            "p-2 bg-primary/5 border border-primary/10 rounded-md cursor-pointer hover:bg-primary/10 transition-colors",
+                                            "p-2 rounded-md cursor-pointer hover:bg-accent transition-colors",
                                             (!currentLocation || !isWhatsAppEnabled || isReadOnly) && "opacity-50 cursor-not-allowed"
                                         )}
                                         onClick={(e) => {
@@ -425,8 +414,8 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <Bot size={14} className={cn("text-primary", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")} />
-                                                <span className={cn("text-sm font-medium text-primary", (!isWhatsAppEnabled || isReadOnly) && "text-muted-foreground")}>Auto follow-up reminders</span>
+                                                <Bot size={14} className="text-muted-foreground" />
+                                                <span className="text-sm">Auto follow-up reminders</span>
                                             </div>
                                             <Switch
                                                 checked={isWhatsAppEnabled && isAutoFollowupEnabled && !isReadOnly}
@@ -435,14 +424,14 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                                                 disabled={isReadOnly}
                                             />
                                         </div>
-                                        <p className="text-[10px] text-primary/60 mt-1">
+                                        <p className="text-[10px] text-muted-foreground mt-1">
                                             {isReadOnly ? "Read-only mode: Settings cannot be changed." :
                                                 !isWhatsAppEnabled ? "Contact admin to activate automated reminders." :
                                                     currentLocation ? `Automated reminders for ${currentLocation}.` : "Select a location to enable."}
                                         </p>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             className="w-full text-[10px] h-7 mt-2 text-primary hover:text-primary hover:bg-primary/5 border border-primary/20 border-dashed"
                                             onClick={(e) => {
                                                 e.preventDefault();
@@ -466,10 +455,23 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <MessagingSettingsModal 
-                isOpen={isMessagingSettingsModalOpen} 
-                onClose={() => setIsMessagingSettingsModalOpen(false)} 
+            <MessagingSettingsModal
+                isOpen={isMessagingSettingsModalOpen}
+                onClose={() => setIsMessagingSettingsModalOpen(false)}
                 initialTab="followup"
+            />
+            <PrintSettingsModal
+                isOpen={isPrintSettingsModalOpen}
+                onClose={() => setIsPrintSettingsModalOpen(false)}
+                isDoctorProfileEnabled={isDoctorProfileEnabled}
+                isSignSealEnabled={isSignSealEnabled}
+                printOptions={printOptions}
+                onToggleProfile={toggleProfile}
+                onToggleSignSeal={toggleSignSeal}
+                onUpdatePrintOptions={(options) => updateLocationSetting('print_options', options)}
+                onSaveAll={batchUpdatePrintSettings}
+                isReadOnly={isReadOnly}
+                currentLocation={currentLocation}
             />
         </div>
     );

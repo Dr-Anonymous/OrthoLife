@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useReactToPrint } from 'react-to-print';
 import { DischargeSummaryPrint } from '@/components/inpatient/DischargeSummaryPrint';
+import { PrintSettingsModal } from '@/components/consultation/PrintSettingsModal';
 import { Printer } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getMatchingGuides } from '@/lib/guideMatching';
@@ -87,10 +88,11 @@ import { SchedulePopover } from '@/components/SchedulePopover';
 import { scheduleService } from '@/utils/scheduleService';
 import { getLocalDateTime } from '@/utils/dateUtils';
 import { MessagingSettingsModal } from '@/components/consultant/MessagingSettingsModal';
+import { useHospitals } from '@/context/HospitalsContext';
 
 // --- Types ---
 import { InPatient, DischargeSummary, DischargeData } from '@/types/inPatients';
-import { Consultant } from '@/types/consultation';
+import { Consultant, PrintOptions } from '@/types/consultation';
 
 
 interface AutofillProtocol {
@@ -113,6 +115,7 @@ const cleanText = (html: string) => html.replace(/<[^>]*>?/gm, ' ');
 
 const InPatientManagement = () => {
     const { consultant, isMasterAdmin, isLoading: isConsultantLoading, refreshConsultant } = useConsultant();
+    const { hospitals, getHospitalByName } = useHospitals();
     const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -178,10 +181,68 @@ const InPatientManagement = () => {
         setIsReadyToPrint(true);
     };
 
+    const handleSavePrintSettings = async (profile: boolean, signSeal: boolean, options: PrintOptions) => {
+        if (!consultant) return;
 
-    // Modal States
+        try {
+            const currentSettings = consultant.messaging_settings || {};
+            let newSettings = { ...currentSettings };
+            const location = settingsLocation;
+
+            newSettings.location_print_options = {
+                ...(currentSettings.location_print_options || {}),
+                [location]: options
+            };
+
+            const printOverrides = currentSettings.location_print_overrides || {};
+            newSettings.location_print_overrides = {
+                ...printOverrides,
+                [location]: {
+                    ...(printOverrides[location] || {}),
+                    show_profile: profile,
+                    show_sign_seal: signSeal
+                }
+            };
+
+            const { error } = await supabase
+                .from('consultants')
+                .update({ messaging_settings: newSettings })
+                .eq('id', consultant.id);
+
+            if (error) throw error;
+            await refreshConsultant();
+            toast({ title: "Success", description: "Print settings updated." });
+            setIsPrintSettingsModalOpen(false);
+        } catch (error) {
+            console.error("Error saving settings:", error);
+            toast({ variant: "destructive", title: "Error", description: "Failed to save settings." });
+        }
+    };
+
+
     const [isAdmitModalOpen, setIsAdmitModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isPrintSettingsModalOpen, setIsPrintSettingsModalOpen] = useState(false);
+    const [settingsLocation, setSettingsLocation] = useState('OrthoLife');
+
+    // Print Settings Local State (for Modal)
+    const [localProfileEnabled, setLocalProfileEnabled] = useState(true);
+    const [localSignSealEnabled, setLocalSignSealEnabled] = useState(true);
+    const [localPrintOptions, setLocalPrintOptions] = useState<PrintOptions | undefined>();
+
+    useEffect(() => {
+        if (isPrintSettingsModalOpen && consultant) {
+            const settings = consultant.messaging_settings || {};
+            const location = settingsLocation;
+            const locationOptions = settings.location_print_options?.[location] || settings.location_print_options?.['OrthoLife'];
+            const locationOverrides = settings.location_print_overrides?.[location] || {};
+            
+            setLocalProfileEnabled(locationOverrides.show_profile ?? true);
+            setLocalSignSealEnabled(locationOverrides.show_sign_seal ?? true);
+            setLocalPrintOptions(locationOptions);
+        }
+    }, [isPrintSettingsModalOpen, consultant, settingsLocation]);
+
     const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
     // Removed isTemplateManagerOpen state
 
@@ -225,6 +286,7 @@ const InPatientManagement = () => {
         referral_amount: '',
         emergency_contact: '',
         payment_mode: 'Cash',
+        location: 'OrthoLife',
     });
 
     // Suggestion Navigation State
@@ -345,6 +407,7 @@ const InPatientManagement = () => {
                 referral_amount: vars.referral_amount ? Number(vars.referral_amount) : 0,
                 emergency_contact: vars.emergency_contact || null,
                 payment_mode: vars.payment_mode || 'Cash',
+                location: vars.location || 'OrthoLife',
             }]);
             if (error) throw error;
         },
@@ -374,6 +437,7 @@ const InPatientManagement = () => {
                 emergency_contact: vars.emergency_contact || null,
                 payment_mode: vars.payment_mode || 'Cash',
                 language: vars.language || 'en',
+                location: vars.location || 'OrthoLife',
             }).eq('id', vars.id);
 
             if (!isMasterAdmin && consultant?.id) {
@@ -565,6 +629,7 @@ const InPatientManagement = () => {
             referral_amount: '',
             emergency_contact: '',
             payment_mode: 'Cash',
+            location: 'OrthoLife',
         });
     };
 
@@ -770,6 +835,21 @@ const InPatientManagement = () => {
 
     const openEditModal = (patient: InPatient) => {
         updateLocalLanguage(patient.language || inPatientLanguage || 'en');
+        setAdmissionData({
+            diagnosis: patient.diagnosis || '',
+            procedure: patient.procedure || '',
+            admission_date: patient.admission_date ? format(new Date(patient.admission_date), 'yyyy-MM-dd') : '',
+            procedure_date: patient.procedure_date ? format(new Date(patient.procedure_date), 'yyyy-MM-dd') : '',
+            room_number: patient.room_number || '',
+            language: patient.language || 'en',
+            total_bill: patient.total_bill?.toString() || '',
+            consultant_cut: patient.consultant_cut?.toString() || '',
+            referred_by: patient.referred_by || '',
+            referral_amount: patient.referral_amount?.toString() || '',
+            emergency_contact: patient.emergency_contact || '',
+            payment_mode: patient.payment_mode || 'Cash',
+            location: patient.location || 'OrthoLife',
+        });
         setSelectedPatientForEdit(patient);
         setIsEditModalOpen(true);
     };
@@ -1070,6 +1150,10 @@ const InPatientManagement = () => {
                                                         <span className="text-sm">OT Notes Registry</span>
                                                     </Link>
                                                 </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => setIsPrintSettingsModalOpen(true)} className="cursor-pointer">
+                                                    <Settings2 className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                    <span className="text-sm">Print Customization</span>
+                                                </DropdownMenuItem>
                                             </div>
                                         </>
                                     )}
@@ -1239,7 +1323,14 @@ const InPatientManagement = () => {
                                 onSendWhatsApp={initWhatsApp}
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
-                                onPrint={() => p.discharge_summary && triggerPrint({ ...p.discharge_summary, language: p.language || 'en' }, (p as any).consultant, p.discharge_date || undefined)}
+                                onPrint={() => p.discharge_summary && triggerPrint({ 
+                                    ...p.discharge_summary, 
+                                    language: p.language || 'en',
+                                    patient_snapshot: {
+                                        ...p.discharge_summary.patient_snapshot,
+                                        location: p.location || 'OrthoLife'
+                                    }
+                                }, (p as any).consultant, p.discharge_date || undefined)}
                                 onConsents={(p.surgical_consents && p.surgical_consents.length > 0) ? () => openConsentModal(p) : undefined}
                             />
                         )) : (
@@ -1430,6 +1521,23 @@ const InPatientManagement = () => {
                         </div>
 
                         <div className="space-y-2">
+                            <Label>Hospital Location</Label>
+                            <Select
+                                value={admissionData.location || 'OrthoLife'}
+                                onValueChange={(value) => setAdmissionData({ ...admissionData, location: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select location" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {hospitals.map(h => (
+                                        <SelectItem key={h.name} value={h.name}>{h.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
                             <Label>Approx Total Bill (₹)</Label>
                             <Input
                                 type="number"
@@ -1572,6 +1680,24 @@ const InPatientManagement = () => {
                 </DialogContent>
             </Dialog>
 
+            {consultant && (
+                <PrintSettingsModal
+                    isOpen={isPrintSettingsModalOpen}
+                    onClose={() => setIsPrintSettingsModalOpen(false)}
+                    isDoctorProfileEnabled={localProfileEnabled}
+                    isSignSealEnabled={localSignSealEnabled}
+                    printOptions={localPrintOptions}
+                    onToggleProfile={setLocalProfileEnabled}
+                    onToggleSignSeal={setLocalSignSealEnabled}
+                    onUpdatePrintOptions={setLocalPrintOptions}
+                    onSaveAll={handleSavePrintSettings}
+                    currentLocation={settingsLocation}
+                    mode="ip"
+                    hospitals={hospitals}
+                    onLocationChange={setSettingsLocation}
+                />
+            )}
+
             {/* Hidden Print Component */}
             <div style={{ display: 'none' }}>
                 {printData && (
@@ -1581,9 +1707,21 @@ const InPatientManagement = () => {
                         courseDetails={printData.course_details}
                         dischargeData={printData.discharge_data}
                         language={printData?.language || inPatientLanguage}
-                        logoUrl={printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"}
+                        logoUrl={getHospitalByName(printData.patient_snapshot.location || 'OrthoLife')?.logoUrl || printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"}
                         dischargeDate={printDate}
                         consultant={printConsultant || consultant}
+                        showSignSeal={(() => {
+                            const activeConsultant = printConsultant || consultant;
+                            const location = (printData.patient_snapshot as any).location || 'OrthoLife';
+                            return activeConsultant?.messaging_settings?.location_print_overrides?.[location]?.show_sign_seal ?? true;
+                        })()}
+                        printOptions={(() => {
+                            const activeConsultant = printConsultant || consultant;
+                            if (!activeConsultant) return undefined;
+                            const settings = activeConsultant.messaging_settings as any;
+                            const location = (printData.patient_snapshot as any).location || 'OrthoLife';
+                            return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                        })()}
                     />
                 )}
             </div>
@@ -1703,6 +1841,7 @@ const EmptyState = ({ icon: Icon, message }: { icon: any, message: string }) => 
 );
 
 const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCancel }: { patient: InPatient | null, onSubmit: (data: any) => void, onLanguageChange?: (code: string) => void, isSaving: boolean, onCancel: () => void }) => {
+    const { hospitals } = useHospitals();
     const [data, setData] = useState({
         diagnosis: patient?.diagnosis || '',
         procedure: patient?.procedure || '',
@@ -1716,6 +1855,7 @@ const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCanc
         emergency_contact: patient?.emergency_contact || '',
         payment_mode: patient?.payment_mode || 'Cash',
         language: patient?.language || 'en',
+        location: patient?.location || 'OrthoLife',
     });
 
     const [isAdmissionOpen, setIsAdmissionOpen] = useState(false);
@@ -1841,6 +1981,22 @@ const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCanc
                     </Select>
                 </div>
                 <div className="space-y-2">
+                    <Label>Hospital Location</Label>
+                    <Select
+                        value={data.location || 'OrthoLife'}
+                        onValueChange={(value) => setData({ ...data, location: value })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {hospitals.map(h => (
+                                <SelectItem key={h.name} value={h.name}>{h.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
                     <Label>Total Bill (₹)</Label>
                     <Input type="number" value={data.total_bill} onChange={e => setData({ ...data, total_bill: e.target.value })} />
                 </div>
@@ -1919,6 +2075,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         sex: '',
         phone: '',
         age: '' as number | '',
+        location: 'OrthoLife',
     });
 
     const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2118,7 +2275,8 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                 const calculatedAge = s.patient_snapshot.dob ? calculateAge(new Date(s.patient_snapshot.dob)) : '';
                 setSnapshot({
                     ...s.patient_snapshot,
-                    age: (s.patient_snapshot as any).age || calculatedAge || ''
+                    age: (s.patient_snapshot as any).age || calculatedAge || '',
+                    location: s.patient_snapshot.location || patient.location || 'OrthoLife'
                 });
                 // Initialize discharge date from patient record if exists, otherwise existing summary logic? 
                 // Wait, patient record holds the official date.
@@ -2167,6 +2325,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     sex: patient.patient.sex || '',
                     phone: patient.patient.phone,
                     age: calculatedAge,
+                    location: patient.location || 'OrthoLife',
                 });
                 setCourse({
                     admission_date: patient.admission_date ? patient.admission_date.split('T')[0] : '',
