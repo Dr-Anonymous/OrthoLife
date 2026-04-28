@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, Calendar as CalendarIcon, Search, MapPin, Briefcase } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -116,7 +116,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [age, setAge] = useState<number | ''>('');
 
@@ -133,7 +132,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       const birthYear = today.getFullYear() - newAge;
       const newDob = new Date(birthYear, formData.dob?.getMonth() ?? today.getMonth(), formData.dob?.getDate() ?? today.getDate());
       setFormData(prev => ({ ...prev, dob: newDob, isDobEstimated: true }));
-      setCalendarDate(newDob);
     }
   };
 
@@ -439,17 +437,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     if (date) setIsDatePickerOpen(false);
   };
 
-  const handleYearChange = (year: string) => {
-    const newDate = new Date(calendarDate);
-    newDate.setFullYear(parseInt(year));
-    setCalendarDate(newDate);
-  };
-
-  const handleMonthChange = (month: string) => {
-    const newDate = new Date(calendarDate);
-    newDate.setMonth(parseInt(month));
-    setCalendarDate(newDate);
-  };
+  // Date picker handlers removed in favor of CalendarWithMonthYearPicker logic
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -623,10 +611,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
     }
   };
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i);
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-    'August', 'September', 'October', 'November', 'December'];
+  // Redundant year/month logic removed
 
 
 
@@ -769,31 +754,13 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <div className="p-3 border-b space-y-2">
-                      <div className="flex gap-2">
-                        <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                          <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {months.map((month, index) => <SelectItem key={index} value={index.toString()}>{month}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                          <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                          <SelectContent className="max-h-48">
-                            {years.map((year) => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <Calendar
-                      mode="single"
+                    <CalendarWithMonthYearPicker
                       selected={formData.dob}
                       onSelect={handleDateChange}
-                      month={calendarDate}
-                      onMonthChange={setCalendarDate}
+                      onClose={() => setIsDatePickerOpen(false)}
+                      fromYear={1930}
+                      toYear={new Date().getFullYear()}
                       disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                      initialFocus
-                      className="p-3"
                     />
                   </PopoverContent>
                 </Popover>

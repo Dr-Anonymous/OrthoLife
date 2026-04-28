@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Clock, Calendar as CalendarIcon, DollarSign, CreditCard, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -179,8 +179,7 @@ const AppointmentBooking: React.FC<AppointmentBookingProps> = ({
           {/* Date Selection */}
           <div>
             <label className="block text-sm font-medium mb-2">Select Date</label>
-            <Calendar
-              mode="single"
+            <CalendarWithMonthYearPicker
               selected={selectedDate}
               onSelect={setSelectedDate}
               disabled={(date) => isPastDate(date)}

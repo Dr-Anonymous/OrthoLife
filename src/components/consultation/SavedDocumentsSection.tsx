@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Receipt, Trash2, Printer, Edit, History } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { CertificateData, ReceiptData } from '@/types/consultation';
 import { cn } from '@/lib/utils';
 
@@ -52,8 +52,11 @@ export const SavedDocumentsSection: React.FC<SavedDocumentsSectionProps> = ({
                     <span className="text-xs font-semibold">
                       {cert.restPeriodDays} Days Rest
                     </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {format(new Date(cert.certificateDate), 'PP')}
+                    <span className="text-[10px] text-muted-foreground flex flex-col">
+                      <span>Cert Date: {format(new Date(cert.certificateDate), 'PP')}</span>
+                      {cert.restPeriodStartDate && (
+                        <span>Rest: {format(new Date(cert.restPeriodStartDate), 'PP')} to {format(addDays(new Date(cert.restPeriodStartDate), cert.restPeriodDays - 1), 'PP')}</span>
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">

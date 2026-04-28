@@ -6,7 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Loader2, ArrowRight, User, Calendar as CalendarIcon, Activity } from 'lucide-react';
 import { format, getMonth, getYear } from 'date-fns';
 import { cn, formatLocalTime } from '@/lib/utils';
@@ -251,11 +251,10 @@ const AnalyticsPage = () => {
                 <CardTitle className="text-lg font-medium">Select Date</CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center p-4">
-                <Calendar
-                  mode="single"
+                <CalendarWithMonthYearPicker
                   selected={selectedDate}
                   onSelect={setSelectedDate}
-                  className="rounded-md border shadow-sm p-4"
+                  className="rounded-md border shadow-sm"
                 />
               </CardContent>
             </Card>

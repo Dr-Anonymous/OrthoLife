@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Mail, Phone, MapPin, CalendarIcon, Briefcase, Droplets } from 'lucide-react';
@@ -51,7 +51,6 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
   }, [initialData]);
 
   const [errors, setErrors] = useState<Partial<Record<keyof PatientData, string>>>({});
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date(2000, 0, 1));
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [showSecondaryPhone, setShowSecondaryPhone] = useState(false);
 
@@ -110,26 +109,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
     }
   };
 
-  const handleYearChange = (year: string) => {
-    const newDate = new Date(calendarDate);
-    newDate.setFullYear(parseInt(year));
-    setCalendarDate(newDate);
-  };
-
-  const handleMonthChange = (month: string) => {
-    const newDate = new Date(calendarDate);
-    newDate.setMonth(parseInt(month));
-    setCalendarDate(newDate);
-  };
-
-  // Generate years from 1930 to current year
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 1929 }, (_, i) => currentYear - i);
-
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  // Date picker handlers removed in favor of CalendarWithMonthYearPicker logic
 
   return (
     <Card className="w-full max-w-md">
@@ -174,45 +154,15 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onComplete, i
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <div className="p-3 border-b space-y-2">
-                  <div className="flex gap-2">
-                    <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {months.map((month, index) => (
-                          <SelectItem key={index} value={index.toString()}>
-                            {month}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-48">
-                        {years.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Calendar
-                  mode="single"
+                <CalendarWithMonthYearPicker
                   selected={formData.dateOfBirth}
                   onSelect={handleDateChange}
-                  month={calendarDate}
-                  onMonthChange={setCalendarDate}
+                  onClose={() => setIsDatePickerOpen(false)}
+                  fromYear={1930}
+                  toYear={new Date().getFullYear()}
                   disabled={(date) =>
                     date > new Date() || date < new Date("1900-01-01")
                   }
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
                 />
               </PopoverContent>
             </Popover>

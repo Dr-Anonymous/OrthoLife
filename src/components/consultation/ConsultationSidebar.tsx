@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { MapPin, Search, UserPlus, BookOpen, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog, Filter, Check, X } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -392,11 +392,12 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                        <Calendar
-                            mode="single"
+                        <CalendarWithMonthYearPicker
                             selected={selectedDate}
                             onSelect={onDateChange}
-                            initialFocus
+                            onClose={() => setIsConsultationDatePickerOpen(false)}
+                            fromYear={1930}
+                            toYear={new Date().getFullYear() + 10}
                         />
                     </PopoverContent>
                 </Popover>
@@ -540,8 +541,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         <Input
                             ref={searchInputRef}
                             placeholder={`Search patients... (${typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
-                                    ? '2 Finger Tap'
-                                    : (typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl') + '+D'
+                                ? '2 Finger Tap'
+                                : (typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl') + '+D'
                                 })`}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}

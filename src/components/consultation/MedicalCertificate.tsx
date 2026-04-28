@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Calendar as CalendarIcon, Loader2, Printer, FileEdit, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -245,11 +245,14 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
 
   const restPeriodEndDate = restPeriodStartDate && restPeriodDays ? addDays(restPeriodStartDate, Number(restPeriodDays) - 1) : null;
 
+  // Remove automatic sync that was causing reset on reopen
+  /* 
   useEffect(() => {
     if (restPeriodStartDate) {
       setConsultationDate(restPeriodStartDate);
     }
   }, [restPeriodStartDate]);
+  */
 
   // Reset step and content on open
   useEffect(() => {
@@ -345,7 +348,7 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={certificateDate} onSelect={(d) => { setCertificateDate(d); setIsCertificateDatePickerOpen(false); }} initialFocus />
+                  <CalendarWithMonthYearPicker selected={certificateDate} onSelect={(d) => { setCertificateDate(d); setIsCertificateDatePickerOpen(false); }} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -360,7 +363,7 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={consultationDate} onSelect={(d) => { setConsultationDate(d); setIsConsultationDatePickerOpen(false); }} initialFocus />
+                  <CalendarWithMonthYearPicker selected={consultationDate} onSelect={(d) => { setConsultationDate(d); setIsConsultationDatePickerOpen(false); }} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -375,7 +378,7 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={treatmentFromDate} onSelect={(d) => { setTreatmentFromDate(d); setIsTreatmentFromDatePickerOpen(false); }} initialFocus />
+                  <CalendarWithMonthYearPicker selected={treatmentFromDate} onSelect={(d) => { setTreatmentFromDate(d); setIsTreatmentFromDatePickerOpen(false); }} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -401,7 +404,11 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={restPeriodStartDate} onSelect={(d) => { setRestPeriodStartDate(d); setIsRestPeriodDatePickerOpen(false); }} initialFocus />
+                  <CalendarWithMonthYearPicker selected={restPeriodStartDate} onSelect={(d) => { 
+                    setRestPeriodStartDate(d); 
+                    if (d && !initialData) setConsultationDate(d);
+                    setIsRestPeriodDatePickerOpen(false); 
+                  }} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -423,7 +430,7 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={rejoinDate} onSelect={(d) => { setRejoinDate(d); setIsRejoinDatePickerOpen(false); }} initialFocus />
+                  <CalendarWithMonthYearPicker selected={rejoinDate} onSelect={(d) => { setRejoinDate(d); setIsRejoinDatePickerOpen(false); }} />
                 </PopoverContent>
               </Popover>
             </div>

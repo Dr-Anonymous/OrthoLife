@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Badge } from '@/components/ui/badge';
 import { User, Folder, Calendar as CalendarIcon, History, Link as LinkIcon, Phone, Briefcase, MapPin, Users, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,15 +24,10 @@ interface PatientDemographicsProps {
     isPatientDatePickerOpen: boolean;
     setIsPatientDatePickerOpen: (open: boolean) => void;
 
-    calendarDate: Date;
-    setCalendarDate: (date: Date) => void;
-
     age: number | '';
     onAgeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 
     onDateChange: (date: Date | undefined) => void;
-    handleYearChange: (year: string) => void;
-    handleMonthChange: (month: string) => void;
     onLinkClick: () => void;
     isReadOnly?: boolean;
 }
@@ -59,13 +55,9 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
     onPatientDetailsChange,
     isPatientDatePickerOpen,
     setIsPatientDatePickerOpen,
-    calendarDate,
-    setCalendarDate,
     age,
     onAgeChange,
     onDateChange,
-    handleYearChange,
-    handleMonthChange,
     onLinkClick,
     isReadOnly = false,
 }) => {
@@ -214,37 +206,13 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
-                                <div className="p-3 border-b space-y-2">
-                                    <div className="flex gap-2">
-                                        <Select value={calendarDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                                            <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                {Array.from({ length: 12 }).map((_, index) => (
-                                                    <SelectItem key={index} value={index.toString()}>
-                                                        {format(new Date(2000, index), 'MMMM')}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Select value={calendarDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                                            <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                                            <SelectContent className="max-h-48">
-                                                {Array.from({ length: new Date().getFullYear() - 1929 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                                                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <Calendar
-                                    mode="single"
+                                <CalendarWithMonthYearPicker
                                     selected={patient.dob ? new Date(patient.dob) : undefined}
                                     onSelect={onDateChange}
-                                    month={calendarDate}
-                                    onMonthChange={setCalendarDate}
+                                    onClose={() => setIsPatientDatePickerOpen(false)}
+                                    fromYear={1930}
+                                    toYear={new Date().getFullYear()}
                                     disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                                    initialFocus
-                                    className="p-3"
                                 />
                             </PopoverContent>
                         </Popover>

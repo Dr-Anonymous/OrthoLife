@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -546,9 +546,8 @@ const ConsultationStats = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
           {/* Left Column: Calendar */}
           <Card className="shadow-md border-0 bg-card/95 backdrop-blur">
-            <CardContent className="p-6 flex justify-center h-full items-center">
-              <Calendar
-                mode="single"
+            <CardContent className="p-0 flex justify-center h-full items-center">
+              <CalendarWithMonthYearPicker
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 onMonthChange={handleMonthChange}
@@ -578,9 +577,7 @@ const ConsultationStats = () => {
                         )}
                       </div>
                     );
-                  },
-                  IconLeft: ({ ...props }) => <ChevronsRight className="h-4 w-4 rotate-180" />,
-                  IconRight: ({ ...props }) => <ChevronsRight className="h-4 w-4" />,
+                  }
                 }}
               />
             </CardContent>

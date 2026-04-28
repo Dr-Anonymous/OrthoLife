@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { PatientEditModal } from '@/components/consultation/PatientEditModal';
 import { Patient } from '@/types/consultation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { cn } from '@/lib/utils';
 import { SYSTEM_CONSULTANT_ID } from "@/utils/scheduleService";
 import { useConsultant } from '@/context/ConsultantContext';
@@ -520,17 +520,15 @@ const PatientRegistration = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="center">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setSelectedDate(date);
-                        setIsCalendarOpen(false);
-                      }
-                    }}
-                    initialFocus
-                  />
+                    <CalendarWithMonthYearPicker
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedDate(date);
+                          setIsCalendarOpen(false);
+                        }
+                      }}
+                    />
                 </PopoverContent>
               </Popover>
             </div>
@@ -644,7 +642,18 @@ const PatientRegistration = () => {
                 consultant={consultant}
                 showDoctorProfile={showDoctorProfile}
                 showSignSeal={showSignSeal}
-                onlyMedicationsAndFollowup={onlyMedicationsAndFollowup}
+                printOptions={onlyMedicationsAndFollowup ? {
+                  vitals: false,
+                  clinicalNotes: false,
+                  diagnosis: false,
+                  investigations: false,
+                  medications: true,
+                  advice: false,
+                  followup: true,
+                  procedure: false,
+                  referrals: false,
+                  orthotics: false
+                } : undefined}
               />
             ) : (
               <div />

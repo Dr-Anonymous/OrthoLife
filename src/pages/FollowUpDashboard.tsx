@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar } from '@/components/ui/calendar';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -243,8 +243,7 @@ const FollowUpDashboard = () => {
               </Button>
             </CardHeader>
             <CardContent className="p-4 flex justify-center">
-              <Calendar
-                mode="single"
+              <CalendarWithMonthYearPicker
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 className="rounded-md border mx-auto"

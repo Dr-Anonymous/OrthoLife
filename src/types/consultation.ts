@@ -108,6 +108,8 @@ export interface Consultant {
         auto_npo_reminder?: boolean;
         location_followup_overrides?: Record<string, boolean>;
         location_print_overrides?: Record<string, { show_profile?: boolean; show_sign_seal?: boolean }>;
+        location_print_options?: Record<string, PrintOptions>;
+        location_auto_send_overrides?: Record<string, boolean>;
     };
     profile_layout?: 'single' | 'team';
     team_members?: TeamMember[];

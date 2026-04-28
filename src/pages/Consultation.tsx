@@ -381,8 +381,6 @@ const ConsultationPage = () => {
 
   const debouncedAdvice = useDebounce(extraData.advice, 500);
 
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
-
   // Refs
   const complaintsRef = useRef<HTMLTextAreaElement>(null);
   const medicalHistoryRef = useRef<HTMLTextAreaElement>(null);
@@ -426,7 +424,6 @@ const ConsultationPage = () => {
     syncField('followup', followupRef);
     syncField('procedure', procedureRef);
     syncField('orthotics', orthoticsRef);
-
     if (Object.keys(updates).length > 0) {
       const nextData = { ...currentExtraData, ...updates };
       setExtraData(nextData);
@@ -441,7 +438,8 @@ const ConsultationPage = () => {
     diagnosisRef,
     adviceRef,
     followupRef,
-    procedureRef
+    procedureRef,
+    orthoticsRef
   ]);
 
 
@@ -506,59 +504,48 @@ const ConsultationPage = () => {
 
   // Load profile preference on location change
   useEffect(() => {
-    if (selectedHospital.name) {
-      const profileKey = `showDoctorProfile_${selectedHospital.name}`;
-      const signSealKey = `showSignSeal_${selectedHospital.name}`;
-      const printOptionsKey = `printOptions_${selectedHospital.name}`;
-
-      const storedProfile = localStorage.getItem(profileKey);
-      const storedSignSeal = localStorage.getItem(signSealKey);
-      const storedPrintOptions = localStorage.getItem(printOptionsKey);
-
-      // 1. Try DB settings first (persistent across devices)
+    if (selectedLocation) {
       const settings = consultant?.messaging_settings as any;
       const dbProfile = settings?.location_print_overrides?.[selectedLocation]?.show_profile;
       const dbSignSeal = settings?.location_print_overrides?.[selectedLocation]?.show_sign_seal;
+      const dbPrintOptions = settings?.location_print_options?.[selectedLocation];
 
-      // 2. Default to true for profiles if not set
-      if (dbProfile !== undefined) {
-        setShowDoctorProfile(dbProfile);
+      // 1. Default to true for profiles if not set in DB
+      setShowDoctorProfile(dbProfile !== undefined ? dbProfile : true);
+
+      // 2. Default to false for sign+seal if not set in DB
+      setShowSignSeal(dbSignSeal !== undefined ? dbSignSeal : false);
+
+      // 3. Default to full print options if not set in DB
+      if (dbPrintOptions !== undefined) {
+        setPrintOptions(dbPrintOptions);
       } else {
-        setShowDoctorProfile(storedProfile !== null ? JSON.parse(storedProfile) : true);
-      }
-
-      // 3. Default to false for sign+seal if not set
-      if (dbSignSeal !== undefined) {
-        setShowSignSeal(dbSignSeal);
-      } else {
-        setShowSignSeal(storedSignSeal !== null ? JSON.parse(storedSignSeal) : false);
-      }
-
-      if (storedPrintOptions) {
-        setPrintOptions(JSON.parse(storedPrintOptions));
+        setPrintOptions({
+          vitals: true,
+          clinicalNotes: true,
+          diagnosis: true,
+          investigations: true,
+          medications: true,
+          advice: true,
+          followup: true,
+          procedure: true,
+          referrals: true,
+          orthotics: true
+        });
       }
     }
-  }, [selectedHospital.name, consultant, selectedLocation]);
+  }, [selectedLocation, consultant]);
 
   const toggleDoctorProfile = (checked: boolean) => {
     setShowDoctorProfile(checked);
-    if (selectedHospital.name) {
-      localStorage.setItem(`showDoctorProfile_${selectedHospital.name}`, JSON.stringify(checked));
-    }
   };
 
   const toggleSignSeal = (checked: boolean) => {
     setShowSignSeal(checked);
-    if (selectedHospital.name) {
-      localStorage.setItem(`showSignSeal_${selectedHospital.name}`, JSON.stringify(checked));
-    }
   };
 
   const updatePrintOptions = (options: PrintOptions) => {
     setPrintOptions(options);
-    if (selectedHospital.name) {
-      localStorage.setItem(`printOptions_${selectedHospital.name}`, JSON.stringify(options));
-    }
   };
 
   // Guide Matching
@@ -642,10 +629,8 @@ const ConsultationPage = () => {
     setInitialPatientDetails(normalizedPatient);
     if (consultation.patient.dob) {
       setAge(calculateAge(new Date(consultation.patient.dob)));
-      setCalendarDate(new Date(consultation.patient.dob));
     } else {
       setAge('');
-      setCalendarDate(new Date());
     }
 
     // Update last visit date from either pre-calculated or on-the-fly value
@@ -831,14 +816,14 @@ const ConsultationPage = () => {
     } finally {
       setIsFetchingConsultations(false);
     }
-  }, [selectedDate, selectedHospital, confirmSelection, isOnline]);
+  }, [selectedDate, selectedHospital, confirmSelection, isOnline, consultant?.id]);
 
   useEffect(() => {
     // Only fetch if a hospital is selected AND the consultant profile is ready
-    if (selectedHospital.name && consultant) {
+    if (selectedHospital.name && consultant?.id) {
       fetchConsultations();
     }
-  }, [fetchConsultations, selectedHospital.name, consultant]);
+  }, [fetchConsultations, selectedHospital.name, consultant?.id]);
 
 
   const hydrateInsertedConsultation = useCallback(async (
@@ -1004,13 +989,19 @@ const ConsultationPage = () => {
         }
       );
     }
-  }, [isGpsEnabled, selectedHospital.name, hospitals, consultant]);
+  }, [isGpsEnabled, selectedHospital.name, hospitals, consultant?.id]);
 
   // State for auto-sending WhatsApp messages
-  const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(() => {
-    const stored = localStorage.getItem('isAutoSendEnabled');
-    return stored !== null ? JSON.parse(stored) : true;
-  });
+  const [isAutoSendEnabled, setIsAutoSendEnabled] = useState<boolean>(true);
+
+  // Load auto-send preference on location change
+  useEffect(() => {
+    if (selectedLocation) {
+      const settings = consultant?.messaging_settings as any;
+      const dbAutoSend = settings?.location_auto_send_overrides?.[selectedLocation];
+      setIsAutoSendEnabled(dbAutoSend !== undefined ? dbAutoSend : true);
+    }
+  }, [selectedLocation, consultant]);
 
   // Modification: Added consultant dependency for scoped messaging
   const generateCompletionMessage = useCallback((patient: Patient, guidesMatched: any[], adviceOverride?: string) => {
@@ -1055,7 +1046,7 @@ const ConsultationPage = () => {
     if (!selectedConsultation.consultant_id) return false;
 
     return String(selectedConsultation.consultant_id) !== String(consultant.id);
-  }, [selectedConsultation, consultant]);
+  }, [selectedConsultation, consultant?.id]);
 
   const { hasChanges, hasSignificantChanges } = useMemo(() => {
     if (isReadOnly) return { hasChanges: false, hasSignificantChanges: false };
@@ -1330,8 +1321,7 @@ const ConsultationPage = () => {
   useEffect(() => {
     localStorage.setItem('isGpsEnabled', JSON.stringify(isGpsEnabled));
     localStorage.setItem('selectedHospital', selectedHospital.name);
-    localStorage.setItem('isAutoSendEnabled', JSON.stringify(isAutoSendEnabled));
-  }, [selectedHospital, isGpsEnabled, isAutoSendEnabled]);
+  }, [selectedHospital, isGpsEnabled]);
 
   const handleSelectConsultation = async (consultation: Consultation) => {
     // If passing from fetch logic, we might need to skip unsaved check or handle it
@@ -1445,7 +1435,6 @@ const ConsultationPage = () => {
         if (!prev) return null;
         return { ...prev, dob: format(currentDob, 'yyyy-MM-dd'), is_dob_estimated: true };
       });
-      setCalendarDate(currentDob);
     }
   };
 
@@ -1460,20 +1449,6 @@ const ConsultationPage = () => {
     if (date) {
       setAge(calculateAge(date));
     }
-  };
-
-  const handleYearChange = (year: string) => {
-    if (isReadOnly) return;
-    const newDate = new Date(calendarDate);
-    newDate.setFullYear(parseInt(year));
-    setCalendarDate(newDate);
-  };
-
-  const handleMonthChange = (month: string) => {
-    if (isReadOnly) return;
-    const newDate = new Date(calendarDate);
-    newDate.setMonth(parseInt(month));
-    setCalendarDate(newDate);
   };
 
   const handleAppendSuggestion = (field: string, suggestion: string | { text: string; translatedText?: string }) => {
@@ -2602,13 +2577,9 @@ const ConsultationPage = () => {
                   onPatientDetailsChange={handlePatientDetailsChange}
                   isPatientDatePickerOpen={isPatientDatePickerOpen}
                   setIsPatientDatePickerOpen={setIsPatientDatePickerOpen}
-                  calendarDate={calendarDate}
-                  setCalendarDate={setCalendarDate}
                   age={age}
                   onAgeChange={handleAgeChange}
                   onDateChange={handleDateChange}
-                  handleYearChange={handleYearChange}
-                  handleMonthChange={handleMonthChange}
                   onLinkClick={() => setIsLinkPatientModalOpen(true)}
                   isReadOnly={isReadOnly}
                 />
@@ -2810,7 +2781,6 @@ const ConsultationPage = () => {
                   onManageReferralDoctorsClick={() => setIsReferralModalOpen(true)}
                   onSendCompletionClick={handleOpenCompletionModal}
                   isAutoSendEnabled={isAutoSendEnabled}
-                  onToggleAutoSend={() => setIsAutoSendEnabled(!isAutoSendEnabled)}
                   showDoctorProfile={showDoctorProfile}
                   onToggleDoctorProfile={toggleDoctorProfile}
                   showSignSeal={showSignSeal}
