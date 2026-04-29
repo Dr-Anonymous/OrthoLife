@@ -35,7 +35,7 @@ interface PrintSettingsModalProps {
     onToggleProfile: (checked: boolean) => void;
     onToggleSignSeal: (checked: boolean) => void;
     onUpdatePrintOptions: (options: PrintOptions) => void;
-    onSaveAll?: (profile: boolean, signSeal: boolean, options: PrintOptions) => void;
+    onSaveAll?: (profile: boolean, signSeal: boolean, options: PrintOptions, allPending?: Record<string, { profile: boolean, signSeal: boolean, options: PrintOptions }>) => void;
     isReadOnly?: boolean;
     currentLocation?: string;
     mode?: 'op' | 'ip';
@@ -63,23 +63,38 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
     const [localProfile, setLocalProfile] = useState(isDoctorProfileEnabled);
     const [localSignSeal, setLocalSignSeal] = useState(isSignSealEnabled);
     const [localOptions, setLocalOptions] = useState<PrintOptions>(printOptions || DEFAULT_PRINT_OPTIONS);
+    
+    // Store changes for other locations to allow batch save
+    const [pendingChanges, setPendingChanges] = useState<Record<string, { profile: boolean, signSeal: boolean, options: PrintOptions }>>({});
 
     // Compute if anything has changed
     const isDirty = useMemo(() => {
         const profileChanged = localProfile !== isDoctorProfileEnabled;
         const signSealChanged = localSignSeal !== isSignSealEnabled;
         const optionsChanged = JSON.stringify(localOptions) !== JSON.stringify(printOptions);
-        return profileChanged || signSealChanged || optionsChanged;
-    }, [localProfile, isDoctorProfileEnabled, localSignSeal, isSignSealEnabled, localOptions, printOptions]);
+        
+        const hasCurrentChanges = profileChanged || signSealChanged || optionsChanged;
+        const hasPendingChanges = Object.keys(pendingChanges).length > 0;
+        
+        return hasCurrentChanges || hasPendingChanges;
+    }, [localProfile, isDoctorProfileEnabled, localSignSeal, isSignSealEnabled, localOptions, printOptions, pendingChanges]);
 
-    // Sync local state ONLY when modal opens
+    // Sync local state ONLY when modal opens OR location changes
     useEffect(() => {
         if (isOpen) {
-            setLocalProfile(isDoctorProfileEnabled);
-            setLocalSignSeal(isSignSealEnabled);
-            setLocalOptions(printOptions || DEFAULT_PRINT_OPTIONS);
+            // Check if we have pending changes for this location first
+            if (currentLocation && pendingChanges[currentLocation]) {
+                const pc = pendingChanges[currentLocation];
+                setLocalProfile(pc.profile);
+                setLocalSignSeal(pc.signSeal);
+                setLocalOptions(pc.options);
+            } else {
+                setLocalProfile(isDoctorProfileEnabled);
+                setLocalSignSeal(isSignSealEnabled);
+                setLocalOptions(printOptions || DEFAULT_PRINT_OPTIONS);
+            }
         }
-    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, printOptions]); // Only sync when modal is opened or props change significantly
+    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, printOptions, currentLocation, pendingChanges]); 
 
     const fields = [
         { id: 'vitals', label: 'Vitals' },
@@ -115,7 +130,12 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
         
         // Use batch save if available to avoid multiple toasts/refreshes
         if (onSaveAll) {
-            onSaveAll(localProfile, localSignSeal, localOptions);
+            // Combine current view changes with all pending changes from other locations
+            const finalChanges = {
+                ...pendingChanges,
+                [currentLocation || 'OrthoLife']: { profile: localProfile, signSeal: localSignSeal, options: localOptions }
+            };
+            onSaveAll(localProfile, localSignSeal, localOptions, finalChanges);
         } else {
             // Fallback to individual handlers for compatibility
             if (localProfile !== isDoctorProfileEnabled) onToggleProfile(localProfile);
@@ -158,7 +178,16 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                             <Label className="text-xs font-medium text-muted-foreground uppercase">Configure for Branch</Label>
                             <Select
                                 value={currentLocation}
-                                onValueChange={onLocationChange}
+                                onValueChange={(newLoc) => {
+                                    // Checkpoint current changes before switching
+                                    if (currentLocation) {
+                                        setPendingChanges(prev => ({
+                                            ...prev,
+                                            [currentLocation]: { profile: localProfile, signSeal: localSignSeal, options: localOptions }
+                                        }));
+                                    }
+                                    onLocationChange(newLoc);
+                                }}
                                 disabled={isReadOnly}
                             >
                                 <SelectTrigger className="w-full bg-primary/5 border-primary/20">

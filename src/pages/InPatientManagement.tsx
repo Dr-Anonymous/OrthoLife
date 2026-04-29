@@ -181,28 +181,52 @@ const InPatientManagement = () => {
         setIsReadyToPrint(true);
     };
 
-    const handleSavePrintSettings = async (profile: boolean, signSeal: boolean, options: PrintOptions) => {
+    const handleSavePrintSettings = async (
+        profile: boolean, 
+        signSeal: boolean, 
+        options: PrintOptions, 
+        multiChanges?: Record<string, { profile: boolean, signSeal: boolean, options: PrintOptions }>
+    ) => {
         if (!consultant) return;
 
         try {
             const currentSettings = consultant.messaging_settings || {};
             let newSettings = { ...currentSettings };
-            const location = settingsLocation;
+            
+            if (multiChanges) {
+                // Batch update all locations
+                const optionsMap = { ...(currentSettings.location_print_options || {}) };
+                const overridesMap = { ...(currentSettings.location_print_overrides || {}) };
+                
+                Object.entries(multiChanges).forEach(([loc, data]) => {
+                    optionsMap[loc] = data.options;
+                    overridesMap[loc] = {
+                        ...(overridesMap[loc] || {}),
+                        show_profile: data.profile,
+                        show_sign_seal: data.signSeal
+                    };
+                });
+                
+                newSettings.location_print_options = optionsMap;
+                newSettings.location_print_overrides = overridesMap;
+            } else {
+                // Single update (fallback)
+                const location = settingsLocation;
+                newSettings.location_print_options = {
+                    ...(currentSettings.location_print_options || {}),
+                    [location]: options
+                };
 
-            newSettings.location_print_options = {
-                ...(currentSettings.location_print_options || {}),
-                [location]: options
-            };
-
-            const printOverrides = currentSettings.location_print_overrides || {};
-            newSettings.location_print_overrides = {
-                ...printOverrides,
-                [location]: {
-                    ...(printOverrides[location] || {}),
-                    show_profile: profile,
-                    show_sign_seal: signSeal
-                }
-            };
+                const printOverrides = currentSettings.location_print_overrides || {};
+                newSettings.location_print_overrides = {
+                    ...printOverrides,
+                    [location]: {
+                        ...(printOverrides[location] || {}),
+                        show_profile: profile,
+                        show_sign_seal: signSeal
+                    }
+                };
+            }
 
             const { error } = await supabase
                 .from('consultants')
@@ -1700,30 +1724,30 @@ const InPatientManagement = () => {
 
             {/* Hidden Print Component */}
             <div style={{ display: 'none' }}>
-                {printData && (
-                    <DischargeSummaryPrint
-                        ref={printRef}
-                        patientSnapshot={printData.patient_snapshot}
-                        courseDetails={printData.course_details}
-                        dischargeData={printData.discharge_data}
-                        language={printData?.language || inPatientLanguage}
-                        logoUrl={getHospitalByName(printData.patient_snapshot.location || 'OrthoLife')?.logoUrl || printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"}
-                        dischargeDate={printDate}
-                        consultant={printConsultant || consultant}
-                        showSignSeal={(() => {
-                            const activeConsultant = printConsultant || consultant;
-                            const location = (printData.patient_snapshot as any).location || 'OrthoLife';
-                            return activeConsultant?.messaging_settings?.location_print_overrides?.[location]?.show_sign_seal ?? true;
-                        })()}
-                        printOptions={(() => {
-                            const activeConsultant = printConsultant || consultant;
-                            if (!activeConsultant) return undefined;
-                            const settings = activeConsultant.messaging_settings as any;
-                            const location = (printData.patient_snapshot as any).location || 'OrthoLife';
-                            return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
-                        })()}
-                    />
-                )}
+                    {printData && (
+                        <DischargeSummaryPrint
+                            ref={printRef}
+                            patientSnapshot={printData.patient_snapshot}
+                            courseDetails={printData.course_details}
+                            dischargeData={printData.discharge_data}
+                            language={printData?.language || inPatientLanguage}
+                            logoUrl={getHospitalByName(printData.patient_snapshot.location || 'OrthoLife')?.logoUrl || (printConsultant && consultant && printConsultant.id === consultant.id ? consultant.logo_url : (printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"))}
+                            dischargeDate={printDate}
+                            consultant={(printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant)}
+                            showSignSeal={(() => {
+                                const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
+                                const location = (printData.patient_snapshot as any).location || 'OrthoLife';
+                                return activeConsultant?.messaging_settings?.location_print_overrides?.[location]?.show_sign_seal ?? true;
+                            })()}
+                            printOptions={(() => {
+                                const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
+                                if (!activeConsultant) return undefined;
+                                const settings = activeConsultant.messaging_settings as any;
+                                const location = (printData.patient_snapshot as any).location || 'OrthoLife';
+                                return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                            })()}
+                        />
+                    )}
             </div>
 
             {/* 4. WhatsApp Modal */}

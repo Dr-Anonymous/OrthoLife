@@ -198,7 +198,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
         }
     };
 
-    const batchUpdatePrintSettings = async (profile: boolean, signSeal: boolean, options: PrintOptions) => {
+    const batchUpdatePrintSettings = async (profile: boolean, signSeal: boolean, options: PrintOptions, multiChanges?: Record<string, any>) => {
         if (!consultant || !currentLocation || isReadOnly) return;
 
         try {
