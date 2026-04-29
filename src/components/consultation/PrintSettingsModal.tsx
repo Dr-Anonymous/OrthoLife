@@ -26,7 +26,7 @@ const DEFAULT_PRINT_OPTIONS: PrintOptions = {
     fontSize: 'standard',
     signatureAlignment: 'right',
     footerMask: false,
-    footerMaskCoords: { bottom: 1.15, right: 1.6, width: 3.6, height: 0.4 }
+    footerMaskCoords: { bottom: 1.6, right: 4.22, width: 3.6, height: 0.4 }
 };
 
 interface PrintSettingsModalProps {
@@ -75,7 +75,7 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
     // Compute if anything has changed
     const isDirty = useMemo(() => {
         if (!snapshot) return false;
-        
+
         const profileChanged = localProfile !== snapshot.profile;
         const signSealChanged = localSignSeal !== snapshot.signSeal;
         // Deep compare options
@@ -87,24 +87,34 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
         return hasCurrentChanges || hasPendingChanges;
     }, [localProfile, localSignSeal, localOptions, snapshot, pendingChanges]);
 
+    // Normalize incoming options to ensure consistent types (numbers) for comparison
+    const normalizedOptions = useMemo(() => {
+        return {
+            ...DEFAULT_PRINT_OPTIONS,
+            ...printOptions,
+            footerMaskCoords: {
+                bottom: parseFloat(String(printOptions?.footerMaskCoords?.bottom ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.bottom)),
+                right: parseFloat(String(printOptions?.footerMaskCoords?.right ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.right)),
+                width: parseFloat(String(printOptions?.footerMaskCoords?.width ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.width)),
+                height: parseFloat(String(printOptions?.footerMaskCoords?.height ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.height)),
+            }
+        };
+    }, [printOptions]);
+
+    // Reset snapshot when location changes to capture the new location's clean state
+    useEffect(() => {
+        setSnapshot(null);
+    }, [currentLocation]);
+
     // Sync local state ONLY when modal opens OR location changes
     useEffect(() => {
         if (isOpen) {
-            const currentOptions = {
-                ...DEFAULT_PRINT_OPTIONS,
-                ...printOptions,
-                footerMaskCoords: {
-                    ...DEFAULT_PRINT_OPTIONS.footerMaskCoords,
-                    ...(printOptions?.footerMaskCoords || {})
-                }
-            };
-            
             // Capture snapshot for dirty checking if not already captured
             if (!snapshot) {
                 setSnapshot({
                     profile: isDoctorProfileEnabled,
                     signSeal: isSignSealEnabled,
-                    options: currentOptions
+                    options: normalizedOptions
                 });
             }
 
@@ -117,18 +127,18 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
             } else {
                 if (localProfile !== isDoctorProfileEnabled) setLocalProfile(isDoctorProfileEnabled);
                 if (localSignSeal !== isSignSealEnabled) setLocalSignSeal(isSignSealEnabled);
-                
+
                 // Only reset localOptions if it's different from the incoming merged options
                 // This prevents the live-preview loop from clobbering input mid-keystroke
-                if (JSON.stringify(localOptions) !== JSON.stringify(currentOptions)) {
-                    setLocalOptions(currentOptions);
+                if (JSON.stringify(localOptions) !== JSON.stringify(normalizedOptions)) {
+                    setLocalOptions(normalizedOptions);
                 }
             }
         } else {
             // Reset snapshot when modal is closed
             setSnapshot(null);
         }
-    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, printOptions, currentLocation, pendingChanges]);
+    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, normalizedOptions, currentLocation, pendingChanges, snapshot]);
 
     const fields = [
         { id: 'vitals', label: 'Vitals' },
@@ -220,12 +230,20 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                             <Select
                                 value={currentLocation}
                                 onValueChange={(newLoc) => {
-                                    // Checkpoint current changes before switching
-                                    if (currentLocation) {
-                                        setPendingChanges(prev => ({
-                                            ...prev,
-                                            [currentLocation]: { profile: localProfile, signSeal: localSignSeal, options: localOptions }
-                                        }));
+                                    // Checkpoint current changes before switching, but only
+                                    // if the current view is actually dirty vs. its snapshot.
+                                    // Otherwise switching locations would falsely flag
+                                    // "Unsaved Changes" via hasPendingChanges.
+                                    if (currentLocation && snapshot) {
+                                        const profileChanged = localProfile !== snapshot.profile;
+                                        const signSealChanged = localSignSeal !== snapshot.signSeal;
+                                        const optionsChanged = JSON.stringify(localOptions) !== JSON.stringify(snapshot.options);
+                                        if (profileChanged || signSealChanged || optionsChanged) {
+                                            setPendingChanges(prev => ({
+                                                ...prev,
+                                                [currentLocation]: { profile: localProfile, signSeal: localSignSeal, options: localOptions }
+                                            }));
+                                        }
                                     }
                                     onLocationChange(newLoc);
                                 }}
@@ -282,7 +300,7 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                                             <Badge variant="outline" className="text-[9px] h-4 bg-amber-100 text-amber-700 border-amber-200 uppercase">Legacy Fix</Badge>
                                             <p className="text-sm font-medium">Smart Footer Mask</p>
                                         </div>
-                                        <p className="text-xs text-muted-foreground">Masks the wrong phone number on pre-printed paper.</p>
+                                        <p className="text-xs text-muted-foreground">Masks the unwanted details on pre-printed paper.</p>
                                     </div>
                                     <Switch
                                         checked={localOptions?.footerMask || false}

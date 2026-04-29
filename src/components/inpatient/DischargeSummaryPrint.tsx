@@ -44,10 +44,19 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     printOptions,
     showSignSeal = true
 }, ref) => {
-    const effectivePrintOptions = printOptions || {
+    const effectivePrintOptions: PrintOptions = {
         letterheadMode: false,
         fontSize: 'standard',
-        signatureAlignment: 'right'
+        signatureAlignment: 'right',
+        footerMask: false,
+        ...printOptions,
+        footerMaskCoords: {
+            bottom: 1.6,
+            right: 4.22,
+            width: 3.6,
+            height: 0.4,
+            ...(printOptions?.footerMaskCoords || {})
+        }
     };
     const TRANSLATIONS: any = {
         en: {
@@ -106,30 +115,28 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
 
     return (
-        <div
-            ref={ref}
-            className={cn(
-                "font-sans bg-background text-foreground min-h-[296mm] print:p-0 mx-auto",
-                showMargins ? "pl-16 pr-8 py-8" : "px-8 py-8",
-                effectivePrintOptions.fontSize === 'compact' ? 'text-[11px]' :
-                    effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
-                className
-            )}
-            style={{ fontFamily: 'var(--font-sans)', width: '210mm' }}
-        >
+        <div ref={ref} className="font-sans mx-auto print:m-0 relative" style={{ width: '210mm' }}>
+            <div
+                className={cn(
+                    "bg-background text-foreground min-h-[296mm] print:p-0 w-full box-border",
+                    showMargins ? "pl-16 pr-8 py-8" : "px-8 py-8",
+                    effectivePrintOptions.fontSize === 'compact' ? 'text-[11px]' :
+                        effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
+                    className
+                )}
+                style={{ fontFamily: 'var(--font-sans)' }}
+            >
             <table className="w-full text-left">
                 <thead className="print:table-header-group">
                     <tr><td><div className="h-4"></div></td></tr>
                 </thead>
                 <tfoot className="print:table-footer-group">
-                    {!effectivePrintOptions.letterheadMode && (
-                        <tr>
-                            <td className="w-full">
-                                {/* Hidden spacer to reserve space in flow so content doesn't hit fixed footer */}
-                                <div className="h-28 print:block hidden"></div>
-                            </td>
-                        </tr>
-                    )}
+                    <tr>
+                        <td className="w-full">
+                            {/* Unconditional spacer to reserve space for pre-printed footers or digital footers on every page */}
+                            <div className="h-[3.5cm] print:block hidden"></div>
+                        </td>
+                    </tr>
                 </tfoot>
                 <tbody>
                     <tr>
@@ -414,6 +421,22 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                     <img src="/images/assets/qr-code.png" alt="QR Code" className="h-16 w-16" />
                 </footer>
             )}
+            {/* Smart Footer Mask for pre-printed errors */}
+            {effectivePrintOptions.letterheadMode && effectivePrintOptions.footerMask && (
+                <div
+                    className="absolute print:fixed bg-black print:bg-black z-[100] flex items-center justify-center"
+                    style={{
+                        bottom: `${effectivePrintOptions.footerMaskCoords?.bottom}cm`,
+                        right: `${effectivePrintOptions.footerMaskCoords?.right}cm`,
+                        width: `${effectivePrintOptions.footerMaskCoords?.width}cm`,
+                        height: `${effectivePrintOptions.footerMaskCoords?.height}cm`,
+                        pointerEvents: 'none',
+                        WebkitPrintColorAdjust: 'exact',
+                        printColorAdjust: 'exact'
+                    }}
+                />
+            )}
+        </div>
         </div>
     );
 });
