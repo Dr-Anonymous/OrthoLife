@@ -7,6 +7,7 @@ import { Printer, User, ListChecks, Type, FileText, AlignLeft, AlignCenter, Alig
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { cn } from '@/lib/utils';
 import { PrintOptions } from '@/types/consultation';
 
@@ -23,7 +24,9 @@ const DEFAULT_PRINT_OPTIONS: PrintOptions = {
     orthotics: true,
     letterheadMode: false,
     fontSize: 'standard',
-    signatureAlignment: 'right'
+    signatureAlignment: 'right',
+    footerMask: false,
+    footerMaskCoords: { bottom: 1.15, right: 1.6, width: 3.6, height: 0.4 }
 };
 
 interface PrintSettingsModalProps {
@@ -63,38 +66,69 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
     const [localProfile, setLocalProfile] = useState(isDoctorProfileEnabled);
     const [localSignSeal, setLocalSignSeal] = useState(isSignSealEnabled);
     const [localOptions, setLocalOptions] = useState<PrintOptions>(printOptions || DEFAULT_PRINT_OPTIONS);
-    
+
     // Store changes for other locations to allow batch save
     const [pendingChanges, setPendingChanges] = useState<Record<string, { profile: boolean, signSeal: boolean, options: PrintOptions }>>({});
 
+    const [snapshot, setSnapshot] = useState<{ profile: boolean, signSeal: boolean, options: PrintOptions } | null>(null);
+
     // Compute if anything has changed
     const isDirty = useMemo(() => {
-        const profileChanged = localProfile !== isDoctorProfileEnabled;
-        const signSealChanged = localSignSeal !== isSignSealEnabled;
-        const optionsChanged = JSON.stringify(localOptions) !== JSON.stringify(printOptions);
+        if (!snapshot) return false;
         
+        const profileChanged = localProfile !== snapshot.profile;
+        const signSealChanged = localSignSeal !== snapshot.signSeal;
+        // Deep compare options
+        const optionsChanged = JSON.stringify(localOptions) !== JSON.stringify(snapshot.options);
+
         const hasCurrentChanges = profileChanged || signSealChanged || optionsChanged;
         const hasPendingChanges = Object.keys(pendingChanges).length > 0;
-        
+
         return hasCurrentChanges || hasPendingChanges;
-    }, [localProfile, isDoctorProfileEnabled, localSignSeal, isSignSealEnabled, localOptions, printOptions, pendingChanges]);
+    }, [localProfile, localSignSeal, localOptions, snapshot, pendingChanges]);
 
     // Sync local state ONLY when modal opens OR location changes
     useEffect(() => {
         if (isOpen) {
+            const currentOptions = {
+                ...DEFAULT_PRINT_OPTIONS,
+                ...printOptions,
+                footerMaskCoords: {
+                    ...DEFAULT_PRINT_OPTIONS.footerMaskCoords,
+                    ...(printOptions?.footerMaskCoords || {})
+                }
+            };
+            
+            // Capture snapshot for dirty checking if not already captured
+            if (!snapshot) {
+                setSnapshot({
+                    profile: isDoctorProfileEnabled,
+                    signSeal: isSignSealEnabled,
+                    options: currentOptions
+                });
+            }
+
             // Check if we have pending changes for this location first
             if (currentLocation && pendingChanges[currentLocation]) {
                 const pc = pendingChanges[currentLocation];
-                setLocalProfile(pc.profile);
-                setLocalSignSeal(pc.signSeal);
-                setLocalOptions(pc.options);
+                if (localProfile !== pc.profile) setLocalProfile(pc.profile);
+                if (localSignSeal !== pc.signSeal) setLocalSignSeal(pc.signSeal);
+                if (JSON.stringify(localOptions) !== JSON.stringify(pc.options)) setLocalOptions(pc.options);
             } else {
-                setLocalProfile(isDoctorProfileEnabled);
-                setLocalSignSeal(isSignSealEnabled);
-                setLocalOptions(printOptions || DEFAULT_PRINT_OPTIONS);
+                if (localProfile !== isDoctorProfileEnabled) setLocalProfile(isDoctorProfileEnabled);
+                if (localSignSeal !== isSignSealEnabled) setLocalSignSeal(isSignSealEnabled);
+                
+                // Only reset localOptions if it's different from the incoming merged options
+                // This prevents the live-preview loop from clobbering input mid-keystroke
+                if (JSON.stringify(localOptions) !== JSON.stringify(currentOptions)) {
+                    setLocalOptions(currentOptions);
+                }
             }
+        } else {
+            // Reset snapshot when modal is closed
+            setSnapshot(null);
         }
-    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, printOptions, currentLocation, pendingChanges]); 
+    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, printOptions, currentLocation, pendingChanges]);
 
     const fields = [
         { id: 'vitals', label: 'Vitals' },
@@ -119,15 +153,20 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
 
     const updateOption = (key: keyof PrintOptions, value: any) => {
         if (!localOptions || isReadOnly) return;
-        setLocalOptions({
+        const newOptions = {
             ...localOptions,
             [key]: value
-        });
+        };
+        setLocalOptions(newOptions);
+        // Enable live preview in the background
+        if (onUpdatePrintOptions) {
+            onUpdatePrintOptions(newOptions);
+        }
     };
 
     const handleSave = () => {
         if (isReadOnly || !localOptions) return;
-        
+
         // Use batch save if available to avoid multiple toasts/refreshes
         if (onSaveAll) {
             // Combine current view changes with all pending changes from other locations
@@ -136,13 +175,15 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                 [currentLocation || 'OrthoLife']: { profile: localProfile, signSeal: localSignSeal, options: localOptions }
             };
             onSaveAll(localProfile, localSignSeal, localOptions, finalChanges);
+            // Clear pending changes after saving successfully
+            setPendingChanges({});
         } else {
             // Fallback to individual handlers for compatibility
             if (localProfile !== isDoctorProfileEnabled) onToggleProfile(localProfile);
             if (localSignSeal !== isSignSealEnabled) onToggleSignSeal(localSignSeal);
             onUpdatePrintOptions(localOptions);
         }
-        
+
         onClose();
     };
 
@@ -228,6 +269,78 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                                 />
                             </div>
 
+                            {localOptions?.letterheadMode && (
+                                <div
+                                    className={cn(
+                                        "flex items-center justify-between p-3 bg-amber-50/50 rounded-lg border border-amber-200/50 transition-all cursor-pointer hover:bg-amber-100/50 animate-in slide-in-from-top-2 duration-200",
+                                        isReadOnly && "opacity-50 cursor-not-allowed"
+                                    )}
+                                    onClick={() => !isReadOnly && updateOption('footerMask', !localOptions?.footerMask)}
+                                >
+                                    <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="text-[9px] h-4 bg-amber-100 text-amber-700 border-amber-200 uppercase">Legacy Fix</Badge>
+                                            <p className="text-sm font-medium">Smart Footer Mask</p>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">Masks the wrong phone number on pre-printed paper.</p>
+                                    </div>
+                                    <Switch
+                                        checked={localOptions?.footerMask || false}
+                                        onCheckedChange={(checked) => !isReadOnly && updateOption('footerMask', checked)}
+                                        disabled={isReadOnly}
+                                    />
+                                </div>
+                            )}
+
+                            {localOptions?.letterheadMode && localOptions?.footerMask && (
+                                <div className="grid grid-cols-4 gap-2 px-3 pb-3 -mt-2 animate-in slide-in-from-top-2 duration-200">
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] text-muted-foreground uppercase">Bottom (cm)</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={localOptions.footerMaskCoords?.bottom}
+                                            onChange={(e) => updateOption('footerMaskCoords', { ...(localOptions.footerMaskCoords || DEFAULT_PRINT_OPTIONS.footerMaskCoords), bottom: e.target.value })}
+                                            className="h-7 text-xs bg-amber-50/30 border-amber-200/50"
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] text-muted-foreground uppercase">Right (cm)</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={localOptions.footerMaskCoords?.right}
+                                            onChange={(e) => updateOption('footerMaskCoords', { ...(localOptions.footerMaskCoords || DEFAULT_PRINT_OPTIONS.footerMaskCoords), right: e.target.value })}
+                                            className="h-7 text-xs bg-amber-50/30 border-amber-200/50"
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] text-muted-foreground uppercase">Width (cm)</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={localOptions.footerMaskCoords?.width}
+                                            onChange={(e) => updateOption('footerMaskCoords', { ...(localOptions.footerMaskCoords || DEFAULT_PRINT_OPTIONS.footerMaskCoords), width: e.target.value })}
+                                            className="h-7 text-xs bg-amber-50/30 border-amber-200/50"
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] text-muted-foreground uppercase">Height (cm)</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={localOptions.footerMaskCoords?.height}
+                                            onChange={(e) => updateOption('footerMaskCoords', { ...(localOptions.footerMaskCoords || DEFAULT_PRINT_OPTIONS.footerMaskCoords), height: e.target.value })}
+                                            className="h-7 text-xs bg-amber-50/30 border-amber-200/50"
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             {mode === 'op' && (
                                 <div
                                     className={cn(
@@ -259,8 +372,8 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                         <div className="space-y-4 p-3 bg-muted/30 rounded-lg border border-transparent">
                             <div className="space-y-2">
                                 <Label className="text-xs font-medium text-muted-foreground uppercase">Font Size</Label>
-                                <Tabs 
-                                    value={localOptions?.fontSize || 'standard'} 
+                                <Tabs
+                                    value={localOptions?.fontSize || 'standard'}
                                     onValueChange={(v) => updateOption('fontSize', v)}
                                     className="w-full"
                                 >
@@ -365,18 +478,18 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                         )}
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={onClose}
                             className="text-xs h-8"
                         >
                             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
                             {isDirty ? "Discard" : "Close"}
                         </Button>
-                        <Button 
-                            size="sm" 
-                            onClick={handleSave} 
+                        <Button
+                            size="sm"
+                            onClick={handleSave}
                             disabled={!isDirty || isReadOnly}
                             className="text-xs h-8 shadow-sm font-semibold"
                         >

@@ -468,7 +468,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                 printOptions={printOptions}
                 onToggleProfile={toggleProfile}
                 onToggleSignSeal={toggleSignSeal}
-                onUpdatePrintOptions={(options) => updateLocationSetting('print_options', options)}
+                onUpdatePrintOptions={onUpdatePrintOptions}
                 onSaveAll={batchUpdatePrintSettings}
                 isReadOnly={isReadOnly}
                 currentLocation={currentLocation}

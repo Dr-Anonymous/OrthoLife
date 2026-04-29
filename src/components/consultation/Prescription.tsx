@@ -61,7 +61,7 @@ interface PrescriptionProps {
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
 export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, hospitalName, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, printOptions, showMargins = true, consultant }, ref) => {
-  const effectivePrintOptions: PrintOptions = printOptions || {
+  const effectivePrintOptions: PrintOptions = {
     vitals: true,
     clinicalNotes: true,
     diagnosis: true,
@@ -74,7 +74,16 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
     orthotics: true,
     letterheadMode: false,
     fontSize: 'standard',
-    signatureAlignment: 'right'
+    signatureAlignment: 'right',
+    footerMask: false,
+    ...printOptions,
+    footerMaskCoords: {
+      bottom: 1.15,
+      right: 1.6,
+      width: 3.6,
+      height: 0.4,
+      ...(printOptions?.footerMaskCoords || {})
+    }
   };
   const TRANSLATIONS = {
     en: {
@@ -490,6 +499,24 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
               <p className="text-primary font-semibold text-xs" dangerouslySetInnerHTML={{ __html: t('prescription.footer_text') }} />
               <img src={qrCodeUrl || "/images/assets/qr-code.png"} alt="QR Code" className="h-16 w-16" />
             </footer>
+          )}
+
+          {/* Smart Footer Mask for pre-printed errors like phone numbers/ address */}
+          {effectivePrintOptions.letterheadMode && effectivePrintOptions.footerMask && (
+            <div
+              className="absolute bg-black print:bg-black z-[100] flex items-center justify-center"
+              style={{
+                bottom: `${effectivePrintOptions.footerMaskCoords?.bottom}cm`,
+                right: `${effectivePrintOptions.footerMaskCoords?.right}cm`,
+                width: `${effectivePrintOptions.footerMaskCoords?.width}cm`,
+                height: `${effectivePrintOptions.footerMaskCoords?.height}cm`,
+                pointerEvents: 'none',
+                WebkitPrintColorAdjust: 'exact',
+                printColorAdjust: 'exact'
+              }}
+            >
+              {/* Optional text to make the redaction look intentional */}
+            </div>
           )}
         </div>
       </div>

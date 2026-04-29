@@ -270,4 +270,11 @@ export interface PrintOptions {
     letterheadMode?: boolean;
     fontSize?: 'standard' | 'compact' | 'large';
     signatureAlignment?: 'left' | 'center' | 'right';
+    footerMask?: boolean;
+    footerMaskCoords?: {
+        bottom: number | string;
+        right: number | string;
+        width: number | string;
+        height: number | string;
+    };
 }
