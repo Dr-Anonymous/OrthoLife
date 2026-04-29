@@ -13,11 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    const schedulerSecret = Deno.env.get('SCHEDULER_SECRET');
-    if (schedulerSecret && req.headers.get('x-scheduler-secret') !== schedulerSecret) {
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseKey);

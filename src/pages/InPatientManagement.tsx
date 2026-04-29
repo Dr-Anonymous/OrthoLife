@@ -292,7 +292,7 @@ const InPatientManagement = () => {
     const [currentGuideLink, setCurrentGuideLink] = useState<string | null>(null);
     const [whatsAppPhone, setWhatsAppPhone] = useState('');
     const [scheduledDate, setScheduledDate] = useState<Date>();
-    const [scheduledTime, setScheduledTime] = useState("09:00");
+    const [scheduledTime, setScheduledTime] = useState("");
 
     // Admission Form State
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -583,7 +583,7 @@ const InPatientManagement = () => {
             setIsWhatsAppModalOpen(false);
             toast({ title: variables.scheduled_at ? "Scheduled" : "Sent", description: variables.scheduled_at ? "WhatsApp message scheduled." : "WhatsApp message sent." });
             setScheduledDate(undefined);
-            setScheduledTime("09:00");
+            setScheduledTime("");
         },
         onError: () => {
             toast({ variant: "destructive", title: "Error", description: "Failed to send message." });

@@ -42,7 +42,7 @@ export const CompletionMessageModal = ({
     const [editablePhone, setEditablePhone] = useState(patientPhone);
     const [isSending, setIsSending] = useState(false);
     const [scheduledDate, setScheduledDate] = useState<Date>();
-    const [scheduledTime, setScheduledTime] = useState("09:00");
+    const [scheduledTime, setScheduledTime] = useState("");
     const { toast } = useToast();
 
     useEffect(() => {
@@ -50,7 +50,7 @@ export const CompletionMessageModal = ({
             setMessage(initialMessage);
             setEditablePhone(patientPhone);
             setScheduledDate(undefined);
-            setScheduledTime("09:00");
+            setScheduledTime("");
         }
     }, [initialMessage, patientPhone, isOpen]);
 

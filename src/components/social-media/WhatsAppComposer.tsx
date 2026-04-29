@@ -1,11 +1,10 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Phone, MessageSquare, Image as ImageIcon, Upload } from "lucide-react";
+import { Loader2, Send, Phone, MessageSquare, Image as ImageIcon, Upload, X, Check } from "lucide-react";
 import { useConsultant } from "@/context/ConsultantContext";
 import { socialService } from "@/utils/socialService";
 import { scheduleService } from "@/utils/scheduleService";
@@ -21,7 +20,7 @@ const WhatsAppComposer = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date>();
-  const [scheduledTime, setScheduledTime] = useState("09:00");
+  const [scheduledTime, setScheduledTime] = useState("");
   const { toast } = useToast();
   const { consultant } = useConsultant();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -135,7 +134,7 @@ const WhatsAppComposer = () => {
           source: 'manual_send_whatsapp',
           consultant_id: consultant?.id
         });
-        
+
         if (!success) throw new Error("Failed to schedule task");
       } else {
         const { data, error } = await supabase.functions.invoke("send-whatsapp", {
@@ -154,15 +153,15 @@ const WhatsAppComposer = () => {
 
       toast({
         title: "Success",
-        description: scheduledDate 
-          ? "Message scheduled successfully!" 
+        description: scheduledDate
+          ? "Message scheduled successfully!"
           : "Message sent successfully!",
       });
       setMessage("");
       setImage(null);
       setImagePreview(null);
       setScheduledDate(undefined);
-      setScheduledTime("09:00");
+      setScheduledTime("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -179,155 +178,164 @@ const WhatsAppComposer = () => {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-sm border-gray-100">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Send className="h-5 w-5 text-primary" />
-          Direct WhatsApp Message
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Phone className="h-4 w-4 text-primary" /> Phone Number
-              </label>
-              <Input
-                placeholder="e.g. 9876543210"
-                value={number}
-                onChange={(e) => setNumber(e.target.value)}
-                onKeyDown={handlePhoneKeyDown}
-                type="tel"
-                className="bg-gray-50/50"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Country code (91) will be added automatically if 10 digits.
-              </p>
+    <Card className="w-full max-w-2xl mx-auto shadow-sm border-gray-100 overflow-hidden">
+      <CardHeader className="bg-gray-50/50 border-b border-gray-100 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+            <div className="p-1.5 bg-green-500 rounded-lg">
+              <MessageSquare className="h-4 w-4 text-white" />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-primary" /> Message
-              </label>
-              <Textarea
-                ref={messageRef}
-                placeholder="Type your message here..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={5}
-                className="bg-gray-50/50 resize-none"
-              />
-              <p className="text-[10px] text-muted-foreground text-right">
-                Press Ctrl+Enter to send
-              </p>
-            </div>
+            Direct WhatsApp
+          </CardTitle>
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm w-full sm:w-auto sm:min-w-[240px]">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-tight shrink-0">To:</span>
+            <input
+              type="tel"
+              placeholder="9866812555"
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              onKeyDown={handlePhoneKeyDown}
+              className="flex-1 bg-transparent border-none text-sm font-semibold focus:outline-none placeholder:text-gray-300 placeholder:font-normal"
+            />
           </div>
+        </div>
+      </CardHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-primary" /> Attachment (Image or PDF)
-              </label>
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={cn(
-                  "relative group border-2 border-dashed rounded-lg p-6 transition-all duration-200 text-center cursor-pointer min-h-[180px] flex flex-col justify-center",
-                  isDragging
-                    ? "border-primary bg-primary/5"
-                    : "border-gray-200 hover:border-primary/50 hover:bg-gray-50/80"
-                )}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-                {!imagePreview ? (
-                  <div className="flex flex-col items-center gap-3 py-2">
-                    <div className="p-3 rounded-full bg-gray-100 text-gray-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                      <Upload className="w-6 h-6" />
+      <CardContent className="p-0">
+        <div
+          className={cn(
+            "relative min-h-[300px] flex flex-col transition-all duration-300",
+            isDragging && "bg-green-50/50"
+          )}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <Textarea
+            ref={messageRef}
+            placeholder="Write your message here..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 min-h-[200px] border-none focus-visible:ring-0 text-base p-6 resize-none bg-transparent placeholder:text-gray-300"
+          />
+
+          {/* Media Previews */}
+          {imagePreview && (
+            <div className="px-6 pb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="relative group w-fit">
+                <div className="rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-gray-100">
+                  {image?.type === "application/pdf" || imagePreview === "pdf_placeholder" ? (
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 min-w-[200px]">
+                      <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                        <Upload className="w-5 h-5 text-red-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-700 truncate">{image?.name || "Document.pdf"}</p>
+                        <p className="text-[10px] text-gray-400 font-medium">PDF Document</p>
+                      </div>
                     </div>
-                    <div className="text-sm">
-                      <span className="font-semibold text-primary">Click to upload</span>
-                      <span className="text-gray-500"> or drag and drop</span>
-                    </div>
-                    <p className="text-xs text-gray-400">PNG, JPG, GIF or PDF</p>
-                  </div>
-                ) : image?.type === "application/pdf" || imagePreview === "pdf_placeholder" ? (
-                  <div className="flex flex-col items-center gap-2 py-4 bg-gray-50 rounded-md border border-gray-100">
-                    <Upload className="w-10 h-10 text-primary" />
-                    <p className="text-sm font-medium text-gray-600 truncate max-w-[200px]">{image?.name || "Document.pdf"}</p>
-                    <Button variant="ghost" size="sm" className="text-xs h-8" onClick={(e) => {
-                      e.stopPropagation();
-                      setImage(null);
-                      setImagePreview(null);
-                    }}>Remove</Button>
-                  </div>
-                ) : (
-                  <div className="relative">
+                  ) : (
                     <img
                       src={imagePreview}
                       alt="Preview"
-                      className="w-full h-32 object-cover rounded-md"
+                      className="max-h-[200px] w-auto object-cover rounded-lg"
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center">
-                      <p className="text-white text-xs font-medium">Click to change</p>
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full shadow-lg z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setImage(null);
-                        setImagePreview(null);
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                      }}
-                    >
-                      ×
-                    </Button>
-                  </div>
-                )}
+                  )}
+                </div>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-lg border-2 border-white"
+                  onClick={() => {
+                    setImage(null);
+                    setImagePreview(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
+            </div>
+          )}
+
+          {isDragging && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-500/10 backdrop-blur-[2px] z-20">
+              <div className="bg-white p-4 rounded-3xl shadow-2xl mb-3 animate-bounce">
+                <Upload className="h-8 w-8 text-green-500" />
+              </div>
+              <p className="text-green-600 font-bold text-lg">Drop to attach</p>
+            </div>
+          )}
+
+          {/* Unified WhatsApp Action Bar */}
+          <div className="p-3 md:p-4 border-t border-gray-100 bg-green-50/30 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                id="whatsapp-media-upload"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) handleFiles(e.target.files[0]);
+                }}
+                className="hidden"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 px-3 md:px-4 rounded-xl text-gray-500 hover:text-green-600 hover:bg-green-500/10 gap-2 transition-all"
+                onClick={() => document.getElementById('whatsapp-media-upload')?.click()}
+              >
+                <ImageIcon className="w-4 h-4 text-green-500" />
+                <span className="font-bold text-xs">Add Media</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 px-3 md:px-4 rounded-xl text-gray-400 hover:text-destructive hover:bg-destructive/5 gap-2 transition-all"
+                onClick={() => {
+                  setMessage('');
+                  setImage(null);
+                  setImagePreview(null);
+                }}
+                disabled={loading || (!message && !image)}
+              >
+                <span className="font-bold text-xs">Clear</span>
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto w-full sm:w-auto">
+              <SchedulePopover
+                scheduledDate={scheduledDate}
+                scheduledTime={scheduledTime}
+                onDateChange={setScheduledDate}
+                onTimeChange={setScheduledTime}
+                disabled={loading}
+                className="h-10 w-10 rounded-xl border-green-100 hover:border-green-200"
+              />
+              <Button
+                size="lg"
+                onClick={handleSend}
+                disabled={loading || (!message && !image) || !number}
+                className="flex-1 sm:flex-initial sm:px-8 font-bold gap-2 rounded-xl bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 transition-all h-10 text-sm border-none"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {scheduledDate ? 'Schedule' : 'Send'}
+              </Button>
             </div>
           </div>
         </div>
-
-        <div className="flex gap-3 pt-2">
-          <SchedulePopover
-            scheduledDate={scheduledDate}
-            scheduledTime={scheduledTime}
-            onDateChange={setScheduledDate}
-            onTimeChange={setScheduledTime}
-            disabled={loading}
-            className="h-11 w-11 shrink-0 rounded-xl"
-          />
-          <Button
-            className="flex-1 h-11 text-base font-medium rounded-xl shadow-md"
-            onClick={handleSend}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {scheduledDate ? "Scheduling..." : "Sending..."}
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-5 w-5" />
-                {scheduledDate ? "Schedule WhatsApp" : "Send WhatsApp Now"}
-              </>
-            )}
-          </Button>
-        </div>
       </CardContent>
+      <div className="px-6 py-2 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400 flex justify-between items-center">
+        <span>Press Ctrl+Enter to send message immediately</span>
+        {number.length > 0 && number.length < 10 && <span className="text-amber-500 font-medium">Enter 10-digit number</span>}
+        {number.length >= 10 && <span className="text-green-500 font-medium flex items-center gap-1"><Check className="h-3 w-3" /> Valid format</span>}
+      </div>
     </Card>
   );
 };

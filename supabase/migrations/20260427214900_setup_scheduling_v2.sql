@@ -106,8 +106,7 @@ SELECT cron.schedule('dispatch-scheduled', '* * * * *', $$
   SELECT net.http_post(
     url := 'https://vqskeanwpnvuyxorymib.supabase.co/functions/v1/process-scheduled-tasks',
     headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'x-scheduler-secret', 'REPLACE_WITH_YOUR_SCHEDULER_SECRET'
+      'Content-Type', 'application/json'
     ),
     body := '{}'::jsonb
   );

@@ -57,7 +57,7 @@ const FollowUpDashboard = () => {
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [fetchAll, setFetchAll] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date>();
-  const [scheduledTime, setScheduledTime] = useState("09:00");
+  const [scheduledTime, setScheduledTime] = useState("");
 
 
   useEffect(() => {
@@ -163,7 +163,7 @@ const FollowUpDashboard = () => {
       toast.success(scheduledDate ? `Reminder scheduled for ${targetConsultation.patient.name}` : `Reminder sent to ${targetConsultation.patient.name}`);
       setWhatsappPreviewVisible(false);
       setScheduledDate(undefined);
-      setScheduledTime("09:00");
+      setScheduledTime("");
     } catch (error: any) {
       console.error('WhatsApp Error:', error);
       toast.error(error.message || 'Failed to send WhatsApp reminder.');
