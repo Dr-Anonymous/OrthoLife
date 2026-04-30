@@ -78,8 +78,8 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
     footerMask: false,
     ...printOptions,
     footerMaskCoords: {
-      bottom: 1.6,
-      right: 4.22,
+      bottom: 1.15,
+      right: 1.6,
       width: 3.6,
       height: 0.4,
       ...(printOptions?.footerMaskCoords || {})
@@ -138,7 +138,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   return (
     <div ref={ref}
       className={cn(
-        "font-sans bg-background text-foreground mx-auto print:m-0 relative",
+        "font-sans bg-background text-foreground mx-auto print:m-0",
         effectivePrintOptions.fontSize === 'compact' ? 'text-[11px]' :
           effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
         className
@@ -147,7 +147,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
       data-testid="prescription"
     >
       <div className={cn(
-        "min-h-[296mm] py-8 flex flex-col box-border w-full",
+        "min-h-[296mm] py-8 flex flex-col relative box-border w-full",
         showMargins ? "pl-16 pr-8" : "px-8"
       )}>
         {/* Header or Spacer for Letterhead */}
@@ -491,10 +491,6 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
               </div>
             </div>
           )}
-          
-          {/* Unconditional spacer to reserve space at the bottom of the container */}
-          <div className="h-[3.5cm] w-full flex-shrink-0" />
-
           {!effectivePrintOptions.letterheadMode && (
             <footer
               className="mt-4 p-2 border-t-2 border-primary-light rounded-b-lg flex justify-between items-center bg-white"
@@ -508,7 +504,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           {/* Smart Footer Mask for pre-printed errors like phone numbers/ address */}
           {effectivePrintOptions.letterheadMode && effectivePrintOptions.footerMask && (
             <div
-              className="absolute print:fixed bg-black print:bg-black z-[100] flex items-center justify-center"
+              className="absolute bg-black print:bg-black z-[100] flex items-center justify-center"
               style={{
                 bottom: `${effectivePrintOptions.footerMaskCoords?.bottom}cm`,
                 right: `${effectivePrintOptions.footerMaskCoords?.right}cm`,
@@ -528,10 +524,12 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
       {/* Doctor Profile (Back Page) */}
       {showDoctorProfile !== false && (
         <section
-          className="min-h-[296mm] py-12 px-8 sm:px-16 flex flex-col break-before-page bg-white relative overflow-hidden print:z-[110] print:bg-white"
-          style={{ pageBreakBefore: 'always', breakBefore: 'page' }}
+          className={cn(
+            "break-before-page min-h-[296mm] py-8 flex flex-col justify-center relative print:z-[60] print:bg-white",
+            showMargins ? "pl-8 pr-16" : "px-8"
+          )}
+          style={{ pageBreakBefore: 'always' }}
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl" />
           <div className="border-4 border-primary/20 rounded-xl p-4 flex flex-col justify-start bg-white h-full relative overflow-hidden">
             {consultant?.profile_layout === 'team' ? (
               // --- HOSPITAL TEAM LAYOUT ---
