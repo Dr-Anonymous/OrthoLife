@@ -72,39 +72,50 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
 
     const [snapshot, setSnapshot] = useState<{ profile: boolean, signSeal: boolean, options: PrintOptions } | null>(null);
 
-    // Compute if anything has changed
-    const isDirty = useMemo(() => {
+    // Normalize incoming options to ensure consistent types (numbers) for comparison
+    const normalizedOptions = useMemo(() => {
+        return {
+            ...DEFAULT_PRINT_OPTIONS,
+            ...printOptions,
+            footerMaskCoords: {
+                bottom: parseFloat(String(printOptions?.footerMaskCoords?.bottom ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.bottom)),
+                right: parseFloat(String(printOptions?.footerMaskCoords?.right ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.right)),
+                width: parseFloat(String(printOptions?.footerMaskCoords?.width ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.width)),
+                height: parseFloat(String(printOptions?.footerMaskCoords?.height ?? DEFAULT_PRINT_OPTIONS.footerMaskCoords.height)),
+            }
+        };
+    }, [printOptions]);
+
+    const isCurrentLocationDirty = useMemo(() => {
         if (!snapshot) return false;
-        
+
         const profileChanged = localProfile !== snapshot.profile;
         const signSealChanged = localSignSeal !== snapshot.signSeal;
-        // Deep compare options
+        // Deep compare options using normalized values
         const optionsChanged = JSON.stringify(localOptions) !== JSON.stringify(snapshot.options);
 
-        const hasCurrentChanges = profileChanged || signSealChanged || optionsChanged;
-        const hasPendingChanges = Object.keys(pendingChanges).length > 0;
+        return profileChanged || signSealChanged || optionsChanged;
+    }, [localProfile, localSignSeal, localOptions, snapshot]);
 
-        return hasCurrentChanges || hasPendingChanges;
-    }, [localProfile, localSignSeal, localOptions, snapshot, pendingChanges]);
+    const isDirty = useMemo(() => {
+        const hasPendingChanges = Object.keys(pendingChanges).length > 0;
+        return isCurrentLocationDirty || hasPendingChanges;
+    }, [isCurrentLocationDirty, pendingChanges]);
+
+    // Reset snapshot when location changes to capture the new location's clean state
+    useEffect(() => {
+        setSnapshot(null);
+    }, [currentLocation]);
 
     // Sync local state ONLY when modal opens OR location changes
     useEffect(() => {
         if (isOpen) {
-            const currentOptions = {
-                ...DEFAULT_PRINT_OPTIONS,
-                ...printOptions,
-                footerMaskCoords: {
-                    ...DEFAULT_PRINT_OPTIONS.footerMaskCoords,
-                    ...(printOptions?.footerMaskCoords || {})
-                }
-            };
-            
             // Capture snapshot for dirty checking if not already captured
             if (!snapshot) {
                 setSnapshot({
                     profile: isDoctorProfileEnabled,
                     signSeal: isSignSealEnabled,
-                    options: currentOptions
+                    options: normalizedOptions
                 });
             }
 
@@ -117,18 +128,18 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
             } else {
                 if (localProfile !== isDoctorProfileEnabled) setLocalProfile(isDoctorProfileEnabled);
                 if (localSignSeal !== isSignSealEnabled) setLocalSignSeal(isSignSealEnabled);
-                
+
                 // Only reset localOptions if it's different from the incoming merged options
                 // This prevents the live-preview loop from clobbering input mid-keystroke
-                if (JSON.stringify(localOptions) !== JSON.stringify(currentOptions)) {
-                    setLocalOptions(currentOptions);
+                if (JSON.stringify(localOptions) !== JSON.stringify(normalizedOptions)) {
+                    setLocalOptions(normalizedOptions);
                 }
             }
         } else {
             // Reset snapshot when modal is closed
             setSnapshot(null);
         }
-    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, printOptions, currentLocation, pendingChanges]);
+    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, normalizedOptions, currentLocation, pendingChanges, snapshot]);
 
     const fields = [
         { id: 'vitals', label: 'Vitals' },
@@ -220,8 +231,7 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                             <Select
                                 value={currentLocation}
                                 onValueChange={(newLoc) => {
-                                    // Checkpoint current changes before switching
-                                    if (currentLocation) {
+                                    if (isCurrentLocationDirty && currentLocation) {
                                         setPendingChanges(prev => ({
                                             ...prev,
                                             [currentLocation]: { profile: localProfile, signSeal: localSignSeal, options: localOptions }

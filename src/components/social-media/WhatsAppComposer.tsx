@@ -39,6 +39,8 @@ const WhatsAppComposer = () => {
       return;
     }
     setImage(file);
+    setImagePreview(null); // Clear previous preview first
+
     if (isImage) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -162,11 +164,9 @@ const WhatsAppComposer = () => {
       setMessage("");
       setImage(null);
       setImagePreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setScheduledDate(undefined);
       setScheduledTime("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     } catch (error: any) {
       console.error("Error sending WhatsApp:", error);
       toast({
@@ -278,15 +278,20 @@ const WhatsAppComposer = () => {
                 type="file"
                 accept="image/*"
                 onChange={(e) => {
-                  if (e.target.files?.[0]) handleFiles(e.target.files[0]);
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleFiles(file);
+                    e.target.value = '';
+                  }
                 }}
+                ref={fileInputRef}
                 className="hidden"
               />
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-10 px-3 md:px-4 rounded-xl text-gray-500 hover:text-green-600 hover:bg-green-500/10 gap-2 transition-all"
-                onClick={() => document.getElementById('whatsapp-media-upload')?.click()}
+                onClick={() => fileInputRef.current?.click()}
               >
                 <ImageIcon className="w-4 h-4 text-green-500" />
                 <span className="font-bold text-xs">Add Media</span>
