@@ -75,6 +75,7 @@ interface ConsultationSidebarProps {
     onShortcutsClick?: () => void;
     hasChanges?: boolean;
     onNavigate?: (path: string) => void;
+    searchInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 /**
@@ -126,7 +127,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     onProfileClick,
     onShortcutsClick,
     hasChanges = false,
-    onNavigate
+    onNavigate,
+    searchInputRef: externalSearchInputRef
 }) => {
     const { hospitals } = useHospitals();
     const { consultant } = useConsultant();
@@ -149,7 +151,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     const [isHandbookOpen, setIsHandbookOpen] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const searchInputRef = React.useRef<HTMLInputElement>(null);
+    const internalSearchInputRef = React.useRef<HTMLInputElement>(null);
+    const searchInputRef = externalSearchInputRef || internalSearchInputRef;
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
     const [sexFilter, setSexFilter] = useState<'all' | 'male' | 'female'>('all');

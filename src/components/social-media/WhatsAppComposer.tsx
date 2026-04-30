@@ -276,7 +276,7 @@ const WhatsAppComposer = () => {
               <input
                 id="whatsapp-media-upload"
                 type="file"
-                accept="image/*"
+                accept="image/*,.pdf"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {

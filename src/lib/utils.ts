@@ -322,15 +322,15 @@ export function arePatientsEqual(p1: any, p2: any): boolean {
 /**
  * Compares two extraData objects for equality, ignoring whitespace and pruning empty medications/lists.
  */
-export function areExtraDataEqual(d1: any, d2: any): boolean {
+export function areExtraDataEqual(d1: any, d2: any, ignoreBrandName: boolean = false): boolean {
   if (!d1 || !d2) return d1 === d2;
 
   const keysToCompare = [
     'complaints', 'medicalHistory', 'findings', 'investigations',
-    'diagnosis', 'advice', 'followup', 'weight', 'bp', 'temperature',
+    'diagnosis', 'advice', 'advice_te', 'followup', 'followup_te', 'weight', 'bp', 'temperature',
     'height', 'pulse', 'spo2', 'bmi', 'allergy', 'personalNote',
     'procedure', 'procedure_fee', 'procedure_consultant_cut',
-    'referred_to', 'referral_amount', 'orthotics'
+    'referred_to', 'referred_by', 'referral_amount', 'orthotics'
   ];
 
   for (const key of keysToCompare) {
@@ -350,7 +350,9 @@ export function areExtraDataEqual(d1: any, d2: any): boolean {
     const m2 = meds2[i];
 
     // Compare essential fields
-    const medFields = ['composition', 'dose', 'frequency', 'duration', 'instructions', 'notes', 'brandName', 'savedMedicationId'];
+    const medFields = ['composition', 'dose', 'frequency', 'duration', 'instructions', 'notes', 'savedMedicationId'];
+    if (!ignoreBrandName) medFields.push('brandName');
+
     for (const field of medFields) {
       if (String(m1[field] || '').trim() !== String(m2[field] || '').trim()) return false;
     }
@@ -371,6 +373,7 @@ export function areExtraDataEqual(d1: any, d2: any): boolean {
   // Note: We might want to be more specific here if needed.
   if (JSON.stringify(d1.certificates || []) !== JSON.stringify(d2.certificates || [])) return false;
   if (JSON.stringify(d1.receipts || []) !== JSON.stringify(d2.receipts || [])) return false;
+  if (JSON.stringify(d1.investigation_reports || []) !== JSON.stringify(d2.investigation_reports || [])) return false;
 
   return true;
 }

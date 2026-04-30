@@ -381,6 +381,7 @@ const ConsultationPage = () => {
   const personalNoteRef = useRef<HTMLTextAreaElement>(null);
   const referredByRef = useRef<HTMLInputElement>(null);
   const orthoticsRef = useRef<HTMLTextAreaElement>(null);
+  const sidebarSearchRef = useRef<HTMLInputElement>(null);
 
   // Med Refs
   const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
@@ -1062,19 +1063,22 @@ const ConsultationPage = () => {
 
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
     const extraDataChanged = !areExtraDataEqual(extraData, initialExtraData);
+    const extraDataSignificantChanged = !areExtraDataEqual(extraData, initialExtraData, true);
 
     const locationChanged = (selectedLocation || '').toLowerCase() !== (initialLocation || '').toLowerCase();
     const languageChanged = consultationLanguage !== initialLanguage;
 
     const baseChanges = patientDetailsChanged || extraDataChanged || languageChanged;
+    const baseSignificantChanges = patientDetailsChanged || extraDataSignificantChanged || languageChanged;
     const allChanges = baseChanges || locationChanged;
+    const allSignificantChanges = baseSignificantChanges || locationChanged;
 
     // Check if it's a saved consultation (not a new/offline one)
     const isSavedConsultation = selectedConsultation?.id && !String(selectedConsultation.id).startsWith('offline-');
 
     return {
       hasChanges: allChanges,
-      hasSignificantChanges: isSavedConsultation ? baseChanges : allChanges
+      hasSignificantChanges: isSavedConsultation ? baseSignificantChanges : allSignificantChanges
     };
   }, [isReadOnly, selectedConsultation, editablePatientDetails, initialPatientDetails, extraData, initialExtraData, selectedHospital, initialLocation, consultationLanguage, initialLanguage]);
 
@@ -2036,10 +2040,19 @@ const ConsultationPage = () => {
       // Small delay to ensure layout is settled and styles are parsed
       await new Promise(resolve => setTimeout(resolve, 500));
     }, []),
+    onAfterPrint: useCallback(() => {
+      // Focus search bar in sidebar after printing for better UX
+      setTimeout(() => {
+        sidebarSearchRef.current?.focus();
+      }, 100);
+    }, []),
   });
 
   const handleAfterPrintCertificate = useCallback(() => {
     setIsReadyToPrintCertificate(false);
+    setTimeout(() => {
+      sidebarSearchRef.current?.focus();
+    }, 100);
   }, []);
 
   const handleCertificatePrint = useReactToPrint({
@@ -2052,6 +2065,9 @@ const ConsultationPage = () => {
 
   const handleAfterPrintReceipt = useCallback(() => {
     setIsReadyToPrintReceipt(false);
+    setTimeout(() => {
+      sidebarSearchRef.current?.focus();
+    }, 100);
   }, []);
 
   const handleReceiptPrint = useReactToPrint({
@@ -2553,6 +2569,7 @@ const ConsultationPage = () => {
             onProfileClick={() => setIsProfileModalOpen(true)}
             hasChanges={hasChanges}
             onNavigate={handleNavigate}
+            searchInputRef={sidebarSearchRef}
           />
 
           <div className="lg:col-span-3 min-h-[calc(100vh-2rem)]">

@@ -1174,18 +1174,7 @@ const InPatientManagement = () => {
                                                         <span className="text-sm">OT Notes Registry</span>
                                                     </Link>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => {
-                                                    if (consultant) {
-                                                        const settings = consultant.messaging_settings || {};
-                                                        const location = settingsLocation;
-                                                        const locationOptions = settings.location_print_options?.[location] || settings.location_print_options?.['OrthoLife'];
-                                                        const locationOverrides = settings.location_print_overrides?.[location] || {};
-                                                        setLocalProfileEnabled(locationOverrides.show_profile ?? true);
-                                                        setLocalSignSealEnabled(locationOverrides.show_sign_seal ?? true);
-                                                        setLocalPrintOptions(locationOptions);
-                                                    }
-                                                    setIsPrintSettingsModalOpen(true);
-                                                }} className="cursor-pointer">
+                                                <DropdownMenuItem onClick={() => setIsPrintSettingsModalOpen(true)} className="cursor-pointer">
                                                     <Settings2 className="w-4 h-4 mr-2 text-muted-foreground" />
                                                     <span className="text-sm">Print Customization</span>
                                                 </DropdownMenuItem>
@@ -1729,17 +1718,7 @@ const InPatientManagement = () => {
                     currentLocation={settingsLocation}
                     mode="ip"
                     hospitals={hospitals}
-                    onLocationChange={(newLoc) => {
-                        setSettingsLocation(newLoc);
-                        if (consultant) {
-                            const settings = consultant.messaging_settings || {};
-                            const locationOptions = settings.location_print_options?.[newLoc] || settings.location_print_options?.['OrthoLife'];
-                            const locationOverrides = settings.location_print_overrides?.[newLoc] || {};
-                            setLocalProfileEnabled(locationOverrides.show_profile ?? true);
-                            setLocalSignSealEnabled(locationOverrides.show_sign_seal ?? true);
-                            setLocalPrintOptions(locationOptions);
-                        }
-                    }}
+                    onLocationChange={(newLoc) => setSettingsLocation(newLoc)}
                 />
             )}
 
