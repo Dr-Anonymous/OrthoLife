@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DischargeSummaryPrint } from '@/components/inpatient/DischargeSummaryPrint';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, History, X } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import PatientSelectionModal from '@/components/PatientSelectionModal';
 
 const DischargeSummaryDownload = () => {
@@ -19,6 +20,8 @@ const DischargeSummaryDownload = () => {
     const [consultationConsultant, setConsultationConsultant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [allSummaries, setAllSummaries] = useState<any[]>([]);
+    const [showHistory, setShowHistory] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const printRef = useRef<HTMLDivElement>(null);
     const [downloadStarted, setDownloadStarted] = useState(false);
@@ -72,37 +75,20 @@ const DischargeSummaryDownload = () => {
     const fetchSummaryForPatient = async (patientData: any) => {
         setLoading(true);
         try {
-            // 2. Fetch latest discharged in_patient record
-            const { data: inPatientData, error: dbError } = await supabase
+            // 2. Fetch all discharged in_patient records
+            const { data: dbData, error: dbError } = await supabase
                 .from('in_patients')
                 .select('*')
                 .eq('patient_id', patientData.id)
                 .eq('status', 'discharged')
-                .order('discharge_date', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+                .order('discharge_date', { ascending: false });
 
-            if (dbError) throw new Error(`Error fetching summary: ${dbError.message}`);
+            if (dbError) throw new Error(`Error fetching summaries: ${dbError.message}`);
 
-            if (inPatientData && inPatientData.discharge_summary) {
-                setSummaryData({
-                    ...inPatientData.discharge_summary,
-                    language: inPatientData.language, // Use saved language preference
-                    savedDischargeDate: inPatientData.discharge_date
-                });
-
-                // 3. Fetch consultant details if available
-                if (inPatientData.consultant_id) {
-                    const { data: consultantData, error: consultantError } = await supabase
-                        .from('consultants')
-                        .select('*')
-                        .eq('id', inPatientData.consultant_id)
-                        .maybeSingle();
-
-                    if (!consultantError && consultantData) {
-                        setConsultationConsultant(consultantData);
-                    }
-                }
+            if (dbData && dbData.length > 0) {
+                setAllSummaries(dbData);
+                // By default select the latest one
+                handleSelectSummary(dbData[0]);
             } else {
                 setError("No discharge summary found for this patient");
             }
@@ -111,6 +97,30 @@ const DischargeSummaryDownload = () => {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSelectSummary = async (inPatientData: any) => {
+        setSummaryData({
+            ...inPatientData.discharge_summary,
+            id: inPatientData.id,
+            language: inPatientData.language, // Use saved language preference
+            savedDischargeDate: inPatientData.discharge_date
+        });
+        setConsultationConsultant(null); // Reset while loading new one
+        setShowHistory(false); // Close timeline on selection
+
+        // 3. Fetch consultant details if available
+        if (inPatientData.consultant_id) {
+            const { data: consultantData, error: consultantError } = await supabase
+                .from('consultants')
+                .select('*')
+                .eq('id', inPatientData.consultant_id)
+                .maybeSingle();
+
+            if (!consultantError && consultantData) {
+                setConsultationConsultant(consultantData);
+            }
         }
     };
 
@@ -127,10 +137,11 @@ const DischargeSummaryDownload = () => {
         if (!dbOptions) return undefined;
 
         return {
+            ...dbOptions,
             letterheadMode: false,
-            fontSize: 'standard',
-            signatureAlignment: 'right',
-            ...dbOptions
+            footerMask: false,
+            fontSize: dbOptions.fontSize || 'standard',
+            signatureAlignment: dbOptions.signatureAlignment || 'right'
         };
     };
 
@@ -228,7 +239,7 @@ const DischargeSummaryDownload = () => {
                 onSelect={handlePatientSelect}
             />
 
-            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-x-auto">
+            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg">
                 {/* Preview */}
                 {summaryData && (
                     <DischargeSummaryPrint
@@ -243,9 +254,67 @@ const DischargeSummaryDownload = () => {
                         showMargins={false}
                         consultant={consultationConsultant}
                         printOptions={printOptions}
+                        showSignSeal={false}
                     />
                 )}
             </div>
+
+            {/* Collapsible Vertical Timeline */}
+            {allSummaries.length > 1 && (
+                <div className="fixed right-6 bottom-24 flex flex-col items-end gap-3 z-40">
+                    {/* History Items - Floating Above Toggle */}
+                    <div 
+                        className={cn(
+                            "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom",
+                            showHistory 
+                                ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" 
+                                : "opacity-0 scale-95 translate-y-4 pointer-events-none"
+                        )}
+                    >
+                        <div className="flex flex-col items-end gap-3 max-h-[50vh] overflow-y-auto no-scrollbar py-2 px-2">
+                            {allSummaries.map((s, idx) => (
+                                <button
+                                    key={s.id}
+                                    onClick={() => handleSelectSummary(s)}
+                                    className="flex items-center gap-3 group transition-all duration-300 relative"
+                                >
+                                    <span 
+                                        className={cn(
+                                            "text-[10px] font-bold bg-white/95 backdrop-blur-sm border px-2 py-1 rounded shadow-md transition-all",
+                                            summaryData?.id === s.id ? "border-primary text-primary" : "text-muted-foreground border-transparent"
+                                        )}
+                                    >
+                                        {s.discharge_date ? format(new Date(s.discharge_date), 'dd MMM yyyy') : 'No Date'}
+                                        {idx === 0 && " (Latest)"}
+                                    </span>
+                                    <div 
+                                        className={cn(
+                                            "h-10 w-10 rounded-full border-2 flex items-center justify-center bg-white shadow-xl transition-all duration-300 shrink-0",
+                                            summaryData?.id === s.id 
+                                                ? "border-primary text-primary scale-110 ring-4 ring-primary/20" 
+                                                : "border-muted-foreground text-muted-foreground hover:border-primary hover:text-primary"
+                                        )}
+                                    >
+                                        <span className="text-[10px] font-black">{allSummaries.length - idx}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Toggle Button */}
+                    <Button
+                        onClick={() => setShowHistory(!showHistory)}
+                        className={cn(
+                            "h-12 w-12 rounded-full shadow-lg transition-all duration-300 p-0",
+                            showHistory ? "bg-red-500 hover:bg-red-600 rotate-90" : "bg-primary"
+                        )}
+                        size="icon"
+                    >
+                        {showHistory ? <X className="h-6 w-6 text-white" /> : <History className="h-6 w-6 text-white" />}
+                    </Button>
+                </div>
+            )}
 
             {/* Floating Download Button */}
             {summaryData && (
@@ -293,6 +362,7 @@ const DischargeSummaryDownload = () => {
                             showMargins={false}
                             consultant={consultationConsultant}
                             printOptions={printOptions}
+                            showSignSeal={false}
                         />
                     )}
                 </div>

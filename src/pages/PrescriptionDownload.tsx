@@ -4,13 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Prescription } from '@/components/consultation/Prescription';
 import { useHospitals } from '@/context/HospitalsContext';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, History, X } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cleanConsultationData } from '@/lib/utils';
+import { cleanConsultationData, cn } from '@/lib/utils';
 import PatientSelectionModal from '@/components/PatientSelectionModal';
 
 
@@ -29,6 +29,8 @@ const PrescriptionDownload = () => {
     const [inputPhone, setInputPhone] = useState('');
     const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
     const [patientList, setPatientList] = useState<any[]>([]);
+    const [allConsultations, setAllConsultations] = useState<any[]>([]);
+    const [showHistory, setShowHistory] = useState(false);
 
     useEffect(() => {
         const fetchPatients = async () => {
@@ -89,21 +91,9 @@ const PrescriptionDownload = () => {
                     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                 );
 
-                const currentConsultation = sorted[0];
-                setConsultation(currentConsultation);
-
-                // 3. Fetch consultant details if available
-                if (currentConsultation.consultant_id) {
-                    const { data: consultantData, error: consultantError } = await supabase
-                        .from('consultants')
-                        .select('*')
-                        .eq('id', currentConsultation.consultant_id)
-                        .maybeSingle();
-
-                    if (!consultantError && consultantData) {
-                        setConsultationConsultant(consultantData);
-                    }
-                }
+                setAllConsultations(sorted);
+                // By default select the latest one
+                handleSelectConsultation(sorted[0]);
             } else {
                 setError("No consultations found for this patient");
             }
@@ -114,6 +104,25 @@ const PrescriptionDownload = () => {
             setLoading(false);
         }
     }
+
+    const handleSelectConsultation = async (currentConsultation: any) => {
+        setConsultation(currentConsultation);
+        setConsultationConsultant(null); // Reset while loading new one
+        setShowHistory(false); // Close timeline on selection
+
+        // 3. Fetch consultant details if available
+        if (currentConsultation.consultant_id) {
+            const { data: consultantData, error: consultantError } = await supabase
+                .from('consultants')
+                .select('*')
+                .eq('id', currentConsultation.consultant_id)
+                .maybeSingle();
+
+            if (!consultantError && consultantData) {
+                setConsultationConsultant(consultantData);
+            }
+        }
+    };
 
     const handlePatientSelect = (selectedPatient: any) => {
         setIsPatientSelectionModalOpen(false);
@@ -207,7 +216,7 @@ const PrescriptionDownload = () => {
                 onSelect={handlePatientSelect}
             />
 
-            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-x-auto">
+            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-hidden">
                 {/* Preview */}
                 {consultation && (
                     <Prescription
@@ -222,16 +231,75 @@ const PrescriptionDownload = () => {
                         className="min-h-[297mm]"
                         showMargins={false}
                         consultant={consultationConsultant}
-                        showSignSeal={true}
+                        showSignSeal={false}
                         printOptions={(() => {
                             if (!consultationConsultant) return undefined;
                             const settings = consultationConsultant.messaging_settings as any;
                             const location = consultation.location || 'OrthoLife';
-                            return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                            const options = settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                            if (!options) return undefined;
+                            return { ...options, letterheadMode: false, footerMask: false };
                         })()}
                     />
                 )}
             </div>
+
+            {/* Collapsible Vertical Timeline */}
+            {allConsultations.length > 1 && (
+                <div className="fixed right-6 bottom-24 flex flex-col items-end gap-3 z-40">
+                    {/* History Items - Floating Above Toggle */}
+                    <div 
+                        className={cn(
+                            "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom",
+                            showHistory 
+                                ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" 
+                                : "opacity-0 scale-95 translate-y-4 pointer-events-none"
+                        )}
+                    >
+                        <div className="flex flex-col items-end gap-3 max-h-[50vh] overflow-y-auto no-scrollbar py-2 px-2">
+                            {allConsultations.map((c, idx) => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => handleSelectConsultation(c)}
+                                    className="flex items-center gap-3 group transition-all duration-300 relative"
+                                >
+                                    <span 
+                                        className={cn(
+                                            "text-[10px] font-bold bg-white/95 backdrop-blur-sm border px-2 py-1 rounded shadow-md transition-all",
+                                            consultation?.id === c.id ? "border-primary text-primary" : "text-muted-foreground border-transparent"
+                                        )}
+                                    >
+                                        {format(new Date(c.created_at), 'dd MMM yyyy')}
+                                        {idx === 0 && " (Latest)"}
+                                    </span>
+                                    <div 
+                                        className={cn(
+                                            "h-10 w-10 rounded-full border-2 flex items-center justify-center bg-white shadow-xl transition-all duration-300 shrink-0",
+                                            consultation?.id === c.id 
+                                                ? "border-primary text-primary scale-110 ring-4 ring-primary/20" 
+                                                : "border-muted-foreground text-muted-foreground hover:border-primary hover:text-primary"
+                                        )}
+                                    >
+                                        <span className="text-[10px] font-black">{allConsultations.length - idx}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Toggle Button */}
+                    <Button
+                        onClick={() => setShowHistory(!showHistory)}
+                        className={cn(
+                            "h-12 w-12 rounded-full shadow-lg transition-all duration-300 p-0",
+                            showHistory ? "bg-red-500 hover:bg-red-600 rotate-90" : "bg-primary"
+                        )}
+                        size="icon"
+                    >
+                        {showHistory ? <X className="h-6 w-6 text-white" /> : <History className="h-6 w-6 text-white" />}
+                    </Button>
+                </div>
+            )}
 
             {/* Floating Download Button */}
             {consultation && (
@@ -283,12 +351,14 @@ const PrescriptionDownload = () => {
                             visitType={consultation.visit_type}
                             showMargins={false}
                             consultant={consultationConsultant}
-                            showSignSeal={true}
+                            showSignSeal={false}
                             printOptions={(() => {
                                 if (!consultationConsultant) return undefined;
                                 const settings = consultationConsultant.messaging_settings as any;
                                 const location = consultation.location || 'OrthoLife';
-                                return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                                const options = settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                                if (!options) return undefined;
+                                return { ...options, letterheadMode: false, footerMask: false };
                             })()}
                         />
                     )}

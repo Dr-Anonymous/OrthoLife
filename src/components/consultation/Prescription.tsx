@@ -143,12 +143,12 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
           effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
         className
       )}
-      style={{ fontFamily: 'var(--font-sans)', width: '210mm' }}
+      style={{ fontFamily: 'var(--font-sans)', width: forceDesktop ? '210mm' : '100%', maxWidth: '210mm' }}
       data-testid="prescription"
     >
       <div className={cn(
         "min-h-[296mm] py-8 flex flex-col relative box-border w-full",
-        showMargins ? "pl-16 pr-8" : "px-8"
+        showMargins ? "pl-16 pr-8" : "px-4 sm:px-8"
       )}>
         {/* Header or Spacer for Letterhead */}
         {effectivePrintOptions.letterheadMode ? (

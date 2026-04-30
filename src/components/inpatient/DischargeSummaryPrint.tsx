@@ -81,7 +81,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
             'discharge.activity': 'శారీరక కదలికలు',
             'discharge.emergency_red_flags': 'జాగ్రత్తలు / ప్రమాద సంకేతాలు',
             'discharge.review_date': 'తదుపరి సందర్శన తేదీ',
-            'prescription.medication': 'డిశ్చార్జ్ సమయంలో మందులు',
+            'prescription.medication': 'డిశ్చార్జ్ మందులు',
             'prescription.med_name': 'పేరు',
             'prescription.med_dose': 'మోతాదు',
             'prescription.med_frequency': 'తరచుదనం',
@@ -106,16 +106,16 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
 
     return (
-        <div ref={ref} className="font-sans mx-auto print:m-0 relative" style={{ width: '210mm' }}>
+        <div ref={ref} className="font-sans mx-auto print:m-0 relative" style={{ width: forceDesktop ? '210mm' : '100%', maxWidth: '210mm' }}>
             <div
                 className={cn(
                     "bg-background text-foreground min-h-[296mm] print:p-0 w-full box-border",
-                    showMargins ? "pl-16 pr-8 py-8" : "px-8 py-8",
+                    showMargins ? "pl-16 pr-8 py-8" : "px-4 sm:px-8 py-8",
                     effectivePrintOptions.fontSize === 'compact' ? 'text-[11px]' :
                         effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
                     className
                 )}
-                style={{ fontFamily: 'var(--font-sans)', width: '210mm' }}
+                style={{ fontFamily: 'var(--font-sans)', width: '100%' }}
             >
                 <table className="w-full text-left">
                     <thead className="print:table-header-group">
