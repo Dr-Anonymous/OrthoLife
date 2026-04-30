@@ -39,7 +39,8 @@ serve(async (req) => {
         let taskResult = task.result || {};
 
         if (task.task_type === 'whatsapp_message') {
-          const { number, message, consultant_id, media_url } = task.payload;
+          const { number, message, media_url } = task.payload;
+          const consultant_id = task.consultant_id || task.payload.consultant_id;
           const result = await sendWhatsAppMessage(number, message, consultant_id, media_url);
           if (!result) throw new Error("Failed to send WhatsApp message via shared helper.");
 

@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   Loader2, RefreshCcw, Clock, CheckCircle2, XCircle,
   AlertCircle, Share2, MessageSquare, Calendar as CalendarIcon,
-  Trash2, Ban, MoreHorizontal, History
+  Trash2, Ban, MoreHorizontal, History, Edit2, Image as ImageIcon
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { toast } from 'sonner';
@@ -20,6 +20,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface ScheduledTask {
   id: string;
@@ -39,6 +49,8 @@ const ScheduledTasksList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
+  const [editForm, setEditForm] = useState({ content: '', number: '' });
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -142,6 +154,47 @@ const ScheduledTasksList = () => {
       fetchTasks();
     } catch (err: any) {
       toast.error('Failed to delete task');
+    }
+  };
+
+  const handleEditClick = (task: ScheduledTask) => {
+    setEditingTask(task);
+    if (task.task_type === 'whatsapp_message') {
+      setEditForm({
+        content: task.payload.message || '',
+        number: task.payload.number || ''
+      });
+    } else {
+      setEditForm({
+        content: task.payload.content || '',
+        number: ''
+      });
+    }
+  };
+
+  const handleUpdateTask = async () => {
+    if (!editingTask) return;
+    
+    try {
+      const newPayload = { ...editingTask.payload };
+      if (editingTask.task_type === 'whatsapp_message') {
+        newPayload.message = editForm.content;
+        newPayload.number = editForm.number;
+      } else {
+        newPayload.content = editForm.content;
+      }
+      
+      const { error } = await supabase
+        .from('scheduled_tasks')
+        .update({ payload: newPayload })
+        .eq('id', editingTask.id);
+        
+      if (error) throw error;
+      toast.success('Task updated successfully');
+      setEditingTask(null);
+      fetchTasks();
+    } catch (err: any) {
+      toast.error('Failed to update task');
     }
   };
 
@@ -318,6 +371,36 @@ const ScheduledTasksList = () => {
                               </div>
                             )}
                           </div>
+
+                          {/* Media Preview Section */}
+                          {(task.payload.media_url || (task.payload.mediaUrls && task.payload.mediaUrls.length > 0)) && (
+                            <div className="mt-3 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                              {task.payload.media_url ? (
+                                <a 
+                                  href={task.payload.media_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="relative group/media w-12 h-12 rounded-xl overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-100 hover:ring-primary/30 transition-all"
+                                >
+                                  <img src={task.payload.media_url} className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/5 group-hover/media:bg-transparent transition-colors" />
+                                </a>
+                              ) : (
+                                task.payload.mediaUrls?.map((url: string, i: number) => (
+                                  <a 
+                                    key={i}
+                                    href={url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="relative group/media w-12 h-12 rounded-xl overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-100 hover:ring-primary/30 transition-all"
+                                  >
+                                    <img src={url} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/5 group-hover/media:bg-transparent transition-colors" />
+                                  </a>
+                                ))
+                              )}
+                            </div>
+                          )}
                           {task.error && (
                             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-rose-500 bg-rose-50/50 w-fit px-2 py-0.5 rounded-md border border-rose-100">
                               <AlertCircle className="w-3 h-3" />
@@ -333,8 +416,9 @@ const ScheduledTasksList = () => {
                               <SchedulePopover
                                 scheduledDate={new Date(task.scheduled_for)}
                                 scheduledTime={format(new Date(task.scheduled_for), 'HH:mm')}
-                                onDateChange={(date) => date && handleReschedule(task.id, date, format(new Date(task.scheduled_for), 'HH:mm'))}
-                                onTimeChange={(time) => handleReschedule(task.id, new Date(task.scheduled_for), time)}
+                                onDateChange={() => {}}
+                                onTimeChange={() => {}}
+                                onConfirm={(date, time) => handleReschedule(task.id, date, time)}
                                 className="h-9 w-9 rounded-xl border-gray-200 hover:border-blue-200 hover:bg-blue-50 text-blue-600 transition-all shadow-sm"
                                 trigger={
                                   <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" title="Reschedule">
@@ -342,6 +426,15 @@ const ScheduledTasksList = () => {
                                   </Button>
                                 }
                               />
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl border-gray-200 hover:border-blue-200 hover:bg-blue-50 text-blue-600 transition-all shadow-sm"
+                                onClick={() => handleEditClick(task)}
+                                title="Edit Task"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="icon"
@@ -395,7 +488,100 @@ const ScheduledTasksList = () => {
           )}
         </Tabs>
       </Card>
+
+      <EditTaskDialog 
+        isOpen={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        task={editingTask}
+        form={editForm}
+        setForm={setEditForm}
+        onSave={handleUpdateTask}
+      />
     </div>
+  );
+};
+
+const EditTaskDialog = ({ 
+  isOpen, 
+  onClose, 
+  task, 
+  form, 
+  setForm, 
+  onSave 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  task: ScheduledTask | null; 
+  form: { content: string; number: string };
+  setForm: (form: { content: string; number: string }) => void;
+  onSave: () => void;
+}) => {
+  if (!task) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit2 className="w-5 h-5 text-primary" />
+            Edit Scheduled Task
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          {task.task_type === 'whatsapp_message' && (
+            <div className="space-y-2">
+              <Label htmlFor="number">Phone Number</Label>
+              <Input 
+                id="number" 
+                value={form.number} 
+                onChange={(e) => setForm({ ...form, number: e.target.value })}
+                className="rounded-xl"
+              />
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="content">
+              {task.task_type === 'whatsapp_message' ? 'Message' : 'Post Content'}
+            </Label>
+            <Textarea 
+              id="content" 
+              value={form.content} 
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              className="min-h-[150px] rounded-xl resize-none"
+            />
+          </div>
+
+          {(task.payload.media_url || (task.payload.mediaUrls && task.payload.mediaUrls.length > 0)) && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-gray-400">
+                <ImageIcon className="w-4 h-4" /> Attached Media
+              </Label>
+              <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                {task.payload.media_url ? (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-white shadow-sm">
+                    <img src={task.payload.media_url} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  task.payload.mediaUrls?.map((url: string, i: number) => (
+                    <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border border-white shadow-sm">
+                      <img src={url} className="w-full h-full object-cover" />
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400 italic">Media cannot be changed here. To change media, cancel this task and create a new one.</p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="rounded-xl">Cancel</Button>
+          <Button onClick={onSave} className="rounded-xl px-8">Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

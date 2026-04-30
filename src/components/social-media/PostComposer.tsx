@@ -294,7 +294,13 @@ const PostComposer = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-tight">Select Platforms:</span>
-                <span className="text-[10px] text-gray-400">At least one platform required</span>
+                {!Object.values(selectedPlatforms).some(v => v) ? (
+                  <span className="text-[10px] text-rose-500 font-bold animate-pulse">At least one platform required</span>
+                ) : (
+                  <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+                    <Check className="h-3 w-3" /> Platform(s) selected
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {PLATFORMS.map((platform) => {
@@ -413,16 +419,16 @@ const PostComposer = () => {
             className="flex-1 min-h-[250px] border-none focus-visible:ring-0 text-base p-6 resize-none bg-transparent placeholder:text-gray-300 leading-relaxed"
           />
 
-          {/* Media Previews Grid */}
+          {/* Media Previews List */}
           {mediaFiles.length > 0 && (
-            <div className="px-6 pb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="px-6 pb-6 flex flex-wrap gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {mediaFiles.map((file, index) => (
-                <div key={index} className="relative group aspect-square">
-                  <div className="w-full h-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-gray-100">
+                <div key={index} className="relative group w-fit max-w-full">
+                  <div className="rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-gray-100">
                     <img
                       src={file.preview}
                       alt={`Preview ${index}`}
-                      className="w-full h-full object-cover"
+                      className="w-auto h-auto max-h-[250px] object-contain"
                     />
                   </div>
                   <Button

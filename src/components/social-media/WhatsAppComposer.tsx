@@ -102,8 +102,10 @@ const WhatsAppComposer = () => {
       if (image) {
         const uploadResult = await socialService.publishAll({
           content: message,
-          platforms: ['phone_bridge_only'],
-          mediaFiles: [image]
+          platforms: [],
+          mediaFiles: [image],
+          consultant_id: consultant?.id,
+          consultant_phone: consultant?.phone
         });
 
         mediaUrl = uploadResult.mediaUrls?.[0] || "";
@@ -178,7 +180,7 @@ const WhatsAppComposer = () => {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-sm border-gray-100 overflow-hidden">
+    <Card className="w-full max-w-3xl mx-auto shadow-sm border-gray-100 overflow-hidden">
       <CardHeader className="bg-gray-50/50 border-b border-gray-100 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
