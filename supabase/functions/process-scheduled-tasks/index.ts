@@ -7,6 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-scheduler-secret',
 };
 
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -41,14 +42,14 @@ serve(async (req) => {
           const { number, message, consultant_id, media_url } = task.payload;
           const result = await sendWhatsAppMessage(number, message, consultant_id, media_url);
           if (!result) throw new Error("Failed to send WhatsApp message via shared helper.");
-          
+
           taskResult = { ...taskResult, whatsapp: 'success' };
-          
-          await supabase.from('scheduled_tasks').update({ 
-              status: 'completed', 
-              updated_at: new Date().toISOString(), 
-              error: null,
-              result: taskResult
+
+          await supabase.from('scheduled_tasks').update({
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            error: null,
+            result: taskResult
           }).eq('id', task.id);
           results.push({ id: task.id, status: 'completed' });
         }
@@ -95,10 +96,10 @@ serve(async (req) => {
             const settings = (consultant?.messaging_settings as any) || {};
             const isPharmacy = task.source?.includes('auto_pharmacy');
             const isDiagnostics = task.source?.includes('auto_diagnostics');
-            
-            const isEnabled = isPharmacy ? (settings.auto_pharmacy ?? false) 
-                            : isDiagnostics ? (settings.auto_diagnostics ?? false)
-                            : false;
+
+            const isEnabled = isPharmacy ? (settings.auto_pharmacy ?? false)
+              : isDiagnostics ? (settings.auto_diagnostics ?? false)
+                : false;
 
             if (!consultantError && isEnabled && consultant?.is_whatsauto_active) {
               await supabase.from('scheduled_tasks').insert({
@@ -117,11 +118,11 @@ serve(async (req) => {
             }
           }
 
-          await supabase.from('scheduled_tasks').update({ 
-              status: 'completed', 
-              updated_at: new Date().toISOString(), 
-              error: null,
-              result: { order_id: subResult.orderId, whatsapp: waResult ? 'success' : 'failed' }
+          await supabase.from('scheduled_tasks').update({
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            error: null,
+            result: { order_id: subResult.orderId, whatsapp: waResult ? 'success' : 'failed' }
           }).eq('id', task.id);
           results.push({ id: task.id, status: 'completed' });
         }
@@ -161,24 +162,24 @@ serve(async (req) => {
             throw new Error(`Partial failure in social-publish`);
           }
 
-          await supabase.from('scheduled_tasks').update({ 
-              status: 'completed', 
-              updated_at: new Date().toISOString(), 
-              error: null,
-              result: taskResult
+          await supabase.from('scheduled_tasks').update({
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            error: null,
+            result: taskResult
           }).eq('id', task.id);
           results.push({ id: task.id, status: 'completed' });
         }
       } catch (err: any) {
         console.error(`[process-scheduled-tasks] Task ${task.id} failed:`, err.message);
         const newStatus = task.attempts >= task.max_attempts ? 'failed' : 'pending';
-        
-        await supabase.from('scheduled_tasks').update({ 
-            status: newStatus, 
-            error: err.message,
-            updated_at: new Date().toISOString() 
+
+        await supabase.from('scheduled_tasks').update({
+          status: newStatus,
+          error: err.message,
+          updated_at: new Date().toISOString()
         }).eq('id', task.id);
-        
+
         results.push({ id: task.id, status: newStatus, error: err.message });
       }
     }
