@@ -18,7 +18,9 @@ import TextShortcutManagementModal from '@/components/consultation/TextShortcutM
 
 import { useLocation, Navigate, useNavigate } from "react-router-dom";
 import { useReactToPrint } from 'react-to-print';
-import { Prescription } from '@/components/consultation/Prescription';
+import { pdf } from '@react-pdf/renderer';
+import { PrescriptionPDF } from '@/components/print/pdf/PrescriptionPDF';
+import { getLogoAsPng } from '@/lib/logoUtils';
 import { MedicalCertificate, MedicalCertificateModal } from '@/components/consultation/MedicalCertificate';
 import { Receipt, ReceiptModal } from '@/components/consultation/Receipt';
 import { useHospitals } from '@/context/HospitalsContext';
@@ -449,7 +451,7 @@ const ConsultationPage = () => {
   };
 
   // Print Refs
-  const printRef = useRef(null);
+
   const certificatePrintRef = useRef(null);
   const receiptPrintRef = useRef(null);
   const [isReadyToPrintCertificate, setIsReadyToPrintCertificate] = useState(false);
@@ -1259,9 +1261,9 @@ const ConsultationPage = () => {
 
           const defaultTe = `నమస్కారం ${editablePatientDetails.name} గారు, ఇది మీ ఫాలో-అప్ రిమైండర్. దయచేసి క్లినిక్‌ని సంప్రదించండి.`;
           const defaultEn = `Hello ${editablePatientDetails.name}, this is a gentle reminder for your follow-up consultation. Please contact the clinic.`;
-          
-          const template = consultationLanguage === 'te' 
-            ? (config?.message_te || defaultTe) 
+
+          const template = consultationLanguage === 'te'
+            ? (config?.message_te || defaultTe)
             : (config?.message_en || defaultEn);
 
           // Basic placeholder replacement
@@ -2030,13 +2032,66 @@ const ConsultationPage = () => {
     };
   }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.orthotics, extraData.medications, consultationLanguage, savedMedications, selectedLocation, extraData.affordabilityPreference]);
 
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    onBeforePrint: useCallback(async () => {
-      // Small delay to ensure layout is settled and styles are parsed
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }, []),
-  });
+  const handlePrint = useCallback(async () => {
+    if (!selectedConsultation || !editablePatientDetails || !selectedHospital) {
+      toast({ variant: 'destructive', title: 'Print Failed', description: "Missing required data." });
+      return;
+    }
+    try {
+      const safeLogoUrl = await getLogoAsPng(selectedHospital.logoUrl || '/logo.png');
+      const blob = await pdf(
+        <PrescriptionPDF
+          patient={editablePatientDetails}
+          consultation={cleanConsultationData(extraData)}
+          consultationDate={selectedDate || new Date()}
+          age={age || ''}
+          language={consultationLanguage}
+          logoUrl={safeLogoUrl}
+          hospitalName={selectedHospital.name}
+          visitType={extraData.visit_type}
+          showDoctorProfile={showDoctorProfile}
+          showSignSeal={showSignSeal}
+          printOptions={printOptions}
+          qrCodeUrl='/images/assets/qr-code.png'
+          consultant={consultant}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+
+          // Use onafterprint for reliable cleanup
+          if (iframe.contentWindow) {
+            iframe.contentWindow.onafterprint = () => {
+              document.body.removeChild(iframe);
+              URL.revokeObjectURL(url);
+            };
+          }
+
+          iframe.contentWindow?.print();
+
+          // Fallback cleanup for browsers that don't support onafterprint properly
+          // or if the user cancels in a way that doesn't trigger the event
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+              URL.revokeObjectURL(url);
+            }
+          }, 60000); // 60s fallback
+        }, 100);
+      };
+    } catch (err) {
+      console.error("Failed to generate PDF for printing", err);
+      toast({ variant: 'destructive', title: 'Print Failed', description: "Could not generate PDF." });
+    }
+  }, [selectedConsultation, editablePatientDetails, extraData, selectedDate, age, consultationLanguage, selectedHospital, showDoctorProfile, showSignSeal, printOptions, consultant]);
 
   const handleAfterPrintCertificate = useCallback(() => {
     setIsReadyToPrintCertificate(false);
@@ -2797,28 +2852,6 @@ const ConsultationPage = () => {
       </div>
 
       {/* Hidden Print Components */}
-      <div style={{ position: 'absolute', left: '-9999px' }}>
-        <div ref={printRef}>
-          {selectedConsultation && editablePatientDetails && (
-            <Prescription
-              patient={editablePatientDetails}
-              consultation={cleanConsultationData(extraData)}
-              consultationDate={selectedDate || new Date()}
-              age={age}
-              language={consultationLanguage}
-              logoUrl={selectedHospital.logoUrl}
-              hospitalName={selectedHospital.name}
-              className="min-h-[297mm]"
-              visitType={extraData.visit_type}
-              forceDesktop={true}
-              showDoctorProfile={showDoctorProfile}
-              showSignSeal={showSignSeal}
-              printOptions={printOptions}
-              consultant={consultant}
-            />
-          )}
-        </div>
-      </div>
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={certificatePrintRef}>
           {selectedConsultation && editablePatientDetails && certificateData && (

@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cleanConsultationData } from '@/lib/utils';
 import PatientSelectionModal from '@/components/PatientSelectionModal';
+import { pdf } from '@react-pdf/renderer';
+import { PrescriptionPDF } from '@/components/print/pdf/PrescriptionPDF';
+import { getLogoAsPng } from '@/lib/logoUtils';
 
 
 const PrescriptionDownload = () => {
@@ -121,19 +124,41 @@ const PrescriptionDownload = () => {
     };
 
     const handleDownload = async () => {
-        if (consultation && printRef.current) {
+        if (consultation) {
             setDownloadStarted(true);
             try {
-                const element = printRef.current;
-                const opt = {
-                    margin: [0, 0, 0, 0],
-                    filename: `Prescription-${consultation.patient.name}-${format(new Date(consultation.created_at), 'yyyy-MM-dd')}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: false, logging: false, scrollY: 0 },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
+                const printOpts = (() => {
+                    if (!consultationConsultant) return undefined;
+                    const settings = consultationConsultant.messaging_settings as any;
+                    const location = consultation.location || 'OrthoLife';
+                    return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                })();
 
-                await (html2pdf as any)().from(element).set(opt).save();
+                const rawLogoUrl = getHospitalByName(consultation.location)?.logoUrl || consultationConsultant?.logo_url || getHospitalByName('OrthoLife')?.logoUrl || '/logo.png';
+                const safeLogoUrl = await getLogoAsPng(rawLogoUrl);
+                const blob = await pdf(<PrescriptionPDF
+                    patient={consultation.patient}
+                    consultation={cleanConsultationData(consultation.consultation_data)}
+                    consultationDate={new Date(consultation.created_at)}
+                    age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
+                    language={consultation.language || i18n.language}
+                    logoUrl={safeLogoUrl}
+                    hospitalName={consultation.location}
+                    qrCodeUrl="/images/assets/qr-code.png"
+                    noBackground={true}
+                    visitType={consultation.visit_type}
+                    showMargins={false}
+                    consultant={consultationConsultant}
+                    showSignSeal={true}
+                    printOptions={printOpts}
+                />).toBlob();
+                
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Prescription-${consultation.patient.name}-${format(new Date(consultation.created_at), 'yyyy-MM-dd')}.pdf`;
+                link.click();
+                URL.revokeObjectURL(url);
                 setDownloadStarted(false);
             } catch (err) {
                 console.error("PDF generation failed", err);
@@ -264,36 +289,6 @@ const PrescriptionDownload = () => {
                 </Button>
             )}
 
-            {/* Hidden Print Version - Fixed A4 Width */}
-            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-                <div ref={printRef} style={{ width: '210mm', minHeight: '297mm', backgroundColor: 'white' }}>
-                    {consultation && (
-                        <Prescription
-                            className="min-h-[297mm]"
-                            patient={consultation.patient}
-                            consultation={cleanConsultationData(consultation.consultation_data)}
-                            consultationDate={new Date(consultation.created_at)}
-                            age={consultation.patient.dob ? Math.floor((new Date().getTime() - new Date(consultation.patient.dob).getTime()) / 31557600000) : ''}
-                            language={consultation.language || i18n.language}
-                            logoUrl={getHospitalByName(consultation.location)?.logoUrl || consultationConsultant?.logo_url || getHospitalByName('OrthoLife')?.logoUrl || '/images/logos/logo.png'}
-                            hospitalName={consultation.location}
-                            qrCodeUrl="/images/assets/qr-code.png"
-                            noBackground={true}
-                            forceDesktop={true}
-                            visitType={consultation.visit_type}
-                            showMargins={false}
-                            consultant={consultationConsultant}
-                            showSignSeal={true}
-                            printOptions={(() => {
-                                if (!consultationConsultant) return undefined;
-                                const settings = consultationConsultant.messaging_settings as any;
-                                const location = consultation.location || 'OrthoLife';
-                                return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
-                            })()}
-                        />
-                    )}
-                </div>
-            </div>
         </div>
     );
 };
