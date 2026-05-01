@@ -60,7 +60,10 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
 
   const handleConsultationClick = (item: any) => {
     if (onSelectConsultation) {
-      onSelectConsultation(item);
+      onSelectConsultation({
+        ...item,
+        patient_id: patientId || item.patient_id || item.patient?.id
+      });
       onClose();
     }
   };

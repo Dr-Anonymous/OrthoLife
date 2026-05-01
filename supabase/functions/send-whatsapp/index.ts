@@ -1,4 +1,16 @@
 
+/**
+ * @fileoverview Supabase Edge Function: send-whatsapp
+ * 
+ * @description
+ * Dispatches WhatsApp messages and media files to patients using shared WhatsApp utility.
+ * 
+ * @parameters
+ * - `number`: Patient's phone number string.
+ * - `message`: Body text of message.
+ * - `consultant_id`: Opt-in consultant phone number identifier.
+ * - `media_url`: Optional absolute URL to a document or image to attach.
+ */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders, sendWhatsAppMessage } from "../_shared/whatsapp.ts"
 

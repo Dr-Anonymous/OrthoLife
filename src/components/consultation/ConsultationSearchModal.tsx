@@ -1,12 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { calculateAge } from '@/lib/age';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { format, formatDistanceToNow } from 'date-fns';
-import { Calendar, MapPin } from 'lucide-react';
 import ConsultationCard from './ConsultationCard';
 
 /**
@@ -18,12 +16,37 @@ import ConsultationCard from './ConsultationCard';
  * - Accordion view of results grouped by Patient.
  * - Keyword highlighting in results.
  * - Selection triggers consultation load in main page.
+ * - Dynamic resolution of consultant names and mapping for display.
  */
 export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation }) => {
   const [search, setSearch] = useState('');
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  // Caches all consultant IDs to their human-readable name string to avoid extra DB queries.
+  const [consultantsMap, setConsultantsMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchConsultants = async () => {
+      const { data } = await supabase.from('consultants').select('id, name');
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach(c => {
+          let nameStr = '';
+          if (typeof c.name === 'object' && c.name !== null) {
+            nameStr = (c.name as any).en || (c.name as any).te || '';
+          } else {
+            nameStr = c.name || '';
+          }
+          map[c.id] = nameStr;
+        });
+        setConsultantsMap(map);
+      }
+    };
+    if (isOpen) {
+      fetchConsultants();
+    }
+  }, [isOpen]);
 
   const handleSearch = async () => {
     const trimmedKeyword = keyword.trim();
@@ -63,6 +86,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
     const { consultations, ...patientData } = patient;
     const reconstructedConsultation = {
       ...consultation,
+      patient_id: patient.id,
       patient: patientData,
     };
     onSelectConsultation(reconstructedConsultation);
@@ -142,7 +166,10 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                             blood_group: patient.blood_group,
                             allergies: patient.allergies,
                             sex: patient.sex,
-                            dob: patient.dob
+                            dob: patient.dob,
+                            consultant_name: consultantsMap[consultation.consultant_id] || (consultation.consultant?.name && typeof consultation.consultant.name === 'object'
+                              ? (consultation.consultant.name as any).en
+                              : (consultation.consultant?.name || consultation.consultant_name || ''))
                           }}
                           highlightKeyword={highlightKeyword}
                         />

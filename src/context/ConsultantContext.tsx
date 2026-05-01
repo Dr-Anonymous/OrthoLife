@@ -13,6 +13,15 @@ interface ConsultantContextType {
     refreshConsultant: () => Promise<void>;
 }
 
+/**
+ * Consultant Context
+ * 
+ * Manages the logged-in user's active clinical or receptionist session.
+ * Features:
+ * - Direct authentication matching using dynamic phone prefix heuristics.
+ * - Discerns and gates functionality between Receptionists, Admins, and Master Admins.
+ * - Exposes cached consultant profiles for instant UI rendering.
+ */
 const ConsultantContext = createContext<ConsultantContextType | undefined>(undefined);
 
 export const ConsultantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

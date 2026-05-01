@@ -596,13 +596,14 @@ const ConsultationPage = () => {
     let effectiveConsultationData = consultation.consultation_data;
     let effectiveReferredBy = consultation.referred_by;
     let effectiveLastVisitDate = consultation.last_visit_date;
-    const isOffline = String(consultation.patient_id).startsWith('offline-');
+    const patientId = consultation.patient_id || consultation.patient?.id;
+    const isOffline = String(patientId).startsWith('offline-');
 
     if (isOffline) {
       effectiveLastVisitDate = null;
-    } else if (!effectiveConsultationData || (typeof effectiveConsultationData === 'object' && Object.keys(effectiveConsultationData).length === 0) || effectiveLastVisitDate === undefined) {
+    } else if (!effectiveConsultationData || (typeof effectiveConsultationData === 'object' && Object.keys(effectiveConsultationData).length === 0) || !effectiveLastVisitDate) {
       try {
-        const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(consultation.patient_id, consultation.created_at);
+        const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(patientId, consultation.created_at);
 
         // Race condition guard: If user selected another consultation while this was in flight, abort
         if (activeConsultationIdRef.current !== consultation.id) return;
@@ -613,7 +614,7 @@ const ConsultationPage = () => {
         }
 
         // Only apply last visit date if it was missing
-        if (effectiveLastVisitDate === undefined) {
+        if (!effectiveLastVisitDate) {
           effectiveLastVisitDate = calculateLastVisitString(lastOpDate, lastDischargeDate);
         }
 
@@ -625,7 +626,7 @@ const ConsultationPage = () => {
         if (activeConsultationIdRef.current !== consultation.id) return;
         console.warn('Failed to perform on-the-fly autofill:', err);
         // Ensure we don't stay in "Loading..." state if we add it later
-        if (effectiveLastVisitDate === undefined) effectiveLastVisitDate = 'First Consultation';
+        if (!effectiveLastVisitDate || effectiveLastVisitDate === 'First Consultation') effectiveLastVisitDate = 'First Consultation';
       }
     }
 

@@ -15,10 +15,7 @@ import {
     Clock,
     Undo2,
     ArrowRightCircle,
-    Calendar,
     MapPin,
-    Tag,
-    CheckCircle2,
     Briefcase,
     Droplets
 } from 'lucide-react';
@@ -33,6 +30,10 @@ export interface ConsultationData {
     bp?: string;
     weight?: string;
     temperature?: string;
+    height?: string;
+    pulse?: string;
+    spo2?: string;
+    bmi?: string;
     allergy?: string;
     allergies?: string;
     blood_group?: string;
@@ -56,15 +57,29 @@ export interface ConsultationData {
     referred_to_list?: string[];
     referred_by?: string;
     personalNote?: string;
+    personal_note?: string;
+    medicalHistory?: string;
+    medical_history?: string;
+    orthotics?: string;
     consultant_name?: string;
     [key: string]: any;
 }
 
-interface ConsultationCardProps {
+export interface ConsultationCardProps {
     data: ConsultationData;
     highlightKeyword?: (text: string) => React.ReactNode;
 }
 
+/**
+ * ConsultationCard Component
+ * 
+ * Displays a concise and well-formatted read-only snapshot of a patient's single consultation.
+ * Features:
+ * - Dynamic vitals, complaints, findings, and diagnosis layout.
+ * - Auto-resolution of multi-lingual fields (e.g., Telugu/English).
+ * - Keyword highlighting support for interactive in-page search results.
+ * - Handles backwards compatibility of referred_to vs referred_to_list.
+ */
 const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyword }) => {
     if (!data) return null;
 
@@ -94,53 +109,51 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             )}
 
             {/* Meta Information Section */}
-            {(data.created_at || data.location || data.visit_type || data.status) && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 bg-primary/5 rounded-lg border border-primary/10 mb-2 shadow-sm">
+            {(data.created_at || data.location || data.visit_type || data.status || data.consultant_name) && (
+                <p className="p-3 bg-primary/5 rounded-lg border border-primary/10 mb-2 shadow-sm text-sm text-foreground/80 leading-relaxed">
+                    {data.visit_type && (
+                        <span className="font-semibold text-primary capitalize mr-1">
+                            {renderText(data.visit_type)}
+                        </span>
+                    )}
+                    consultation
                     {data.created_at && (
-                        <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-primary" />
-                            <p className="font-semibold text-sm">
-                                {formatDistanceToNow(new Date(data.created_at), { addSuffix: true })} ({format(new Date(data.created_at), 'PPP')})
-                            </p>
-                        </div>
+                        <>
+                            {' '}on{' '}
+                            <span className="font-semibold">
+                                {format(new Date(data.created_at), 'PPP')}
+                            </span>{' '}
+                            ({formatDistanceToNow(new Date(data.created_at), { addSuffix: true })})
+                        </>
                     )}
                     {data.location && (
-                        <div className="flex items-center gap-2 border-l pl-4 border-border/50 first:border-0 first:pl-0">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            <p className="text-sm font-medium">
-                                {renderText(data.location)}
-                            </p>
-                        </div>
-                    )}
-                    {data.visit_type && (
-                        <div className="flex items-center gap-2 border-l pl-4 border-border/50">
-                            <Tag className="w-4 h-4 text-primary" />
-                            <p className="text-sm capitalize font-medium">
-                                {renderText(data.visit_type)}
-                            </p>
-                        </div>
+                        <>
+                            {' '}at{' '}
+                            <span className="font-semibold">{renderText(data.location)}</span>
+                        </>
                     )}
                     {data.status && (
-                        <div className="flex items-center gap-2 border-l pl-4 border-border/50">
-                            <CheckCircle2 className={`w-4 h-4 ${data.status === 'completed' ? 'text-green-500' : 'text-amber-500'}`} />
-                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                        <>
+                            {', '}
+                            <span className={`font-semibold capitalize ${data.status === 'completed' ? 'text-green-600' : 'text-amber-600'}`}>
                                 {data.status}
                             </span>
-                        </div>
+                        </>
                     )}
                     {data.consultant_name && (
-                        <div className="flex items-center gap-2 border-l pl-4 border-border/50">
-                            <Briefcase className="w-4 h-4 text-primary" />
-                            <p className="text-sm font-semibold text-primary/80">
+                        <>
+                            {', by '}
+                            <span className="font-semibold text-primary/80">
                                 {renderText(data.consultant_name)}
-                            </p>
-                        </div>
+                            </span>
+                        </>
                     )}
-                </div>
+                    .
+                </p>
             )}
 
             {/* Vitals Section */}
-            {(data.bp || data.weight || data.temperature || data.blood_group || data.occupation || data.hometown) && (
+            {(data.bp || data.weight || data.temperature || data.height || data.pulse || data.spo2 || data.bmi || data.blood_group || data.occupation || data.hometown) && (
                 <div className="flex items-start gap-3 p-3 bg-white rounded border border-border/50 shadow-sm">
                     <Activity className="w-5 h-5 mt-0.5 text-primary" />
                     <div className="flex-1">
@@ -158,9 +171,29 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                                     <Scale className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.weight)}
                                 </span>
                             )}
+                            {data.height && (
+                                <span className="flex items-center gap-1.5" title="Height">
+                                    <span className="font-medium">Height:</span> {renderText(data.height)}
+                                </span>
+                            )}
+                            {data.bmi && (
+                                <span className="flex items-center gap-1.5" title="BMI">
+                                    <span className="font-medium">BMI:</span> {renderText(data.bmi)}
+                                </span>
+                            )}
                             {data.temperature && (
                                 <span className="flex items-center gap-1.5" title="Temperature">
                                     <Thermometer className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.temperature)}
+                                </span>
+                            )}
+                            {data.pulse && (
+                                <span className="flex items-center gap-1.5" title="Pulse Rate">
+                                    <span className="font-medium">Pulse:</span> {renderText(data.pulse)}
+                                </span>
+                            )}
+                            {data.spo2 && (
+                                <span className="flex items-center gap-1.5" title="SpO2">
+                                    <span className="font-medium">SpO2:</span> {renderText(data.spo2)}
                                 </span>
                             )}
                             {data.blood_group && (
@@ -185,6 +218,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
 
             {/* Content Sections */}
             {[
+                { label: "Medical History", value: data.medicalHistory || data.medical_history, icon: Activity },
                 { label: "Allergies", value: data.allergies || data.allergy, icon: AlertCircle, color: "text-destructive" },
                 { label: "Doctor's Note", value: data.personalNote || data.personal_note, icon: NotebookText },
                 { label: "Complaints", value: data.complaints, icon: Stethoscope },
@@ -264,6 +298,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             {/* Bottom Sections */}
             {[
                 { label: "Procedure Done", value: data.procedure, icon: Syringe },
+                { label: "Orthotics", value: data.orthotics, icon: Activity },
                 { label: "Advice", value: data.advice, icon: FileText },
                 { label: "Follow Up", value: data.followup, icon: Clock },
                 { label: "Referred By", value: data.referred_by, icon: Undo2 },

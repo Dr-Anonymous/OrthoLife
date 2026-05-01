@@ -28,6 +28,15 @@ interface HospitalsContextType {
     refreshHospitals: () => Promise<void>;
 }
 
+/**
+ * Hospitals Context
+ * 
+ * Provides global state for configured hospital branches.
+ * Features:
+ * - Fetches hospital branch profiles linked to the current consultant.
+ * - Resolves snake_case DB columns to camelCase frontend format.
+ * - Implements simple localStorage caching to avoid redundant fetch requests.
+ */
 const HospitalsContext = createContext<HospitalsContextType | undefined>(undefined);
 
 export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
