@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DischargeSummaryPrint } from '@/components/inpatient/DischargeSummaryPrint';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Search, History, X } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import PatientSelectionModal from '@/components/PatientSelectionModal';
+import { TimelineSelector } from '@/components/TimelineSelector';
 
 const DischargeSummaryDownload = () => {
     const { patientPhone } = useParams<{ patientPhone: string }>();
@@ -21,7 +21,7 @@ const DischargeSummaryDownload = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [allSummaries, setAllSummaries] = useState<any[]>([]);
-    const [showHistory, setShowHistory] = useState(false);
+    const [consultants, setConsultants] = useState<any[]>([]);
     const contentRef = useRef<HTMLDivElement>(null);
     const printRef = useRef<HTMLDivElement>(null);
     const [downloadStarted, setDownloadStarted] = useState(false);
@@ -85,6 +85,11 @@ const DischargeSummaryDownload = () => {
 
             if (dbError) throw new Error(`Error fetching summaries: ${dbError.message}`);
 
+            const { data: consultantsData } = await supabase.from('consultants').select('id, name');
+            if (consultantsData) {
+                setConsultants(consultantsData);
+            }
+
             if (dbData && dbData.length > 0) {
                 setAllSummaries(dbData);
                 // By default select the latest one
@@ -108,7 +113,6 @@ const DischargeSummaryDownload = () => {
             savedDischargeDate: inPatientData.discharge_date
         });
         setConsultationConsultant(null); // Reset while loading new one
-        setShowHistory(false); // Close timeline on selection
 
         // 3. Fetch consultant details if available
         if (inPatientData.consultant_id) {
@@ -260,61 +264,14 @@ const DischargeSummaryDownload = () => {
             </div>
 
             {/* Collapsible Vertical Timeline */}
-            {allSummaries.length > 1 && (
-                <div className="fixed right-6 bottom-24 flex flex-col items-end gap-3 z-40">
-                    {/* History Items - Floating Above Toggle */}
-                    <div 
-                        className={cn(
-                            "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom",
-                            showHistory 
-                                ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" 
-                                : "opacity-0 scale-95 translate-y-4 pointer-events-none"
-                        )}
-                    >
-                        <div className="flex flex-col items-end gap-3 max-h-[50vh] overflow-y-auto no-scrollbar py-2 px-2">
-                            {allSummaries.map((s, idx) => (
-                                <button
-                                    key={s.id}
-                                    onClick={() => handleSelectSummary(s)}
-                                    className="flex items-center gap-3 group transition-all duration-300 relative"
-                                >
-                                    <span 
-                                        className={cn(
-                                            "text-[10px] font-bold bg-white/95 backdrop-blur-sm border px-2 py-1 rounded shadow-md transition-all",
-                                            summaryData?.id === s.id ? "border-primary text-primary" : "text-muted-foreground border-transparent"
-                                        )}
-                                    >
-                                        {s.discharge_date ? format(new Date(s.discharge_date), 'dd MMM yyyy') : 'No Date'}
-                                        {idx === 0 && " (Latest)"}
-                                    </span>
-                                    <div 
-                                        className={cn(
-                                            "h-10 w-10 rounded-full border-2 flex items-center justify-center bg-white shadow-xl transition-all duration-300 shrink-0",
-                                            summaryData?.id === s.id 
-                                                ? "border-primary text-primary scale-110 ring-4 ring-primary/20" 
-                                                : "border-muted-foreground text-muted-foreground hover:border-primary hover:text-primary"
-                                        )}
-                                    >
-                                        <span className="text-[10px] font-black">{allSummaries.length - idx}</span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Toggle Button */}
-                    <Button
-                        onClick={() => setShowHistory(!showHistory)}
-                        className={cn(
-                            "h-12 w-12 rounded-full shadow-lg transition-all duration-300 p-0",
-                            showHistory ? "bg-red-500 hover:bg-red-600 rotate-90" : "bg-primary"
-                        )}
-                        size="icon"
-                    >
-                        {showHistory ? <X className="h-6 w-6 text-white" /> : <History className="h-6 w-6 text-white" />}
-                    </Button>
-                </div>
-            )}
+            <TimelineSelector
+                items={allSummaries}
+                activeId={summaryData?.id}
+                onSelect={handleSelectSummary}
+                getDate={(s) => s.discharge_date}
+                getLocation={(s) => s.location}
+                getConsultant={(s) => consultants.find(d => d.id === s.consultant_id)?.name}
+            />
 
             {/* Floating Download Button */}
             {summaryData && (

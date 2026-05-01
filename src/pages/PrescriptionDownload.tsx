@@ -4,14 +4,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { Prescription } from '@/components/consultation/Prescription';
 import { useHospitals } from '@/context/HospitalsContext';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Search, History, X } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cleanConsultationData, cn } from '@/lib/utils';
+import { cleanConsultationData } from '@/lib/utils';
 import PatientSelectionModal from '@/components/PatientSelectionModal';
+import { TimelineSelector } from '@/components/TimelineSelector';
 
 
 const PrescriptionDownload = () => {
@@ -30,7 +31,7 @@ const PrescriptionDownload = () => {
     const [isPatientSelectionModalOpen, setIsPatientSelectionModalOpen] = useState(false);
     const [patientList, setPatientList] = useState<any[]>([]);
     const [allConsultations, setAllConsultations] = useState<any[]>([]);
-    const [showHistory, setShowHistory] = useState(false);
+    const [consultants, setConsultants] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchPatients = async () => {
@@ -85,6 +86,11 @@ const PrescriptionDownload = () => {
 
             if (dbError) throw new Error(`Error fetching consultations: ${dbError.message}`);
 
+            const { data: consultantsData } = await supabase.from('consultants').select('id, name');
+            if (consultantsData) {
+                setConsultants(consultantsData);
+            }
+
             if (dbData.consultations && dbData.consultations.length > 0) {
                 // Sort by created_at desc to get the latest
                 const sorted = dbData.consultations.sort((a: any, b: any) =>
@@ -108,7 +114,6 @@ const PrescriptionDownload = () => {
     const handleSelectConsultation = async (currentConsultation: any) => {
         setConsultation(currentConsultation);
         setConsultationConsultant(null); // Reset while loading new one
-        setShowHistory(false); // Close timeline on selection
 
         // 3. Fetch consultant details if available
         if (currentConsultation.consultant_id) {
@@ -245,61 +250,14 @@ const PrescriptionDownload = () => {
             </div>
 
             {/* Collapsible Vertical Timeline */}
-            {allConsultations.length > 1 && (
-                <div className="fixed right-6 bottom-24 flex flex-col items-end gap-3 z-40">
-                    {/* History Items - Floating Above Toggle */}
-                    <div 
-                        className={cn(
-                            "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom",
-                            showHistory 
-                                ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" 
-                                : "opacity-0 scale-95 translate-y-4 pointer-events-none"
-                        )}
-                    >
-                        <div className="flex flex-col items-end gap-3 max-h-[50vh] overflow-y-auto no-scrollbar py-2 px-2">
-                            {allConsultations.map((c, idx) => (
-                                <button
-                                    key={c.id}
-                                    onClick={() => handleSelectConsultation(c)}
-                                    className="flex items-center gap-3 group transition-all duration-300 relative"
-                                >
-                                    <span 
-                                        className={cn(
-                                            "text-[10px] font-bold bg-white/95 backdrop-blur-sm border px-2 py-1 rounded shadow-md transition-all",
-                                            consultation?.id === c.id ? "border-primary text-primary" : "text-muted-foreground border-transparent"
-                                        )}
-                                    >
-                                        {format(new Date(c.created_at), 'dd MMM yyyy')}
-                                        {idx === 0 && " (Latest)"}
-                                    </span>
-                                    <div 
-                                        className={cn(
-                                            "h-10 w-10 rounded-full border-2 flex items-center justify-center bg-white shadow-xl transition-all duration-300 shrink-0",
-                                            consultation?.id === c.id 
-                                                ? "border-primary text-primary scale-110 ring-4 ring-primary/20" 
-                                                : "border-muted-foreground text-muted-foreground hover:border-primary hover:text-primary"
-                                        )}
-                                    >
-                                        <span className="text-[10px] font-black">{allConsultations.length - idx}</span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Toggle Button */}
-                    <Button
-                        onClick={() => setShowHistory(!showHistory)}
-                        className={cn(
-                            "h-12 w-12 rounded-full shadow-lg transition-all duration-300 p-0",
-                            showHistory ? "bg-red-500 hover:bg-red-600 rotate-90" : "bg-primary"
-                        )}
-                        size="icon"
-                    >
-                        {showHistory ? <X className="h-6 w-6 text-white" /> : <History className="h-6 w-6 text-white" />}
-                    </Button>
-                </div>
-            )}
+            <TimelineSelector
+                items={allConsultations}
+                activeId={consultation?.id}
+                onSelect={handleSelectConsultation}
+                getDate={(c) => c.created_at}
+                getLocation={(c) => c.location}
+                getConsultant={(c) => consultants.find(d => d.id === c.consultant_id)?.name}
+            />
 
             {/* Floating Download Button */}
             {consultation && (
