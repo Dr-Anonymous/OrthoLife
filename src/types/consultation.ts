@@ -83,7 +83,6 @@ export interface Consultant {
     name: ConsultantText;
     qualifications?: ConsultantText;
     specialization?: ConsultantText;
-    address?: ConsultantText;
     experience?: ConsultantText;
     email?: string;
     photo_url?: string;

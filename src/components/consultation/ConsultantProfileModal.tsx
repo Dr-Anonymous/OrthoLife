@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +24,6 @@ import { Loader2, Plus, Trash2, Save, User, Users, MapPin, Award, Stethoscope, M
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { TeamMember } from '@/types/consultation';
 
 interface ConsultantProfileModalProps {
   isOpen: boolean;
@@ -173,7 +171,6 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     phone: c?.phone || '',
     qualifications: c?.qualifications || { en: '', te: '' },
     specialization: c?.specialization || { en: '', te: '' },
-    address: c?.address || { en: '', te: '' },
     experience: c?.experience || { en: '', te: '' },
     email: c?.email || '',
     photo_url: c?.photo_url || '',
@@ -274,7 +271,6 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           phone: formData.phone,
           qualifications: formData.qualifications,
           specialization: formData.specialization,
-          address: formData.address,
           experience: formData.experience,
           email: formData.email,
           photo_url: formData.photo_url,
@@ -383,6 +379,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
   };
 
   const handleUpdateHospitalUI = (id: string, updates: any) => {
+    setIsDirty(true);
     updateHospitals(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h));
   };
 
@@ -1001,7 +998,19 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                           <div className="space-y-1"><Label className="text-[11px]">Latitude</Label><Input type="number" step="any" className="h-8" value={hospital.lat || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lat: parseFloat(e.target.value) })} /></div>
                           <div className="space-y-1"><Label className="text-[11px]">Longitude</Label><Input type="number" step="any" className="h-8" value={hospital.lng || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lng: parseFloat(e.target.value) })} /></div>
                         </div>
+                        <div className="mt-2">
+                          <BilingualField
+                            label="Location Specific Address"
+                            value={typeof hospital.settings?.address === 'object' ? hospital.settings.address : { en: hospital.settings?.address || '', te: '' }}
+                            onChange={v => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, address: v } })}
+                            placeholderEn="e.g. Road No. 3, RR Nagar, Kakinada-03"
+                            placeholderTe="e.g. రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్, కాకినాడ-03"
+                            as="input"
+                            bothMode={bothLangs}
+                          />
+                        </div>
                       </div>
+
                     ))}
                     <Button type="button" variant="outline" className="w-full border-dashed h-12" onClick={handleAddLocationUI}>
                       <Plus className="w-4 h-4 mr-1" /> Add Location
@@ -1012,19 +1021,6 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       </div>
                     )}
                   </div>
-                </SectionAccordion>
-
-                <SectionAccordion value="footer" title="Footer Address" description="Shown at the bottom of prescriptions" icon={MapPin}>
-                  <BilingualField
-                    label="Hospital Address"
-                    value={formData.address}
-                    onChange={v => updateForm(p => ({ ...p, address: v }))}
-                    placeholderEn="OrthoLife, Kakinada..."
-                    placeholderTe="ఆర్థోలైఫ్, రోడ్డు నెం. 3, ఆర్ ఆర్ నగర్..."
-                    as="textarea"
-                    rows={3}
-                    bothMode={bothLangs}
-                  />
                 </SectionAccordion>
               </Accordion>
             </TabsContent>

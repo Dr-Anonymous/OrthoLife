@@ -353,7 +353,7 @@ const ConsultationPage = () => {
 
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
-    if (hospitals.length === 0) return { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14 } };
+    if (hospitals.length === 0) return { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14, address: '' } };
     return hospitals.find(h => areLocationsEqual(h.name, selectedLocation)) || hospitals[0];
   }, [hospitals, selectedLocation]);
 
@@ -2824,6 +2824,7 @@ const ConsultationPage = () => {
               language={consultationLanguage}
               logoUrl={selectedHospital.logoUrl}
               hospitalName={selectedHospital.name}
+              address={selectedHospital.settings?.address}
               className="min-h-[297mm]"
               visitType={extraData.visit_type}
               forceDesktop={true}
@@ -2838,7 +2839,7 @@ const ConsultationPage = () => {
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={certificatePrintRef}>
           {selectedConsultation && editablePatientDetails && certificateData && (
-            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} consultant={consultant} showSignSeal={showSignSeal} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} />
+            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} consultant={consultant} showSignSeal={showSignSeal} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} />
           )}
         </div>
       </div>
@@ -2846,7 +2847,7 @@ const ConsultationPage = () => {
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={receiptPrintRef}>
           {selectedConsultation && editablePatientDetails && receiptData && (
-            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} />
+            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} />
           )}
         </div>
       </div>

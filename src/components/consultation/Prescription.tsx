@@ -47,6 +47,7 @@ interface PrescriptionProps {
   printOptions?: PrintOptions;
   showMargins?: boolean;
   consultant?: Consultant | null;
+  address?: string | { en?: string; te?: string };
 }
 
 /**
@@ -60,7 +61,7 @@ interface PrescriptionProps {
  * - Multi-language support (English/Telugu) for static labels.
  * - Medication table with checkmarks for Morning/Noon/Night.
  */
-export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, hospitalName, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, printOptions, showMargins = true, consultant }, ref) => {
+export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(({ patient, consultation, consultationDate, age, language, logoUrl, hospitalName, address, qrCodeUrl, noBackground, className, forceDesktop, visitType, showDoctorProfile = true, showSignSeal = false, printOptions, showMargins = true, consultant }, ref) => {
   const effectivePrintOptions: PrintOptions = {
     vitals: true,
     clinicalNotes: true,
@@ -126,7 +127,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
   const cName = typeof consultant?.name === 'object' ? (consultant?.name?.[language === 'te' ? 'te' : 'en'] || consultant?.name?.en) : (consultant?.name || '');
   const cQuals = typeof consultant?.qualifications === 'object' ? (consultant?.qualifications?.[language === 'te' ? 'te' : 'en'] || consultant?.qualifications?.en) : (consultant?.qualifications || '');
   const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
-  const cAddress = typeof consultant?.address === 'object' ? (consultant?.address?.[language === 'te' ? 'te' : 'en'] || consultant?.address?.en) : (consultant?.address || '');
+  const cAddress = typeof address === 'object'
+    ? ((address as any)[language === 'te' ? 'te' : 'en'] || (address as any).en || 'Road No. 3, RR Nagar, Kakinada-03.')
+    : (address || 'Road No. 3, RR Nagar, Kakinada-03.');
   const cExp = typeof consultant?.experience === 'object' ? (consultant?.experience?.[language === 'te' ? 'te' : 'en'] || consultant?.experience?.en) : (consultant?.experience || '');
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
@@ -549,7 +552,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                     <img src={logoUrl} alt="Clinic Logo" className="h-16 sm:h-20 w-auto" />
                     <div>
                       <h2 className="text-2xl sm:text-3xl font-black text-primary font-heading tracking-tight uppercase">
-                        {hospitalName || cAddress?.split(',')[0] || (language === 'te' ? 'ఆర్థోలైఫ్ మల్టీ స్పెషాలిటీ హాస్పిటల్' : 'OrthoLife Multispeciality Hospital')}
+                        {hospitalName || (language === 'te' ? 'ఆర్థోలైఫ్' : 'OrthoLife')}
                       </h2>
                       <p className="text-sm text-muted-foreground font-medium">{cAddress}</p>
                     </div>

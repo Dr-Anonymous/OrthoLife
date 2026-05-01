@@ -20,6 +20,8 @@ interface MedicalCertificateProps {
   showSignSeal?: boolean;
   logoUrl?: string;
   hospitalName?: string;
+  address?: string | { en?: string; te?: string };
+  language?: 'en' | 'te';
   className?: string;
 }
 
@@ -52,6 +54,8 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   showSignSeal = false,
   logoUrl,
   hospitalName,
+  address,
+  language = 'en',
   className,
 }) => {
 
@@ -66,7 +70,9 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   const consultantName = getConsultantText(consultant?.name);
   const consultantQualifications = getConsultantText(consultant?.qualifications).toUpperCase();
   const consultantSpecialization = getConsultantText(consultant?.specialization).toUpperCase();
-  const cAddress = consultant?.address ? (typeof consultant.address === 'object' ? (consultant.address.en || consultant.address.te || '') : consultant.address) : 'Road No. 3, RR Nagar, Kakinada-03.';
+  const cAddress = typeof address === 'object' 
+    ? ((address as any)[language === 'te' ? 'te' : 'en'] || (address as any).en || (address as any).te || 'Road No. 3, RR Nagar, Kakinada-03.')
+    : (address || 'Road No. 3, RR Nagar, Kakinada-03.');
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 

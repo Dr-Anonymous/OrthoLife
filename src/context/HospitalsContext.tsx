@@ -7,6 +7,7 @@ import { areLocationsEqual } from '@/lib/utils';
 export interface HospitalSettings {
     op_fees: number;
     free_visit_duration_days: number;
+    address?: string | { en?: string; te?: string };
     [key: string]: any; // Allow extensibility
 }
 
