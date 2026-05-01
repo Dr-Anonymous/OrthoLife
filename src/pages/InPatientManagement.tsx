@@ -249,23 +249,21 @@ const InPatientManagement = () => {
     const [isPrintSettingsModalOpen, setIsPrintSettingsModalOpen] = useState(false);
     const [settingsLocation, setSettingsLocation] = useState('OrthoLife');
 
-    // Print Settings Local State (for Modal)
-    const [localProfileEnabled, setLocalProfileEnabled] = useState(true);
-    const [localSignSealEnabled, setLocalSignSealEnabled] = useState(true);
-    const [localPrintOptions, setLocalPrintOptions] = useState<PrintOptions | undefined>();
+    // Print Settings Computed State
+    const localProfileEnabled = useMemo(() => {
+        const overrides = consultant?.messaging_settings?.location_print_overrides?.[settingsLocation] || {};
+        return overrides.show_profile ?? true;
+    }, [consultant, settingsLocation]);
 
-    useEffect(() => {
-        if (isPrintSettingsModalOpen && consultant) {
-            const settings = consultant.messaging_settings || {};
-            const location = settingsLocation;
-            const locationOptions = settings.location_print_options?.[location] || settings.location_print_options?.['OrthoLife'];
-            const locationOverrides = settings.location_print_overrides?.[location] || {};
-            
-            setLocalProfileEnabled(locationOverrides.show_profile ?? true);
-            setLocalSignSealEnabled(locationOverrides.show_sign_seal ?? true);
-            setLocalPrintOptions(locationOptions);
-        }
-    }, [isPrintSettingsModalOpen, consultant, settingsLocation]);
+    const localSignSealEnabled = useMemo(() => {
+        const overrides = consultant?.messaging_settings?.location_print_overrides?.[settingsLocation] || {};
+        return overrides.show_sign_seal ?? true;
+    }, [consultant, settingsLocation]);
+
+    const localPrintOptions = useMemo(() => {
+        const options = consultant?.messaging_settings?.location_print_options;
+        return options?.[settingsLocation] || options?.['OrthoLife'];
+    }, [consultant, settingsLocation]);
 
     const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
     // Removed isTemplateManagerOpen state
@@ -1711,9 +1709,9 @@ const InPatientManagement = () => {
                     isDoctorProfileEnabled={localProfileEnabled}
                     isSignSealEnabled={localSignSealEnabled}
                     printOptions={localPrintOptions}
-                    onToggleProfile={setLocalProfileEnabled}
-                    onToggleSignSeal={setLocalSignSealEnabled}
-                    onUpdatePrintOptions={setLocalPrintOptions}
+                    onToggleProfile={() => {}}
+                    onToggleSignSeal={() => {}}
+                    onUpdatePrintOptions={() => {}}
                     onSaveAll={handleSavePrintSettings}
                     currentLocation={settingsLocation}
                     mode="ip"
