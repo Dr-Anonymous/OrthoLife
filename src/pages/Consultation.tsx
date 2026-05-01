@@ -2838,17 +2838,20 @@ const ConsultationPage = () => {
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={certificatePrintRef}>
           {selectedConsultation && editablePatientDetails && certificateData && (
-            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} consultant={consultant} showSignSeal={showSignSeal} />
+            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} consultant={consultant} showSignSeal={showSignSeal} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} />
           )}
         </div>
       </div>
+
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={receiptPrintRef}>
           {selectedConsultation && editablePatientDetails && receiptData && (
-            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} />
+            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} />
           )}
         </div>
       </div>
+
+
 
       {/* Modals */}
       <SavedMedicationsModal isOpen={isMedicationsModalOpen} onClose={() => setIsMedicationsModalOpen(false)} onMedicationsUpdate={fetchSavedMedications} />

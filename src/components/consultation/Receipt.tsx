@@ -5,14 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin, Phone, Mail } from 'lucide-react';
 import { Consultant, ConsultantText, Patient, ReceiptData } from '@/types/consultation';
+import { cn } from '@/lib/utils';
+
 
 interface ReceiptProps {
   patient: Patient;
   receiptData: ReceiptData;
   consultant?: Consultant | null;
+  logoUrl?: string;
+  hospitalName?: string;
+  className?: string;
 }
+
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -32,38 +38,43 @@ interface ReceiptModalProps {
  * - Displays Amount Paid and Service Name.
  * - Includes clinic header and footer.
  */
-export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consultant }) => {
+export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consultant, logoUrl, hospitalName, className }) => {
   const { amountPaid, serviceName } = receiptData;
+
+
   const patientPrefix = patient.sex === 'M' ? 'Mr.' : 'Mrs.';
   const getConsultantText = (value?: string | ConsultantText) => {
     if (!value) return '';
     return typeof value === 'string' ? value : value.en || value.te || '';
   };
   const consultantName = getConsultantText(consultant?.name);
-  const consultantQualifications = getConsultantText(consultant?.qualifications);
-  const consultantSpecialization = getConsultantText(consultant?.specialization);
+  const consultantQualifications = getConsultantText(consultant?.qualifications).toUpperCase();
+  const consultantSpecialization = getConsultantText(consultant?.specialization).toUpperCase();
+  const cAddress = consultant?.address ? (typeof consultant.address === 'object' ? (consultant.address.en || consultant.address.te || '') : consultant.address) : 'Road No. 3, RR Nagar, Kakinada-03.';
 
   const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
   return (
-    <div className="bg-white text-black font-sans p-8 print:p-0 mx-auto" style={{ width: '210mm' }}>
-      <div className="w-full h-[297mm] p-8 flex flex-col">
+    <div className={cn("bg-white text-black font-sans print:p-0 mx-auto overflow-hidden", className)} style={{ width: '100%', maxWidth: '210mm', fontFamily: 'var(--font-sans)' }}>
+      <div className="w-full h-[297mm] p-4 sm:p-8 flex flex-col box-border">
+
         <header
           className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
           style={{ backgroundImage: backgroundPattern }}
         >
           <div className="flex items-center">
-            <img src="/images/logos/logo.png" alt="Clinic Logo" className="h-20 w-auto" />
+            <img src={logoUrl || "/images/logos/logo.png"} alt="Clinic Logo" className="h-20 w-auto" />
           </div>
+
           <div className="text-right">
             <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultantName}</h2>
             <p className="text-muted-foreground">{consultantQualifications}</p>
             <p className="text-muted-foreground">{consultantSpecialization}</p>
             {(consultant?.phone || consultant?.email) && (
               <p className="mt-2 text-gray-700 whitespace-nowrap">
-                {consultant?.phone && <span className="font-semibold">📞 {consultant.phone}</span>}
+                {consultant?.phone && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Phone className="h-4 w-4 inline-block text-blue-600" /> {consultant.phone}</span>}
                 {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
-                {consultant?.email && <span className="font-semibold">📧 {consultant.email}</span>}
+                {consultant?.email && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Mail className="h-4 w-4 inline-block text-blue-600" /> {consultant.email}</span>}
               </p>
             )}
           </div>
@@ -95,11 +106,14 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consulta
             </div>
           </div>
           <div className="border-t-2 border-blue-600 pt-4 mt-8 text-center text-sm">
-            <p>OrthoLife</p>
-            <p>📍 Road No. 3, RR Nagar, Kakinada-03.</p>
+            <p>{hospitalName || 'OrthoLife'}</p>
+            <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
           </div>
         </footer>
+
+
       </div>
+
     </div>
   );
 };
