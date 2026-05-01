@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { cn, calculateFollowUpDate } from '@/lib/utils';
 import { Patient, Medication } from '@/types/consultation';
 import { cleanAdviceLine } from '@/lib/utils';
-import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope, Heart, Brain, Eye, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage } from 'lucide-react';
+import { MessageSquare, Clock, Calendar, Pill, Sun, CloudSun, Moon, Syringe, Share, Bone, Activity, User, Stethoscope, Heart, Brain, Eye, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage, ClipboardList, FileText } from 'lucide-react';
 import { Consultant, PrintOptions } from '@/types/consultation';
 
 // Interfaces are imported from @/types/consultation
@@ -296,19 +296,28 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
             )}
             {consultation.findings && effectivePrintOptions.clinicalNotes && (
               <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1">Findings:</h3>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  <span>Findings:</span>
+                </h3>
                 <p className="whitespace-pre-wrap">{consultation.findings}</p>
               </div>
             )}
             {consultation.investigations && effectivePrintOptions.investigations && (
               <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1">Investigations:</h3>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4" />
+                  <span>Investigations:</span>
+                </h3>
                 <p className="whitespace-pre-wrap">{consultation.investigations}</p>
               </div>
             )}
             {consultation.diagnosis && effectivePrintOptions.diagnosis && (
               <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="font-heading font-semibold text-primary mb-1">Diagnosis:</h3>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span>Diagnosis:</span>
+                </h3>
                 <p className="whitespace-pre-wrap">{consultation.diagnosis}</p>
               </div>
             )}

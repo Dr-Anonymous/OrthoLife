@@ -2,7 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { DischargeData, CourseDetails } from '@/types/inPatients';
-import { Clock, Calendar, Pill, Sun, CloudSun, Moon, AlertTriangle, ClipboardList, Activity } from 'lucide-react';
+import { Clock, Calendar, Pill, Sun, CloudSun, Moon, AlertTriangle, ClipboardList, Activity, FileText, Syringe, MessageSquare, Stethoscope } from 'lucide-react';
 import { Consultant, PrintOptions } from '@/types/consultation';
 import { DAMA_TEXT } from '@/utils/dischargeConstants';
 
@@ -193,13 +193,19 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     <section className="grid grid-cols-1 gap-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                         {courseDetails.diagnosis && (
                                             <div>
-                                                <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.diagnosis')}</h3>
+                                                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                    <FileText className="h-4 w-4" />
+                                                    {t('discharge.diagnosis')}
+                                                </h3>
                                                 <p className="whitespace-pre-wrap text-sm">{courseDetails.diagnosis}</p>
                                             </div>
                                         )}
                                         {courseDetails.procedure && (
                                             <div>
-                                                <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.procedure')}</h3>
+                                                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                    <Syringe className="h-4 w-4" />
+                                                    {t('discharge.procedure')}
+                                                </h3>
                                                 <p className="whitespace-pre-wrap text-sm">
                                                     {courseDetails.procedure}
                                                     {courseDetails.procedure_date && (
@@ -213,7 +219,10 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     {/* Operation Notes */}
                                     {courseDetails.operation_notes && (
                                         <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.operation_notes')}</h3>
+                                            <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                <ClipboardList className="h-4 w-4" />
+                                                {t('discharge.operation_notes')}
+                                            </h3>
                                             <p className="whitespace-pre-wrap text-sm">{courseDetails.operation_notes}</p>
                                         </section>
                                     )}
@@ -221,7 +230,10 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     {/* Clinical Notes (Course in Hospital) */}
                                     {dischargeData.clinical_notes && (
                                         <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.clinical_notes')}</h3>
+                                            <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                <Stethoscope className="h-4 w-4" />
+                                                {t('discharge.clinical_notes')}
+                                            </h3>
                                             <p className="whitespace-pre-wrap text-sm">{dischargeData.clinical_notes}</p>
                                         </section>
                                     )}
@@ -314,7 +326,10 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                             {/* Post-Op Care */}
                                             {dischargeData.post_op_care && (
                                                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                                    <h3 className="font-heading font-semibold text-primary mb-1">{t('discharge.post_op_care')}</h3>
+                                                    <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                        <MessageSquare className="h-4 w-4" />
+                                                        {t('discharge.post_op_care')}
+                                                    </h3>
                                                     <p className="whitespace-pre-wrap text-sm">{dischargeData.post_op_care}</p>
                                                 </div>
                                             )}
