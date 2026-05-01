@@ -13,6 +13,8 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { useConsultant } from '@/context/ConsultantContext';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
 import { TeamManagementModal } from '@/components/admin/TeamManagementModal';
+import { areLocationsEqual } from '@/lib/utils';
+
 
 interface Admission {
   id: string;
@@ -184,13 +186,14 @@ const ConsultationStats = () => {
     let opReferralPayouts = 0;
 
     data.forEach(curr => {
-      const loc = curr.location || 'Unknown';
+      const originalLoc = curr.location || 'Unknown';
+      const matchedHospital = hospitals.find(h => areLocationsEqual(h.name, originalLoc));
+      const loc = matchedHospital ? matchedHospital.name : originalLoc;
       counts[loc] = (counts[loc] || 0) + 1;
 
       if (curr.visit_type === 'paid') {
         paidCounts[loc] = (paidCounts[loc] || 0) + 1;
-        const hospital = hospitals.find(h => h.name === loc);
-        const settings = hospital?.settings as any;
+        const settings = matchedHospital?.settings as any;
         const fees = settings?.op_fees ? Number(settings.op_fees) : 0;
         const opCut = settings?.consultant_cut ? Number(settings.consultant_cut) : 0;
 

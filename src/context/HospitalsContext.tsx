@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useConsultant } from './ConsultantContext';
+import { areLocationsEqual } from '@/lib/utils';
+
 
 export interface HospitalSettings {
     op_fees: number;
@@ -91,7 +93,7 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         fetchHospitals();
     }, [consultant?.id]);
 
-    const getHospitalByName = (name: string) => hospitals.find(h => h.name.toLowerCase() === name.toLowerCase());
+    const getHospitalByName = (name: string) => hospitals.find(h => areLocationsEqual(h.name, name));
 
     return (
         <HospitalsContext.Provider value={{ hospitals, isLoading, error, getHospitalByName, refreshHospitals: fetchHospitals }}>

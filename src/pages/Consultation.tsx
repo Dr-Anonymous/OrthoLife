@@ -6,7 +6,7 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } fr
 import { Loader2, IndianRupee, ChevronDown } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
-import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName, escapeRegex, areExtraDataEqual, arePatientsEqual } from '@/lib/utils';
+import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName, escapeRegex, areExtraDataEqual, arePatientsEqual, areLocationsEqual } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { fetchRecentHistory, generateAutofillData, calculateLastVisitString } from '@/lib/consultation-history';
@@ -354,7 +354,7 @@ const ConsultationPage = () => {
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
     if (hospitals.length === 0) return { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14 } };
-    return hospitals.find(h => h.name.toLowerCase() === selectedLocation?.toLowerCase()) || hospitals[0];
+    return hospitals.find(h => areLocationsEqual(h.name, selectedLocation)) || hospitals[0];
   }, [hospitals, selectedLocation]);
 
   const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
@@ -919,8 +919,8 @@ const ConsultationPage = () => {
 
           // Guard for location
           const locationMatch =
-            (newRow?.location === selectedHospital.name) ||
-            (oldRow?.location === selectedHospital.name);
+            areLocationsEqual(newRow?.location, selectedHospital.name) ||
+            areLocationsEqual(oldRow?.location, selectedHospital.name);
 
           // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
           // but filtering locally by ID is safe and cost-free.
@@ -1065,7 +1065,7 @@ const ConsultationPage = () => {
     const extraDataChanged = !areExtraDataEqual(extraData, initialExtraData);
     const extraDataSignificantChanged = !areExtraDataEqual(extraData, initialExtraData, true);
 
-    const locationChanged = (selectedLocation || '').toLowerCase() !== (initialLocation || '').toLowerCase();
+    const locationChanged = !areLocationsEqual(selectedLocation, initialLocation);
     const languageChanged = consultationLanguage !== initialLanguage;
 
     const baseChanges = patientDetailsChanged || extraDataChanged || languageChanged;
@@ -1112,7 +1112,7 @@ const ConsultationPage = () => {
 
     const extraDataChanged = !areExtraDataEqual(activeExtraData, initialExtraData);
     const patientDetailsChanged = !arePatientsEqual(editablePatientDetails, initialPatientDetails);
-    const locationChanged = selectedHospital.name !== initialLocation;
+    const locationChanged = !areLocationsEqual(selectedHospital.name, initialLocation);
     const languageChanged = consultationLanguage !== initialLanguage;
 
     const hasActualChanges = patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
@@ -2300,9 +2300,7 @@ const ConsultationPage = () => {
   // Filter Consultations
   const filteredConsultations = useMemo(() => {
     return allConsultations.filter(c => {
-      // If a hospital is selected, filter by it.
-      // BUT, if the consultation has NO location (e.g. legacy or offline-synced), show it anywhere.
-      if (selectedHospital?.name && c.location && c.location.toLowerCase() !== selectedHospital.name.toLowerCase()) {
+      if (selectedHospital?.name && c.location && !areLocationsEqual(c.location, selectedHospital.name)) {
         return false;
       }
       return true;

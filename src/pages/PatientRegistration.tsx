@@ -8,7 +8,7 @@ import { Loader2, Printer, Pencil, Calendar as CalendarIcon, Trash2 } from 'luci
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
-import { cleanConsultationData, formatLocalTime } from '@/lib/utils';
+import { cleanConsultationData, formatLocalTime, areLocationsEqual } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import { useLocation } from 'react-router-dom';
@@ -393,8 +393,8 @@ const PatientRegistration = () => {
 
           // Guard for location
           const locationMatch =
-            (newRow?.location === locationName) ||
-            (oldRow?.location === locationName);
+            areLocationsEqual(newRow?.location, locationName) ||
+            areLocationsEqual(oldRow?.location, locationName);
 
           // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
           // but filtering locally by ID is safe and cost-free.
@@ -431,7 +431,7 @@ const PatientRegistration = () => {
   }, [isOnline, locationName, fetchTodaysConsultations, hydrateInsertedConsultation]);
 
   const filteredConsultations = todaysConsultations.filter(
-    c => c.location?.toLowerCase() === locationName.toLowerCase()
+    c => areLocationsEqual(c.location, locationName)
   );
 
   if (isConsultantLoading) {

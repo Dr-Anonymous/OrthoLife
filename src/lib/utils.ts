@@ -384,3 +384,23 @@ export function areExtraDataEqual(d1: any, d2: any, ignoreBrandName: boolean = f
 export function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+/**
+ * Normalizes a hospital/location name for robust comparison.
+ * Converts to lowercase, removes all spaces and punctuation, and strips trailing generic words.
+ */
+export function normalizeLocationName(name: string | null | undefined): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\b(hospitals?|clinics?|centers?|centre?s?)\b/gi, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Compares two location/hospital names for equality using normalized forms.
+ */
+export function areLocationsEqual(loc1: string | null | undefined, loc2: string | null | undefined): boolean {
+  return normalizeLocationName(loc1) === normalizeLocationName(loc2);
+}
