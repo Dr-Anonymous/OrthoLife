@@ -106,8 +106,9 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
     const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
 
     return (
-        <div ref={ref} className="font-sans mx-auto print:m-0 relative" style={{ width: forceDesktop ? '210mm' : '100%', maxWidth: '210mm' }}>
+        <div ref={ref} className="font-sans mx-auto print:m-0 relative w-full max-w-full overflow-hidden" style={{ width: forceDesktop ? '210mm' : '100%', maxWidth: '210mm' }}>
             <div
+
                 className={cn(
                     "bg-background text-foreground min-h-[296mm] print:p-0 w-full box-border",
                     showMargins ? "pl-16 pr-8 py-8" : "px-4 sm:px-8 py-8",
@@ -150,7 +151,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                             <h2 className={cn("font-heading font-bold text-primary", forceDesktop ? "text-xl" : "text-lg sm:text-xl")} style={{ fontFamily: 'var(--font-heading)' }}>{cName}</h2>
                                             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cQuals}</p>
                                             <p className={cn("text-muted-foreground", forceDesktop ? "text-base" : "text-sm sm:text-base")}>{cSpec}</p>
-                                            <p className={cn("mt-2 text-gray-700 whitespace-nowrap", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
+                                            <p className={cn("mt-2 text-gray-700", forceDesktop ? "text-base" : "text-sm sm:text-base", !forceDesktop && "flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-0")}>
                                                 {consultant?.phone ? (
                                                     <a href={`tel:+91${consultant.phone}`} className="font-semibold hover:underline">📞 {consultant.phone.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
                                                 ) : (
@@ -193,20 +194,20 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     <section className="grid grid-cols-1 gap-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                                         {courseDetails.diagnosis && (
                                             <div>
-                                                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                                                     <FileText className="h-4 w-4" />
                                                     {t('discharge.diagnosis')}
                                                 </h3>
-                                                <p className="whitespace-pre-wrap text-sm">{courseDetails.diagnosis}</p>
+                                                <p className="whitespace-pre-wrap">{courseDetails.diagnosis}</p>
                                             </div>
                                         )}
                                         {courseDetails.procedure && (
                                             <div>
-                                                <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                                                     <Syringe className="h-4 w-4" />
                                                     {t('discharge.procedure')}
                                                 </h3>
-                                                <p className="whitespace-pre-wrap text-sm">
+                                                <p className="whitespace-pre-wrap">
                                                     {courseDetails.procedure}
                                                     {courseDetails.procedure_date && (
                                                         <span className=""> on {format(new Date(courseDetails.procedure_date), 'dd MMM yyyy')}</span>
@@ -219,34 +220,35 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     {/* Operation Notes */}
                                     {courseDetails.operation_notes && (
                                         <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                            <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                                                 <ClipboardList className="h-4 w-4" />
                                                 {t('discharge.operation_notes')}
                                             </h3>
-                                            <p className="whitespace-pre-wrap text-sm">{courseDetails.operation_notes}</p>
+                                            <p className="whitespace-pre-wrap">{courseDetails.operation_notes}</p>
                                         </section>
                                     )}
 
                                     {/* Clinical Notes (Course in Hospital) */}
                                     {dischargeData.clinical_notes && (
                                         <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                            <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                                                 <Stethoscope className="h-4 w-4" />
                                                 {t('discharge.clinical_notes')}
                                             </h3>
-                                            <p className="whitespace-pre-wrap text-sm">{dischargeData.clinical_notes}</p>
+                                            <p className="whitespace-pre-wrap">{dischargeData.clinical_notes}</p>
                                         </section>
                                     )}
 
                                     {/* Medications - Moved UP for visibility */}
                                     {dischargeData.medications && dischargeData.medications.length > 0 && (
                                         <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <h3 className="font-heading font-semibold text-primary mb-2 flex items-center gap-2">
+                                            <h3 className="font-heading font-semibold text-primary mb-2 leading-none flex items-center gap-2">
                                                 <Pill className="h-4 w-4" />
                                                 {t('prescription.medication', 'Medications at Discharge')}
                                             </h3>
-                                            <div className="overflow-x-auto">
+                                            <div className="overflow-x-auto max-w-[calc(100vw-2.5rem)] sm:max-w-none">
                                                 <table className="w-full border-collapse border border-border min-w-[600px]">
+
                                                     <thead>
                                                         <tr className="bg-muted">
                                                             <th className="border border-border p-2 text-left">#</th>
@@ -326,44 +328,44 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                             {/* Post-Op Care */}
                                             {dischargeData.post_op_care && (
                                                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                                    <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                    <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                                                         <MessageSquare className="h-4 w-4" />
                                                         {t('discharge.post_op_care')}
                                                     </h3>
-                                                    <p className="whitespace-pre-wrap text-sm">{dischargeData.post_op_care}</p>
+                                                    <p className="whitespace-pre-wrap">{dischargeData.post_op_care}</p>
                                                 </div>
                                             )}
 
                                             {/* Wound Care */}
                                             {dischargeData.wound_care && (
                                                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                                    <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                    <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                                                         <ClipboardList className="h-4 w-4" />
                                                         {t('discharge.wound_care')}
                                                     </h3>
-                                                    <p className="whitespace-pre-wrap text-sm">{dischargeData.wound_care}</p>
+                                                    <p className="whitespace-pre-wrap">{dischargeData.wound_care}</p>
                                                 </div>
                                             )}
 
                                             {/* Activity */}
                                             {dischargeData.activity && (
                                                 <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                                    <h3 className="font-heading font-semibold text-primary mb-1 flex items-center gap-2">
+                                                    <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
                                                         <Activity className="h-4 w-4" />
                                                         {t('discharge.activity')}
                                                     </h3>
-                                                    <p className="whitespace-pre-wrap text-sm">{dischargeData.activity}</p>
+                                                    <p className="whitespace-pre-wrap">{dischargeData.activity}</p>
                                                 </div>
                                             )}
 
                                             {/* Red Flags - Print Friendly Red Box */}
                                             {dischargeData.red_flags && (
                                                 <div className="border border-red-500 bg-red-50 p-4 rounded-md print:border-black print:bg-transparent break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                                    <h3 className="font-heading font-semibold text-red-700 flex items-center gap-2 mb-2 print:text-black">
+                                                    <h3 className="font-heading font-semibold text-red-700 leading-none flex items-center gap-2 mb-2 print:text-black">
                                                         <AlertTriangle className="h-5 w-5 text-red-600 print:text-black" />
                                                         {t('discharge.emergency_red_flags')}
                                                     </h3>
-                                                    <p className="whitespace-pre-wrap text-sm">{dischargeData.red_flags}</p>
+                                                    <p className="whitespace-pre-wrap">{dischargeData.red_flags}</p>
                                                 </div>
                                             )}
                                         </section>
@@ -372,11 +374,11 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     {/* Review Date */}
                                     {dischargeData.review_date && (
                                         <section className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <h3 className="font-heading font-semibold text-primary flex items-center gap-2">
+                                            <h3 className="font-heading font-semibold text-primary leading-none flex items-center gap-2">
                                                 <Calendar className="h-5 w-5" />
                                                 {t('discharge.review_date')}
                                             </h3>
-                                            <p className="text-sm font-medium ml-7">{format(new Date(dischargeData.review_date), 'dd MMM yyyy')}</p>
+                                            <p className="font-medium ml-7">{format(new Date(dischargeData.review_date), 'dd MMM yyyy')}</p>
                                         </section>
                                     )}
 

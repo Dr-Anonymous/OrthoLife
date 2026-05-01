@@ -11,11 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PatientSelectionModal from '@/components/PatientSelectionModal';
 import { TimelineSelector } from '@/components/TimelineSelector';
+import { useHospitals } from '@/context/HospitalsContext';
 
 const DischargeSummaryDownload = () => {
     const { patientPhone } = useParams<{ patientPhone: string }>();
     const navigate = useNavigate();
     const { i18n } = useTranslation();
+    const { getHospitalByName } = useHospitals();
     const [summaryData, setSummaryData] = useState<any>(null);
     const [consultationConsultant, setConsultationConsultant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -110,7 +112,8 @@ const DischargeSummaryDownload = () => {
             ...inPatientData.discharge_summary,
             id: inPatientData.id,
             language: inPatientData.language, // Use saved language preference
-            savedDischargeDate: inPatientData.discharge_date
+            savedDischargeDate: inPatientData.discharge_date,
+            location: inPatientData.location
         });
         setConsultationConsultant(null); // Reset while loading new one
 
@@ -236,14 +239,14 @@ const DischargeSummaryDownload = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center relative">
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center relative pb-24">
             <PatientSelectionModal
                 isOpen={isPatientSelectionModalOpen}
                 patients={patientList}
                 onSelect={handlePatientSelect}
             />
 
-            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg">
+            <div className="bg-white w-full max-w-3xl min-h-0 shadow-none sm:shadow-lg sm:my-8 sm:rounded-lg overflow-hidden">
                 {/* Preview */}
                 {summaryData && (
                     <DischargeSummaryPrint
@@ -252,8 +255,9 @@ const DischargeSummaryDownload = () => {
                         courseDetails={summaryData.course_details}
                         dischargeData={summaryData.discharge_data}
                         language={summaryData.language || i18n.language}
-                        logoUrl={consultationConsultant?.logo_url || "/images/logos/logo.png"}
+                        logoUrl={getHospitalByName(summaryData.location)?.logoUrl || consultationConsultant?.logo_url || getHospitalByName('OrthoLife')?.logoUrl || "/images/logos/logo.png"}
                         className="min-h-[297mm]"
+
                         dischargeDate={summaryData.savedDischargeDate}
                         showMargins={false}
                         consultant={consultationConsultant}

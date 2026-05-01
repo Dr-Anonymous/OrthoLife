@@ -56,13 +56,13 @@ export const TimelineSelector: React.FC<TimelineSelectorProps> = ({
                                     setShowHistory(false);
                                 }}
                                 className={cn(
-                                    "px-3 py-2 rounded-full border flex items-center justify-center bg-white shadow-lg transition-all duration-300 shrink-0 select-none",
+                                    "px-4 py-2.5 rounded-2xl border flex items-center justify-start text-left bg-white shadow-lg transition-all duration-300 shrink-0 select-none max-w-[calc(100vw-3.5rem)] sm:max-w-sm",
                                     isSelected 
                                         ? "border-primary bg-primary text-white scale-105 font-bold ring-4 ring-primary/20" 
                                         : "border-muted text-muted-foreground hover:border-primary hover:text-primary hover:bg-muted/30"
                                 )}
                             >
-                                <span className="text-xs whitespace-nowrap font-semibold">
+                                <span className="text-xs font-semibold break-words">
                                     {labelText}
                                     {idx === 0 && " (Latest)"}
                                 </span>

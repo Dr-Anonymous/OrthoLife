@@ -182,7 +182,12 @@ export const PatientDemographics: React.FC<PatientDemographicsProps> = ({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => setShowSecondaryPhone(true)}
+                                onClick={() => {
+                                    setShowSecondaryPhone(true);
+                                    setTimeout(() => {
+                                        document.getElementById('secondary_phone')?.focus();
+                                    }, 0);
+                                }}
                                 title="Add Secondary Phone"
                                 disabled={isReadOnly}
                                 className="shrink-0"
