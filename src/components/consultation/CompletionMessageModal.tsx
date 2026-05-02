@@ -25,6 +25,7 @@ interface CompletionMessageModalProps {
     patientPhone: string;
     initialMessage: string;
     onMessageChange?: (message: string) => void;
+    consultantPhone?: string;
     consultantId?: string;
     isWhatsAppIntegrated?: boolean;
 }
@@ -35,6 +36,7 @@ export const CompletionMessageModal = ({
     patientPhone,
     initialMessage,
     onMessageChange,
+    consultantPhone,
     consultantId,
     isWhatsAppIntegrated = false
 }: CompletionMessageModalProps) => {
@@ -91,7 +93,7 @@ export const CompletionMessageModal = ({
                     payload: {
                         number: targetPhone,
                         message: message,
-                        consultant_id: consultantId
+                        consultant_phone: consultantPhone
                     },
                     source: 'manual_completion_whatsapp',
                     consultant_id: consultantId
@@ -104,7 +106,7 @@ export const CompletionMessageModal = ({
                     body: {
                         number: targetPhone,
                         message: message,
-                        consultant_id: consultantId
+                        consultant_phone: consultantPhone
                     },
                 });
 

@@ -4,6 +4,8 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+export const isUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
 export async function sendWhatsAppMessage(number: string, message: string, consultantId: string = "general_notifications", mediaUrl?: string) {
   try {
     if (!number || (!message && !mediaUrl)) {

@@ -539,7 +539,7 @@ const InPatientManagement = () => {
                         payload: {
                             number: selectedPatientForDischarge.patient.phone,
                             message: reviewMessage,
-                            consultant_id: consultant.phone,
+                            consultant_phone: consultant.phone,
                             reference_id: selectedPatientForDischarge.id
                         },
                         source: 'auto_post_discharge_review',
@@ -564,7 +564,7 @@ const InPatientManagement = () => {
                     payload: {
                         number: phone,
                         message,
-                        consultant_id: consultant.phone
+                        consultant_phone: consultant.phone
                     },
                     source: 'manual_inpatient_whatsapp',
                     consultant_id: consultant.id
@@ -572,7 +572,7 @@ const InPatientManagement = () => {
                 if (!success) throw new Error("Failed to schedule task");
             } else {
                 const { error } = await supabase.functions.invoke('send-whatsapp', {
-                    body: { number: phone, message, consultant_id: consultant.phone },
+                    body: { number: phone, message, consultant_phone: consultant.phone },
                 });
                 if (error) throw error;
             }

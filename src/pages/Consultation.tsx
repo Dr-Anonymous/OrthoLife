@@ -1278,7 +1278,7 @@ const ConsultationPage = () => {
             payload: {
               number: editablePatientDetails.phone,
               message: finalMessage,
-              consultant_id: consultant.phone,
+              consultant_phone: consultant.phone,
               reference_id: selectedConsultation.id
             },
             source: 'auto_post_consultation_followup',
@@ -2989,7 +2989,8 @@ const ConsultationPage = () => {
         onClose={() => setIsCompletionModalOpen(false)}
         patientPhone={editablePatientDetails?.phone || ''}
         initialMessage={completionMessage}
-        consultantId={consultant?.phone}
+        consultantPhone={consultant?.phone}
+        consultantId={consultant?.id}
         isWhatsAppIntegrated={consultant?.is_whatsauto_active}
         onMessageChange={(newMessage) => {
           setCompletionMessage(newMessage);

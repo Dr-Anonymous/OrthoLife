@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendWhatsAppMessage } from "../_shared/whatsapp.ts";
+import { sendWhatsAppMessage, isUuid } from "../_shared/whatsapp.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,8 +40,34 @@ serve(async (req) => {
 
         if (task.task_type === 'whatsapp_message') {
           const { number, message, media_url } = task.payload;
-          const consultant_id = task.consultant_id || task.payload.consultant_id;
-          const result = await sendWhatsAppMessage(number, message, consultant_id, media_url);
+          
+          let consultant_phone = task.payload.consultant_phone || task.payload.consultant_id || "general_notifications";
+
+          if (isUuid(consultant_phone)) {
+            const { data: c } = await supabase
+              .from('consultants')
+              .select('phone')
+              .eq('id', consultant_phone)
+              .single();
+            if (c?.phone) {
+              consultant_phone = c.phone;
+            } else {
+              console.warn(`[process-scheduled-tasks] Consultant lookup failed for UUID from payload: ${consultant_phone}`);
+            }
+          } else if (consultant_phone === "general_notifications" && task.consultant_id && isUuid(task.consultant_id)) {
+            const { data: c } = await supabase
+              .from('consultants')
+              .select('phone')
+              .eq('id', task.consultant_id)
+              .single();
+            if (c?.phone) {
+              consultant_phone = c.phone;
+            } else {
+              console.warn(`[process-scheduled-tasks] Consultant lookup failed for UUID from task: ${task.consultant_id}`);
+            }
+          }
+
+          const result = await sendWhatsAppMessage(number, message, consultant_phone, media_url);
           if (!result) throw new Error("Failed to send WhatsApp message via shared helper.");
 
           taskResult = { ...taskResult, whatsapp: 'success' };
@@ -80,7 +106,21 @@ serve(async (req) => {
           }
 
           // 2. Send the WhatsApp reminder for the current order
-          const waResult = await sendWhatsAppMessage(patient_phone, message, consultant_id);
+          let consultant_phone = consultant_id || "general_notifications";
+          if (consultant_phone && isUuid(consultant_phone)) {
+            const { data: c } = await supabase
+              .from('consultants')
+              .select('phone')
+              .eq('id', consultant_phone)
+              .single();
+            if (c?.phone) {
+              consultant_phone = c.phone;
+            } else {
+              console.warn(`[process-scheduled-tasks] Consultant lookup failed for UUID in subscription reorder: ${consultant_phone}`);
+            }
+          }
+
+          const waResult = await sendWhatsAppMessage(patient_phone, message, consultant_phone);
           if (!waResult) {
             console.error(`[process-scheduled-tasks] WhatsApp reminder failed for subscription ${subscription_id}, but order was created.`);
           }

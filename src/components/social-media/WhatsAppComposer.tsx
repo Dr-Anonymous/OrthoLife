@@ -133,7 +133,7 @@ const WhatsAppComposer = () => {
             number,
             message,
             media_url: mediaUrl || undefined,
-            consultant_id: consultant?.phone || "general_notifications"
+            consultant_phone: consultant?.phone || "general_notifications"
           },
           source: 'manual_send_whatsapp',
           consultant_id: consultant?.id
@@ -146,7 +146,7 @@ const WhatsAppComposer = () => {
             number,
             message,
             media_url: mediaUrl || undefined,
-            consultant_id: consultant?.phone || "general_notifications"
+            consultant_phone: consultant?.phone || "general_notifications"
           },
         });
 

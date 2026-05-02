@@ -110,7 +110,7 @@ export const ConsentManagementModal: React.FC<ConsentManagementModalProps> = ({
                         payload: {
                             number: patient.patient.phone,
                             message,
-                            consultant_id: consultant.phone,
+                            consultant_phone: consultant.phone,
                             reference_id: saved.id
                         },
                         source: 'auto_pre_op_npo',

@@ -143,7 +143,7 @@ const FollowUpDashboard = () => {
           payload: {
             number: phone,
             message: whatsappMessage,
-            consultant_id: consultant.phone
+            consultant_phone: consultant.phone
           },
           source: 'manual_followup_reminder',
           consultant_id: consultant.id
@@ -155,7 +155,7 @@ const FollowUpDashboard = () => {
           body: {
             number: phone,
             message: whatsappMessage,
-            consultant_id: consultant.phone
+            consultant_phone: consultant.phone
           },
         });
         if (error) throw error;
