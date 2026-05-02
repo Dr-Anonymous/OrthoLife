@@ -110,7 +110,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
             <div
 
                 className={cn(
-                    "bg-background text-foreground min-h-[296mm] print:p-0 w-full box-border",
+                    "bg-background text-foreground min-h-[296mm] print:p-0 w-full box-border relative",
                     showMargins ? "pl-16 pr-8 py-8" : "px-4 sm:px-8 py-8",
                     effectivePrintOptions.fontSize === 'compact' ? 'text-[11px]' :
                         effectivePrintOptions.fontSize === 'large' ? 'text-base' : 'text-sm',
@@ -434,8 +434,8 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                     <div
                         className="absolute print:fixed bg-black print:bg-black z-[100] flex items-center justify-center"
                         style={{
-                            bottom: `${effectivePrintOptions.footerMaskCoords?.bottom}cm`,
-                            right: `${effectivePrintOptions.footerMaskCoords?.right}cm`,
+                            bottom: `${Number(effectivePrintOptions.footerMaskCoords?.bottom || 0) - 0.1}cm`,
+                            right: `${Number(effectivePrintOptions.footerMaskCoords?.right || 0) - 1}cm`,
                             width: `${effectivePrintOptions.footerMaskCoords?.width}cm`,
                             height: `${effectivePrintOptions.footerMaskCoords?.height}cm`,
                             pointerEvents: 'none',

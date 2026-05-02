@@ -153,7 +153,7 @@ const InPatientManagement = () => {
                 /* Custom size: Width (210mm) followed by Height (310mm) */
                 size: 210mm 302mm;
                 /* General margins for 2nd page onwards - safer bottom margin to prevent footer cutoff */
-                margin: 7mm 10mm 0mm 20mm;
+                margin: 15mm 10mm 0mm 20mm;
             }
             @page :first {
                 size: 210mm 297mm;
