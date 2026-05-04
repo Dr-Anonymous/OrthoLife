@@ -34,7 +34,7 @@ export function CalendarWithMonthYearPicker({
     if (selected) {
       setMonth(selected);
     }
-  }, [selected]);
+  }, [selected?.getTime()]);
 
   const years = Array.from(
     { length: toYear - fromYear + 1 },
