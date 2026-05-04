@@ -404,7 +404,7 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                                 )}
                                                 <div className="relative">
                                                     {consultant?.seal_url && (
-                                                        <img src={consultant.seal_url} alt="Doctor's Seal" className="h-20 absolute -top-12 left-1/2 -translate-x-1/2 opacity-40 z-[-1]" />
+                                                        <img src={consultant.seal_url} alt="Doctor's Seal" className="h-20 absolute -top-8 left-1/2 -translate-x-1/2 opacity-40 z-[-1]" />
                                                     )}
                                                 </div>
                                             </div>

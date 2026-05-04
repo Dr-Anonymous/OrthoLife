@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { useConsultant } from '@/context/ConsultantContext';
 import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
-import { compressImage } from '@/lib/image-utils';
+import { compressImage, processTransparentImage } from '@/lib/image-utils';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Plus, Trash2, Save, User, Users, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff, Bone, Activity, Syringe, ChevronUp, ChevronDown, Heart, Brain, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage, IdCard, Building2, RotateCcw, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -332,14 +332,22 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     try {
       const oldUrl = formData[`${type}_url` as keyof typeof formData] as string;
       const compressionToastId = toast({ title: 'Processing...', description: 'Optimizing image for better performance.' });
-      const compressedFile = await compressImage(file, { maxSizeKB: 100, maxWidthOrHeight: 1024 });
+
+      let processedFile: Blob | File;
+      let fileExt = file.name.split('.').pop();
+      if (type === 'sign' || type === 'seal') {
+        processedFile = await processTransparentImage(file, { threshold: 115, maxWidthOrHeight: 1024 });
+        fileExt = 'png';
+      } else {
+        processedFile = await compressImage(file, { maxSizeKB: 100, maxWidthOrHeight: 1024 });
+      }
+
       compressionToastId.dismiss();
 
-      const fileExt = file.name.split('.').pop();
       const fileName = `${consultant.id}/${type}_${Date.now()}.${fileExt}`;
       const filePath = `consultants/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage.from('consultant-assets').upload(filePath, compressedFile);
+      const { error: uploadError } = await supabase.storage.from('consultant-assets').upload(filePath, processedFile);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('consultant-assets').getPublicUrl(filePath);

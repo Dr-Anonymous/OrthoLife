@@ -57,7 +57,8 @@ export const ConsultantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setConsultant(data as unknown as Consultant);
                 // Check if the current phone matches the reception_phone
                 const matchedReception = data.reception_phone && data.reception_phone.replace(/\D/g, '').includes(formattedPhone);
-                setIsReceptionMode(!!matchedReception);
+                const matchedPrimary = data.phone && data.phone.replace(/\D/g, '').includes(formattedPhone);
+                setIsReceptionMode(!!matchedReception && !matchedPrimary);
             }
         } catch (err: any) {
             console.error('Error fetching consultant profile:', err);

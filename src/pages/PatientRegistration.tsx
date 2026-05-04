@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 import { SYSTEM_CONSULTANT_ID } from "@/utils/scheduleService";
 import { useConsultant } from '@/context/ConsultantContext';
 import { DoctorLoginGate } from '@/components/consultation/DoctorLoginGate';
-import { getDistance } from '@/lib/geolocation';
+import { useHospitalLocation } from '@/hooks/useHospitalLocation';
 import { MapPin } from 'lucide-react';
 import {
   Select,
@@ -52,74 +52,18 @@ const PatientRegistration = () => {
   const recentlyHandledIds = useRef<Set<string | number>>(new Set());
 
   const { consultant, isLoading: isConsultantLoading } = useConsultant();
-  const [manualLocation, setManualLocation] = useState<string | null>(() => localStorage.getItem('manualHospitalRegistration'));
-  const [autoLocation, setAutoLocation] = useState<string | null>(null);
-  const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
-    const stored = localStorage.getItem('registrationGpsEnabled');
-    return stored !== null ? JSON.parse(stored) : true;
-  });
+  const {
+    locationName,
+    isGpsEnabled,
+    toggleGps,
+    handleManualLocationChange
+  } = useHospitalLocation('registration', consultant?.id);
 
   // Print settings (mirrored from Consultation.tsx)
   const [showDoctorProfile, setShowDoctorProfile] = useState<boolean>(true);
   const [showSignSeal, setShowSignSeal] = useState<boolean>(false);
   const [onlyMedicationsAndFollowup, setOnlyMedicationsAndFollowup] = useState<boolean>(false);
 
-  const toggleGps = () => {
-    const newValue = !isGpsEnabled;
-    setIsGpsEnabled(newValue);
-    localStorage.setItem('registrationGpsEnabled', JSON.stringify(newValue));
-    if (newValue) {
-      setManualLocation(null);
-      localStorage.removeItem('manualHospitalRegistration');
-    }
-  };
-
-  const handleManualLocationChange = (name: string | null) => {
-    setManualLocation(name);
-    if (name) {
-      localStorage.setItem('manualHospitalRegistration', name);
-      setIsGpsEnabled(false);
-      localStorage.setItem('registrationGpsEnabled', JSON.stringify(false));
-    } else {
-      localStorage.removeItem('manualHospitalRegistration');
-    }
-  };
-
-  // GPS Logic - runs once on mount to detect location
-  useEffect(() => {
-    if (isGpsEnabled && navigator.geolocation && hospitals.length > 0) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          let closest = hospitals[0];
-          let minDistance = Infinity;
-
-          hospitals.forEach(hospital => {
-            const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closest = hospital;
-            }
-          });
-          setAutoLocation(closest.name);
-        },
-        (error) => console.error("Geolocation error:", error)
-      );
-    }
-  }, [isGpsEnabled, hospitals]);
-
-  const getLocationName = () => {
-    // 1. GPS Auto-detected (highest priority if enabled)
-    if (isGpsEnabled && autoLocation) return autoLocation;
-
-    // 2. Manual override (persisted)
-    if (manualLocation) return manualLocation;
-
-    // 3. Default fallback
-    return 'OrthoLife';
-  };
-
-  const locationName = getLocationName();
   const hospital = hospitals.find(h => h.name === locationName);
 
   // Sync print settings from localStorage per hospital (consistency with Consultation.tsx)

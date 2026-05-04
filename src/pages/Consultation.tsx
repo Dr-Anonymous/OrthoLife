@@ -16,7 +16,7 @@ import UnsavedChangesModal from '@/components/consultation/UnsavedChangesModal';
 import PatientHistoryModal from '@/components/consultation/PatientHistoryModal';
 import TextShortcutManagementModal from '@/components/consultation/TextShortcutManagementModal';
 
-import { useLocation, Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useReactToPrint } from 'react-to-print';
 import { Prescription } from '@/components/consultation/Prescription';
 import { MedicalCertificate, MedicalCertificateModal } from '@/components/consultation/MedicalCertificate';
@@ -24,7 +24,7 @@ import { Receipt, ReceiptModal } from '@/components/consultation/Receipt';
 import { useHospitals } from '@/context/HospitalsContext';
 import { useAuth } from "@/hooks/useAuth";
 import { useConsultant } from "@/context/ConsultantContext";
-import { getDistance } from '@/lib/geolocation';
+import { useHospitalLocation } from '@/hooks/useHospitalLocation';
 import ConsultationRegistration from '@/components/consultation/ConsultationRegistration';
 import ReferralDoctorManagementModal from '@/components/consultation/ReferralDoctorManagementModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -357,10 +357,7 @@ const ConsultationPage = () => {
     return hospitals.find(h => areLocationsEqual(h.name, selectedLocation)) || hospitals[0];
   }, [hospitals, selectedLocation]);
 
-  const [isGpsEnabled, setIsGpsEnabled] = useState(() => {
-    const stored = localStorage.getItem('isGpsEnabled');
-    return stored !== null ? JSON.parse(stored) : true;
-  });
+  const { isGpsEnabled, toggleGps, autoLocation, handleManualLocationChange } = useHospitalLocation('consultation', consultant?.id);
 
   const [age, setAge] = useState<number | ''>('');
 
@@ -958,48 +955,15 @@ const ConsultationPage = () => {
     };
   }, [isOnline, selectedHospital.name, consultant, hydrateInsertedConsultation]);
 
-  /**
-   * GPS Logic
-   * Automatically selects the nearest hospital based on the user's current location.
-   * Only runs if GPS is enabled in settings.
-   */
   useEffect(() => {
-    // GPS Logic
-    if (isGpsEnabled && navigator.geolocation && hospitals.length > 0 && consultant) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-
-          // Only consider hospitals that are explicitly part of this consultant's list
-          // if any such hospitals exist. This prevents switching to "global" defaults.
-          const consultantHospitals = hospitals.filter(h => h.consultantId === consultant.id);
-          const candidates = consultantHospitals.length > 0 ? consultantHospitals : hospitals;
-
-          let closest = candidates[0];
-          let minDistance = Infinity;
-
-          candidates.forEach(hospital => {
-            const distance = getDistance(latitude, longitude, hospital.lat, hospital.lng);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closest = hospital;
-            }
-          });
-
-          if (closest.name !== selectedHospital.name) {
-            setSelectedLocation(closest.name);
-            toast({
-              title: "Location Updated",
-              description: `Switched to ${closest.name} based on your location.`,
-            });
-          }
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-        }
-      );
+    if (isGpsEnabled && autoLocation && autoLocation !== selectedHospital.name) {
+      setSelectedLocation(autoLocation);
+      toast({
+        title: "Location Updated",
+        description: `Switched to ${autoLocation} based on your location.`,
+      });
     }
-  }, [isGpsEnabled, selectedHospital.name, hospitals, consultant?.id]);
+  }, [isGpsEnabled, autoLocation, selectedHospital.name]);
 
   // State for auto-sending WhatsApp messages
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState<boolean>(true);
@@ -1264,9 +1228,9 @@ const ConsultationPage = () => {
 
           const defaultTe = `నమస్కారం ${editablePatientDetails.name} గారు, ఇది మీ ఫాలో-అప్ రిమైండర్. దయచేసి క్లినిక్‌ని సంప్రదించండి.`;
           const defaultEn = `Hello ${editablePatientDetails.name}, this is a gentle reminder for your follow-up consultation. Please contact the clinic.`;
-          
-          const template = consultationLanguage === 'te' 
-            ? (config?.message_te || defaultTe) 
+
+          const template = consultationLanguage === 'te'
+            ? (config?.message_te || defaultTe)
             : (config?.message_en || defaultEn);
 
           // Basic placeholder replacement
@@ -1313,14 +1277,9 @@ const ConsultationPage = () => {
 
 
 
-  /**
-   * Persist User Preferences
-   * Saves GPS setting and selected hospital to localStorage.
-   */
   useEffect(() => {
-    localStorage.setItem('isGpsEnabled', JSON.stringify(isGpsEnabled));
     localStorage.setItem('selectedHospital', selectedHospital.name);
-  }, [selectedHospital, isGpsEnabled]);
+  }, [selectedHospital]);
 
   const handleSelectConsultation = async (consultation: Consultation) => {
     // If passing from fetch logic, we might need to skip unsaved check or handle it
@@ -2492,7 +2451,7 @@ const ConsultationPage = () => {
     const h = hospitals.find(x => x.name === name);
     if (h) {
       setSelectedLocation(h.name);
-      setIsGpsEnabled(false);
+      handleManualLocationChange(h.name);
     }
   };
 
@@ -2529,7 +2488,7 @@ const ConsultationPage = () => {
             selectedHospitalName={selectedHospital.name}
             onHospitalSelect={handleLocationChange}
             isGpsEnabled={isGpsEnabled}
-            onToggleGps={() => setIsGpsEnabled(!isGpsEnabled)}
+            onToggleGps={toggleGps}
             selectedDate={selectedDate || new Date()}
             onDateChange={(date) => {
               setSelectedDate(date);

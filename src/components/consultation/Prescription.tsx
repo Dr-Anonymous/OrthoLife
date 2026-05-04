@@ -495,7 +495,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                 {consultant?.sign_url && (
                   <img src={consultant.sign_url} alt="Doctor's Signature" className="h-16 w-auto relative z-10" />
                 )}
-                <div className="absolute opacity-50 z-0" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                <div className="absolute opacity-50 z-0" style={{ left: '50%', transform: 'translate(-50%, 25%)' }}>
                   {consultant?.seal_url && (
                     <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 w-32" />
                   )}
@@ -811,6 +811,21 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
             )}
           </div>
         </section>
+      )}
+      {showMargins && !showDoctorProfile && (
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @media print {
+            @page {
+              margin-top: 15mm;
+              margin-bottom: 10mm;
+            }
+            @page:first {
+              margin-top: 0mm;
+              margin-bottom: 0mm;
+            }
+          }
+        `}} />
       )}
     </div>
   );

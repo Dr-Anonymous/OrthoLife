@@ -145,7 +145,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
             <div className="text-center">
               {showSignSeal && consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
               <div className="relative">
-                {showSignSeal && consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-16 left-1/2 -translate-x-1/2 opacity-50" />}
+                {showSignSeal && consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-10 left-1/2 -translate-x-1/2 opacity-50" />}
               </div>
             </div>
           </div>

@@ -45,9 +45,10 @@ import { Badge } from "@/components/ui/badge";
 import { useReactToPrint } from 'react-to-print';
 import { DischargeSummaryPrint } from '@/components/inpatient/DischargeSummaryPrint';
 import { PrintSettingsModal } from '@/components/consultation/PrintSettingsModal';
-import { Printer } from 'lucide-react';
+import { Printer, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getMatchingGuides } from '@/lib/guideMatching';
+import { useHospitalLocation } from '@/hooks/useHospitalLocation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -116,6 +117,12 @@ const cleanText = (html: string) => html.replace(/<[^>]*>?/gm, ' ');
 const InPatientManagement = () => {
     const { consultant, isMasterAdmin, isLoading: isConsultantLoading, refreshConsultant } = useConsultant();
     const { hospitals, getHospitalByName } = useHospitals();
+    const {
+        locationName,
+        isGpsEnabled,
+        toggleGps,
+        handleManualLocationChange
+    } = useHospitalLocation('inpatient');
     const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -314,6 +321,12 @@ const InPatientManagement = () => {
     // Suggestion Navigation State
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const suggestionsListRef = useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (isAdmitModalOpen) {
+            setAdmissionData(prev => ({ ...prev, location: locationName }));
+        }
+    }, [isAdmitModalOpen, locationName]);
 
     // Scroll highlighted item into view
     React.useEffect(() => {
@@ -1543,10 +1556,25 @@ const InPatientManagement = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Hospital Location</Label>
+                            <div className="flex items-center justify-between">
+                                <Label>Hospital Location</Label>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={toggleGps}
+                                    title={isGpsEnabled ? "GPS Auto-detect ON" : "GPS Auto-detect OFF"}
+                                >
+                                    <MapPin className={cn("h-3.5 w-3.5", isGpsEnabled ? "text-blue-500 fill-blue-200" : "text-muted-foreground")} />
+                                </Button>
+                            </div>
                             <Select
                                 value={admissionData.location || 'OrthoLife'}
-                                onValueChange={(value) => setAdmissionData({ ...admissionData, location: value })}
+                                onValueChange={(value) => {
+                                    handleManualLocationChange(value);
+                                    setAdmissionData({ ...admissionData, location: value });
+                                }}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select location" />
@@ -1864,6 +1892,12 @@ const EmptyState = ({ icon: Icon, message }: { icon: any, message: string }) => 
 
 const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCancel }: { patient: InPatient | null, onSubmit: (data: any) => void, onLanguageChange?: (code: string) => void, isSaving: boolean, onCancel: () => void }) => {
     const { hospitals } = useHospitals();
+    const {
+        locationName,
+        isGpsEnabled,
+        toggleGps,
+        handleManualLocationChange
+    } = useHospitalLocation('inpatient');
     const [data, setData] = useState({
         diagnosis: patient?.diagnosis || '',
         procedure: patient?.procedure || '',
@@ -1882,6 +1916,14 @@ const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCanc
 
     const [isAdmissionOpen, setIsAdmissionOpen] = useState(false);
     const [isProcedureOpen, setIsProcedureOpen] = useState(false);
+    const [hasToggledGps, setHasToggledGps] = useState(false);
+
+    React.useEffect(() => {
+        if (hasToggledGps && isGpsEnabled && locationName) {
+            setData(prev => ({ ...prev, location: locationName }));
+            setHasToggledGps(false);
+        }
+    }, [hasToggledGps, isGpsEnabled, locationName]);
 
     if (!patient) return null;
 
@@ -2003,10 +2045,30 @@ const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCanc
                     </Select>
                 </div>
                 <div className="space-y-2">
-                    <Label>Hospital Location</Label>
+                    <div className="flex items-center justify-between">
+                        <Label>Hospital Location</Label>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                                toggleGps();
+                                if (!isGpsEnabled) {
+                                    setHasToggledGps(true);
+                                }
+                            }}
+                            title={isGpsEnabled ? "GPS Auto-detect ON" : "GPS Auto-detect OFF"}
+                        >
+                            <MapPin className={cn("h-3.5 w-3.5", isGpsEnabled ? "text-blue-500 fill-blue-200" : "text-muted-foreground")} />
+                        </Button>
+                    </div>
                     <Select
                         value={data.location || 'OrthoLife'}
-                        onValueChange={(value) => setData({ ...data, location: value })}
+                        onValueChange={(value) => {
+                            handleManualLocationChange(value);
+                            setData({ ...data, location: value });
+                        }}
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Select location" />
