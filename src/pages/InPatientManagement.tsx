@@ -179,7 +179,7 @@ const InPatientManagement = () => {
         if (isReadyToPrint && printRef.current) {
             handlePrint();
         }
-    }, [isReadyToPrint]);
+    }, [isReadyToPrint, handlePrint]);
 
     const triggerPrint = (summary: DischargeSummary, consultantData?: Consultant | null, date?: string) => {
         setPrintData(summary);
@@ -623,7 +623,11 @@ const InPatientManagement = () => {
                 });
 
                 if (filesToDelete.length > 0) {
-                    await supabase.storage.from('consent-evidence').remove(filesToDelete);
+                    const { error: storageError } = await supabase.storage.from('consent-evidence').remove(filesToDelete);
+                    if (storageError) {
+                        console.error("Error deleting storage files:", storageError);
+                        throw new Error(`Failed to delete storage evidence: ${storageError.message}`);
+                    }
                 }
             }
 
@@ -707,7 +711,7 @@ const InPatientManagement = () => {
 
     const sendDischargeNotification = async (patient: InPatient, language: string) => {
         const isTelugu = language === 'te';
-        const link = `https://ortho.life/d/${patient.patient.phone}`;
+        const link = `https://ortho.life/d/${encodeURIComponent(patient.patient.phone)}`;
 
         const message = isTelugu
             ? `🙏 నమస్కారం ${patient.patient.name} గారు,\nమీ డిశ్చార్జ్ ప్రక్రియ ప్రారంభమైంది. మీ డిశ్చార్జ్ సారాంశాన్ని ఇక్కడ డౌన్‌లోడ్ చేసుకోవచ్చు:\n\n${link}`
@@ -716,7 +720,7 @@ const InPatientManagement = () => {
         try {
             if (!consultant?.is_whatsauto_active) return;
             await supabase.functions.invoke('send-whatsapp', {
-                body: { number: patient.patient.phone, message, consultant_id: consultant?.phone },
+                body: { number: patient.patient.phone, message, consultant_phone: consultant?.phone },
             });
             console.log("Discharge Notification Sent");
         } catch (error) {

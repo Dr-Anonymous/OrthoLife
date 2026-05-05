@@ -386,6 +386,7 @@ const ConsultationPage = () => {
   const medInstructionsRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const activeConsultationIdRef = useRef<string | null>(null);
+  const fetchControllerRef = useRef<AbortController | null>(null);
 
   // Syncs latest textarea values from DOM refs into state to avoid stale prints.
   // Returns the latest ExtraData object (either updated or current).
@@ -415,17 +416,7 @@ const ConsultationPage = () => {
       return nextData;
     }
     return currentExtraData;
-  }, [
-    complaintsRef,
-    medicalHistoryRef,
-    findingsRef,
-    investigationsRef,
-    diagnosisRef,
-    adviceRef,
-    followupRef,
-    procedureRef,
-    orthoticsRef
-  ]);
+  }, []);
 
 
   // Keyword Modal Prefill
@@ -767,6 +758,12 @@ const ConsultationPage = () => {
 
     setIsFetchingConsultations(true);
     try {
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      fetchControllerRef.current = controller;
+
       const formattedDate = format(date, 'yyyy-MM-dd');
 
       const { data: consultations, error } = await supabase.functions.invoke('get-consultations', {
@@ -776,6 +773,8 @@ const ConsultationPage = () => {
           consultant_id: consultant?.id
         }
       });
+
+      if (controller.signal.aborted) return;
 
       if (error) throw error;
 
@@ -795,7 +794,7 @@ const ConsultationPage = () => {
         setAllConsultations(list);
 
         if (patientId) {
-          const found = list.find((c: Consultation) => String(c.patient.id) === String(patientId) && c.created_at.startsWith(formattedDate));
+          const found = list.find((c: Consultation) => String(c.patient.id) === String(patientId) && c.created_at?.startsWith(formattedDate));
           if (found) {
             const consultationToSelect = { ...found };
             if (consultationData) {
@@ -913,42 +912,50 @@ const ConsultationPage = () => {
           table: 'consultations',
         },
         (payload: any) => {
-          const { eventType, new: newRow, old: oldRow } = payload;
+          try {
+            const { eventType, new: newRow, old: oldRow } = payload;
 
-          // Guard for location
-          const locationMatch =
-            areLocationsEqual(newRow?.location, selectedHospital.name) ||
-            areLocationsEqual(oldRow?.location, selectedHospital.name);
+            // Guard for location
+            const locationMatch =
+              areLocationsEqual(newRow?.location, selectedHospital.name) ||
+              areLocationsEqual(oldRow?.location, selectedHospital.name);
 
-          // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
-          // but filtering locally by ID is safe and cost-free.
-          if (eventType !== 'DELETE' && !locationMatch) return;
+            // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
+            // but filtering locally by ID is safe and cost-free.
+            if (eventType !== 'DELETE' && !locationMatch) return;
 
-          if (eventType === 'INSERT') {
-            // New record: we must refetch to get nested patient data and full hydration
-            if (newRow?.id != null) {
-              if (recentlyHandledIds.current.has(newRow.id)) return;
-              console.log(`Realtime ${eventType} detected, handling...`);
-              hydrateInsertedConsultation(newRow.id);
+            if (eventType === 'INSERT') {
+              // New record: we must refetch to get nested patient data and full hydration
+              if (newRow?.id != null) {
+                if (recentlyHandledIds.current.has(newRow.id)) return;
+                console.log(`Realtime ${eventType} detected, handling...`);
+                hydrateInsertedConsultation(newRow.id);
+              }
             }
-          }
-          else if (eventType === 'UPDATE') {
-            // Data change: update local state instantly to save egress
-            if (newRow?.id != null && recentlyHandledIds.current.has(newRow.id)) return;
-            console.log(`Realtime ${eventType} detected, handling...`);
+            else if (eventType === 'UPDATE') {
+              // Data change: update local state instantly to save egress
+              if (newRow?.id != null && recentlyHandledIds.current.has(newRow.id)) return;
+              console.log(`Realtime ${eventType} detected, handling...`);
 
-            setAllConsultations(prev => prev.map(c =>
-              c.id === newRow.id ? { ...c, ...newRow } : c
-            ));
-          }
-          else if (eventType === 'DELETE') {
-            // Removal: filter out locally
-            console.log(`Realtime ${eventType} detected, handling...`);
-            setAllConsultations(prev => prev.filter(c => c.id !== oldRow.id));
+              setAllConsultations(prev => prev.map(c =>
+                c.id === newRow.id ? { ...c, ...newRow } : c
+              ));
+            }
+            else if (eventType === 'DELETE') {
+              // Removal: filter out locally
+              console.log(`Realtime ${eventType} detected, handling...`);
+              setAllConsultations(prev => prev.filter(c => c.id !== oldRow.id));
+            }
+          } catch (err) {
+            console.error('Realtime payload handler failed:', err);
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error(`Realtime subscription error for channel ${channel.topic}:`, err);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -1091,7 +1098,7 @@ const ConsultationPage = () => {
     try {
       const { visit_type, location, language, ...restExtraData } = activeExtraData as any;
 
-      const cleanMedicationForSave = (med: any) => {
+        const cleanMedicationForSave = (med: any) => {
         const cleaned = { ...med };
         delete cleaned.freq_morning;
         delete cleaned.freq_noon;
@@ -1104,12 +1111,13 @@ const ConsultationPage = () => {
         delete cleaned.duration_te;
         delete cleaned.instructions_te;
         delete cleaned.notes_te;
-        delete cleaned.contraindications;
-        delete cleaned.interactions;
 
-        if (!cleaned.freqMorning) delete cleaned.freqMorning;
-        if (!cleaned.freqNoon) delete cleaned.freqNoon;
-        if (!cleaned.freqNight) delete cleaned.freqNight;
+        // preserved clinical metadata: contraindications, interactions
+        
+        // Clean up empty frequency values
+        if (!cleaned.freqMorning && cleaned.freqMorning !== 0) delete cleaned.freqMorning;
+        if (!cleaned.freqNoon && cleaned.freqNoon !== 0) delete cleaned.freqNoon;
+        if (!cleaned.freqNight && cleaned.freqNight !== 0) delete cleaned.freqNight;
         return cleaned;
       };
 
@@ -1260,7 +1268,7 @@ const ConsultationPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedConsultation, editablePatientDetails, extraData, hasChanges, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline, initialExtraData, initialLocation, initialPatientDetails, initialLanguage]);
+  }, [selectedConsultation, editablePatientDetails, extraData, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline, initialExtraData, initialLocation, initialPatientDetails, initialLanguage]);
 
 
   useEffect(() => {
