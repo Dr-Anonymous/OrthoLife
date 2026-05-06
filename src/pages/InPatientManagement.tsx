@@ -68,10 +68,10 @@ import { calculateAge } from "@/lib/age";
 import { Switch } from "@/components/ui/switch";
 import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { Medication } from '@/types/consultation';
-import { DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { processTextShortcuts } from '@/lib/textShortcuts';
+import { useMedicationManager } from '@/hooks/useMedicationManager';
+import { useClinicalAutofill } from '@/hooks/useClinicalAutofill';
+import { useMedicationLibrary } from '@/hooks/useMedicationLibrary';
 // Removed useTranslation import correctly
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
 import { ConsentManagementModal } from '@/components/inpatient/ConsentManagementModal';
@@ -123,6 +123,8 @@ const InPatientManagement = () => {
         toggleGps,
         handleManualLocationChange
     } = useHospitalLocation('inpatient');
+
+    const selectedHospital = useMemo(() => getHospitalByName(locationName), [getHospitalByName, locationName]);
     const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -136,7 +138,6 @@ const InPatientManagement = () => {
     const [activeTab, setActiveTab] = useState('admitted');
     const [fetchAll, setFetchAll] = useState(false);
     const [inPatientLanguage, setInPatientLanguage] = useState<string>('te');
-
     // Refs
     const dischargeFormRef = useRef<{ print: () => void }>(null);
 
@@ -1709,6 +1710,8 @@ const InPatientManagement = () => {
                             ref={dischargeFormRef}
                             patient={selectedPatientForDischarge}
                             currentLanguage={inPatientLanguage}
+                            consultant={consultant}
+                            selectedHospital={selectedHospital}
                             onSubmit={(summary, date, isDraft) => {
                                 // Use the date selected in the form
                                 let isoDate = date;
@@ -2122,8 +2125,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     onSubmit: (d: DischargeSummary, date: string, isDraft?: boolean) => void,
     isSaving: boolean,
     onPrint?: (d: DischargeSummary, date: string) => void,
-    currentLanguage: string
-}>(({ patient, onSubmit, isSaving, onPrint, currentLanguage }, ref) => {
+    currentLanguage: string,
+    consultant: any,
+    selectedHospital: any
+}>(({ patient, onSubmit, isSaving, onPrint, currentLanguage, consultant, selectedHospital }, ref) => {
     const [activeTab, setActiveTab] = useState("demographics");
     const [dischargeDate, setDischargeDate] = useState<string>('');
 
@@ -2184,7 +2189,6 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         const newDob = e.target.value;
         setSnapshot(prev => ({ ...prev, dob: newDob, age: calculateAge(new Date(newDob)) }));
     };
-
     const [course, setCourse] = useState({
         admission_date: '',
         procedure: '',
@@ -2205,6 +2209,71 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         dama_description: '',
         affordabilityPreference: 'none'
     });
+
+    const { savedMedications, refreshLibrary: fetchSavedMedications } = useMedicationLibrary();
+
+    const { textShortcuts, autofillKeywords, processFieldChange } = useClinicalAutofill({ consultantId: consultant?.id });
+
+    const { 
+        addMedication, 
+        removeMedication, 
+        handleDragEnd, 
+        handleMedicationSuggestionClick: handleMedicationSuggestionClickRaw,
+        updateMedication,
+        sensors 
+    } = useMedicationManager({
+        medications: discharge.medications,
+        onMedicationsChange: (meds) => setDischarge(prev => ({ ...prev, medications: meds })),
+        isReadOnly: false,
+        affordabilityPreference: discharge.affordabilityPreference,
+        currentLocation: selectedHospital?.name || ''
+    });
+
+    const handleMedicationSuggestionClick = useCallback((med: Medication) => {
+        handleMedicationSuggestionClickRaw(med, currentLanguage);
+    }, [handleMedicationSuggestionClickRaw, currentLanguage]);
+
+    const suggestedMedications = useMemo(() => {
+        if (!course.diagnosis && !course.procedure) return [];
+
+        const inputText = `${course.diagnosis || ''} ${course.procedure || ''}`.toLowerCase();
+        const medicationIds = new Set<number>();
+
+        autofillKeywords.forEach(protocol => {
+            const match = (protocol.keywords || []).some(k => inputText.includes(k.toLowerCase()));
+            if (match && protocol.medication_ids) {
+                protocol.medication_ids.forEach(id => medicationIds.add(id));
+            }
+        });
+
+        const meds = savedMedications.filter(m => medicationIds.has(Number(m.id)) || medicationIds.has(String(m.id) as any));
+
+        // Filter out already added
+        const currentNames = new Set(discharge.medications.map(m => ((m as any).composition || (m as any).brandName || '').toLowerCase()));
+
+        return meds.filter(m => !currentNames.has(((m as any).composition || '').toLowerCase()));
+    }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications]);
+
+    const handleTextChange = (field: string, value: string, cursorPosition?: number | null) => {
+        const isCourseField = field === 'operation_notes';
+        const result = processFieldChange(value, cursorPosition || (typeof value === 'string' ? value.length : 0), { 
+            enableDurationShortcuts: true,
+            language: currentLanguage
+        });
+        
+        const newValue = result ? result.newValue : value;
+        
+        if (isCourseField) {
+            setCourse(prev => ({ ...prev, [field]: newValue }));
+        } else {
+            setDischarge(prev => ({ ...prev, [field]: newValue }));
+        }
+    };
+
+
+
+
+
 
     const applyTemplate = useCallback((t: any) => {
         let content = t.content || '';
@@ -2309,49 +2378,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     const medInstructionsRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
     const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
 
-    // -- Queries for Meds & Shortcuts --
-    const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
-    const [textShortcuts, setTextShortcuts] = useState<any[]>([]);
-    const [autofillKeywords, setAutofillKeywords] = useState<AutofillProtocol[]>([]);
-
-    const fetchSavedMedications = async () => {
-        const { data } = await supabase.from('saved_medications').select('*').order('composition');
-        if (data) {
-            const mappedData = data.map((item: any) => ({
-                ...item,
-                composition: item.composition || '',
-                dose: item.dose || '',
-                frequency: item.frequency || '',
-                duration: item.duration || '',
-                instructions: item.instructions || '',
-                notes: item.notes || '',
-                freqMorning: item.freq_morning ?? false,
-                freqNoon: item.freq_noon ?? false,
-                freqNight: item.freq_night ?? false
-            }));
-            setSavedMedications(mappedData as Medication[]);
-        }
-    };
-    const fetchTextShortcuts = async () => {
-        const { data } = await supabase.from('text_shortcuts').select('*');
-        if (data) setTextShortcuts(data);
-    };
-    const fetchAutofillKeywords = async () => {
-        const { data } = await supabase.from('autofill_keywords').select('*');
-        if (data) setAutofillKeywords(data as unknown as AutofillProtocol[]);
-    };
-
-
-    React.useEffect(() => {
-        fetchSavedMedications();
-        fetchTextShortcuts();
-        fetchAutofillKeywords();
-    }, []);
 
 
     // -- Autofill on mount --
@@ -2440,159 +2467,61 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
     // -- Med Handlers --
     const handleMedChange = (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => {
-        setDischarge(prev => {
-            const newMeds = [...prev.medications];
-            // Text shortcuts
-            if (typeof value === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
-                const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
-                if (processed) {
-                    newMeds[index] = { ...newMeds[index], [field]: processed.newValue };
-                    setTimeout(() => {
-                        const refs = {
-                            composition: medicationNameInputRef.current,
-                            frequency: medFrequencyRefs.current[`${index}.frequency`],
-                            duration: medDurationRefs.current[`${index}.duration`],
-                            instructions: medInstructionsRefs.current[`${index}.instructions`],
-                            notes: medNotesRefs.current[`${index}.notes`],
-                        };
-                        const ref = refs[field as keyof typeof refs];
-                        if (ref) {
-                            (ref as any).setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
-                        }
-                    }, 0);
-                    return { ...prev, medications: newMeds };
-                }
-            }
+        let processedValue = value;
+        let newCursor = cursorPosition || (typeof value === 'string' ? value.length : 0);
 
-            newMeds[index] = { ...newMeds[index], [field]: value };
-            return { ...prev, medications: newMeds };
-        });
-    };
-
-    const addMedication = React.useCallback(() => {
-        const newMed: Medication = {
-            id: crypto.randomUUID(),
-            composition: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
-            freqMorning: false, freqNoon: false, freqNight: false
-        };
-        setDischarge(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-    }, []);
-
-    const removeMedication = (index: number) => {
-        setDischarge(prev => ({ ...prev, medications: prev.medications.filter((_, i) => i !== index) }));
-    };
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (active.id !== over?.id) {
-            setDischarge((prev) => {
-                const oldIndex = prev.medications.findIndex((m) => m.id === active.id);
-                const newIndex = prev.medications.findIndex((m) => m.id === over?.id);
-                return {
-                    ...prev,
-                    medications: arrayMove(prev.medications, oldIndex, newIndex),
-                };
-            });
-        }
-    };
-
-    const handleMedicationSuggestionClick = (med: Medication) => {
-        const isTelugu = currentLanguage === 'te';
-
-        let finalBrandName: string | undefined = med.brandName; // Use pre-calculated brand if exists
-
-        const newMed: Medication = {
-            id: crypto.randomUUID(),
-            composition: med.composition || (med as any).name || '',
-            brandName: finalBrandName,
-            savedMedicationId: (med as any).id,
-            dose: med.dose || '',
-            freqMorning: med.freqMorning || false,
-            freqNoon: med.freqNoon || false,
-            freqNight: med.freqNight || false,
-            frequency: (isTelugu && med.frequency_te) ? med.frequency_te : (med.frequency || ''),
-            duration: (isTelugu && med.duration_te) ? med.duration_te : (med.duration || ''),
-            instructions: (isTelugu && med.instructions_te) ? med.instructions_te : (med.instructions || ''),
-            notes: (isTelugu && med.notes_te) ? med.notes_te : (med.notes || ''),
-            frequency_te: isTelugu ? (med.frequency || '') : (med.frequency_te || ''),
-            duration_te: isTelugu ? (med.duration || '') : (med.duration_te || ''),
-            instructions_te: isTelugu ? (med.instructions || '') : (med.instructions_te || ''),
-            notes_te: isTelugu ? (med.notes || '') : (med.notes_te || '')
-        };
-        setDischarge(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-    };
-
-    // -- Generic Shortcut Handler for TextAreas --
-    const handleTextChange = (field: 'operation_notes' | 'post_op_care' | 'clinical_notes' | 'activity' | 'red_flags' | 'wound_care', value: string, cursorPosition?: number) => {
-        const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
-
-        // Helper to update state based on field
-        if (field === 'operation_notes') {
-            if (processed) {
-                setCourse(prev => ({ ...prev, operation_notes: processed.newValue }));
-                // Note: managing ref cursor for textareas in tabs requires refs for each. 
-                // For simplicity in this iteration, we process the update. 
-                // In a full implementation we'd need refs for these textareas too to restore cursor.
-            } else {
-                setCourse(prev => ({ ...prev, operation_notes: value }));
-            }
-        } else {
-            if (processed) {
-                setDischarge(prev => ({ ...prev, [field]: processed.newValue }));
-            } else {
-                setDischarge(prev => ({ ...prev, [field]: value }));
+        if (typeof processedValue === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
+            const result = processFieldChange(processedValue, newCursor);
+            if (result) {
+                processedValue = result.newValue;
+                newCursor = result.newCursorPosition;
+                
+                setTimeout(() => {
+                    const refs = {
+                        composition: medicationNameInputRef.current,
+                        frequency: medFrequencyRefs.current[`${index}.frequency`],
+                        duration: medDurationRefs.current[`${index}.duration`],
+                        instructions: medInstructionsRefs.current[`${index}.instructions`],
+                        notes: medNotesRefs.current[`${index}.notes`],
+                    };
+                    const ref = (refs as any)[field];
+                    if (ref) {
+                        (ref as any).setSelectionRange(newCursor, newCursor);
+                    }
+                }, 0);
             }
         }
+
+        const updates: Partial<Medication> = { [field]: processedValue };
+        if (field === 'composition') {
+            updates.brandName = undefined;
+            updates.brand_metadata = [];
+        }
+
+        updateMedication(index, updates);
     };
+
+    const handleExtraChange = (field: string, value: any, cursorPosition?: number | null) => {
+        let processedValue = value;
+        let newCursor = cursorPosition || (typeof value === 'string' ? value.length : 0);
+
+        if (typeof processedValue === 'string' && (field === 'clinical_notes' || field === 'post_op_care' || field === 'red_flags' || field === 'wound_care' || field === 'activity')) {
+            const enableDurationShortcuts = true; // InPatient usually wants these everywhere in text
+            const result = processFieldChange(processedValue, newCursor, { enableDurationShortcuts });
+            
+            if (result) {
+                setDischarge(prev => ({ ...prev, [field]: result.newValue }));
+                return;
+            }
+        }
+        setDischarge(prev => ({ ...prev, [field]: value }));
+    };
+
+
 
 
     // -- Autofill Logic --
-    const { suggestedMedications } = useMemo(() => {
-        if (!course.diagnosis && !course.procedure) return { suggestedMedications: [] };
 
-        const inputText = `${course.diagnosis || ''} ${course.procedure || ''}`.toLowerCase();
-        const suggestions = new Set<string>();
-        const medicationIds = new Set<number>();
-
-        autofillKeywords.forEach(protocol => {
-            const match = (protocol.keywords || []).some(k => inputText.includes(k.toLowerCase()));
-            if (match && protocol.medication_ids) {
-                protocol.medication_ids.forEach(id => medicationIds.add(id));
-            }
-        });
-
-        const meds = savedMedications.filter(m => {
-            // Handle potentially different ID types (string in state, number in DB protocol)
-            return medicationIds.has(Number(m.id)) || medicationIds.has(String(m.id) as any);
-        });
-
-        // Filter out already added
-        const currentNames = new Set(discharge.medications.map(m => ((m as any).composition || (m as any).name || '').toLowerCase()));
-
-        return {
-            suggestedMedications: meds.filter(m => !currentNames.has(((m as any).composition || (m as any).name || '').toLowerCase()))
-                .map(med => {
-                    const affordabilityPreference = discharge.affordabilityPreference || 'none';
-                    let bestBrand: string | undefined = undefined;
-
-                    if (med.brand_metadata && med.brand_metadata.length > 0) {
-                        let validBrands = [...med.brand_metadata];
-                        // If no preference, we still want to show A brand name for the badge
-                        if (affordabilityPreference === 'cheap') {
-                            validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
-                        } else if (affordabilityPreference === 'costly') {
-                            validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
-                        }
-                        bestBrand = validBrands[0].name;
-                    }
-
-                    return {
-                        ...med,
-                        brandName: bestBrand
-                    };
-                })
-        };
-    }, [course.diagnosis, course.procedure, autofillKeywords, savedMedications, discharge.medications, discharge.affordabilityPreference]);
 
 
     const isTelugu = currentLanguage === 'te';

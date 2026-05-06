@@ -57,6 +57,9 @@ import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
 import { Guide } from '@/types/consultation';
 import { useConsultationTimer } from '@/hooks/useConsultationTimer';
+import { useMedicationManager } from '@/hooks/useMedicationManager';
+import { useClinicalAutofill } from '@/hooks/useClinicalAutofill';
+import { useMedicationLibrary } from '@/hooks/useMedicationLibrary';
 import { generateCompletionMessage as generateCompletionMessageUtil } from '@/lib/consultation-utils';
 import { requestOfflineSyncNow } from '@/lib/offline-sync-events';
 import { OfflineConsultationBundle } from '@/types/offline-sync';
@@ -306,7 +309,7 @@ const ConsultationPage = () => {
     extraDataRef.current = extraData;
   }, [extraData]);
 
-  const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
+
   const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
 
@@ -447,8 +450,6 @@ const ConsultationPage = () => {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   // Suggestions state
-  const [autofillKeywords, setAutofillKeywords] = useState<AutofillProtocol[]>([]);
-  const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
   const [isProcedureExpanded, setIsProcedureExpanded] = useState(false);
   const [isReferredToExpanded, setIsReferredToExpanded] = useState(false);
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
@@ -1010,6 +1011,8 @@ const ConsultationPage = () => {
     setIsCompletionModalOpen(true);
   }, [editablePatientDetails, selectedConsultation, isMessageManuallyEdited, generateCompletionMessage, matchedGuides]);
 
+
+
   useEffect(() => {
     setCompletionMessage('');
     setIsMessageManuallyEdited(false);
@@ -1019,7 +1022,9 @@ const ConsultationPage = () => {
 
   // Derived state to check for changes
   const isReadOnly = useMemo(() => {
-    if (!selectedConsultation || !consultant) return false;
+    if (!selectedConsultation || !consultant) return true;
+    if (selectedConsultation.status === 'completed' || selectedConsultation.status === 'cancelled') return true;
+    
     // New/Offline consultations are editable by the current session creator
     if (String(selectedConsultation.id).startsWith('offline-')) return false;
 
@@ -1027,7 +1032,26 @@ const ConsultationPage = () => {
     if (!selectedConsultation.consultant_id) return false;
 
     return String(selectedConsultation.consultant_id) !== String(consultant.id);
-  }, [selectedConsultation, consultant?.id]);
+  }, [selectedConsultation, consultant]);
+
+  const { savedMedications, refreshLibrary: fetchSavedMedications } = useMedicationLibrary();
+
+  const { textShortcuts, autofillKeywords, processFieldChange, refreshShortcuts: fetchTextShortcuts } = useClinicalAutofill({ consultantId: consultant?.id });
+  
+  const { 
+    addMedication, 
+    removeMedication, 
+    handleDragEnd, 
+    handleMedicationSuggestionClick,
+    updateMedication,
+    sensors 
+  } = useMedicationManager({
+    medications: extraData.medications,
+    onMedicationsChange: (meds) => setExtraData(prev => ({ ...prev, medications: meds })),
+    isReadOnly,
+    affordabilityPreference: extraData.affordabilityPreference,
+    currentLocation: selectedHospital.name
+  });
 
   const { hasChanges, hasSignificantChanges } = useMemo(() => {
     if (isReadOnly) return { hasChanges: false, hasSignificantChanges: false };
@@ -1334,31 +1358,7 @@ const ConsultationPage = () => {
     setPendingPath(null);
   };
 
-  // Data Fetching
-  const fetchSavedMedications = useCallback(async () => {
-    const { data, error } = await supabase.from('saved_medications').select('*').order('composition');
-    if (!error && data) {
-      const mappedData = data.map((item: any) => ({
-        ...item,
-        freqMorning: item.freq_morning,
-        freqNoon: item.freq_noon,
-        freqNight: item.freq_night,
-      }));
-      setSavedMedications(mappedData as Medication[]);
-    }
-  }, []);
 
-  const fetchAutofillKeywords = useCallback(async () => {
-    if (!consultant) return;
-    const { data } = await supabase.from('autofill_keywords').select('*').eq('consultant_id', consultant.id);
-    if (data) setAutofillKeywords(data);
-  }, [consultant]);
-
-  const fetchTextShortcuts = useCallback(async () => {
-    if (!consultant) return;
-    const { data } = await supabase.from('text_shortcuts').select('*').eq('consultant_id', consultant.id);
-    if (data) setTextShortcuts(data);
-  }, [consultant]);
 
   const fetchReferralDoctors = useCallback(async () => {
     if (!consultant) return;
@@ -1367,11 +1367,8 @@ const ConsultationPage = () => {
   }, [consultant]);
 
   useEffect(() => {
-    fetchSavedMedications();
-    fetchAutofillKeywords();
-    fetchTextShortcuts();
     fetchReferralDoctors();
-  }, [fetchSavedMedications, fetchAutofillKeywords, fetchTextShortcuts, fetchReferralDoctors]);
+  }, [fetchReferralDoctors]);
 
 
 
@@ -1456,6 +1453,7 @@ const ConsultationPage = () => {
    * @param cursorPosition - The current cursor position (if applicable) for managing caret placement.
    */
   const handleExtraChange = useCallback((field: string, value: any, cursorPosition?: number | null) => {
+    if (isReadOnly) return;
     if (field === 'allergy') {
       setEditablePatientDetails(prev => prev ? ({ ...prev, allergies: value }) : prev);
       return;
@@ -1474,288 +1472,91 @@ const ConsultationPage = () => {
     }
 
     if (typeof value === 'string' && (field === 'complaints' || field === 'medicalHistory' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to' || field === 'orthotics')) {
-      let processedValue = value;
-      let newCursor = cursorPosition || value.length;
-
-      // Special Duration Shortcuts for Complaints/Advice
-      if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations' || field === 'orthotics') {
-        const textBeforeCursor = value.substring(0, newCursor);
-        const durationRegex = /(\d+)([dwmy])\.\s$/i;
-        const match = textBeforeCursor.match(durationRegex);
-
-        if (match) {
-          const shortcut = match[0];
-          const count = parseInt(match[1], 10);
-          const unitChar = match[2].toLowerCase();
-          let unitText = '';
-
-          switch (unitChar) {
-            case 'd': unitText = count === 1 ? 'day' : 'days'; break;
-            case 'w': unitText = count === 1 ? 'week' : 'weeks'; break;
-            case 'm': unitText = count === 1 ? 'month' : 'months'; break;
-            case 'y': unitText = count === 1 ? 'year' : 'years'; break;
-          }
-
-          if (unitText) {
-            const expandedText = `${count} ${unitText} `;
-            const shortcutIndex = textBeforeCursor.lastIndexOf(shortcut);
-            if (shortcutIndex !== -1) {
-              const textBefore = value.substring(0, shortcutIndex);
-              const textAfter = value.substring(newCursor);
-              processedValue = textBefore + expandedText + textAfter;
-              newCursor = textBefore.length + expandedText.length;
-
-              setExtraData(prev => ({ ...prev, [field]: processedValue }));
-              setTimeout(() => {
-                const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef, orthotics: orthoticsRef };
-                const targetRef = refs[field] || complaintsRef;
-                if (targetRef.current) {
-                  targetRef.current.setSelectionRange(newCursor, newCursor);
-                }
-              }, 0);
-              return;
-            }
-          }
-        } else if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations' || field === 'orthotics') {
-          // Unit-only shortcuts (e.g. "y. " -> "years ")
-          const unitOnlyRegex = /(?:^|\s)([dwmy])\.\s$/i;
-          const unitMatch = textBeforeCursor.match(unitOnlyRegex);
-
-          if (unitMatch) {
-            const fullShortcut = unitMatch[0];
-            const unitChar = unitMatch[1].toLowerCase();
-            let unitText = '';
-
-            switch (unitChar) {
-              case 'd': unitText = 'days'; break;
-              case 'w': unitText = 'weeks'; break;
-              case 'm': unitText = 'months'; break;
-              case 'y': unitText = 'years'; break;
-            }
-
-            if (unitText) {
-              const prefix = fullShortcut.match(/^\s/) ? ' ' : '';
-              const expandedText = `${prefix}${unitText} `;
-
-              const shortcutIndex = textBeforeCursor.lastIndexOf(fullShortcut);
-              if (shortcutIndex !== -1) {
-                const textBefore = value.substring(0, shortcutIndex);
-                const textAfter = value.substring(newCursor);
-                processedValue = textBefore + expandedText + textAfter;
-                newCursor = textBefore.length + expandedText.length;
-
-                setExtraData(prev => ({ ...prev, [field]: processedValue }));
-                setTimeout(() => {
-                  const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef, orthotics: orthoticsRef };
-                  const targetRef = refs[field] || complaintsRef;
-                  if (targetRef.current) {
-                    targetRef.current.setSelectionRange(newCursor, newCursor);
-                  }
-                }, 0);
-                return;
-              }
-            }
-          }
-        }
-      }
-
-      // Special Followup Shortcuts
-      if (field === 'followup') {
-        const textBeforeCursor = value.substring(0, newCursor);
-        const shortcutRegex = /(\d+)([dwmy])\.\s$/i;
-        const match = textBeforeCursor.match(shortcutRegex);
-        if (match) {
-          const shortcut = match[0];
-          const count = parseInt(match[1], 10);
-          const unitChar = match[2].toLowerCase();
-          let unitKey = '';
-          switch (unitChar) {
-            case 'd': unitKey = count === 1 ? 'day' : 'day_plural'; break;
-            case 'w': unitKey = count === 1 ? 'week' : 'week_plural'; break;
-            case 'm': unitKey = count === 1 ? 'month' : 'month_plural'; break;
-            case 'y': unitKey = count === 1 ? 'year' : 'year_plural'; break;
-          }
-          if (unitKey) {
-            const unitText = t(unitKey, { lng: consultationLanguage });
-            const expandedText = t('followup_message_structure', { count, unit: unitText, lng: consultationLanguage }) + ' ';
-            const shortcutIndex = textBeforeCursor.lastIndexOf(shortcut);
-            if (shortcutIndex !== -1) {
-              const textBefore = value.substring(0, shortcutIndex);
-              const textAfter = value.substring(newCursor);
-              processedValue = textBefore + expandedText + textAfter;
-              newCursor = textBefore.length + expandedText.length;
-
-              setExtraData(prev => ({ ...prev, [field]: processedValue }));
-              setTimeout(() => {
-                if (followupRef.current) {
-                  followupRef.current.setSelectionRange(newCursor, newCursor);
-                }
-              }, 0);
-              return;
-            }
-          }
-        }
-      }
-
-      const processed = processTextShortcuts(processedValue, newCursor, textShortcuts);
+      const enableDurationShortcuts = (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations' || field === 'orthotics' || field === 'followup');
+      
+      const processed = processFieldChange(value, cursorPosition || value.length, { 
+        enableDurationShortcuts,
+        language: consultationLanguage 
+      });
+      
       if (processed) {
         setExtraData(prev => ({ ...prev, [field]: processed.newValue }));
-        // We need to set cursor position, using a ref or state
         setTimeout(() => {
-          const refs = {
-            complaints: complaintsRef.current,
-            medicalHistory: medicalHistoryRef.current,
-            findings: findingsRef.current,
-            diagnosis: diagnosisRef.current,
-            investigations: investigationsRef.current,
-            procedure: procedureRef.current,
-            advice: adviceRef.current,
-            personalNote: personalNoteRef.current,
-            followup: followupRef.current,
-            referred_to: referredToRef.current,
-            referred_by: referredByRef.current,
-            orthotics: orthoticsRef.current,
-          };
-          const ref = (refs as any)[field];
-          if (ref) {
-            ref.setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
+          const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef, orthotics: orthoticsRef, followup: followupRef };
+          const targetRef = refs[field] || complaintsRef;
+          if (targetRef.current) {
+            targetRef.current.setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
           }
         }, 0);
         return;
       }
     }
 
-    if (isReadOnly) return;
     setExtraData(prev => ({ ...prev, [field]: value }));
-  }, [textShortcuts, consultationLanguage, isReadOnly]);
+  }, [isReadOnly, processFieldChange, consultationLanguage]);
 
 
   /**
    * Adds a medication to the list from a suggestion.
    * Handles language-specific fields (Telugu support) if applicable.
    */
-  const handleMedicationSuggestionClick = useCallback((med: Medication) => {
-    const isTelugu = consultationLanguage === 'te';
-
-    let finalBrandName: string | undefined = med.brandName;
-
-    // Auto-swap logic for generic suggestions
-    const affordabilityPreference = extraData.affordabilityPreference || 'none';
-    const currentLocation = selectedHospital?.name || '';
-
-    if (affordabilityPreference !== 'none') {
-      let validBrands = med.brand_metadata?.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation)) || [];
-      if (validBrands.length === 0 && med.brand_metadata) {
-        validBrands = [...med.brand_metadata];
-      }
-
-      if (validBrands.length > 0) {
-        if (affordabilityPreference === 'cheap') {
-          validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
-        } else if (affordabilityPreference === 'costly') {
-          validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
-        }
-        finalBrandName = validBrands[0].name;
-      }
-    }
-
-    const newMed: Medication = {
-      id: crypto.randomUUID(),
-      composition: med.composition || '',
-      savedMedicationId: med.id,
-      brandName: finalBrandName,
-      brand_metadata: med.brand_metadata,
-      dose: med.dose || '',
-      freqMorning: med.freqMorning || false,
-      freqNoon: med.freqNoon || false,
-      freqNight: med.freqNight || false,
-      // Active field based on language
-      frequency: (isTelugu && med.frequency_te) ? med.frequency_te : (med.frequency || ''),
-      duration: (isTelugu && med.duration_te) ? med.duration_te : (med.duration || ''),
-      instructions: (isTelugu && med.instructions_te) ? med.instructions_te : (med.instructions || ''),
-      notes: (isTelugu && med.notes_te) ? med.notes_te : (med.notes || ''),
-      // Backup field (always the text for the *other* language)
-      frequency_te: isTelugu ? (med.frequency || '') : (med.frequency_te || ''),
-      duration_te: isTelugu ? (med.duration || '') : (med.duration_te || ''),
-      instructions_te: isTelugu ? (med.instructions || '') : (med.instructions_te || ''),
-      notes_te: isTelugu ? (med.notes || '') : (med.notes_te || '')
-    };
-
-    setExtraData(prev => {
-      const meds = [...prev.medications];
-      const emptyIdx = meds.findIndex(m => !m.composition || m.composition.trim() === "");
-
-      if (emptyIdx !== -1) {
-        // Use existing row but update all fields. Keep original stable ID for dnd-kit
-        const existingId = meds[emptyIdx].id;
-        meds[emptyIdx] = { ...newMed, id: existingId };
-        return { ...prev, medications: meds };
-      }
-      return { ...prev, medications: [...prev.medications, newMed] };
-    });
-  }, [consultationLanguage, extraData.affordabilityPreference, selectedHospital?.name]);
+  const handleMedicationSuggestionClickInternal = useCallback((med: Medication) => {
+    handleMedicationSuggestionClick(med, consultationLanguage);
+  }, [handleMedicationSuggestionClick, consultationLanguage]);
 
   /**
    * Handles changes to individual medication fields.
-   * Includes logic for:
-   * - 'composition' field shortcuts: '//' for Keyword, '@' for Medication Manager (Admin only)
-   * - Text shortcuts expansion for all text fields
    */
   const handleMedChange = useCallback((index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => {
     if (isReadOnly) return;
-    setExtraData(prev => {
-      const newMeds = [...prev.medications];
-      const currentVal = newMeds[index][field];
+    
+    let processedValue = value;
+    let newCursor = cursorPosition || (typeof value === 'string' ? value.length : 0);
 
-      if (field === 'composition' && typeof value === 'string' && value.includes('@')) {
-        if (isMasterAdmin) {
-          setIsMedicationsModalOpen(true);
-          newMeds[index] = { ...newMeds[index], composition: value.replace('@', '') };
-          return { ...prev, medications: newMeds };
-        }
+    if (typeof processedValue === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
+      const result = processFieldChange(processedValue, newCursor, { 
+        enableDurationShortcuts: field === 'duration',
+        language: consultationLanguage 
+      });
+      if (result) {
+        processedValue = result.newValue;
+        newCursor = result.newCursorPosition;
+        
+        setTimeout(() => {
+          const refs = {
+            composition: medicationNameInputRef.current,
+            frequency: medFrequencyRefs.current[`${index}.frequency`],
+            duration: medDurationRefs.current[`${index}.duration`],
+            instructions: medInstructionsRefs.current[`${index}.instructions`],
+            notes: medNotesRefs.current[`${index}.notes`],
+          };
+          const ref = (refs as any)[field];
+          if (ref) {
+            (ref as any).setSelectionRange(newCursor, newCursor);
+          }
+        }, 0);
       }
+    }
 
-      if (field === 'composition' && typeof value === 'string' && value.includes('//')) {
+    if (field === 'composition' && typeof processedValue === 'string') {
+      if (processedValue.includes('@')) {
+        setIsMedicationsModalOpen(true);
+        processedValue = processedValue.replace('@', '');
+      }
+      if (processedValue.includes('//')) {
         setIsKeywordModalOpen(true);
-        newMeds[index] = { ...newMeds[index], composition: value.replace('//', '') };
-        return { ...prev, medications: newMeds };
+        processedValue = processedValue.replace('//', '');
       }
+    }
 
-      if (typeof value === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
-        const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
-        if (processed) {
-          newMeds[index] = { ...newMeds[index], [field]: processed.newValue };
-          // Cursor update logic
-          setTimeout(() => {
-            const refs = {
-              composition: medicationNameInputRef.current,
-              frequency: medFrequencyRefs.current[`${index}.frequency`],
-              duration: medDurationRefs.current[`${index}.duration`],
-              instructions: medInstructionsRefs.current[`${index}.instructions`],
-              notes: medNotesRefs.current[`${index}.notes`],
-            };
-            const ref = refs[field as keyof typeof refs];
-            if (ref) {
-              (ref as any).setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
-            }
-          }, 0);
-          return { ...prev, medications: newMeds };
-        }
-      }
+    const updates: Partial<Medication> = { [field]: processedValue };
+    if (field === 'composition') {
+      updates.brandName = undefined;
+      updates.brand_metadata = [];
+    }
 
-      if (field === 'composition') {
-        newMeds[index] = {
-          ...newMeds[index],
-          [field]: value,
-          brandName: undefined, // Reset brand name when composition is manually edited
-          brand_metadata: []    // Reset brand metadata when composition is manually edited
-        };
-      } else {
-        newMeds[index] = { ...newMeds[index], [field]: value };
-      }
-      return { ...prev, medications: newMeds };
-    });
-  }, [textShortcuts, isReadOnly]);
+    updateMedication(index, updates);
+  }, [isReadOnly, processFieldChange, updateMedication]);
 
   /**
    * Handles language change for the entire consultation.
@@ -1794,44 +1595,7 @@ const ConsultationPage = () => {
     });
   }, [consultationLanguage, isReadOnly]);
 
-  const addMedication = useCallback(() => {
-    if (isReadOnly) return;
-    const newMed: Medication = {
-      id: crypto.randomUUID(),
-      composition: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
-      freqMorning: false, freqNoon: false, freqNight: false
-    };
-    setExtraData(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-  }, [isReadOnly]);
 
-  const removeMedication = useCallback((index: number) => {
-    if (isReadOnly) return;
-    setExtraData(prev => ({
-      ...prev,
-      medications: prev.medications.filter((_, i) => i !== index)
-    }));
-  }, [isReadOnly]);
-
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    if (isReadOnly) return;
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      setExtraData((prev) => {
-        const oldIndex = prev.medications.findIndex((m) => m.id === active.id);
-        const newIndex = prev.medications.findIndex((m) => m.id === over?.id);
-        return {
-          ...prev,
-          medications: arrayMove(prev.medications, oldIndex, newIndex),
-        };
-      });
-    }
-  }, [isReadOnly]);
 
   // Suggestions Helpers (Protocol Logic)
 
@@ -2637,7 +2401,7 @@ const ConsultationPage = () => {
                     medNotesRefs={medNotesRefs}
                     addMedication={addMedication}
                     suggestedMedications={suggestedMedications}
-                    handleMedicationSuggestionClick={handleMedicationSuggestionClick}
+                    handleMedicationSuggestionClick={handleMedicationSuggestionClickInternal}
                     currentLocation={selectedLocation}
                     affordabilityPreference={extraData.affordabilityPreference}
                     onAffordabilityChange={(val) => setExtraData(prev => ({ ...prev, affordabilityPreference: val }))}
