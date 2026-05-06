@@ -230,6 +230,77 @@ export function calculateFollowUpDate(message: string, baseDate: Date = new Date
 }
 
 /**
+ * Adjusts a follow-up instruction string by adding/subtracting days.
+ * Intelligently replaces existing durations (e.g. "2 weeks" -> "15 days") or dates.
+ */
+export function getNextFollowUpText(currentFollowup: string, daysToAdd: number, baseDate: Date, language: string): string {
+    const currentTargetDate = calculateFollowUpDate(currentFollowup || '', baseDate);
+    
+    // If no date found in text, use baseDate as start and daysToAdd as the absolute offset
+    let startLocalDate: Date;
+    let actualDaysToAdd: number;
+
+    if (!currentTargetDate) {
+        startLocalDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+        actualDaysToAdd = daysToAdd;
+    } else {
+        const [y, m, d] = currentTargetDate.split('-').map(Number);
+        startLocalDate = new Date(y, m - 1, d);
+        actualDaysToAdd = daysToAdd;
+    }
+
+    const dateObj = new Date(startLocalDate);
+    dateObj.setDate(dateObj.getDate() + actualDaysToAdd);
+
+    const baseRef = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+    
+    const diffMs = dateObj.getTime() - baseRef.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) return currentFollowup;
+
+    const isTelugu = language === 'te';
+    let newCount, newUnit;
+
+    if (diffDays % 30 === 0) {
+        newCount = diffDays / 30;
+        newUnit = isTelugu ? (newCount === 1 ? 'నెల' : 'నెలల') : (newCount === 1 ? 'month' : 'months');
+    } else if (diffDays % 7 === 0) {
+        newCount = diffDays / 7;
+        newUnit = isTelugu ? (newCount === 1 ? 'వారం' : 'వారాల') : (newCount === 1 ? 'week' : 'weeks');
+    } else {
+        newCount = diffDays;
+        newUnit = isTelugu ? (newCount === 1 ? 'రోజు' : 'రోజుల') : (newCount === 1 ? 'day' : 'days');
+    }
+
+    const newDurationText = `${newCount} ${newUnit}`;
+    const durationRegex = /(?:\d+)?\s*(days|day|weeks|week|months|month|years|year|రోజులు|రోజుల|రోజు|వారాలు|వారాల|వారం|నెలలు|నెలల|నెల|సంవత్సరాలు|సంవత్సరాల|సంవత్సరం)/i;
+    const tomorrowRegex = /(tomorrow|రేపు)/i;
+    const dateStrRegex = /(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/;
+
+    const fullTemplate = isTelugu 
+        ? `${newCount} ${newUnit} తర్వాత / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే.` 
+        : `after ${newCount} ${newUnit}, or immediately if symptoms worsen.`;
+
+    let processedFollowup = currentFollowup;
+
+    if (dateStrRegex.test(currentFollowup)) {
+        const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
+        processedFollowup = currentFollowup.replace(dateStrRegex, formattedDate);
+    } else if (tomorrowRegex.test(currentFollowup)) {
+        processedFollowup = currentFollowup.replace(tomorrowRegex, fullTemplate);
+    } else if (durationRegex.test(currentFollowup)) {
+        processedFollowup = currentFollowup.replace(durationRegex, `${newCount} ${newUnit}`);
+    } else {
+        // If no existing pattern found, don't force expansion
+        // This allows the structured review_date to change without polluting the text notes
+        processedFollowup = currentFollowup;
+    }
+
+    return processedFollowup;
+}
+
+/**
  * Trims standard follow-up prefixes to show only patient-specific notes.
  * Eg: "5 రోజుల తర్వాత / వెంటనే- ఏవైనా లక్షణాలు తీవ్రమైతే for injection" -> "for injection"
  */

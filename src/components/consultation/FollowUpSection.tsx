@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { cn, calculateFollowUpDate } from '@/lib/utils';
+import { cn, calculateFollowUpDate, getNextFollowUpText } from '@/lib/utils';
 import { Minus, Plus } from 'lucide-react';
 
 interface FollowUpSectionProps {
@@ -55,66 +55,7 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
 
     const handleAdjustDate = (days: number) => {
         if (isReadOnly) return;
-
-        // 1. Calculate the current target date
-        const currentTargetDate = calculateFollowUpDate(followup, baseDate);
-        if (!currentTargetDate) return;
-
-        // Parse YYYY-MM-DD manually to create local Date object
-        const parseLocal = (s: string) => {
-            const [y, m, d] = s.split('-').map(Number);
-            return new Date(y, m - 1, d);
-        };
-
-        const dateObj = parseLocal(currentTargetDate);
-        dateObj.setDate(dateObj.getDate() + days);
-
-        // 2. Calculate the difference from baseDate in days
-        // Zero out time components of baseRef to ensure clean calendar-day difference
-        const rawBase = baseDate || new Date();
-        const baseRef = new Date(rawBase.getFullYear(), rawBase.getMonth(), rawBase.getDate());
-        
-        const diffMs = dateObj.getTime() - baseRef.getTime();
-        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-        if (diffDays <= 0) return;
-
-        // 3. Generate smart text
-        const isTelugu = language === 'te';
-        let newCount, newUnit;
-
-        if (diffDays % 30 === 0) {
-            newCount = diffDays / 30;
-            newUnit = isTelugu ? (newCount === 1 ? 'నెల' : 'నెలల') : (newCount === 1 ? 'month' : 'months');
-        } else if (diffDays % 7 === 0) {
-            newCount = diffDays / 7;
-            newUnit = isTelugu ? (newCount === 1 ? 'వారం' : 'వారాల') : (newCount === 1 ? 'week' : 'weeks');
-        } else {
-            newCount = diffDays;
-            newUnit = isTelugu ? (newCount === 1 ? 'రోజు' : 'రోజుల') : (newCount === 1 ? 'day' : 'days');
-        }
-
-        const newDurationText = `${newCount} ${newUnit}`;
-
-        // 4. Regex to replace EXISTING duration/date/keyword in string
-        // Order matters: match plural/inflected forms before singular forms to avoid partial matches
-        const durationRegex = /(?:\d+)?\s*(days|day|weeks|week|months|month|years|year|రోజులు|రోజుల|రోజు|వారాలు|వారాల|వారం|నెలలు|నెలల|నెల|సంవత్సరాలు|సంవత్సరాల|సంవత్సరం)/i;
-        const tomorrowRegex = /(tomorrow|రేపు)/i;
-        const dateStrRegex = /(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/;
-
-        let processedFollowup = followup;
-
-        if (dateStrRegex.test(followup)) {
-            const formattedDate = format(dateObj, 'dd-MM-yyyy');
-            processedFollowup = followup.replace(dateStrRegex, formattedDate);
-        } else if (tomorrowRegex.test(followup)) {
-            processedFollowup = followup.replace(tomorrowRegex, newDurationText);
-        } else if (durationRegex.test(followup)) {
-            processedFollowup = followup.replace(durationRegex, newDurationText);
-        } else {
-            processedFollowup = `${followup} ${newDurationText}`.trim();
-        }
-
+        const processedFollowup = getNextFollowUpText(followup, days, baseDate || new Date(), language);
         onExtraChange('followup', processedFollowup);
     };
 

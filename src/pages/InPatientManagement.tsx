@@ -32,12 +32,14 @@ import {
     ClipboardPen,
     Settings2,
     Bot,
-    Languages
+    Languages,
+    Plus,
+    Minus
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from '@/integrations/supabase/client';
-import { pruneEmptyFields } from '@/lib/utils';
+import { pruneEmptyFields, cn, calculateFollowUpDate, getNextFollowUpText } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +65,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+// Combined with other utils above
 import { calculateAge } from "@/lib/age";
 import { Switch } from "@/components/ui/switch";
 import { MedicationManager } from '@/components/consultation/MedicationManager';
@@ -156,10 +158,13 @@ const InPatientManagement = () => {
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
-        onAfterPrint: () => setIsReadyToPrint(false),
+        onAfterPrint: () => {
+            setIsReadyToPrint(false);
+            setPrintData(null);
+        },
         onBeforePrint: useCallback(async () => {
             // Small delay to ensure layout is settled and styles are parsed
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 300));
         }, []),
         pageStyle: `
             @page {
@@ -2388,6 +2393,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     const [isSutureDatePickerOpen, setIsSutureDatePickerOpen] = useState(false);
     const [isDischargeDatePickerOpen, setIsDischargeDatePickerOpen] = useState(false);
     const [isReviewDatePickerOpen, setIsReviewDatePickerOpen] = useState(false);
+
     const [isDobPickerOpen, setIsDobPickerOpen] = useState(false);
     const [isAdmissionDatePickerOpen, setIsAdmissionDatePickerOpen] = useState(false);
     const [isProcedureDatePickerOpen, setIsProcedureDatePickerOpen] = useState(false);
@@ -2446,6 +2452,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     })),
                     post_op_care: s.discharge_data.post_op_care || '',
                     review_date: s.discharge_data.review_date || '',
+                    followup: s.discharge_data.followup || '',
                     clinical_notes: s.discharge_data.clinical_notes || '',
                     red_flags: s.discharge_data.red_flags || '',
                     wound_care: s.discharge_data.wound_care || '',
@@ -2480,6 +2487,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                     medications: [],
                     post_op_care: '',
                     review_date: '',
+                    followup: '',
                     clinical_notes: '',
                     red_flags: '',
                     wound_care: '',
@@ -2542,12 +2550,26 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     };
 
     // -- Generic Shortcut Handler for TextAreas --
+    const handleAdjustFollowupDate = (days: number) => {
+        const baseDate = (patient as any)?.discharge_summary?.created_at ? new Date((patient as any).discharge_summary.created_at) : (patient?.created_at ? new Date(patient.created_at) : new Date());
+        const processedFollowup = getNextFollowUpText(discharge.followup || '', days, baseDate, currentLanguage);
+        
+        const current = new Date(discharge.review_date || baseDate);
+        current.setDate(current.getDate() + days);
+        
+        setDischarge(prev => ({
+            ...prev,
+            followup: processedFollowup,
+            review_date: format(current, "yyyy-MM-dd")
+        }));
+    };
+
     const handleTextChange = (field: 'diagnosis' | 'procedure' | 'operation_notes' | 'post_op_care' | 'clinical_notes' | 'activity' | 'red_flags' | 'wound_care' | 'followup', value: string, cursorPosition?: number) => {
         const isCourseField = ['diagnosis', 'procedure', 'operation_notes'].includes(field);
 
         const result = processFieldChange(value, cursorPosition || value.length, {
             enableDurationShortcuts: true,
-            language: 'en',
+            language: ['post_op_care', 'activity', 'red_flags', 'wound_care', 'followup'].includes(field) ? currentLanguage : 'en',
             variant: field === 'followup' ? 'followup' : 'default'
         });
 
@@ -2556,7 +2578,21 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         if (isCourseField) {
             setCourse(prev => ({ ...prev, [field]: newValue }));
         } else {
-            setDischarge(prev => ({ ...prev, [field]: newValue }));
+            setDischarge(prev => {
+                const newState = { ...prev, [field]: newValue };
+
+                if (field === 'followup') {
+                    const baseDate = (patient as any)?.discharge_summary?.created_at ? new Date((patient as any).discharge_summary.created_at) : (patient?.created_at ? new Date(patient.created_at) : new Date());
+                    const nextReviewDate = calculateFollowUpDate(newValue, baseDate);
+                    if (nextReviewDate) {
+                        newState.review_date = nextReviewDate;
+                    }
+                    // Do not clear review_date if text doesn't contain one, 
+                    // allowing manual picker date to persist.
+                }
+
+                return newState;
+            });
         }
 
         if (result) {
@@ -2982,10 +3018,13 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="flex items-center gap-2"><FileText className="w-4 h-4" /> Post-Op Care / Advice</Label>
+                                <Label className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4" />
+                                    {currentLanguage === 'te' ? "శస్త్రచికిత్స అనంతర జాగ్రత్తలు / సలహా" : "Post-Op Care / Advice"}
+                                </Label>
                                 <Textarea
                                     ref={postOpCareRef}
-                                    placeholder="Care instructions..."
+                                    placeholder={currentLanguage === 'te' ? "జాగ్రత్త సూచనలు..." : "Care instructions..."}
                                     value={discharge.post_op_care}
                                     onChange={e => handleTextChange('post_op_care', e.target.value, e.target.selectionStart)}
                                 />
@@ -3000,7 +3039,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <Label className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Wound Care Instructions</Label>
+                                        <Label className="flex items-center gap-2">
+                                            <ClipboardList className="w-4 h-4" />
+                                            {currentLanguage === 'te' ? "గాయం కట్టు జాగ్రత్తలు" : "Wound Care Instructions"}
+                                        </Label>
                                         <Popover open={isSutureDatePickerOpen} onOpenChange={setIsSutureDatePickerOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button
@@ -3012,7 +3054,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                                     )}
                                                 >
                                                     <Calendar className="mr-2 h-3 w-3" />
-                                                    {sutureDate ? format(sutureDate, "dd MMM") : <span>Set Suture Date</span>}
+                                                    {sutureDate ? format(sutureDate, "dd MMM") : <span>{currentLanguage === 'te' ? "కుట్లు తీసే తేదీ" : "Set Suture Date"}</span>}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="end">
@@ -3056,7 +3098,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="flex items-center gap-2"><Activity className="w-4 h-4" /> Activity / Physio Instructions</Label>
+                                    <Label className="flex items-center gap-2">
+                                        <Activity className="w-4 h-4" />
+                                        {currentLanguage === 'te' ? "వ్యాయామం / ఫిజియో సూచనలు" : "Activity / Physio Instructions"}
+                                    </Label>
                                     <Textarea
                                         ref={activityRef}
                                         value={discharge.activity || ''}
@@ -3067,10 +3112,10 @@ const DischargeForm = forwardRef<{ print: () => void }, {
 
                                 <Alert className="bg-red-50 border-red-200">
                                     <AlertTriangle className="h-4 w-4 text-red-600" />
-                                    <AlertTitle className="text-red-700">Medical Warning</AlertTitle>
+                                    <AlertTitle className="text-red-700">{currentLanguage === 'te' ? "వైద్య హెచ్చరిక" : "Medical Warning"}</AlertTitle>
                                     <AlertDescription>
                                         <div className="space-y-2 mt-2">
-                                            <Label className="text-red-700 font-semibold">Red Flags / Emergency Instructions</Label>
+                                            <Label className="text-red-700 font-semibold">{currentLanguage === 'te' ? "అత్యవసర సూచనలు" : "Red Flags / Emergency Instructions"}</Label>
                                             <Textarea
                                                 ref={redFlagsRef}
                                                 value={discharge.red_flags || ''}
@@ -3083,34 +3128,100 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                 </Alert>
 
                                 <div className="space-y-2">
-                                    <Label className="flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Review Date</Label>
-                                    <Popover open={isReviewDatePickerOpen} onOpenChange={setIsReviewDatePickerOpen}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full justify-start text-left font-normal",
-                                                    !discharge.review_date && "text-muted-foreground"
-                                                )}
-                                            >
-                                                <Calendar className="mr-2 h-4 w-4" />
-                                                {discharge.review_date ? format(new Date(discharge.review_date), "dd MMM yyyy") : <span>Pick date</span>}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <CalendarUI
-                                                mode="single"
-                                                selected={discharge.review_date ? new Date(discharge.review_date) : undefined}
-                                                onSelect={(date) => {
-                                                    if (date) {
-                                                        setDischarge({ ...discharge, review_date: format(date, "yyyy-MM-dd") });
-                                                    }
-                                                    setIsReviewDatePickerOpen(false);
-                                                }}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Label className="flex items-center gap-2">
+                                            <ClipboardList className="w-4 h-4" />
+                                            {currentLanguage === 'te' ? "తదుపరి సందర్శన సూచనలు" : "Follow-up Instructions"}
+                                        </Label>
+                                        <Popover open={isReviewDatePickerOpen} onOpenChange={setIsReviewDatePickerOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={cn(
+                                                        "h-8 px-2 text-xs font-normal border border-dashed hover:border-primary transition-all",
+                                                        !discharge.review_date && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <Calendar className="mr-2 h-3 w-3" />
+                                                    {discharge.review_date ? (
+                                                        format(new Date(discharge.review_date), "dd MMM yyyy")
+                                                    ) : (
+                                                        <span>Set Review Date</span>
+                                                    )}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <CalendarUI
+                                                    mode="single"
+                                                    selected={discharge.review_date ? new Date(discharge.review_date) : undefined}
+                                                    onSelect={(date) => {
+                                                        if (date) {
+                                                            const baseDate = (patient as any)?.discharge_summary?.created_at ? new Date((patient as any).discharge_summary.created_at) : (patient?.created_at ? new Date(patient.created_at) : new Date());
+                                                            const currentRef = new Date(discharge.review_date || baseDate);
+                                                            const diff = differenceInDays(startOfDay(date), startOfDay(currentRef));
+                                                            const processedFollowup = getNextFollowUpText(discharge.followup || '', diff, baseDate, currentLanguage);
+
+                                                            setDischarge(prev => ({ 
+                                                                ...prev, 
+                                                                review_date: format(date, "yyyy-MM-dd"),
+                                                                followup: processedFollowup
+                                                            }));
+                                                            setIsReviewDatePickerOpen(false);
+                                                        }
+                                                    }}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+
+                                        {(() => {
+                                            if (!discharge.review_date) return null;
+
+                                            const dateObj = new Date(discharge.review_date);
+                                            const isSunday = dateObj.getDay() === 0;
+                                            const dayName = dateObj.toLocaleDateString('en-IN', { weekday: 'short' });
+
+                                            return (
+                                                <div className="flex items-center gap-1 bg-muted/30 rounded-full border border-border/50 p-0.5">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors"
+                                                        onClick={() => handleAdjustFollowupDate(-1)}
+                                                    >
+                                                        <Minus className="h-2.5 w-2.5" />
+                                                    </Button>
+
+                                                    <span className={cn(
+                                                        "text-[10px] font-bold px-2 py-0.5",
+                                                        isSunday ? "text-red-600" : "text-primary"
+                                                    )}>
+                                                        {dayName}
+                                                    </span>
+
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors"
+                                                        onClick={() => handleAdjustFollowupDate(1)}
+                                                    >
+                                                        <Plus className="h-2.5 w-2.5" />
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                    <Textarea
+                                        ref={followupRef}
+                                        value={discharge.followup || ''}
+                                        onChange={e => handleTextChange('followup', e.target.value, e.target.selectionStart)}
+                                        rows={4}
+                                        placeholder="e.g. after 1 week, or 10-12-2024..."
+                                    />
+                                    <p className="text-[10px] text-muted-foreground/70 leading-none mt-1">Speed tip: Use custom shorthand (like <code className="font-bold">2w.</code>) to write "after 2 weeks".</p>
                                 </div>
 
                                 <div className="space-y-4 border p-4 rounded-md bg-yellow-50 border-yellow-200">

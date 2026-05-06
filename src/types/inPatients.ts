@@ -25,6 +25,8 @@ export interface DischargeData {
     red_flags?: string;
     wound_care?: string;
     activity?: string;
+    followup?: string;
+    followup_te?: string;
     dama_clause?: boolean;
     dama_description?: string;
     affordabilityPreference?: string;

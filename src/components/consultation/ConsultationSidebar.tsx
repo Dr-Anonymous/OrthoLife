@@ -175,170 +175,128 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
         }
     };
 
-    const applyFilters = (consultations: Consultation[]) => {
+    const filteredData = React.useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
-        return consultations.filter(c => {
-            // First apply categorical filters (Sex, Age, Visit Type)
-            const matchesSex = sexFilter === 'all' ||
-                (sexFilter === 'male' && (c.patient.sex?.toLowerCase() === 'm' || c.patient.sex?.toLowerCase() === 'male')) ||
-                (sexFilter === 'female' && (c.patient.sex?.toLowerCase() === 'f' || c.patient.sex?.toLowerCase() === 'female'));
-            if (!matchesSex) return false;
 
-            const age = calculateAge(c.patient.dob);
-            const matchesAge = ageFilter === 'all' ||
-                (ageFilter === 'pediatric' && age < 18) ||
-                (ageFilter === 'adult' && age >= 18 && age <= 60) ||
-                (ageFilter === 'senior' && age > 60);
-            if (!matchesAge) return false;
+        const processList = (consultations: Consultation[]) => {
+            return consultations
+                .map(c => {
+                    // 1. Categorical Filters
+                    const matchesSex = sexFilter === 'all' ||
+                        (sexFilter === 'male' && (c.patient.sex?.toLowerCase() === 'm' || c.patient.sex?.toLowerCase() === 'male')) ||
+                        (sexFilter === 'female' && (c.patient.sex?.toLowerCase() === 'f' || c.patient.sex?.toLowerCase() === 'female'));
 
-            const matchesVisitType = visitTypeFilter === 'all' ||
-                (visitTypeFilter === 'paid' && c.visit_type?.toLowerCase() === 'paid') ||
-                (visitTypeFilter === 'free' && c.visit_type?.toLowerCase() === 'free');
-            if (!matchesVisitType) return false;
+                    const age = calculateAge(c.patient.dob);
+                    const matchesAge = ageFilter === 'all' ||
+                        (ageFilter === 'pediatric' && age < 18) ||
+                        (ageFilter === 'adult' && age >= 18 && age <= 60) ||
+                        (ageFilter === 'senior' && age > 60);
 
-            // If no search query, everything remaining is a match
-            if (!query) return true;
+                    const matchesVisitType = visitTypeFilter === 'all' ||
+                        (visitTypeFilter === 'paid' && c.visit_type?.toLowerCase() === 'paid') ||
+                        (visitTypeFilter === 'free' && c.visit_type?.toLowerCase() === 'free');
 
-            // --- DEEP SEARCH LOGIC ---
-            
-            // 1. Patient Identity
-            const p = c.patient;
-            if (p.name.toLowerCase().includes(query) ||
-                p.phone?.includes(query) ||
-                p.secondary_phone?.includes(query) ||
-                p.hometown?.toLowerCase().includes(query) ||
-                p.occupation?.toLowerCase().includes(query) ||
-                p.blood_group?.toLowerCase().includes(query) ||
-                p.allergies?.toLowerCase().includes(query)) return true;
+                    if (!matchesSex || !matchesAge || !matchesVisitType) {
+                        return { consultation: c, isVisible: false, preview: null };
+                    }
 
-            // 2. Clinical Data
-            const d = c.consultation_data;
-            if (d) {
-                // Main text fields
-                if (d.complaints?.toLowerCase().includes(query) ||
-                    d.medicalHistory?.toLowerCase().includes(query) ||
-                    d.findings?.toLowerCase().includes(query) ||
-                    d.diagnosis?.toLowerCase().includes(query) ||
-                    d.investigations?.toLowerCase().includes(query) ||
-                    d.advice?.toLowerCase().includes(query) ||
-                    d.procedure?.toLowerCase().includes(query) ||
-                    d.orthotics?.toLowerCase().includes(query) ||
-                    d.personalNote?.toLowerCase().includes(query) ||
-                    d.followup?.toLowerCase().includes(query)) return true;
+                    // 2. Search Logic
+                    if (!query) {
+                        return { consultation: c, isVisible: true, preview: null };
+                    }
 
-                // Vitals
-                if (d.weight?.includes(query) ||
-                    d.bp?.includes(query) ||
-                    d.pulse?.includes(query) ||
-                    d.spo2?.includes(query) ||
-                    d.temperature?.includes(query) ||
-                    d.height?.includes(query) ||
-                    d.bmi?.includes(query)) return true;
+                    // --- DEEP SEARCH & PREVIEW ---
+                    const p = c.patient;
+                    const d = c.consultation_data;
 
-                // Medications
-                if (d.medications?.some(m =>
-                    m.composition?.toLowerCase().includes(query) ||
-                    m.brandName?.toLowerCase().includes(query) ||
-                    m.instructions?.toLowerCase().includes(query) ||
-                    m.notes?.toLowerCase().includes(query) ||
-                    m.dose?.toLowerCase().includes(query)
-                )) return true;
+                    // helper for preview
+                    const findInText = (text: string | null | undefined): string | null => {
+                        if (!text) return null;
+                        const lowerText = text.toLowerCase();
+                        const index = lowerText.indexOf(query);
+                        if (index === -1) return null;
 
-                // Documents & Reports
-                if (d.investigation_reports?.some(r => r.fileName?.toLowerCase().includes(query) || r.gist?.toLowerCase().includes(query))) return true;
-                if (d.certificates?.some(cert => cert.customContent?.toLowerCase().includes(query))) return true;
-                if (d.receipts?.some(rect => rect.serviceName?.toLowerCase().includes(query))) return true;
-            }
+                        const beforePart = text.slice(0, index);
+                        const beforeWords = beforePart.match(/\S+/g);
+                        let startPos = index;
+                        if (beforeWords && beforeWords.length > 0) {
+                            startPos = beforePart.lastIndexOf(beforeWords[beforeWords.length - 1]);
+                        }
 
-            // 3. Referral Details
-            if (c.referred_by?.toLowerCase().includes(query)) return true;
+                        const afterPart = text.slice(index + query.length);
+                        const afterWords = afterPart.match(/\S+/g);
+                        let endPos = index + query.length;
+                        if (afterWords && afterWords.length > 0) {
+                            const firstWord = afterWords[0];
+                            endPos = index + query.length + afterPart.indexOf(firstWord) + firstWord.length;
+                        }
 
-            return false;
-        });
-    };
+                        return `...${text.slice(startPos, endPos).trim()}...`;
+                    };
 
-    const getMatchPreview = (consultation: Consultation, query: string) => {
-        const q = query.toLowerCase().trim();
-        if (q.length < 1) return null;
+                    // Check Name (High Priority, no preview needed)
+                    if (p.name.toLowerCase().includes(query)) {
+                        return { consultation: c, isVisible: true, preview: null };
+                    }
 
-        // Skip if match is in the name itself (already visible)
-        if (consultation.patient.name.toLowerCase().includes(q)) return null;
+                    // Check other identity fields
+                    let preview = findInText(p.phone) || findInText(p.hometown) || findInText(p.occupation) || findInText(c.referred_by);
+                    if (preview) return { consultation: c, isVisible: true, preview };
 
-        const findInText = (text: string | null | undefined): string | null => {
-            if (!text) return null;
-            const lowerText = text.toLowerCase();
-            const index = lowerText.indexOf(q);
-            if (index === -1) return null;
+                    // Check Clinical Fields
+                    if (d) {
+                        preview = findInText(d.diagnosis) ||
+                            findInText(d.complaints) ||
+                            findInText(d.findings) ||
+                            findInText(d.advice) ||
+                            findInText(d.procedure) ||
+                            findInText(d.medicalHistory) ||
+                            findInText(d.personalNote) ||
+                            findInText(d.investigations);
+                        
+                        if (preview) return { consultation: c, isVisible: true, preview };
 
-            // Find start of previous word
-            const beforePart = text.slice(0, index);
-            const beforeWords = beforePart.match(/\S+/g);
-            let startPos = index;
-            if (beforeWords && beforeWords.length > 0) {
-                const lastWord = beforeWords[beforeWords.length - 1];
-                startPos = beforePart.lastIndexOf(lastWord);
-            }
+                        // Vitals
+                        const vitalsStr = `${d.weight || ''} ${d.bp || ''} ${d.pulse || ''} ${d.spo2 || ''} ${d.temperature || ''} ${d.height || ''} ${d.bmi || ''}`;
+                        preview = findInText(vitalsStr);
+                        if (preview) return { consultation: c, isVisible: true, preview };
 
-            // Find end of next word
-            const afterPart = text.slice(index + q.length);
-            const afterWords = afterPart.match(/\S+/g);
-            let endPos = index + q.length;
-            if (afterWords && afterWords.length > 0) {
-                const firstWord = afterWords[0];
-                endPos = index + q.length + afterPart.indexOf(firstWord) + firstWord.length;
-            }
+                        // Medications
+                        if (d.medications) {
+                            for (const m of d.medications) {
+                                preview = findInText(m.composition) || findInText(m.brandName) || findInText(m.instructions) || findInText(m.notes);
+                                if (preview) return { consultation: c, isVisible: true, preview };
+                            }
+                        }
 
-            const snippet = text.slice(startPos, endPos).trim();
-            return `...${snippet}...`;
+                        // Reports
+                        if (d.investigation_reports) {
+                            for (const r of d.investigation_reports) {
+                                preview = findInText(r.fileName) || findInText(r.gist);
+                                if (preview) return { consultation: c, isVisible: true, preview };
+                            }
+                        }
+                    }
+
+                    return { consultation: c, isVisible: false, preview: null };
+                })
+                .filter(item => item.isVisible);
         };
 
-        const d = consultation.consultation_data;
-        const p = consultation.patient;
+        return {
+            pending: processList(pendingConsultations),
+            evaluation: processList(evaluationConsultations),
+            completed: processList(completedConsultations)
+        };
+    }, [searchQuery, pendingConsultations, evaluationConsultations, completedConsultations, sexFilter, ageFilter, visitTypeFilter]);
 
-        // Sequence of fields to check
-        const previews = [
-            findInText(d?.diagnosis),
-            findInText(d?.complaints),
-            findInText(d?.findings),
-            findInText(d?.advice),
-            findInText(d?.procedure),
-            findInText(d?.medicalHistory),
-            findInText(d?.personalNote),
-            findInText(d?.investigations),
-            findInText(p.phone),
-            findInText(p.hometown),
-            findInText(p.occupation),
-            findInText(consultation.referred_by),
-            findInText(d?.weight ? `Weight: ${d.weight}` : null),
-            findInText(d?.bp ? `BP: ${d.bp}` : null)
-        ];
+    const filteredPending = filteredData.pending.map(d => d.consultation);
+    const filteredEvaluation = filteredData.evaluation.map(d => d.consultation);
+    const filteredCompleted = filteredData.completed.map(d => d.consultation);
 
-        for (const preview of previews) {
-            if (preview) return preview;
-        }
 
-        // Check Medications
-        if (d?.medications) {
-            for (const m of d.medications) {
-                const mMatch = findInText(m.composition) || findInText(m.brandName) || findInText(m.instructions);
-                if (mMatch) return mMatch;
-            }
-        }
 
-        // Check Reports
-        if (d?.investigation_reports) {
-            for (const r of d.investigation_reports) {
-                const rMatch = findInText(r.fileName) || findInText(r.gist);
-                if (rMatch) return rMatch;
-            }
-        }
 
-        return null;
-    };
-
-    const filteredPending = applyFilters(pendingConsultations);
-    const filteredEvaluation = applyFilters(evaluationConsultations);
-    const filteredCompleted = applyFilters(completedConsultations);
 
     const visibleConsultations = [...filteredPending, ...filteredEvaluation, ...filteredCompleted];
 
@@ -834,7 +792,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
-                            {filteredPending.map((c, idx) => {
+                            {filteredData.pending.map(({ consultation: c, preview }, idx) => {
                                 const globalIndex = idx;
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
@@ -850,9 +808,9 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                                         {formatLocalTime(c.created_at)}
                                                     </span>
                                                 </div>
-                                                {searchQuery && getMatchPreview(c, searchQuery) && (
+                                                {preview && (
                                                     <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate w-full text-left bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded mt-1 border border-blue-100 dark:border-blue-800 italic">
-                                                        {getMatchPreview(c, searchQuery)}
+                                                        {preview}
                                                     </span>
                                                 )}
                                             </div>
@@ -879,7 +837,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isEvaluationCollapsed ? "max-h-0" : "max-h-60")}>
-                            {filteredEvaluation.map((c, idx) => {
+                            {filteredData.evaluation.map(({ consultation: c, preview }, idx) => {
                                 const globalIndex = filteredPending.length + idx;
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
@@ -895,9 +853,9 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                                         {formatLocalTime(c.created_at)}
                                                     </span>
                                                 </div>
-                                                {searchQuery && getMatchPreview(c, searchQuery) && (
+                                                {preview && (
                                                     <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate w-full text-left bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded mt-1 border border-blue-100 dark:border-blue-800 italic">
-                                                        {getMatchPreview(c, searchQuery)}
+                                                        {preview}
                                                     </span>
                                                 )}
                                             </div>
@@ -924,7 +882,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         </div>
                     ) : (
                         <div className={cn("space-y-2 mt-2 transition-all overflow-y-auto", isCompletedCollapsed ? "max-h-0" : "max-h-60")}>
-                            {filteredCompleted.map((c, idx) => {
+                            {filteredData.completed.map(({ consultation: c, preview }, idx) => {
                                 const globalIndex = filteredPending.length + filteredEvaluation.length + idx;
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
@@ -940,9 +898,9 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                                         {formatLocalTime(c.created_at)}
                                                     </span>
                                                 </div>
-                                                {searchQuery && getMatchPreview(c, searchQuery) && (
+                                                {preview && (
                                                     <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate w-full text-left bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded mt-1 border border-blue-100 dark:border-blue-800 italic">
-                                                        {getMatchPreview(c, searchQuery)}
+                                                        {preview}
                                                     </span>
                                                 )}
                                             </div>

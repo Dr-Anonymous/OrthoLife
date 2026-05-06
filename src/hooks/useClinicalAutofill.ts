@@ -12,19 +12,21 @@ export function useClinicalAutofill({ consultantId }: UseClinicalAutofillOptions
   const [autofillKeywords, setAutofillKeywords] = useState<AutofillProtocol[]>([]);
 
   const fetchShortcuts = useCallback(async () => {
-    if (!consultantId) return;
-    
+    const filterCondition = consultantId 
+      ? `consultant_id.eq.${consultantId},consultant_id.is.null`
+      : `consultant_id.is.null`;
+
     const { data: shortcuts } = await supabase
       .from('text_shortcuts')
       .select('*')
-      .or(`consultant_id.eq.${consultantId},consultant_id.is.null`);
+      .or(filterCondition);
     
     if (shortcuts) setTextShortcuts(shortcuts);
 
     const { data: keywords } = await supabase
       .from('autofill_keywords')
       .select('*')
-      .or(`consultant_id.eq.${consultantId},consultant_id.is.null`);
+      .or(filterCondition);
     
     if (keywords) setAutofillKeywords(keywords as AutofillProtocol[]);
   }, [consultantId]);

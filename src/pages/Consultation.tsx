@@ -55,11 +55,14 @@ import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillPro
 
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
-import { Guide } from '@/types/consultation';
-import { useConsultationTimer } from '@/hooks/useConsultationTimer';
+import { useMedicationManager } from '../hooks/useMedicationManager';
+import { useClinicalAutofill } from '../hooks/useClinicalAutofill';
+import { useMedicationLibrary } from '../hooks/useMedicationLibrary';
 import { generateCompletionMessage as generateCompletionMessageUtil } from '@/lib/consultation-utils';
 import { requestOfflineSyncNow } from '@/lib/offline-sync-events';
 import { OfflineConsultationBundle } from '@/types/offline-sync';
+import { useConsultationTimer } from '@/hooks/useConsultationTimer';
+import { Guide } from '@/types/consultation';
 
 const waitForNextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 
@@ -306,20 +309,20 @@ const ConsultationPage = () => {
     extraDataRef.current = extraData;
   }, [extraData]);
 
-  const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
-  const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
+  const { savedMedications, refreshLibrary: fetchSavedMedications } = useMedicationLibrary();
+  const { textShortcuts, autofillKeywords, processFieldChange: autofillProcessor, refreshShortcuts: fetchTextShortcuts } = useClinicalAutofill({ consultantId: consultant?.id });
+  const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
 
-  // --- Modals State ---
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<Consultation | null>(null);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
-  const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [isMedicationsModalOpen, setIsMedicationsModalOpen] = useState(false);
   const [deletePatientAlso, setDeletePatientAlso] = useState<boolean>(false);
 
   // History Modal State - generalized to support any patient
@@ -447,8 +450,6 @@ const ConsultationPage = () => {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   // Suggestions state
-  const [autofillKeywords, setAutofillKeywords] = useState<AutofillProtocol[]>([]);
-  const [textShortcuts, setTextShortcuts] = useState<TextShortcut[]>([]);
   const [isProcedureExpanded, setIsProcedureExpanded] = useState(false);
   const [isReferredToExpanded, setIsReferredToExpanded] = useState(false);
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
@@ -1335,31 +1336,6 @@ const ConsultationPage = () => {
   };
 
   // Data Fetching
-  const fetchSavedMedications = useCallback(async () => {
-    const { data, error } = await supabase.from('saved_medications').select('*').order('composition');
-    if (!error && data) {
-      const mappedData = data.map((item: any) => ({
-        ...item,
-        freqMorning: item.freq_morning,
-        freqNoon: item.freq_noon,
-        freqNight: item.freq_night,
-      }));
-      setSavedMedications(mappedData as Medication[]);
-    }
-  }, []);
-
-  const fetchAutofillKeywords = useCallback(async () => {
-    if (!consultant) return;
-    const { data } = await supabase.from('autofill_keywords').select('*').eq('consultant_id', consultant.id);
-    if (data) setAutofillKeywords(data);
-  }, [consultant]);
-
-  const fetchTextShortcuts = useCallback(async () => {
-    if (!consultant) return;
-    const { data } = await supabase.from('text_shortcuts').select('*').eq('consultant_id', consultant.id);
-    if (data) setTextShortcuts(data);
-  }, [consultant]);
-
   const fetchReferralDoctors = useCallback(async () => {
     if (!consultant) return;
     const { data } = await supabase.from('referral_doctors').select('*').eq('consultant_id', consultant.id).order('name');
@@ -1367,11 +1343,8 @@ const ConsultationPage = () => {
   }, [consultant]);
 
   useEffect(() => {
-    fetchSavedMedications();
-    fetchAutofillKeywords();
-    fetchTextShortcuts();
     fetchReferralDoctors();
-  }, [fetchSavedMedications, fetchAutofillKeywords, fetchTextShortcuts, fetchReferralDoctors]);
+  }, [fetchReferralDoctors]);
 
 
 
@@ -1460,11 +1433,6 @@ const ConsultationPage = () => {
       setEditablePatientDetails(prev => prev ? ({ ...prev, allergies: value }) : prev);
       return;
     }
-    if (field === 'complaints' && typeof value === 'string' && value.includes('//')) {
-      setIsShortcutModalOpen(true);
-      setExtraData(prev => ({ ...prev, [field]: value.replace('//', '') })); // Remove the trigger
-      return;
-    }
 
     if (field === 'referred_to_list' && Array.isArray(value) && value.some(val => typeof val === 'string' && val.includes('//'))) {
       setIsReferralModalOpen(true);
@@ -1473,161 +1441,62 @@ const ConsultationPage = () => {
       return;
     }
 
-    if (typeof value === 'string' && (field === 'complaints' || field === 'medicalHistory' || field === 'findings' || field === 'diagnosis' || field === 'advice' || field === 'followup' || field === 'personalNote' || field === 'procedure' || field === 'investigations' || field === 'referred_to' || field === 'orthotics')) {
-      let processedValue = value;
-      let newCursor = cursorPosition || value.length;
+    if (typeof value === 'string') {
+      if (isReadOnly) return;
 
-      // Special Duration Shortcuts for Complaints/Advice
-      if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations' || field === 'orthotics') {
-        const textBeforeCursor = value.substring(0, newCursor);
-        const durationRegex = /(\d+)([dwmy])\.\s$/i;
-        const match = textBeforeCursor.match(durationRegex);
-
-        if (match) {
-          const shortcut = match[0];
-          const count = parseInt(match[1], 10);
-          const unitChar = match[2].toLowerCase();
-          let unitText = '';
-
-          switch (unitChar) {
-            case 'd': unitText = count === 1 ? 'day' : 'days'; break;
-            case 'w': unitText = count === 1 ? 'week' : 'weeks'; break;
-            case 'm': unitText = count === 1 ? 'month' : 'months'; break;
-            case 'y': unitText = count === 1 ? 'year' : 'years'; break;
-          }
-
-          if (unitText) {
-            const expandedText = `${count} ${unitText} `;
-            const shortcutIndex = textBeforeCursor.lastIndexOf(shortcut);
-            if (shortcutIndex !== -1) {
-              const textBefore = value.substring(0, shortcutIndex);
-              const textAfter = value.substring(newCursor);
-              processedValue = textBefore + expandedText + textAfter;
-              newCursor = textBefore.length + expandedText.length;
-
-              setExtraData(prev => ({ ...prev, [field]: processedValue }));
-              setTimeout(() => {
-                const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef, orthotics: orthoticsRef };
-                const targetRef = refs[field] || complaintsRef;
-                if (targetRef.current) {
-                  targetRef.current.setSelectionRange(newCursor, newCursor);
-                }
-              }, 0);
-              return;
-            }
-          }
-        } else if (field === 'complaints' || field === 'advice' || field === 'medicalHistory' || field === 'investigations' || field === 'orthotics') {
-          // Unit-only shortcuts (e.g. "y. " -> "years ")
-          const unitOnlyRegex = /(?:^|\s)([dwmy])\.\s$/i;
-          const unitMatch = textBeforeCursor.match(unitOnlyRegex);
-
-          if (unitMatch) {
-            const fullShortcut = unitMatch[0];
-            const unitChar = unitMatch[1].toLowerCase();
-            let unitText = '';
-
-            switch (unitChar) {
-              case 'd': unitText = 'days'; break;
-              case 'w': unitText = 'weeks'; break;
-              case 'm': unitText = 'months'; break;
-              case 'y': unitText = 'years'; break;
-            }
-
-            if (unitText) {
-              const prefix = fullShortcut.match(/^\s/) ? ' ' : '';
-              const expandedText = `${prefix}${unitText} `;
-
-              const shortcutIndex = textBeforeCursor.lastIndexOf(fullShortcut);
-              if (shortcutIndex !== -1) {
-                const textBefore = value.substring(0, shortcutIndex);
-                const textAfter = value.substring(newCursor);
-                processedValue = textBefore + expandedText + textAfter;
-                newCursor = textBefore.length + expandedText.length;
-
-                setExtraData(prev => ({ ...prev, [field]: processedValue }));
-                setTimeout(() => {
-                  const refs: any = { advice: adviceRef, medicalHistory: medicalHistoryRef, investigations: investigationsRef, complaints: complaintsRef, orthotics: orthoticsRef };
-                  const targetRef = refs[field] || complaintsRef;
-                  if (targetRef.current) {
-                    targetRef.current.setSelectionRange(newCursor, newCursor);
-                  }
-                }, 0);
-                return;
-              }
-            }
-          }
-        }
+      // 1. Handle special modal triggers
+      if (field === 'complaints' && value.includes('//')) {
+        setIsShortcutModalOpen(true);
+        setExtraData(prev => ({ ...prev, [field]: value.replace('//', '') }));
+        return;
       }
 
-      // Special Followup Shortcuts
-      if (field === 'followup') {
-        const textBeforeCursor = value.substring(0, newCursor);
-        const shortcutRegex = /(\d+)([dwmy])\.\s$/i;
-        const match = textBeforeCursor.match(shortcutRegex);
-        if (match) {
-          const shortcut = match[0];
-          const count = parseInt(match[1], 10);
-          const unitChar = match[2].toLowerCase();
-          let unitKey = '';
-          switch (unitChar) {
-            case 'd': unitKey = count === 1 ? 'day' : 'day_plural'; break;
-            case 'w': unitKey = count === 1 ? 'week' : 'week_plural'; break;
-            case 'm': unitKey = count === 1 ? 'month' : 'month_plural'; break;
-            case 'y': unitKey = count === 1 ? 'year' : 'year_plural'; break;
-          }
-          if (unitKey) {
-            const unitText = t(unitKey, { lng: consultationLanguage });
-            const expandedText = t('followup_message_structure', { count, unit: unitText, lng: consultationLanguage }) + ' ';
-            const shortcutIndex = textBeforeCursor.lastIndexOf(shortcut);
-            if (shortcutIndex !== -1) {
-              const textBefore = value.substring(0, shortcutIndex);
-              const textAfter = value.substring(newCursor);
-              processedValue = textBefore + expandedText + textAfter;
-              newCursor = textBefore.length + expandedText.length;
+      const shortcutFields = [
+        'complaints', 'medicalHistory', 'findings', 'diagnosis', 
+        'advice', 'followup', 'personalNote', 'procedure', 
+        'investigations', 'referred_to', 'orthotics'
+      ];
 
-              setExtraData(prev => ({ ...prev, [field]: processedValue }));
-              setTimeout(() => {
-                if (followupRef.current) {
-                  followupRef.current.setSelectionRange(newCursor, newCursor);
-                }
-              }, 0);
-              return;
+      if (shortcutFields.includes(field)) {
+        const result = autofillProcessor(value, cursorPosition || value.length, {
+          enableDurationShortcuts: true,
+          language: ['advice', 'followup', 'orthotics'].includes(field) ? consultationLanguage : 'en',
+          variant: field === 'followup' ? 'followup' : 'default'
+        });
+
+        const processedValue = result ? result.newValue : value;
+        const newCursor = result ? result.newCursorPosition : (cursorPosition || value.length);
+
+        setExtraData(prev => ({ ...prev, [field]: processedValue }));
+
+        if (result) {
+          setTimeout(() => {
+            const refs: any = {
+              advice: adviceRef,
+              medicalHistory: medicalHistoryRef,
+              investigations: investigationsRef,
+              complaints: complaintsRef,
+              orthotics: orthoticsRef,
+              findings: findingsRef,
+              diagnosis: diagnosisRef,
+              personalNote: personalNoteRef,
+              procedure: procedureRef,
+              referred_to: referredToRef,
+              followup: followupRef
+            };
+            const targetRef = refs[field];
+            if (targetRef && targetRef.current) {
+              targetRef.current.setSelectionRange(newCursor, newCursor);
             }
-          }
+          }, 0);
         }
-      }
-
-      const processed = processTextShortcuts(processedValue, newCursor, textShortcuts);
-      if (processed) {
-        setExtraData(prev => ({ ...prev, [field]: processed.newValue }));
-        // We need to set cursor position, using a ref or state
-        setTimeout(() => {
-          const refs = {
-            complaints: complaintsRef.current,
-            medicalHistory: medicalHistoryRef.current,
-            findings: findingsRef.current,
-            diagnosis: diagnosisRef.current,
-            investigations: investigationsRef.current,
-            procedure: procedureRef.current,
-            advice: adviceRef.current,
-            personalNote: personalNoteRef.current,
-            followup: followupRef.current,
-            referred_to: referredToRef.current,
-            referred_by: referredByRef.current,
-            orthotics: orthoticsRef.current,
-          };
-          const ref = (refs as any)[field];
-          if (ref) {
-            ref.setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
-          }
-        }, 0);
         return;
       }
     }
 
     if (isReadOnly) return;
     setExtraData(prev => ({ ...prev, [field]: value }));
-  }, [textShortcuts, consultationLanguage, isReadOnly]);
+  }, [adviceRef, medicalHistoryRef, investigationsRef, complaintsRef, orthoticsRef, findingsRef, diagnosisRef, personalNoteRef, procedureRef, referredToRef, followupRef, isReadOnly, autofillProcessor, consultationLanguage]);
 
 
   /**
@@ -1755,7 +1624,7 @@ const ConsultationPage = () => {
       }
       return { ...prev, medications: newMeds };
     });
-  }, [textShortcuts, isReadOnly]);
+  }, [textShortcuts, isReadOnly, isMasterAdmin, setIsMedicationsModalOpen, setIsKeywordModalOpen]);
 
   /**
    * Handles language change for the entire consultation.

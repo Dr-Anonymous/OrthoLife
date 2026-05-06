@@ -29,6 +29,55 @@ interface DischargeSummaryPrintProps {
     showSignSeal?: boolean;
 }
 
+const TRANSLATIONS: any = {
+    en: {
+        'discharge.diagnosis': 'Diagnosis',
+        'discharge.procedure': 'Procedure Performed',
+        'discharge.operation_notes': 'Operation Notes',
+        'discharge.clinical_notes': 'Clinical Course / Notes',
+        'discharge.post_op_care': 'Post-Op Care & Advice',
+        'discharge.wound_care': 'Wound Care Instructions',
+        'discharge.activity': 'Activity & Physiotherapy',
+        'discharge.emergency_red_flags': 'Emergency Red Flags',
+        'discharge.review_date': 'Review Date',
+        'discharge.followup': 'Follow-up Instructions',
+        'prescription.medication': 'Medications at Discharge',
+        'prescription.med_name': 'Name',
+        'prescription.med_dose': 'Dose',
+        'prescription.med_frequency': 'Frequency',
+        'prescription.med_morning': 'Morning',
+        'prescription.med_noon': 'A.Noon',
+        'prescription.med_night': 'Night',
+        'prescription.med_duration': 'Duration',
+        'prescription.med_instructions': 'Instructions',
+        'prescription.footer_text': 'Visit <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.'
+    },
+    te: {
+        'discharge.diagnosis': 'రోగ నిర్ధారణ',
+        'discharge.procedure': 'చేసిన శస్త్రచికిత్స',
+        'discharge.operation_notes': 'ఆపరేషన్ గమనికలు',
+        'discharge.clinical_notes': 'క్లినికల్ కోర్సు / గమనికలు',
+        'discharge.post_op_care': 'శస్త్రచికిత్స అనంతర జాగ్రత్తలు & సలహాలు',
+        'discharge.wound_care': 'గాయం జాగ్రత్తలు',
+        'discharge.activity': 'శారీరక కదలికలు',
+        'discharge.emergency_red_flags': 'జాగ్రత్తలు / ప్రమాద సంకేతాలు',
+        'discharge.review_date': 'తదుపరి సందర్శన తేదీ',
+        'discharge.followup': 'తదుపరి సందర్శన సూచనలు',
+        'prescription.medication': 'డిశ్చార్జ్ మందులు',
+        'prescription.med_name': 'పేరు',
+        'prescription.med_dose': 'మోతాదు',
+        'prescription.med_frequency': 'తరచుదనం',
+        'prescription.med_morning': 'ఉదయం',
+        'prescription.med_noon': 'మధ్యాహ్నం',
+        'prescription.med_night': 'రాత్రి',
+        'prescription.med_duration': 'వ్యవధి',
+        'prescription.med_instructions': 'సూచనలు',
+        'prescription.footer_text': 'మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా చూడటానికి <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> సందర్శించండి.'
+    }
+};
+
+const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
+
 export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeSummaryPrintProps>(({
     patientSnapshot,
     courseDetails,
@@ -49,61 +98,18 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
         fontSize: 'standard',
         signatureAlignment: 'right'
     };
-    const TRANSLATIONS: any = {
-        en: {
-            'discharge.diagnosis': 'Diagnosis',
-            'discharge.procedure': 'Procedure Performed',
-            'discharge.operation_notes': 'Operation Notes',
-            'discharge.clinical_notes': 'Clinical Course / Notes',
-            'discharge.post_op_care': 'Post-Op Care & Advice',
-            'discharge.wound_care': 'Wound Care Instructions',
-            'discharge.activity': 'Activity & Physiotherapy',
-            'discharge.emergency_red_flags': 'Emergency Red Flags',
-            'discharge.review_date': 'Review Date',
-            'prescription.medication': 'Medications at Discharge',
-            'prescription.med_name': 'Name',
-            'prescription.med_dose': 'Dose',
-            'prescription.med_frequency': 'Frequency',
-            'prescription.med_morning': 'Morning',
-            'prescription.med_noon': 'A.Noon',
-            'prescription.med_night': 'Night',
-            'prescription.med_duration': 'Duration',
-            'prescription.med_instructions': 'Instructions',
-            'prescription.footer_text': 'Visit <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> to access your prescriptions, diets, and exercises anytime.'
-        },
-        te: {
-            'discharge.diagnosis': 'రోగ నిర్ధారణ',
-            'discharge.procedure': 'చేసిన శస్త్రచికిత్స',
-            'discharge.operation_notes': 'ఆపరేషన్ గమనికలు',
-            'discharge.clinical_notes': 'క్లినికల్ కోర్సు / గమనికలు',
-            'discharge.post_op_care': 'శస్త్రచికిత్స అనంతర జాగ్రత్తలు & సలహాలు',
-            'discharge.wound_care': 'గాయం జాగ్రత్తలు',
-            'discharge.activity': 'శారీరక కదలికలు',
-            'discharge.emergency_red_flags': 'జాగ్రత్తలు / ప్రమాద సంకేతాలు',
-            'discharge.review_date': 'తదుపరి సందర్శన తేదీ',
-            'prescription.medication': 'డిశ్చార్జ్ మందులు',
-            'prescription.med_name': 'పేరు',
-            'prescription.med_dose': 'మోతాదు',
-            'prescription.med_frequency': 'తరచుదనం',
-            'prescription.med_morning': 'ఉదయం',
-            'prescription.med_noon': 'మధ్యాహ్నం',
-            'prescription.med_night': 'రాత్రి',
-            'prescription.med_duration': 'వ్యవధి',
-            'prescription.med_instructions': 'సూచనలు',
-            'prescription.footer_text': 'మీ ప్రిస్క్రిప్షన్లు, డైట్, మరియు వ్యాయామాలను ఎప్పుడైనా చూడటానికి <a href="https://ortho.life/my" target="_blank" class="underline">ortho.life/my</a> సందర్శించండి.'
-        }
-    };
 
-    const t = (key: string, defaultValue?: string) => {
+    const t = React.useCallback((key: string, defaultValue?: string) => {
         const langObj = TRANSLATIONS[language] || TRANSLATIONS.en;
         return langObj[key] || defaultValue || key;
-    };
+    }, [language]);
 
-    const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
-
-    const cName = typeof consultant?.name === 'object' ? (consultant?.name?.[language === 'te' ? 'te' : 'en'] || consultant?.name?.en) : (consultant?.name || '');
-    const cQuals = typeof consultant?.qualifications === 'object' ? (consultant?.qualifications?.[language === 'te' ? 'te' : 'en'] || consultant?.qualifications?.en) : (consultant?.qualifications || '');
-    const cSpec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
+    const { cName, cQuals, cSpec } = React.useMemo(() => {
+        const name = typeof consultant?.name === 'object' ? (consultant?.name?.[language === 'te' ? 'te' : 'en'] || consultant?.name?.en) : (consultant?.name || '');
+        const quals = typeof consultant?.qualifications === 'object' ? (consultant?.qualifications?.[language === 'te' ? 'te' : 'en'] || consultant?.qualifications?.en) : (consultant?.qualifications || '');
+        const spec = typeof consultant?.specialization === 'object' ? (consultant?.specialization?.[language === 'te' ? 'te' : 'en'] || consultant?.specialization?.en) : (consultant?.specialization || '');
+        return { cName: name, cQuals: quals, cSpec: spec };
+    }, [consultant, language]);
 
     return (
         <div ref={ref} className="font-sans mx-auto print:m-0 relative w-full max-w-full overflow-hidden" style={{ width: forceDesktop ? '210mm' : '100%', maxWidth: '210mm' }}>
@@ -321,8 +327,8 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                         </section>
                                     )}
 
-                                    {/* Advice Section: Post-Op / Wound / Activity / Red Flags */}
-                                    {(dischargeData.post_op_care || dischargeData.wound_care || dischargeData.activity || dischargeData.red_flags) && (
+                                    {/* Advice Section: Post-Op / Wound / Activity / Followup / Red Flags */}
+                                    {(dischargeData.post_op_care || dischargeData.wound_care || dischargeData.activity || dischargeData.followup || dischargeData.red_flags) && (
                                         <section className="space-y-4">
 
                                             {/* Post-Op Care */}
@@ -358,6 +364,17 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                                 </div>
                                             )}
 
+                                            {/* Followup */}
+                                            {dischargeData.followup && (
+                                                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                                                    <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                                                        <ClipboardList className="h-4 w-4" />
+                                                        {t('discharge.followup')}
+                                                    </h3>
+                                                    <p className="whitespace-pre-wrap">{dischargeData.followup}</p>
+                                                </div>
+                                            )}
+
                                             {/* Red Flags - Print Friendly Red Box */}
                                             {dischargeData.red_flags && (
                                                 <div className="border border-red-500 bg-red-50 p-4 rounded-md print:border-black print:bg-transparent break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
@@ -374,11 +391,26 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     {/* Review Date */}
                                     {dischargeData.review_date && (
                                         <section className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <h3 className="font-heading font-semibold text-primary leading-none flex items-center gap-2">
-                                                <Calendar className="h-5 w-5" />
-                                                {t('discharge.review_date')}
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="font-heading font-semibold text-gray-700 flex items-center gap-2 leading-none">
+                                                    <Calendar className="h-5 w-5 text-gray-500" />
+                                                    <span>{t('discharge.review_date')}:</span>
+                                                </h3>
+                                                <span className="text-[11px] font-bold text-gray-700 px-3 py-1 border border-gray-300 rounded-full bg-gray-100/50">
+                                                    {new Date(dischargeData.review_date).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day: '2-digit', month: 'long', year: 'numeric' })} ({new Date(dischargeData.review_date).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { weekday: 'long' })})
+                                                </span>
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {/* Follow-up Instructions */}
+                                    {dischargeData.followup && (
+                                        <section className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                                            <h3 className="font-heading font-semibold text-primary flex items-center gap-2 leading-none mb-2">
+                                                <ClipboardList className="h-5 w-5" />
+                                                <span>{t('discharge.followup')}:</span>
                                             </h3>
-                                            <p className="font-medium ml-7">{format(new Date(dischargeData.review_date), 'dd MMM yyyy')}</p>
+                                            <p className="ml-7 whitespace-pre-wrap">{dischargeData.followup}</p>
                                         </section>
                                     )}
 
