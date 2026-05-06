@@ -68,10 +68,12 @@ import { calculateAge } from "@/lib/age";
 import { Switch } from "@/components/ui/switch";
 import { MedicationManager } from '@/components/consultation/MedicationManager';
 import { Medication } from '@/types/consultation';
-import { DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { processTextShortcuts } from '@/lib/textShortcuts';
+import { useMedicationManager } from '../hooks/useMedicationManager';
+import { useClinicalAutofill } from '../hooks/useClinicalAutofill';
+import { useMedicationLibrary } from '../hooks/useMedicationLibrary';
 // Removed useTranslation import correctly
 import { DISCHARGE_INSTRUCTIONS, DAMA_TEXT } from '@/utils/dischargeConstants';
 import { ConsentManagementModal } from '@/components/inpatient/ConsentManagementModal';
@@ -136,9 +138,13 @@ const InPatientManagement = () => {
     const [activeTab, setActiveTab] = useState('admitted');
     const [fetchAll, setFetchAll] = useState(false);
     const [inPatientLanguage, setInPatientLanguage] = useState<string>('te');
+    const { savedMedications, refreshLibrary: fetchSavedMedications } = useMedicationLibrary();
+    const { autofillKeywords, processFieldChange: autofillProcessor } = useClinicalAutofill({ consultantId: consultant?.id });
 
     // Refs
     const dischargeFormRef = useRef<{ print: () => void }>(null);
+    const admissionDiagnosisRef = useRef<HTMLInputElement>(null);
+    const admissionProcedureRef = useRef<HTMLTextAreaElement>(null);
 
     // Printing
     const [printData, setPrintData] = useState<DischargeSummary | null>(null);
@@ -189,9 +195,9 @@ const InPatientManagement = () => {
     };
 
     const handleSavePrintSettings = async (
-        profile: boolean, 
-        signSeal: boolean, 
-        options: PrintOptions, 
+        profile: boolean,
+        signSeal: boolean,
+        options: PrintOptions,
         multiChanges?: Record<string, { profile: boolean, signSeal: boolean, options: PrintOptions }>
     ) => {
         if (!consultant) return;
@@ -199,12 +205,12 @@ const InPatientManagement = () => {
         try {
             const currentSettings = consultant.messaging_settings || {};
             let newSettings = { ...currentSettings };
-            
+
             if (multiChanges) {
                 // Batch update all locations
                 const optionsMap = { ...(currentSettings.location_print_options || {}) };
                 const overridesMap = { ...(currentSettings.location_print_overrides || {}) };
-                
+
                 Object.entries(multiChanges).forEach(([loc, data]) => {
                     optionsMap[loc] = data.options;
                     overridesMap[loc] = {
@@ -213,7 +219,7 @@ const InPatientManagement = () => {
                         show_sign_seal: data.signSeal
                     };
                 });
-                
+
                 newSettings.location_print_options = optionsMap;
                 newSettings.location_print_overrides = overridesMap;
             } else {
@@ -529,7 +535,7 @@ const InPatientManagement = () => {
             // Send notification ONLY if this is NOT a draft AND it's the first time (status changing from admitted -> discharged)
             if (!variables.isDraft && selectedPatientForDischarge && selectedPatientForDischarge.status !== 'discharged') {
                 sendDischargeNotification(selectedPatientForDischarge, variables.language);
-                
+
                 // Auto-schedule Google Review Request (Customizable)
                 const config = (consultant?.messaging_settings as any)?.auto_discharge_config;
                 const isEnabled = config ? config.enabled : (consultant?.messaging_settings as any)?.auto_discharge_review;
@@ -538,14 +544,14 @@ const InPatientManagement = () => {
                     const delayDays = config?.delay_days ?? 3;
                     const defaultTe = `నమస్కారం ${selectedPatientForDischarge.patient.name} గారు, మీ ఆరోగ్యం కుదుటపడుతోందని ఆశిస్తున్నాము. మీ అనుభవం బాగుంటే, దయచేసి మాకు గూగుల్ రివ్యూ ఇవ్వగలరు. మీ ఫీడ్‌బ్యాక్ మాకు చాలా ముఖ్యం!`;
                     const defaultEn = `Hello ${selectedPatientForDischarge.patient.name}, we hope you are recovering well. If you had a good experience with us, please consider leaving a Google Review. Your feedback is highly appreciated!`;
-                    
-                    const template = variables.language === 'te' 
-                        ? (config?.message_te || defaultTe) 
+
+                    const template = variables.language === 'te'
+                        ? (config?.message_te || defaultTe)
                         : (config?.message_en || defaultEn);
 
                     // Basic placeholder replacement
                     const reviewMessage = template.replace(/\{\{patient_name\}\}/g, selectedPatientForDischarge.patient.name);
-                        
+
                     scheduleService.upsertAutoTask({
                         task_type: 'whatsapp_message',
                         scheduled_for: new Date(Date.now() + delayDays * 24 * 60 * 60 * 1000).toISOString(),
@@ -569,7 +575,7 @@ const InPatientManagement = () => {
     const sendWhatsAppMutation = useMutation({
         mutationFn: async ({ phone, message, scheduled_at }: { phone: string, message: string, scheduled_at?: string }) => {
             if (!consultant?.is_whatsauto_active) return;
-            
+
             if (scheduled_at) {
                 const { success, error } = await scheduleService.scheduleTask({
                     task_type: 'whatsapp_message',
@@ -1134,9 +1140,9 @@ const InPatientManagement = () => {
                                                 className="scale-75"
                                             />
                                         </div>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             className="w-full text-[10px] h-7 text-primary hover:text-primary hover:bg-primary/5 border border-primary/20 border-dashed"
                                             onClick={() => setIsMessagingSettingsModalOpen(true)}
                                         >
@@ -1362,8 +1368,8 @@ const InPatientManagement = () => {
                                 onSendWhatsApp={initWhatsApp}
                                 onEdit={() => openEditModal(p)}
                                 onViewSummary={() => openDischargeModal(p)}
-                                onPrint={() => p.discharge_summary && triggerPrint({ 
-                                    ...p.discharge_summary, 
+                                onPrint={() => p.discharge_summary && triggerPrint({
+                                    ...p.discharge_summary,
                                     language: p.language || 'en',
                                     patient_snapshot: {
                                         ...p.discharge_summary.patient_snapshot,
@@ -1497,18 +1503,40 @@ const InPatientManagement = () => {
                         <div className="space-y-2 col-span-1 lg:col-span-2">
                             <Label>Diagnosis</Label>
                             <Input
+                                ref={admissionDiagnosisRef}
                                 placeholder="Clinical diagnosis..."
                                 value={admissionData.diagnosis}
-                                onChange={(e) => setAdmissionData({ ...admissionData, diagnosis: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const cursor = e.target.selectionStart;
+                                    const result = autofillProcessor(val, cursor || val.length, { enableDurationShortcuts: true, language: 'en', variant: 'default' });
+                                    setAdmissionData({ ...admissionData, diagnosis: result ? result.newValue : val });
+                                    if (result) {
+                                        setTimeout(() => {
+                                            admissionDiagnosisRef.current?.setSelectionRange(result.newCursorPosition, result.newCursorPosition);
+                                        }, 0);
+                                    }
+                                }}
                             />
                         </div>
 
                         <div className="space-y-2 col-span-1 lg:col-span-2">
                             <Label>Procedure Plan</Label>
                             <Textarea
+                                ref={admissionProcedureRef}
                                 placeholder="Procedure details..."
                                 value={admissionData.procedure}
-                                onChange={(e) => setAdmissionData({ ...admissionData, procedure: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const cursor = e.target.selectionStart;
+                                    const result = autofillProcessor(val, cursor || val.length, { enableDurationShortcuts: true, language: 'en', variant: 'default' });
+                                    setAdmissionData({ ...admissionData, procedure: result ? result.newValue : val });
+                                    if (result) {
+                                        setTimeout(() => {
+                                            admissionProcedureRef.current?.setSelectionRange(result.newCursorPosition, result.newCursorPosition);
+                                        }, 0);
+                                    }
+                                }}
                                 className="min-h-[80px]"
                             />
                         </div>
@@ -1660,6 +1688,7 @@ const InPatientManagement = () => {
                         onLanguageChange={updateLocalLanguage}
                         isSaving={editMutation.isPending}
                         onCancel={() => setIsEditModalOpen(false)}
+                        processFieldChange={autofillProcessor}
                     />
                 </DialogContent>
             </Dialog>
@@ -1729,6 +1758,12 @@ const InPatientManagement = () => {
                             onPrint={(summary: DischargeSummary, date: string) => {
                                 triggerPrint(summary, (selectedPatientForDischarge as any)?.consultant, date);
                             }}
+                            consultant={consultant}
+                            selectedHospital={getHospitalByName(selectedPatientForDischarge.location)}
+                            processFieldChange={autofillProcessor}
+                            autofillKeywords={autofillKeywords}
+                            savedMedications={savedMedications}
+                            fetchSavedMedications={fetchSavedMedications}
                         />
                     )}
                 </DialogContent>
@@ -1741,9 +1776,9 @@ const InPatientManagement = () => {
                     isDoctorProfileEnabled={localProfileEnabled}
                     isSignSealEnabled={localSignSealEnabled}
                     printOptions={localPrintOptions}
-                    onToggleProfile={() => {}}
-                    onToggleSignSeal={() => {}}
-                    onUpdatePrintOptions={() => {}}
+                    onToggleProfile={() => { }}
+                    onToggleSignSeal={() => { }}
+                    onUpdatePrintOptions={() => { }}
                     onSaveAll={handleSavePrintSettings}
                     currentLocation={settingsLocation}
                     mode="ip"
@@ -1754,30 +1789,30 @@ const InPatientManagement = () => {
 
             {/* Hidden Print Component */}
             <div style={{ display: 'none' }}>
-                    {printData && (
-                        <DischargeSummaryPrint
-                            ref={printRef}
-                            patientSnapshot={printData.patient_snapshot}
-                            courseDetails={printData.course_details}
-                            dischargeData={printData.discharge_data}
-                            language={printData?.language || inPatientLanguage}
-                            logoUrl={getHospitalByName(printData.patient_snapshot.location || 'OrthoLife')?.logoUrl || (printConsultant && consultant && printConsultant.id === consultant.id ? consultant.logo_url : (printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"))}
-                            dischargeDate={printDate}
-                            consultant={(printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant)}
-                            showSignSeal={(() => {
-                                const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
-                                const location = (printData.patient_snapshot as any).location || 'OrthoLife';
-                                return activeConsultant?.messaging_settings?.location_print_overrides?.[location]?.show_sign_seal ?? true;
-                            })()}
-                            printOptions={(() => {
-                                const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
-                                if (!activeConsultant) return undefined;
-                                const settings = activeConsultant.messaging_settings as any;
-                                const location = (printData.patient_snapshot as any).location || 'OrthoLife';
-                                return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
-                            })()}
-                        />
-                    )}
+                {printData && (
+                    <DischargeSummaryPrint
+                        ref={printRef}
+                        patientSnapshot={printData.patient_snapshot}
+                        courseDetails={printData.course_details}
+                        dischargeData={printData.discharge_data}
+                        language={printData?.language || inPatientLanguage}
+                        logoUrl={getHospitalByName(printData.patient_snapshot.location || 'OrthoLife')?.logoUrl || (printConsultant && consultant && printConsultant.id === consultant.id ? consultant.logo_url : (printConsultant?.logo_url || consultant?.logo_url || "/images/logos/logo.png"))}
+                        dischargeDate={printDate}
+                        consultant={(printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant)}
+                        showSignSeal={(() => {
+                            const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
+                            const location = (printData.patient_snapshot as any).location || 'OrthoLife';
+                            return activeConsultant?.messaging_settings?.location_print_overrides?.[location]?.show_sign_seal ?? true;
+                        })()}
+                        printOptions={(() => {
+                            const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
+                            if (!activeConsultant) return undefined;
+                            const settings = activeConsultant.messaging_settings as any;
+                            const location = (printData.patient_snapshot as any).location || 'OrthoLife';
+                            return settings?.location_print_options?.[location] || settings?.location_print_options?.['OrthoLife'];
+                        })()}
+                    />
+                )}
             </div>
 
             {/* 4. WhatsApp Modal */}
@@ -1875,10 +1910,10 @@ const InPatientManagement = () => {
             />
 
             {/* Consent Templates Bank is now a separate page */}
-            
-            <MessagingSettingsModal 
-                isOpen={isMessagingSettingsModalOpen} 
-                onClose={() => setIsMessagingSettingsModalOpen(false)} 
+
+            <MessagingSettingsModal
+                isOpen={isMessagingSettingsModalOpen}
+                onClose={() => setIsMessagingSettingsModalOpen(false)}
                 initialTab="discharge"
             />
         </div>
@@ -1894,7 +1929,14 @@ const EmptyState = ({ icon: Icon, message }: { icon: any, message: string }) => 
     </div>
 );
 
-const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCancel }: { patient: InPatient | null, onSubmit: (data: any) => void, onLanguageChange?: (code: string) => void, isSaving: boolean, onCancel: () => void }) => {
+const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCancel, processFieldChange }: {
+    patient: InPatient | null,
+    onSubmit: (data: any) => void,
+    onLanguageChange?: (code: string) => void,
+    isSaving: boolean,
+    onCancel: () => void,
+    processFieldChange: any
+}) => {
     const { hospitals } = useHospitals();
     const {
         locationName,
@@ -1902,6 +1944,10 @@ const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCanc
         toggleGps,
         handleManualLocationChange
     } = useHospitalLocation('inpatient');
+
+    const diagRef = useRef<HTMLInputElement>(null);
+    const procRef = useRef<HTMLTextAreaElement>(null);
+
     const [data, setData] = useState({
         diagnosis: patient?.diagnosis || '',
         procedure: patient?.procedure || '',
@@ -1996,11 +2042,39 @@ const EditPatientForm = ({ patient, onSubmit, onLanguageChange, isSaving, onCanc
             </div>
             <div className="space-y-2 col-span-1 lg:col-span-2">
                 <Label>Diagnosis</Label>
-                <Input value={data.diagnosis} onChange={e => setData({ ...data, diagnosis: e.target.value })} />
+                <Input
+                    ref={diagRef}
+                    value={data.diagnosis}
+                    onChange={e => {
+                        const val = e.target.value;
+                        const cursor = e.target.selectionStart;
+                        const result = processFieldChange(val, cursor || val.length, { enableDurationShortcuts: true, language: 'en', variant: 'default' });
+                        setData({ ...data, diagnosis: result ? result.newValue : val });
+                        if (result) {
+                            setTimeout(() => {
+                                diagRef.current?.setSelectionRange(result.newCursorPosition, result.newCursorPosition);
+                            }, 0);
+                        }
+                    }}
+                />
             </div>
             <div className="space-y-2 col-span-1 lg:col-span-2">
                 <Label>Procedure</Label>
-                <Textarea value={data.procedure} onChange={e => setData({ ...data, procedure: e.target.value })} />
+                <Textarea
+                    ref={procRef}
+                    value={data.procedure}
+                    onChange={e => {
+                        const val = e.target.value;
+                        const cursor = e.target.selectionStart;
+                        const result = processFieldChange(val, cursor || val.length, { enableDurationShortcuts: true, language: 'en', variant: 'default' });
+                        setData({ ...data, procedure: result ? result.newValue : val });
+                        if (result) {
+                            setTimeout(() => {
+                                procRef.current?.setSelectionRange(result.newCursorPosition, result.newCursorPosition);
+                            }, 0);
+                        }
+                    }}
+                />
             </div>
             <div className="space-y-2">
                 <Label>Procedure Date</Label>
@@ -2122,10 +2196,27 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     onSubmit: (d: DischargeSummary, date: string, isDraft?: boolean) => void,
     isSaving: boolean,
     onPrint?: (d: DischargeSummary, date: string) => void,
-    currentLanguage: string
-}>(({ patient, onSubmit, isSaving, onPrint, currentLanguage }, ref) => {
+    currentLanguage: string,
+    consultant: any,
+    selectedHospital: any,
+    processFieldChange: any,
+    autofillKeywords: any[],
+    savedMedications: Medication[],
+    fetchSavedMedications: () => void
+}>(({ patient, onSubmit, isSaving, onPrint, currentLanguage, consultant, selectedHospital, processFieldChange, autofillKeywords, savedMedications, fetchSavedMedications }, ref) => {
     const [activeTab, setActiveTab] = useState("demographics");
     const [dischargeDate, setDischargeDate] = useState<string>('');
+
+    // Field Refs for Cursor Management
+    const diagnosisRef = useRef<HTMLInputElement>(null);
+    const procedureRef = useRef<HTMLTextAreaElement>(null);
+    const operationNotesRef = useRef<HTMLTextAreaElement>(null);
+    const clinicalNotesRef = useRef<HTMLTextAreaElement>(null);
+    const postOpCareRef = useRef<HTMLTextAreaElement>(null);
+    const woundCareRef = useRef<HTMLTextAreaElement>(null);
+    const activityRef = useRef<HTMLTextAreaElement>(null);
+    const redFlagsRef = useRef<HTMLTextAreaElement>(null);
+    const followupRef = useRef<HTMLTextAreaElement>(null);
 
     const { data: otTemplates } = useQuery({
         queryKey: ['ot-notes-templates-all'],
@@ -2314,44 +2405,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    // -- Queries for Meds & Shortcuts --
-    const [savedMedications, setSavedMedications] = useState<Medication[]>([]);
-    const [textShortcuts, setTextShortcuts] = useState<any[]>([]);
-    const [autofillKeywords, setAutofillKeywords] = useState<AutofillProtocol[]>([]);
 
-    const fetchSavedMedications = async () => {
-        const { data } = await supabase.from('saved_medications').select('*').order('composition');
-        if (data) {
-            const mappedData = data.map((item: any) => ({
-                ...item,
-                composition: item.composition || '',
-                dose: item.dose || '',
-                frequency: item.frequency || '',
-                duration: item.duration || '',
-                instructions: item.instructions || '',
-                notes: item.notes || '',
-                freqMorning: item.freq_morning ?? false,
-                freqNoon: item.freq_noon ?? false,
-                freqNight: item.freq_night ?? false
-            }));
-            setSavedMedications(mappedData as Medication[]);
-        }
-    };
-    const fetchTextShortcuts = async () => {
-        const { data } = await supabase.from('text_shortcuts').select('*');
-        if (data) setTextShortcuts(data);
-    };
-    const fetchAutofillKeywords = async () => {
-        const { data } = await supabase.from('autofill_keywords').select('*');
-        if (data) setAutofillKeywords(data as unknown as AutofillProtocol[]);
-    };
-
-
-    React.useEffect(() => {
-        fetchSavedMedications();
-        fetchTextShortcuts();
-        fetchAutofillKeywords();
-    }, []);
 
 
     // -- Autofill on mount --
@@ -2438,110 +2492,91 @@ const DischargeForm = forwardRef<{ print: () => void }, {
     }, [patient]);
 
 
-    // -- Med Handlers --
-    const handleMedChange = (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => {
-        setDischarge(prev => {
-            const newMeds = [...prev.medications];
-            // Text shortcuts
-            if (typeof value === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
-                const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
-                if (processed) {
-                    newMeds[index] = { ...newMeds[index], [field]: processed.newValue };
-                    setTimeout(() => {
-                        const refs = {
-                            composition: medicationNameInputRef.current,
-                            frequency: medFrequencyRefs.current[`${index}.frequency`],
-                            duration: medDurationRefs.current[`${index}.duration`],
-                            instructions: medInstructionsRefs.current[`${index}.instructions`],
-                            notes: medNotesRefs.current[`${index}.notes`],
-                        };
-                        const ref = refs[field as keyof typeof refs];
-                        if (ref) {
-                            (ref as any).setSelectionRange(processed.newCursorPosition, processed.newCursorPosition);
-                        }
-                    }, 0);
-                    return { ...prev, medications: newMeds };
-                }
+    // -- Medication Manager Logic --
+    const {
+        addMedication,
+        removeMedication,
+        handleMedChange: originalHandleMedChange,
+        handleDragEnd,
+        handleMedicationSuggestionClick: originalHandleMedicationSuggestionClick
+    } = useMedicationManager({
+        medications: discharge.medications,
+        onMedicationsChange: (meds) => {
+            if (typeof meds === 'function') {
+                setDischarge(prev => ({ ...prev, medications: meds(prev.medications) }));
+            } else {
+                setDischarge(prev => ({ ...prev, medications: meds }));
             }
-
-            newMeds[index] = { ...newMeds[index], [field]: value };
-            return { ...prev, medications: newMeds };
-        });
-    };
-
-    const addMedication = React.useCallback(() => {
-        const newMed: Medication = {
-            id: crypto.randomUUID(),
-            composition: '', dose: '', frequency: '', duration: '', instructions: '', notes: '',
-            freqMorning: false, freqNoon: false, freqNight: false
-        };
-        setDischarge(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
-    }, []);
-
-    const removeMedication = (index: number) => {
-        setDischarge(prev => ({ ...prev, medications: prev.medications.filter((_, i) => i !== index) }));
-    };
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (active.id !== over?.id) {
-            setDischarge((prev) => {
-                const oldIndex = prev.medications.findIndex((m) => m.id === active.id);
-                const newIndex = prev.medications.findIndex((m) => m.id === over?.id);
-                return {
-                    ...prev,
-                    medications: arrayMove(prev.medications, oldIndex, newIndex),
-                };
-            });
         }
-    };
+    });
 
     const handleMedicationSuggestionClick = (med: Medication) => {
-        const isTelugu = currentLanguage === 'te';
+        originalHandleMedicationSuggestionClick(med, currentLanguage);
+    };
 
-        let finalBrandName: string | undefined = med.brandName; // Use pre-calculated brand if exists
+    const handleMedChange = (index: number, field: keyof Medication, value: any, cursorPosition?: number | null) => {
+        // 1. First process with shortcut logic if it's a string field
+        if (typeof value === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
+            const result = processFieldChange(value, cursorPosition || value.length, { enableDurationShortcuts: true, language: 'en', variant: 'default' });
+            if (result) {
+                originalHandleMedChange(index, field, result.newValue);
+                setTimeout(() => {
+                    const refs = {
+                        composition: medicationNameInputRef.current,
+                        frequency: medFrequencyRefs.current[`${index}.frequency`],
+                        duration: medDurationRefs.current[`${index}.duration`],
+                        instructions: medInstructionsRefs.current[`${index}.instructions`],
+                        notes: medNotesRefs.current[`${index}.notes`],
+                    };
+                    const ref = refs[field as keyof typeof refs];
+                    if (ref) {
+                        (ref as any).setSelectionRange(result.newCursorPosition, result.newCursorPosition);
+                    }
+                }, 0);
+                return;
+            }
+        }
 
-        const newMed: Medication = {
-            id: crypto.randomUUID(),
-            composition: med.composition || (med as any).name || '',
-            brandName: finalBrandName,
-            savedMedicationId: (med as any).id,
-            dose: med.dose || '',
-            freqMorning: med.freqMorning || false,
-            freqNoon: med.freqNoon || false,
-            freqNight: med.freqNight || false,
-            frequency: (isTelugu && med.frequency_te) ? med.frequency_te : (med.frequency || ''),
-            duration: (isTelugu && med.duration_te) ? med.duration_te : (med.duration || ''),
-            instructions: (isTelugu && med.instructions_te) ? med.instructions_te : (med.instructions || ''),
-            notes: (isTelugu && med.notes_te) ? med.notes_te : (med.notes || ''),
-            frequency_te: isTelugu ? (med.frequency || '') : (med.frequency_te || ''),
-            duration_te: isTelugu ? (med.duration || '') : (med.duration_te || ''),
-            instructions_te: isTelugu ? (med.instructions || '') : (med.instructions_te || ''),
-            notes_te: isTelugu ? (med.notes || '') : (med.notes_te || '')
-        };
-        setDischarge(prev => ({ ...prev, medications: [...prev.medications, newMed] }));
+        // 2. Otherwise fall back to standard handler
+        originalHandleMedChange(index, field, value);
     };
 
     // -- Generic Shortcut Handler for TextAreas --
-    const handleTextChange = (field: 'operation_notes' | 'post_op_care' | 'clinical_notes' | 'activity' | 'red_flags' | 'wound_care', value: string, cursorPosition?: number) => {
-        const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
+    const handleTextChange = (field: 'diagnosis' | 'procedure' | 'operation_notes' | 'post_op_care' | 'clinical_notes' | 'activity' | 'red_flags' | 'wound_care' | 'followup', value: string, cursorPosition?: number) => {
+        const isCourseField = ['diagnosis', 'procedure', 'operation_notes'].includes(field);
 
-        // Helper to update state based on field
-        if (field === 'operation_notes') {
-            if (processed) {
-                setCourse(prev => ({ ...prev, operation_notes: processed.newValue }));
-                // Note: managing ref cursor for textareas in tabs requires refs for each. 
-                // For simplicity in this iteration, we process the update. 
-                // In a full implementation we'd need refs for these textareas too to restore cursor.
-            } else {
-                setCourse(prev => ({ ...prev, operation_notes: value }));
-            }
+        const result = processFieldChange(value, cursorPosition || value.length, {
+            enableDurationShortcuts: true,
+            language: 'en',
+            variant: field === 'followup' ? 'followup' : 'default'
+        });
+
+        const newValue = result ? result.newValue : value;
+
+        if (isCourseField) {
+            setCourse(prev => ({ ...prev, [field]: newValue }));
         } else {
-            if (processed) {
-                setDischarge(prev => ({ ...prev, [field]: processed.newValue }));
-            } else {
-                setDischarge(prev => ({ ...prev, [field]: value }));
-            }
+            setDischarge(prev => ({ ...prev, [field]: newValue }));
+        }
+
+        if (result) {
+            setTimeout(() => {
+                const refs: any = {
+                    diagnosis: diagnosisRef,
+                    procedure: procedureRef,
+                    operation_notes: operationNotesRef,
+                    clinical_notes: clinicalNotesRef,
+                    post_op_care: postOpCareRef,
+                    wound_care: woundCareRef,
+                    activity: activityRef,
+                    red_flags: redFlagsRef,
+                    followup: followupRef
+                };
+                const targetRef = refs[field];
+                if (targetRef && targetRef.current) {
+                    targetRef.current.setSelectionRange(result.newCursorPosition, result.newCursorPosition);
+                }
+            }, 0);
         }
     };
 
@@ -2748,11 +2783,11 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                             <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4">
                                 <div className="space-y-2 col-span-1 lg:col-span-2">
                                     <Label>Diagnosis</Label>
-                                    <Input value={course.diagnosis} onChange={e => setCourse({ ...course, diagnosis: e.target.value })} />
+                                    <Input ref={diagnosisRef} value={course.diagnosis} onChange={e => handleTextChange('diagnosis', e.target.value, e.target.selectionStart)} />
                                 </div>
                                 <div className="space-y-2 col-span-1 lg:col-span-2">
                                     <Label>Procedure Performed</Label>
-                                    <Textarea value={course.procedure} onChange={e => setCourse({ ...course, procedure: e.target.value })} />
+                                    <Textarea ref={procedureRef} value={course.procedure} onChange={e => handleTextChange('procedure', e.target.value, e.target.selectionStart)} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Admission Date</Label>
@@ -2858,6 +2893,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                         </Popover>
                                     </div>
                                     <Textarea
+                                        ref={operationNotesRef}
                                         placeholder="Tourniquet time, findings, implants used..."
                                         value={course.operation_notes}
                                         onChange={e => handleTextChange('operation_notes', e.target.value, e.target.selectionStart)}
@@ -2911,6 +2947,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                             <div className="space-y-2">
                                 <Label>Additional Clinical Notes / Summary</Label>
                                 <Textarea
+                                    ref={clinicalNotesRef}
                                     placeholder="Summary of hospital stay..."
                                     value={discharge.clinical_notes}
                                     onChange={e => handleTextChange('clinical_notes', e.target.value, e.target.selectionStart)}
@@ -2947,6 +2984,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><FileText className="w-4 h-4" /> Post-Op Care / Advice</Label>
                                 <Textarea
+                                    ref={postOpCareRef}
                                     placeholder="Care instructions..."
                                     value={discharge.post_op_care}
                                     onChange={e => handleTextChange('post_op_care', e.target.value, e.target.selectionStart)}
@@ -3010,6 +3048,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                         </Popover>
                                     </div>
                                     <Textarea
+                                        ref={woundCareRef}
                                         value={discharge.wound_care || ''}
                                         onChange={e => handleTextChange('wound_care', e.target.value, e.target.selectionStart)}
                                         rows={4}
@@ -3019,6 +3058,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2"><Activity className="w-4 h-4" /> Activity / Physio Instructions</Label>
                                     <Textarea
+                                        ref={activityRef}
                                         value={discharge.activity || ''}
                                         onChange={e => handleTextChange('activity', e.target.value, e.target.selectionStart)}
                                         rows={6}
@@ -3032,6 +3072,7 @@ const DischargeForm = forwardRef<{ print: () => void }, {
                                         <div className="space-y-2 mt-2">
                                             <Label className="text-red-700 font-semibold">Red Flags / Emergency Instructions</Label>
                                             <Textarea
+                                                ref={redFlagsRef}
                                                 value={discharge.red_flags || ''}
                                                 onChange={e => handleTextChange('red_flags', e.target.value, e.target.selectionStart)}
                                                 className="bg-white border-red-200"

@@ -176,25 +176,164 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
     };
 
     const applyFilters = (consultations: Consultation[]) => {
+        const query = searchQuery.toLowerCase().trim();
         return consultations.filter(c => {
-            const matchesSearch = c.patient.name.toLowerCase().includes(searchQuery.toLowerCase());
-
+            // First apply categorical filters (Sex, Age, Visit Type)
             const matchesSex = sexFilter === 'all' ||
                 (sexFilter === 'male' && (c.patient.sex?.toLowerCase() === 'm' || c.patient.sex?.toLowerCase() === 'male')) ||
                 (sexFilter === 'female' && (c.patient.sex?.toLowerCase() === 'f' || c.patient.sex?.toLowerCase() === 'female'));
+            if (!matchesSex) return false;
 
             const age = calculateAge(c.patient.dob);
             const matchesAge = ageFilter === 'all' ||
                 (ageFilter === 'pediatric' && age < 18) ||
                 (ageFilter === 'adult' && age >= 18 && age <= 60) ||
                 (ageFilter === 'senior' && age > 60);
+            if (!matchesAge) return false;
 
             const matchesVisitType = visitTypeFilter === 'all' ||
                 (visitTypeFilter === 'paid' && c.visit_type?.toLowerCase() === 'paid') ||
                 (visitTypeFilter === 'free' && c.visit_type?.toLowerCase() === 'free');
+            if (!matchesVisitType) return false;
 
-            return matchesSearch && matchesSex && matchesAge && matchesVisitType;
+            // If no search query, everything remaining is a match
+            if (!query) return true;
+
+            // --- DEEP SEARCH LOGIC ---
+            
+            // 1. Patient Identity
+            const p = c.patient;
+            if (p.name.toLowerCase().includes(query) ||
+                p.phone?.includes(query) ||
+                p.secondary_phone?.includes(query) ||
+                p.hometown?.toLowerCase().includes(query) ||
+                p.occupation?.toLowerCase().includes(query) ||
+                p.blood_group?.toLowerCase().includes(query) ||
+                p.allergies?.toLowerCase().includes(query)) return true;
+
+            // 2. Clinical Data
+            const d = c.consultation_data;
+            if (d) {
+                // Main text fields
+                if (d.complaints?.toLowerCase().includes(query) ||
+                    d.medicalHistory?.toLowerCase().includes(query) ||
+                    d.findings?.toLowerCase().includes(query) ||
+                    d.diagnosis?.toLowerCase().includes(query) ||
+                    d.investigations?.toLowerCase().includes(query) ||
+                    d.advice?.toLowerCase().includes(query) ||
+                    d.procedure?.toLowerCase().includes(query) ||
+                    d.orthotics?.toLowerCase().includes(query) ||
+                    d.personalNote?.toLowerCase().includes(query) ||
+                    d.followup?.toLowerCase().includes(query)) return true;
+
+                // Vitals
+                if (d.weight?.includes(query) ||
+                    d.bp?.includes(query) ||
+                    d.pulse?.includes(query) ||
+                    d.spo2?.includes(query) ||
+                    d.temperature?.includes(query) ||
+                    d.height?.includes(query) ||
+                    d.bmi?.includes(query)) return true;
+
+                // Medications
+                if (d.medications?.some(m =>
+                    m.composition?.toLowerCase().includes(query) ||
+                    m.brandName?.toLowerCase().includes(query) ||
+                    m.instructions?.toLowerCase().includes(query) ||
+                    m.notes?.toLowerCase().includes(query) ||
+                    m.dose?.toLowerCase().includes(query)
+                )) return true;
+
+                // Documents & Reports
+                if (d.investigation_reports?.some(r => r.fileName?.toLowerCase().includes(query) || r.gist?.toLowerCase().includes(query))) return true;
+                if (d.certificates?.some(cert => cert.customContent?.toLowerCase().includes(query))) return true;
+                if (d.receipts?.some(rect => rect.serviceName?.toLowerCase().includes(query))) return true;
+            }
+
+            // 3. Referral Details
+            if (c.referred_by?.toLowerCase().includes(query)) return true;
+
+            return false;
         });
+    };
+
+    const getMatchPreview = (consultation: Consultation, query: string) => {
+        const q = query.toLowerCase().trim();
+        if (q.length < 1) return null;
+
+        // Skip if match is in the name itself (already visible)
+        if (consultation.patient.name.toLowerCase().includes(q)) return null;
+
+        const findInText = (text: string | null | undefined): string | null => {
+            if (!text) return null;
+            const lowerText = text.toLowerCase();
+            const index = lowerText.indexOf(q);
+            if (index === -1) return null;
+
+            // Find start of previous word
+            const beforePart = text.slice(0, index);
+            const beforeWords = beforePart.match(/\S+/g);
+            let startPos = index;
+            if (beforeWords && beforeWords.length > 0) {
+                const lastWord = beforeWords[beforeWords.length - 1];
+                startPos = beforePart.lastIndexOf(lastWord);
+            }
+
+            // Find end of next word
+            const afterPart = text.slice(index + q.length);
+            const afterWords = afterPart.match(/\S+/g);
+            let endPos = index + q.length;
+            if (afterWords && afterWords.length > 0) {
+                const firstWord = afterWords[0];
+                endPos = index + q.length + afterPart.indexOf(firstWord) + firstWord.length;
+            }
+
+            const snippet = text.slice(startPos, endPos).trim();
+            return `...${snippet}...`;
+        };
+
+        const d = consultation.consultation_data;
+        const p = consultation.patient;
+
+        // Sequence of fields to check
+        const previews = [
+            findInText(d?.diagnosis),
+            findInText(d?.complaints),
+            findInText(d?.findings),
+            findInText(d?.advice),
+            findInText(d?.procedure),
+            findInText(d?.medicalHistory),
+            findInText(d?.personalNote),
+            findInText(d?.investigations),
+            findInText(p.phone),
+            findInText(p.hometown),
+            findInText(p.occupation),
+            findInText(consultation.referred_by),
+            findInText(d?.weight ? `Weight: ${d.weight}` : null),
+            findInText(d?.bp ? `BP: ${d.bp}` : null)
+        ];
+
+        for (const preview of previews) {
+            if (preview) return preview;
+        }
+
+        // Check Medications
+        if (d?.medications) {
+            for (const m of d.medications) {
+                const mMatch = findInText(m.composition) || findInText(m.brandName) || findInText(m.instructions);
+                if (mMatch) return mMatch;
+            }
+        }
+
+        // Check Reports
+        if (d?.investigation_reports) {
+            for (const r of d.investigation_reports) {
+                const rMatch = findInText(r.fileName) || findInText(r.gist);
+                if (rMatch) return rMatch;
+            }
+        }
+
+        return null;
     };
 
     const filteredPending = applyFilters(pendingConsultations);
@@ -297,9 +436,9 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     <div className="flex flex-col">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Welcome,</span>
                         <span className="text-sm font-bold text-primary">
-                            {typeof consultant.name === 'object'
-                                ? consultant.name.en || consultant.name.te
-                                : consultant.name}
+                            {typeof consultant.name === 'object' && consultant.name !== null
+                                ? (consultant.name.en || consultant.name.te)
+                                : String(consultant.name || '')}
                         </span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -543,7 +682,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     <div className="flex gap-2">
                         <Input
                             ref={searchInputRef}
-                            placeholder={`Search patients... (${typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+                            placeholder={`Search anything... (${typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
                                 ? '2 Finger Tap'
                                 : (typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl') + '+D'
                                 })`}
@@ -700,15 +839,22 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
                                     <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
-                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3" onClick={() => {
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3 h-auto py-2" onClick={() => {
                                             onSelectConsultation(c);
                                             setSearchQuery('');
                                         }}>
-                                            <div className="flex flex-col items-start overflow-hidden">
-                                                <span className="truncate w-full text-left">{c.patient.name}</span>
-                                                <span className="text-[10px] opacity-70 font-normal">
-                                                    {formatLocalTime(c.created_at)}
-                                                </span>
+                                            <div className="flex flex-col items-start overflow-hidden w-full">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span className="truncate font-medium text-left">{c.patient.name}</span>
+                                                    <span className="text-[10px] opacity-70 font-normal shrink-0 ml-2">
+                                                        {formatLocalTime(c.created_at)}
+                                                    </span>
+                                                </div>
+                                                {searchQuery && getMatchPreview(c, searchQuery) && (
+                                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate w-full text-left bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded mt-1 border border-blue-100 dark:border-blue-800 italic">
+                                                        {getMatchPreview(c, searchQuery)}
+                                                    </span>
+                                                )}
                                             </div>
                                             {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500 shrink-0" />}
                                         </Button>
@@ -738,15 +884,22 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
                                     <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
-                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3" onClick={() => {
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3 h-auto py-2" onClick={() => {
                                             onSelectConsultation(c);
                                             setSearchQuery('');
                                         }}>
-                                            <div className="flex flex-col items-start overflow-hidden">
-                                                <span className="truncate w-full text-left">{c.patient.name}</span>
-                                                <span className="text-[10px] opacity-70 font-normal">
-                                                    {formatLocalTime(c.created_at)}
-                                                </span>
+                                            <div className="flex flex-col items-start overflow-hidden w-full">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span className="truncate font-medium text-left">{c.patient.name}</span>
+                                                    <span className="text-[10px] opacity-70 font-normal shrink-0 ml-2">
+                                                        {formatLocalTime(c.created_at)}
+                                                    </span>
+                                                </div>
+                                                {searchQuery && getMatchPreview(c, searchQuery) && (
+                                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate w-full text-left bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded mt-1 border border-blue-100 dark:border-blue-800 italic">
+                                                        {getMatchPreview(c, searchQuery)}
+                                                    </span>
+                                                )}
                                             </div>
                                             {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500 shrink-0" />}
                                         </Button>
@@ -776,15 +929,22 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 const isHighlighted = globalIndex === highlightedIndex;
                                 return (
                                     <div key={c.id} className={cn("flex items-center gap-2 p-1 rounded-md", isHighlighted && "bg-accent")}>
-                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3" onClick={() => {
+                                        <Button variant={selectedConsultationId === c.id ? 'default' : 'outline'} className="flex-grow justify-between px-3 h-auto py-2" onClick={() => {
                                             onSelectConsultation(c);
                                             setSearchQuery('');
                                         }}>
-                                            <div className="flex flex-col items-start overflow-hidden">
-                                                <span className="truncate w-full text-left">{c.patient.name}</span>
-                                                <span className="text-[10px] opacity-70 font-normal">
-                                                    {formatLocalTime(c.created_at)}
-                                                </span>
+                                            <div className="flex flex-col items-start overflow-hidden w-full">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span className="truncate font-medium text-left">{c.patient.name}</span>
+                                                    <span className="text-[10px] opacity-70 font-normal shrink-0 ml-2">
+                                                        {formatLocalTime(c.created_at)}
+                                                    </span>
+                                                </div>
+                                                {searchQuery && getMatchPreview(c, searchQuery) && (
+                                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate w-full text-left bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded mt-1 border border-blue-100 dark:border-blue-800 italic">
+                                                        {getMatchPreview(c, searchQuery)}
+                                                    </span>
+                                                )}
                                             </div>
                                             {(String(c.patient.id).startsWith('offline-')) && <CloudOff className="h-4 w-4 text-yellow-500 shrink-0" />}
                                         </Button>
