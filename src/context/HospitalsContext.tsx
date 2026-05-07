@@ -7,6 +7,8 @@ import { areLocationsEqual } from '@/lib/utils';
 export interface HospitalSettings {
     op_fees: number;
     free_visit_duration_days: number;
+    max_registrations?: number;
+    include_reviews_in_limit?: boolean;
     address?: string | { en?: string; te?: string };
     [key: string]: any; // Allow extensibility
 }
@@ -83,7 +85,7 @@ export const HospitalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 logoUrl: h.logo_url,
                 lat: h.lat,
                 lng: h.lng,
-                settings: h.settings || { op_fees: 0, free_visit_duration_days: 14 },
+                settings: h.settings || { op_fees: 0, free_visit_duration_days: 14, max_registrations: 0, include_reviews_in_limit: true },
                 consultantId: h.consultant_id
             }));
 

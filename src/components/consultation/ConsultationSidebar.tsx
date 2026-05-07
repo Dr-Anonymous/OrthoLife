@@ -71,7 +71,7 @@ interface ConsultationSidebarProps {
     onReferredByChange: (value: string) => void;
     referredByRef?: React.RefObject<HTMLInputElement>;
     initialReferredBy?: string;
-    onProfileClick?: () => void;
+    onProfileClick?: (tab?: string, hospitalId?: string) => void;
     onShortcutsClick?: () => void;
     hasChanges?: boolean;
     onNavigate?: (path: string) => void;
@@ -640,8 +640,21 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
             )}
             <div className="space-y-4">
                 <div className="flex flex-col gap-2">
-                    <div className="font-semibold">
+                    <div className="font-semibold flex items-center gap-1">
                         Total Consultations: {totalConsultationsCount}
+                        {(() => {
+                            const hospital = hospitals.find(h => h.name === selectedHospitalName);
+                            if (!hospital?.settings?.max_registrations) return null;
+                            return (
+                                <button 
+                                    onClick={() => onProfileClick?.('practice', hospital.id)}
+                                    title="Click to edit registration limit"
+                                    className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                                >
+                                    / {hospital.settings.max_registrations}
+                                </button>
+                            );
+                        })()}
                     </div>
                     <div className="flex gap-2">
                         <Input

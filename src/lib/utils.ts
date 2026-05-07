@@ -482,6 +482,29 @@ export function normalizeSearchText(text: string | null | undefined): string {
 }
 
 /**
+ * Performs a deep equality check between two values.
+ */
+export function isEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  
+  // Treat null and undefined as equivalent for comparison purposes
+  if ((a === null || a === undefined) && (b === null || b === undefined)) return true;
+  
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    const keysA = Object.keys(a).filter(k => a[k] !== undefined && a[k] !== null);
+    const keysB = Object.keys(b).filter(k => b[k] !== undefined && b[k] !== null);
+    
+    if (keysA.length !== keysB.length) return false;
+    
+    for (const key of keysA) {
+      if (!isEqual(a[key], b[key])) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
  * Creates a fuzzy regex that ignores spaces and special characters between search terms.
  * Useful for matching "dolo650" against "Dolo-650" while preserving original text indices.
  */

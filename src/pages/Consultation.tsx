@@ -150,6 +150,14 @@ const ConsultationPage = () => {
   });
   const [initialLanguage, setInitialLanguage] = useState<string>('te');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileModalInitialTab, setProfileModalInitialTab] = useState<string | undefined>(undefined);
+  const [profileModalTargetHospitalId, setProfileModalTargetHospitalId] = useState<string | undefined>(undefined);
+
+  const handleProfileClick = (tab?: string, hospitalId?: string) => {
+    setProfileModalInitialTab(tab);
+    setProfileModalTargetHospitalId(hospitalId);
+    setIsProfileModalOpen(true);
+  };
   const [showTour, setShowTour] = useState(false);
   const [isTourSimulation, setIsTourSimulation] = useState(false);
 
@@ -356,7 +364,19 @@ const ConsultationPage = () => {
 
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
-    if (hospitals.length === 0) return { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14, address: '' } };
+    if (hospitals.length === 0) return { 
+      name: 'OrthoLife', 
+      logoUrl: '', 
+      lat: 0, 
+      lng: 0, 
+      settings: { 
+        op_fees: 0, 
+        free_visit_duration_days: 14, 
+        max_registrations: 0,
+        include_reviews_in_limit: true,
+        address: '' 
+      } 
+    };
     return hospitals.find(h => areLocationsEqual(h.name, selectedLocation)) || hospitals[0];
   }, [hospitals, selectedLocation]);
 
@@ -889,6 +909,11 @@ const ConsultationPage = () => {
       }
       // ----------------------------------------
 
+      // Security Filter: Ensure the hydrated record belongs to the current consultant
+      if (consultant?.id && data.consultant_id && String(data.consultant_id) !== String(consultant.id)) {
+        return null;
+      }
+
       setAllConsultations(prev => {
         const exists = prev.some(c => c.id === data.id);
         const newList = exists
@@ -906,7 +931,7 @@ const ConsultationPage = () => {
       console.error('Failed to hydrate inserted consultation:', err);
       return null;
     }
-  }, [selectedDate]);
+  }, [selectedDate, consultant?.id]);
 
   // Realtime subscription for instant updates (e.g., from front desk registration)
   useEffect(() => {
@@ -925,14 +950,17 @@ const ConsultationPage = () => {
           try {
             const { eventType, new: newRow, old: oldRow } = payload;
 
-            // Guard for location
+            // Guard for location and consultant scoping
             const locationMatch =
               areLocationsEqual(newRow?.location, selectedHospital.name) ||
               areLocationsEqual(oldRow?.location, selectedHospital.name);
 
+            // Filter by consultant_id to prevent leaking patients between consultants
+            const consultantMatch = !consultant?.id || !newRow?.consultant_id || String(newRow.consultant_id) === String(consultant.id);
+
             // For deletions, we can't check location easily without REPLICA IDENTITY FULL,
             // but filtering locally by ID is safe and cost-free.
-            if (eventType !== 'DELETE' && !locationMatch) return;
+            if (eventType !== 'DELETE' && (!locationMatch || !consultantMatch)) return;
 
             if (eventType === 'INSERT') {
               // New record: we must refetch to get nested patient data and full hydration
@@ -2150,9 +2178,13 @@ const ConsultationPage = () => {
       if (selectedHospital?.name && c.location && !areLocationsEqual(c.location, selectedHospital.name)) {
         return false;
       }
+      // Filter by consultant_id if present to prevent leakage between consultants
+      if (consultant?.id && c.consultant_id && String(c.consultant_id) !== String(consultant.id)) {
+        return false;
+      }
       return true;
     });
-  }, [allConsultations, selectedHospital]);
+  }, [allConsultations, selectedHospital, consultant?.id]);
 
   const pendingConsultations = filteredConsultations.filter(c => c.status === 'pending');
   const evaluationConsultations = filteredConsultations.filter(c => c.status === 'under_evaluation');
@@ -2411,7 +2443,7 @@ const ConsultationPage = () => {
             onReferredByChange={(val) => handleExtraChange('referred_by', val)}
             referredByRef={referredByRef}
             initialReferredBy={initialExtraData?.referred_by}
-            onProfileClick={() => setIsProfileModalOpen(true)}
+            onProfileClick={handleProfileClick}
             hasChanges={hasChanges}
             onNavigate={handleNavigate}
             searchInputRef={sidebarSearchRef}
@@ -2832,6 +2864,9 @@ const ConsultationPage = () => {
               location={selectedHospital.name}
               onSuccess={handleRegistrationSuccess}
               consultantId={consultant?.id}
+              existingConsultations={allConsultations}
+              maxRegistrations={selectedHospital.settings?.max_registrations}
+              includeReviewsInLimit={selectedHospital.settings?.include_reviews_in_limit !== undefined ? selectedHospital.settings.include_reviews_in_limit : true}
             />
           </div>
         </DialogContent>
@@ -2877,6 +2912,8 @@ const ConsultationPage = () => {
         <ConsultantProfileModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
+          initialTab={profileModalInitialTab}
+          targetHospitalId={profileModalTargetHospitalId}
         />
       )}
     </>

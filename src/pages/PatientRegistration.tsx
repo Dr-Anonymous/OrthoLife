@@ -49,6 +49,7 @@ const PatientRegistration = () => {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
   const recentlyHandledIds = useRef<Set<string | number>>(new Set());
 
   const { consultant, isLoading: isConsultantLoading } = useConsultant();
@@ -447,6 +448,8 @@ const PatientRegistration = () => {
                 location={locationName}
                 existingConsultations={filteredConsultations}
                 consultantId={consultant.id}
+                maxRegistrations={hospital?.settings?.max_registrations}
+                includeReviewsInLimit={hospital?.settings?.include_reviews_in_limit}
               />
             </CardContent>
           </Card>
@@ -454,7 +457,7 @@ const PatientRegistration = () => {
           <div className="mt-8">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
               <h3 className="text-xl font-semibold text-center">
-                Consultations at {locationName} ({filteredConsultations.length})
+                Consultations at {locationName} ({filteredConsultations.length}{hospital?.settings?.max_registrations ? ` / ${hospital.settings.max_registrations}` : ''})
               </h3>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>

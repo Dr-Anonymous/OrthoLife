@@ -21,13 +21,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { compressImage, processTransparentImage } from '@/lib/image-utils';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Plus, Trash2, Save, User, Users, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff, Bone, Activity, Syringe, ChevronUp, ChevronDown, Heart, Brain, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage, IdCard, Building2, RotateCcw, Upload } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isEqual } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 interface ConsultantProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: string;
+  targetHospitalId?: string;
 }
 
 type Bilingual = { en: string; te: string };
@@ -154,16 +156,16 @@ const SectionAccordion: React.FC<{
 
 // --- Main component -------------------------------------------------------
 
-export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ isOpen, onClose }) => {
+export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ isOpen, onClose, initialTab, targetHospitalId }) => {
   const { consultant, refreshConsultant } = useConsultant();
   const { refreshHospitals } = useHospitals();
   const { signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('identity');
+  const [activeTab, setActiveTab] = useState(initialTab || 'identity');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [bothLangs, setBothLangs] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Profile State
   const buildInitialFormData = (c: any) => ({
@@ -195,18 +197,34 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
   const [showPassword, setShowPassword] = useState(false);
   const [showReceptionPassword, setShowReceptionPassword] = useState(false);
 
-  // Wrap setFormData to mark dirty
-  const updateForm = (updater: (prev: any) => any) => {
-    setIsDirty(true);
-    setFormData(updater);
-  };
-
   // Locations State
   const [editableHospitals, setEditableHospitals] = useState<any[]>([]);
   const originalHospitalsRef = useRef<string>('[]');
 
+  const isDirty = useMemo(() => {
+    if (!consultant) return false;
+
+    // Check profile form
+    const initialForm = buildInitialFormData(consultant);
+    if (!isEqual(formData, initialForm)) return true;
+
+    // Check hospitals
+    let originalHospitals = [];
+    try {
+      originalHospitals = JSON.parse(originalHospitalsRef.current);
+    } catch (e) {
+      originalHospitals = [];
+    }
+    
+    return !isEqual(editableHospitals, originalHospitals);
+  }, [formData, editableHospitals, consultant]);
+
+  // Wrap setFormData
+  const updateForm = (updater: (prev: any) => any) => {
+    setFormData(updater);
+  };
+
   const updateHospitals = (updater: (prev: any[]) => any[]) => {
-    setIsDirty(true);
     setEditableHospitals(updater);
   };
 
@@ -214,9 +232,41 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     if (isOpen && consultant) {
       setFormData(buildInitialFormData(consultant));
       fetchConsultantHospitals();
-      setIsDirty(false);
+      if (initialTab) setActiveTab(initialTab);
     }
-  }, [isOpen, consultant]);
+  }, [isOpen, consultant, initialTab]);
+
+  const hasScrolledRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      hasScrolledRef.current = false;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    hasScrolledRef.current = false;
+  }, [targetHospitalId]);
+
+  // Deep linking to specific hospital
+  useEffect(() => {
+    if (isOpen && targetHospitalId && activeTab === 'practice' && editableHospitals.length > 0 && !hasScrolledRef.current) {
+      const scrollTimer = setTimeout(() => {
+        const inputElement = document.getElementById(`limit-input-${targetHospitalId}`);
+        const containerElement = document.getElementById(`hospital-${targetHospitalId}`);
+        
+        if (inputElement && containerElement) {
+          containerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          containerElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+          inputElement.focus();
+          
+          hasScrolledRef.current = true;
+          setTimeout(() => containerElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2'), 3000);
+        }
+      }, 600); // Wait for data to render
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [isOpen, targetHospitalId, activeTab, editableHospitals.length]);
 
   const fetchConsultantHospitals = async () => {
     if (!consultant) return;
@@ -308,7 +358,6 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
       }
 
       await refreshConsultant();
-      setIsDirty(false);
       toast({ title: 'Profile Saved', description: 'All changes have been saved successfully.' });
     } catch (err: any) {
       console.error('Save error:', err);
@@ -322,7 +371,6 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     if (!consultant) return;
     setFormData(buildInitialFormData(consultant));
     fetchConsultantHospitals();
-    setIsDirty(false);
     toast({ title: 'Changes Discarded', description: 'Reverted to last saved values.' });
   };
 
@@ -381,14 +429,25 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
       lat: 16.9836,
       lng: 82.2527,
       is_new: true,
-      settings: { op_fees: 400, consultant_cut: 400, free_visit_duration_days: 14 }
+      settings: { op_fees: 400, consultant_cut: 400, free_visit_duration_days: 14, include_reviews_in_limit: true }
     };
     updateHospitals(prev => [...prev, newHospital]);
   };
 
   const handleUpdateHospitalUI = (id: string, updates: any) => {
-    setIsDirty(true);
-    updateHospitals(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h));
+    setEditableHospitals(prev => {
+      const h = prev.find(h => h.id === id);
+      if (!h) return prev;
+
+      // Check if any value in updates is actually different from current
+      const hasActualChange = Object.entries(updates).some(([key, newVal]) => {
+        return !isEqual((h as any)[key], newVal);
+      });
+
+      if (!hasActualChange) return prev;
+      
+      return prev.map(h => h.id === id ? { ...h, ...updates } : h);
+    });
   };
 
   const handleHospitalLogoUpload = async (file: File, hospitalId: string) => {
@@ -961,7 +1020,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                 >
                   <div className="space-y-3">
                     {editableHospitals.map((hospital, hIdx) => (
-                      <div key={hospital.id} className="border rounded-lg p-4 space-y-4 bg-secondary/5">
+                      <div key={hospital.id} id={`hospital-${hospital.id}`} className="border rounded-lg p-4 space-y-4 bg-secondary/5 transition-all duration-500">
                         <div className="flex items-center justify-between pb-2 border-b border-border/60">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                             Location {hIdx + 1}
@@ -1000,11 +1059,51 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                           </div>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                          <div className="space-y-1"><Label className="text-[11px]">OP Fees (₹)</Label><Input type="number" className="h-8" value={hospital.settings?.op_fees || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, op_fees: parseInt(e.target.value) } })} /></div>
-                          <div className="space-y-1"><Label className="text-[11px]">Consultant Cut (₹)</Label><Input type="number" className="h-8" value={hospital.settings?.consultant_cut || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, consultant_cut: parseInt(e.target.value) } })} /></div>
-                          <div className="space-y-1"><Label className="text-[11px]">Free Visit (Days)</Label><Input type="number" className="h-8" value={hospital.settings?.free_visit_duration_days || 14} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, free_visit_duration_days: parseInt(e.target.value) } })} /></div>
+                          <div className="space-y-1"><Label className="text-[11px]">OP Fees (₹)</Label><Input type="number" min={0} className="h-8" value={hospital.settings?.op_fees || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, op_fees: parseInt(e.target.value, 10) } })} /></div>
+                          <div className="space-y-1"><Label className="text-[11px]">Consultant Cut (₹)</Label><Input type="number" min={0} className="h-8" value={hospital.settings?.consultant_cut || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, consultant_cut: parseInt(e.target.value, 10) } })} /></div>
+                          <div className="space-y-1"><Label className="text-[11px]">Free Visit (Days)</Label><Input type="number" min={0} className="h-8" value={hospital.settings?.free_visit_duration_days || 14} onChange={e => handleUpdateHospitalUI(hospital.id, { settings: { ...hospital.settings, free_visit_duration_days: parseInt(e.target.value, 10) } })} /></div>
                           <div className="space-y-1"><Label className="text-[11px]">Latitude</Label><Input type="number" step="any" className="h-8" value={hospital.lat || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lat: parseFloat(e.target.value) })} /></div>
                           <div className="space-y-1"><Label className="text-[11px]">Longitude</Label><Input type="number" step="any" className="h-8" value={hospital.lng || 0} onChange={e => handleUpdateHospitalUI(hospital.id, { lng: parseFloat(e.target.value) })} /></div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 pt-3 border-t border-dashed border-border/60">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <Label className="text-[11px] font-semibold flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-primary" /> Max Daily Limit
+                              </Label>
+                              <p className="text-[10px] text-muted-foreground">Stop registrations after this</p>
+                            </div>
+                            <div className="relative w-24">
+                              <Input
+                                id={`limit-input-${hospital.id}`}
+                                type="number"
+                                min={0}
+                                className="h-8 text-right pr-2 font-mono text-xs"
+                                placeholder="Unlimited"
+                                value={hospital.settings?.max_registrations ?? ''}
+                                onChange={e => handleUpdateHospitalUI(hospital.id, {
+                                  settings: { ...hospital.settings, max_registrations: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10)) }
+                                })}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <Label className="text-[11px] font-semibold flex items-center gap-1.5">
+                                <RotateCcw className="w-3.5 h-3.5 text-primary" /> Include Reviews
+                              </Label>
+                              <p className="text-[10px] text-muted-foreground">Count free visits in total</p>
+                            </div>
+                            <Switch
+                              checked={hospital.settings?.include_reviews_in_limit ?? true}
+                              onCheckedChange={checked => handleUpdateHospitalUI(hospital.id, {
+                                settings: { ...hospital.settings, include_reviews_in_limit: checked }
+                              })}
+                              className="scale-90"
+                            />
+                          </div>
                         </div>
                         <div className="mt-2">
                           <BilingualField

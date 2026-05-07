@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { cachePatients, searchLocalPatients } from '@/hooks/useOfflineSync';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, User, Phone, Calendar as CalendarIcon, Search, MapPin, Briefcase } from 'lucide-react';
+import { Loader2, User, Phone, Calendar as CalendarIcon, Search, MapPin, Briefcase, Ban } from 'lucide-react';
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, differenceInDays } from 'date-fns';
@@ -64,6 +64,8 @@ interface ConsultationRegistrationProps {
   location?: string;
   existingConsultations?: any[];
   consultantId?: string | number;
+  maxRegistrations?: number;
+  includeReviewsInLimit?: boolean;
 }
 
 /**
@@ -77,9 +79,24 @@ interface ConsultationRegistrationProps {
  * - Auto-calc of visit type (Paid/Free) based on history (14-day rule).
  * - Duplicate check via backend logic.
  */
-const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onSuccess, location, existingConsultations = [], consultantId }) => {
+const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ 
+  onSuccess, 
+  location, 
+  existingConsultations = [], 
+  consultantId,
+  maxRegistrations = 0,
+  includeReviewsInLimit = true
+}) => {
   const isOnline = useOnlineStatus();
   const { getHospitalByName } = useHospitals();
+
+  const currentRegistrationCount = useMemo(() => {
+    if (!existingConsultations) return 0;
+    if (includeReviewsInLimit) return existingConsultations.length;
+    return existingConsultations.filter(c => c.visit_type?.toLowerCase() !== 'free' && c.visit_type?.toLowerCase() !== 'review').length;
+  }, [existingConsultations, includeReviewsInLimit]);
+
+  const isLimitReached = maxRegistrations > 0 && currentRegistrationCount >= maxRegistrations;
   const [formData, setFormData] = useState<FormData>({
     id: null,
     name: '',
@@ -441,7 +458,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isBusy.current) return;
+    if (isBusy.current || isLimitReached) return;
     if (!validateForm()) return;
     isBusy.current = true;
     setIsSubmitting(true);
@@ -836,10 +853,26 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
           </div>
         </div>
 
+        {isLimitReached && (
+          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 text-destructive">
+            <Ban className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="text-xs">
+              <p className="font-bold">Registration Limit Reached</p>
+              <p>This location has reached its daily limit of {maxRegistrations} registrations. Further registrations are currently blocked.</p>
+            </div>
+          </div>
+        )}
+
         <div className="pt-6">
-          <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            className={cn("w-full h-12 text-lg font-semibold", isLimitReached && "bg-muted text-muted-foreground")} 
+            disabled={isSubmitting || isLimitReached}
+          >
             {isSubmitting ? (
               <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Registering...</>
+            ) : isLimitReached ? (
+              'Limit Reached'
             ) : (
               'Register for Consultation'
             )}
