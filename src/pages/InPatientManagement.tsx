@@ -39,7 +39,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from '@/integrations/supabase/client';
-import { pruneEmptyFields, cn, calculateFollowUpDate, getNextFollowUpText } from '@/lib/utils';
+import { pruneEmptyFields, cn, calculateFollowUpDate, getNextFollowUpText, normalizeSearchText } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -926,21 +926,23 @@ const InPatientManagement = () => {
     const admittedPatients = useMemo(() => {
         if (!admittedInPatients) return [];
         if (!searchTerm) return admittedInPatients;
-        return admittedInPatients.filter(p =>
-            p.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        return admittedInPatients.filter(p => {
+            const normalizedQuery = normalizeSearchText(searchTerm);
+            return normalizeSearchText(p.patient.name).includes(normalizedQuery) ||
             p.patient.phone.includes(searchTerm) ||
-            (p.diagnosis && p.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
+            (p.diagnosis && normalizeSearchText(p.diagnosis).includes(normalizedQuery));
+        });
     }, [admittedInPatients, searchTerm]);
 
     const filteredDischargedPatients = useMemo(() => {
         if (!dischargedInPatients) return [];
         if (!searchTerm) return dischargedInPatients;
-        return dischargedInPatients.filter(p =>
-            p.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        return dischargedInPatients.filter(p => {
+            const normalizedQuery = normalizeSearchText(searchTerm);
+            return normalizeSearchText(p.patient.name).includes(normalizedQuery) ||
             p.patient.phone.includes(searchTerm) ||
-            (p.diagnosis && p.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
+            (p.diagnosis && normalizeSearchText(p.diagnosis).includes(normalizedQuery));
+        });
     }, [dischargedInPatients, searchTerm]);
 
     const dischargedPatients = filteredDischargedPatients;

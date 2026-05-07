@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { MapPin, Search, UserPlus, BookOpen, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog, Filter, Check, X } from 'lucide-react';
-import { cn, formatLocalTime } from '@/lib/utils';
+import { cn, formatLocalTime, normalizeSearchText, createNormalizationRegex } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
@@ -177,6 +177,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
 
     const filteredData = React.useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
+        const normalizedQuery = normalizeSearchText(query);
+        const fuzzyQueryRegex = createNormalizationRegex(query);
 
         const processList = (consultations: Consultation[]) => {
             return consultations
@@ -211,10 +213,14 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
 
                     // helper for preview
                     const findInText = (text: string | null | undefined): string | null => {
-                        if (!text) return null;
-                        const lowerText = text.toLowerCase();
-                        const index = lowerText.indexOf(query);
-                        if (index === -1) return null;
+                        if (!text || !fuzzyQueryRegex) return null;
+                        
+                        fuzzyQueryRegex.lastIndex = 0;
+                        const match = fuzzyQueryRegex.exec(text);
+                        if (!match) return null;
+
+                        const index = match.index;
+                        const matchLength = match[0].length;
 
                         const beforePart = text.slice(0, index);
                         const beforeWords = beforePart.match(/\S+/g);
@@ -223,19 +229,19 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             startPos = beforePart.lastIndexOf(beforeWords[beforeWords.length - 1]);
                         }
 
-                        const afterPart = text.slice(index + query.length);
+                        const afterPart = text.slice(index + matchLength);
                         const afterWords = afterPart.match(/\S+/g);
-                        let endPos = index + query.length;
+                        let endPos = index + matchLength;
                         if (afterWords && afterWords.length > 0) {
                             const firstWord = afterWords[0];
-                            endPos = index + query.length + afterPart.indexOf(firstWord) + firstWord.length;
+                            endPos = index + matchLength + afterPart.indexOf(firstWord) + firstWord.length;
                         }
 
                         return `...${text.slice(startPos, endPos).trim()}...`;
                     };
 
                     // Check Name (High Priority, no preview needed)
-                    if (p.name.toLowerCase().includes(query)) {
+                    if (normalizeSearchText(p.name).includes(normalizedQuery)) {
                         return { consultation: c, isVisible: true, preview: null };
                     }
 

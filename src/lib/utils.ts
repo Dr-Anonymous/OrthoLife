@@ -21,7 +21,7 @@ export function normalizeMedName(name: string | null | undefined): string {
     clean = clean.replace(prefixRegex, '').trim();
   } while (clean !== oldClean);
 
-  return clean;
+  return normalizeSearchText(clean);
 }
 
 /**
@@ -288,13 +288,12 @@ export function getNextFollowUpText(currentFollowup: string, daysToAdd: number, 
         const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
         processedFollowup = currentFollowup.replace(dateStrRegex, formattedDate);
     } else if (tomorrowRegex.test(currentFollowup)) {
-        processedFollowup = currentFollowup.replace(tomorrowRegex, fullTemplate);
+        processedFollowup = currentFollowup.replace(tomorrowRegex, newDurationText);
     } else if (durationRegex.test(currentFollowup)) {
         processedFollowup = currentFollowup.replace(durationRegex, `${newCount} ${newUnit}`);
     } else {
-        // If no existing pattern found, don't force expansion
-        // This allows the structured review_date to change without polluting the text notes
-        processedFollowup = currentFollowup;
+        // Restore append fallback: if no existing pattern found, append the new duration
+        processedFollowup = `${currentFollowup} ${newDurationText}`.trim();
     }
 
     return processedFollowup;
@@ -462,11 +461,8 @@ export function escapeRegex(s: string): string {
  */
 export function normalizeLocationName(name: string | null | undefined): string {
   if (!name) return "";
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/\b(hospitals?|clinics?|centers?|centre?s?)\b/gi, '')
-    .replace(/[^a-z0-9]/g, '');
+  const cleaned = name.replace(/\b(hospitals?|clinics?|centers?|centre?s?)\b/gi, '');
+  return normalizeSearchText(cleaned);
 }
 
 /**
@@ -474,4 +470,24 @@ export function normalizeLocationName(name: string | null | undefined): string {
  */
 export function areLocationsEqual(loc1: string | null | undefined, loc2: string | null | undefined): boolean {
   return normalizeLocationName(loc1) === normalizeLocationName(loc2);
+}
+/**
+ * Normalizes text for search by converting to lowercase and removing all non-alphanumeric characters.
+ * Use this to ignore spaces and special characters during comparisons.
+ */
+export function normalizeSearchText(text: string | null | undefined): string {
+  if (!text) return "";
+  return text.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Creates a fuzzy regex that ignores spaces and special characters between search terms.
+ * Useful for matching "dolo650" against "Dolo-650" while preserving original text indices.
+ */
+export function createNormalizationRegex(query: string): RegExp | null {
+  const normalized = normalizeSearchText(query);
+  if (!normalized) return null;
+  // Create a pattern where each character of the query can be followed by any number of non-alphanumeric characters
+  const pattern = normalized.split('').map(char => `${char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^a-z0-9]*`).join('');
+  return new RegExp(pattern, 'gi');
 }

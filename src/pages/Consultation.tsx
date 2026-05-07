@@ -55,7 +55,6 @@ import { Patient, Consultation, Medication, TextShortcut, ExtraData, AutofillPro
 
 import { processTextShortcuts } from '@/lib/textShortcuts';
 import { getMatchingGuides } from '@/lib/guideMatching';
-import { useMedicationManager } from '../hooks/useMedicationManager';
 import { useClinicalAutofill } from '../hooks/useClinicalAutofill';
 import { useMedicationLibrary } from '../hooks/useMedicationLibrary';
 import { generateCompletionMessage as generateCompletionMessageUtil } from '@/lib/consultation-utils';
@@ -2106,7 +2105,7 @@ const ConsultationPage = () => {
         extraData.medications.forEach((otherMed, otherIdx) => {
           if (idx === otherIdx || !otherMed.composition) return;
 
-          if (otherMed.composition.toLowerCase().includes(interCompLower)) {
+          if (normalizeSearchText(otherMed.composition).includes(normalizeSearchText(interCompLower))) {
             const medA_comp = med.composition || '';
             const medB_comp = otherMed.composition || '';
 

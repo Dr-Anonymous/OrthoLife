@@ -7,6 +7,8 @@ import { Guide } from '@/types/consultation';
 import { SYNC_NOW_EVENT } from '@/lib/offline-sync-events';
 import { OfflineConsultationBundle } from '@/types/offline-sync';
 
+import { normalizeSearchText } from '@/lib/utils';
+
 interface UseOfflineSyncProps {
     isOnline: boolean;
     consultantName?: { en: string; te: string };
@@ -55,11 +57,11 @@ export const cachePatients = async (patients: any[]) => {
 
 export const searchLocalPatients = async (term: string, type: 'name' | 'phone') => {
     const cache = (await offlineStore.getItem('patientCache') as any[]) || [];
-    const lowerTerm = term.toLowerCase();
+    const normalizedTerm = normalizeSearchText(term);
 
     return cache.filter(p => {
         if (type === 'name') {
-            return p.name.toLowerCase().includes(lowerTerm);
+            return normalizeSearchText(p.name).includes(normalizedTerm);
         } else {
             return p.phone.includes(term);
         }

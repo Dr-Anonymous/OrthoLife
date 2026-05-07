@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, X, Plus, Edit, Save, Search } from 'lucide-react';
+import { normalizeSearchText } from '@/lib/utils';
 
 interface Keyword {
   id: number;
@@ -74,9 +75,10 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
   const displayedMeds = React.useMemo(() => {
+    const normalizedQuery = normalizeSearchText(searchQuery);
     let filtered = medications.filter(med =>
-      med.composition.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (med.brand_metadata || []).some(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      normalizeSearchText(med.composition).includes(normalizedQuery) ||
+      (med.brand_metadata || []).some(b => normalizeSearchText(b.name).includes(normalizedQuery))
     );
 
     return filtered.sort((a, b) => {
@@ -423,20 +425,20 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto p-1">
                 {keywords.filter(kw => {
-                  const query = listSearchQuery.toLowerCase().trim();
+                  const query = normalizeSearchText(listSearchQuery);
                   if (!query) return true;
                   
-                  const hasKeywordMatch = (kw.keywords || []).some(k => k.toLowerCase().includes(query));
-                  const hasAdviceMatch = kw.advice?.toLowerCase().includes(query) || kw.advice_te?.toLowerCase().includes(query);
+                  const hasKeywordMatch = (kw.keywords || []).some(k => normalizeSearchText(k).includes(query));
+                  const hasAdviceMatch = normalizeSearchText(kw.advice).includes(query) || normalizeSearchText(kw.advice_te).includes(query);
                   const hasMedMatch = (kw.medication_ids || []).some(id => {
                     const med = medications.find(m => m.id === id);
-                    const hasCompMatch = med?.composition?.toLowerCase().includes(query);
-                    const hasBrandMatch = (med?.brand_metadata || []).some(b => b.name.toLowerCase().includes(query));
+                    const hasCompMatch = normalizeSearchText(med?.composition).includes(query);
+                    const hasBrandMatch = (med?.brand_metadata || []).some(b => normalizeSearchText(b.name).includes(query));
                     return hasCompMatch || hasBrandMatch;
                   });
-                  const hasInvestMatch = kw.investigations?.toLowerCase().includes(query);
-                  const hasFollowupMatch = kw.followup?.toLowerCase().includes(query) || kw.followup_te?.toLowerCase().includes(query);
-                  const hasOrthoticsMatch = kw.orthotics?.toLowerCase().includes(query) || kw.orthotics_te?.toLowerCase().includes(query);
+                  const hasInvestMatch = normalizeSearchText(kw.investigations).includes(query);
+                  const hasFollowupMatch = normalizeSearchText(kw.followup).includes(query) || normalizeSearchText(kw.followup_te).includes(query);
+                  const hasOrthoticsMatch = normalizeSearchText(kw.orthotics).includes(query) || normalizeSearchText(kw.orthotics_te).includes(query);
 
                   return hasKeywordMatch || hasAdviceMatch || hasMedMatch || hasInvestMatch || hasFollowupMatch || hasOrthoticsMatch;
                 }).map(kw => (

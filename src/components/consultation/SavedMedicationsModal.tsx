@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, X, Plus, Save, Trash2, Edit, Search, MapPin, Copy } from 'lucide-react';
+import { normalizeSearchText } from '@/lib/utils';
 import { useHospitals } from '@/context/HospitalsContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -84,10 +85,11 @@ const SavedMedicationsModal: React.FC<SavedMedicationsModalProps> = ({ isOpen, o
 
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
-  const filteredMeds = medications.filter(med =>
-    med.composition.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (med.brand_metadata && med.brand_metadata.some(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())))
-  );
+  const filteredMeds = medications.filter(med => {
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    return normalizeSearchText(med.composition).includes(normalizedQuery) ||
+    (med.brand_metadata && med.brand_metadata.some(b => normalizeSearchText(b.name).includes(normalizedQuery)));
+  });
 
   useEffect(() => {
     setActiveSuggestionIndex(0);

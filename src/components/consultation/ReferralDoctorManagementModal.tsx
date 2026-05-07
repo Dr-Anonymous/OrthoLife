@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, X, Plus, Edit, Save, Search } from 'lucide-react';
+import { normalizeSearchText } from '@/lib/utils';
 
 interface ReferralDoctor {
   id: number;
@@ -180,11 +181,12 @@ const ReferralDoctorManagementModal: React.FC<ReferralDoctorManagementModalProps
     }, 100);
   };
 
-  const filteredDoctors = doctors.filter(doctor => 
-    doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (doctor.specialization && doctor.specialization.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (doctor.address && doctor.address.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredDoctors = doctors.filter(doctor => {
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    return normalizeSearchText(doctor.name).includes(normalizedQuery) ||
+    (doctor.specialization && normalizeSearchText(doctor.specialization).includes(normalizedQuery)) ||
+    (doctor.address && normalizeSearchText(doctor.address).includes(normalizedQuery));
+  });
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (filteredDoctors.length === 0) return;

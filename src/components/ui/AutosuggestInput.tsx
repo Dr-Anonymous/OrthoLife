@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { cn, normalizeSearchText } from '@/lib/utils';
 
 export interface Suggestion {
   id: string;
@@ -83,21 +83,15 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
       const cleanSearch = (text: string) => {
         if (!text) return '';
         // Comprehensive list of pharmaceutical prefixes - must be followed by dot or space
-        // Using word boundary \b and global flag to catch all occurrences (especially in searchTerms)
         const prefixRegex = /\b(t|cap|syr|tab|inj|crm|gel|oint|syp|caps|tabs)[\.\s]+/gi;
         
-        const cleaned = text.toLowerCase()
-          .replace(prefixRegex, ' ')
-          .replace(/[^a-z0-9\s]/g, ' ') // Replace special characters with space
-          .replace(/\s+/g, ' ')
-          .trim();
+        const cleaned = normalizeSearchText(text.replace(prefixRegex, ''));
 
-        // If cleaning stripped everything (like if typing just a prefix), return the lowered original
-        return cleaned || text.toLowerCase().trim();
+        // If cleaning stripped everything (like if typing just a prefix), return the normalized original
+        return cleaned || normalizeSearchText(text);
       };
 
       const searchVal = cleanSearch(currentToken);
-      const searchValLower = searchVal.toLowerCase();
       
       // First, identify all group IDs that have at least one match
       const matchingGroupIds = new Set(
@@ -107,9 +101,9 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
             const cleanLabel = cleanSearch(suggestion.label || '');
             const cleanTerms = cleanSearch(suggestion.searchTerms || '');
 
-            return cleanName.includes(searchValLower) || 
-                   cleanLabel.includes(searchValLower) || 
-                   cleanTerms.includes(searchValLower);
+            return cleanName.includes(searchVal) || 
+                   cleanLabel.includes(searchVal) || 
+                   cleanTerms.includes(searchVal);
           })
           .map(suggestion => suggestion.id)
       );
@@ -128,15 +122,15 @@ const AutosuggestInput = React.forwardRef<any, AutosuggestInputProps>(({
         
         let priority = -1;
         // Priority 1: Exact match on name or label
-        if (cleanName === searchValLower || cleanLabel === searchValLower) {
+        if (cleanName === searchVal || cleanLabel === searchVal) {
           priority = 10;
         } 
         // Priority 2: Name or label starts with search term
-        else if (cleanName.startsWith(searchValLower) || cleanLabel.startsWith(searchValLower)) {
+        else if (cleanName.startsWith(searchVal) || cleanLabel.startsWith(searchVal)) {
           priority = 5;
         }
         // Priority 3: Name or label contains search term
-        else if (cleanName.includes(searchValLower) || cleanLabel.includes(searchValLower)) {
+        else if (cleanName.includes(searchVal) || cleanLabel.includes(searchVal)) {
           priority = 1;
         }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { calculateAge } from '@/lib/age';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeSearchText, createNormalizationRegex } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -98,12 +99,18 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
   const highlightKeyword = (text: string): ReactNode => {
     const trimmed = keyword.trim();
     if (!trimmed || !text) return text;
-    const safeKeyword = escapeRegExp(trimmed);
-    const regex = new RegExp(`(${safeKeyword})`, 'gi');
+    
+    const fuzzyRegex = createNormalizationRegex(trimmed);
+    if (!fuzzyRegex) return text;
+
+    // Wrap the pattern in capturing parentheses to keep matches in split result
+    const regex = new RegExp(`(${fuzzyRegex.source})`, 'gi');
     const parts = text.split(regex);
 
+    const normalizedTrimmed = normalizeSearchText(trimmed);
+
     return parts.map((part, index) => {
-      if (part.toLowerCase() === trimmed.toLowerCase()) {
+      if (normalizeSearchText(part) === normalizedTrimmed && normalizedTrimmed.length > 0) {
         return (
           <mark key={index} className="bg-yellow-200 rounded-sm px-0.5">
             {part}

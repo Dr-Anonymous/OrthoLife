@@ -12,7 +12,7 @@ import { Loader2, User, Phone, Calendar as CalendarIcon, Search, MapPin, Briefca
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, differenceInDays } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, normalizeSearchText } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { useHospitals } from '@/context/HospitalsContext';
@@ -452,7 +452,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ onS
       if (existingConsultations && existingConsultations.length > 0) {
         const isDuplicate = existingConsultations.some(c =>
           String(c.patient?.phone) === String(formData.phone) &&
-          c.patient?.name?.toLowerCase().trim() === formData.name.toLowerCase().trim()
+          normalizeSearchText(c.patient?.name) === normalizeSearchText(formData.name)
         );
 
         if (isDuplicate) {

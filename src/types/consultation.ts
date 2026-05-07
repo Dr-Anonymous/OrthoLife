@@ -211,6 +211,7 @@ export interface ReceiptData {
 export interface ExtraData {
     complaints: string;
     medicalHistory: string;
+    familyHistory?: string;
     findings: string;
     investigations: string;
     diagnosis: string;
