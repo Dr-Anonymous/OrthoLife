@@ -415,7 +415,11 @@ const PatientRegistration = () => {
                 <span className="mt-2 sm:mt-0">Patient Registration</span>
               </CardTitle>
               <CardDescription className="text-sm mt-4 flex items-center justify-center gap-2 flex-wrap">
-                <span className="text-muted-foreground">Registering patients at</span>
+                <span className="text-muted-foreground">Registering patients for</span>
+                <span className="font-bold text-foreground truncate max-w-[120px] sm:max-w-[200px] inline-block align-bottom" title={consultant?.name?.en}>
+                  {consultant?.name?.en}
+                </span>
+                <span className="text-muted-foreground">at</span>
                 <div className="flex items-center gap-1 bg-background/50 p-1 rounded-lg border shadow-sm">
                   <Select value={locationName} onValueChange={handleManualLocationChange}>
                     <SelectTrigger className="w-[160px] h-7 text-xs font-bold border-none bg-transparent hover:bg-muted/50 transition-colors focus:ring-0">
@@ -450,14 +454,20 @@ const PatientRegistration = () => {
                 consultantId={consultant.id}
                 maxRegistrations={hospital?.settings?.max_registrations}
                 includeReviewsInLimit={hospital?.settings?.include_reviews_in_limit}
+                vacationStart={consultant?.vacation_start}
+                vacationEnd={consultant?.vacation_end}
+                selectedDate={selectedDate}
               />
             </CardContent>
           </Card>
 
           <div className="mt-8">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-              <h3 className="text-xl font-semibold text-center">
-                Consultations at {locationName} ({filteredConsultations.length}{hospital?.settings?.max_registrations ? ` / ${hospital.settings.max_registrations}` : ''})
+              <h3 className="text-xl font-semibold text-center flex items-center justify-center gap-1 flex-wrap">
+                <span className="truncate max-w-[150px] sm:max-w-[300px]" title={consultant?.name?.en}>
+                  {consultant?.name?.en}
+                </span>
+                <span>'s Consultations at {locationName} ({filteredConsultations.length}{hospital?.settings?.max_registrations ? ` / ${hospital.settings.max_registrations}` : ''})</span>
               </h3>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
@@ -467,15 +477,15 @@ const PatientRegistration = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="center">
-                    <CalendarWithMonthYearPicker
-                      selected={selectedDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          setSelectedDate(date);
-                          setIsCalendarOpen(false);
-                        }
-                      }}
-                    />
+                  <CalendarWithMonthYearPicker
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(date);
+                        setIsCalendarOpen(false);
+                      }
+                    }}
+                  />
                 </PopoverContent>
               </Popover>
             </div>

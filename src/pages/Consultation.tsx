@@ -2867,6 +2867,9 @@ const ConsultationPage = () => {
               existingConsultations={allConsultations}
               maxRegistrations={selectedHospital.settings?.max_registrations}
               includeReviewsInLimit={selectedHospital.settings?.include_reviews_in_limit !== undefined ? selectedHospital.settings.include_reviews_in_limit : true}
+              vacationStart={consultant?.vacation_start}
+              vacationEnd={consultant?.vacation_end}
+              selectedDate={selectedDate}
             />
           </div>
         </DialogContent>

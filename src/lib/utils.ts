@@ -505,6 +505,30 @@ export function isEqual(a: any, b: any): boolean {
 }
 
 /**
+ * Checks if a given date falls within the consultant's vacation period.
+ * @param consultant The consultant profile object
+ * @param date The date to check (Date or ISO string)
+ */
+export function isConsultantOnVacation(consultant: any, date: Date | string): boolean {
+  if (!consultant?.vacation_start || !consultant?.vacation_end) return false;
+  
+  const checkDate = typeof date === 'string' ? new Date(date) : date;
+  
+  // Create copies and normalize to compare dates only
+  const start = new Date(consultant.vacation_start);
+  start.setHours(0, 0, 0, 0);
+  
+  const end = new Date(consultant.vacation_end);
+  end.setHours(23, 59, 59, 999);
+  
+  const normalizedCheck = new Date(checkDate);
+  // We don't necessarily need to normalize checkDate if it's already a full date-time, 
+  // but for "today" or "selected date" comparisons it's safer.
+  
+  return normalizedCheck >= start && normalizedCheck <= end;
+}
+
+/**
  * Creates a fuzzy regex that ignores spaces and special characters between search terms.
  * Useful for matching "dolo650" against "Dolo-650" while preserving original text indices.
  */

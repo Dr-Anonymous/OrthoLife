@@ -20,10 +20,11 @@ import { useHospitals } from '@/context/HospitalsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { compressImage, processTransparentImage } from '@/lib/image-utils';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2, Save, User, Users, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff, Bone, Activity, Syringe, ChevronUp, ChevronDown, Heart, Brain, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage, IdCard, Building2, RotateCcw, Upload } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, User, Users, MapPin, Award, Stethoscope, Mail, Phone, FileSignature, ShieldCheck, Image as ImageIcon, UserCog, Globe, ListChecks, LogOut, Lock, Eye, EyeOff, Bone, Activity, Syringe, ChevronUp, ChevronDown, Heart, Brain, Pill, FlaskConical, Thermometer, Baby, BriefcaseMedical, Dna, Microscope, Shield, Droplet, Ear, Hand, Bandage, IdCard, Building2, RotateCcw, Upload, CalendarOff, Ban } from 'lucide-react';
 import { cn, isEqual } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { differenceInDays } from 'date-fns';
 
 interface ConsultantProfileModalProps {
   isOpen: boolean;
@@ -191,6 +192,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     reception_phone: c?.reception_phone || '',
     reception_password: c?.reception_password || '',
     profile_layout: c?.profile_layout || 'single',
+    vacation_start: c?.vacation_start || '',
+    vacation_end: c?.vacation_end || '',
   });
 
   const [formData, setFormData] = useState(buildInitialFormData(consultant));
@@ -218,6 +221,15 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     
     return !isEqual(editableHospitals, originalHospitals);
   }, [formData, editableHospitals, consultant]);
+
+  const vacationDuration = useMemo(() => {
+    if (!formData.vacation_start || !formData.vacation_end) return 0;
+    const start = new Date(formData.vacation_start);
+    const end = new Date(formData.vacation_end);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+    // differenceInDays returns full days. For inclusive count, we add 1.
+    return Math.max(0, differenceInDays(end, start) + 1);
+  }, [formData.vacation_start, formData.vacation_end]);
 
   // Wrap setFormData
   const updateForm = (updater: (prev: any) => any) => {
@@ -334,6 +346,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           profile_layout: formData.profile_layout,
           team_members,
           lead_services,
+          vacation_start: formData.vacation_start || null,
+          vacation_end: formData.vacation_end || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', consultant.id);
@@ -801,7 +815,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                 </SectionAccordion>
 
                 {formData.profile_layout === 'team' && (
-                  <SectionAccordion
+
+                <SectionAccordion
                     value="team"
                     title="Practice Team"
                     description={`Lead consultant + ${formData.team_members.length} member${formData.team_members.length === 1 ? '' : 's'} (max 4)`}
@@ -945,6 +960,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </SectionAccordion>
                 )}
 
+
                 <SectionAccordion
                   value="services"
                   title="Specializations & Services"
@@ -1009,6 +1025,66 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                     <Button type="button" variant="outline" className="w-full border-dashed h-12" onClick={addService}>
                       <Plus className="w-4 h-4 mr-1" /> Add Service
                     </Button>
+                  </div>
+                </SectionAccordion>
+
+                <SectionAccordion value="vacation" title="Vacation Mode" description="Block registrations during your absence" icon={CalendarOff}>
+                  <div className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Set a date range during which you will be away. This will prevent any new consultations from being booked at <strong>all</strong> practice locations during these dates.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="vacation_start" className="text-xs">From Date</Label>
+                        <Input
+                          id="vacation_start"
+                          type="date"
+                          value={formData.vacation_start}
+                          onChange={e => {
+                            const newStart = e.target.value;
+                            updateForm(p => ({
+                              ...p,
+                              vacation_start: newStart,
+                              vacation_end: p.vacation_end && p.vacation_end >= newStart ? p.vacation_end : newStart
+                            }));
+                          }}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="vacation_end" className="text-xs">To Date (Inclusive)</Label>
+                        <Input
+                          id="vacation_end"
+                          type="date"
+                          value={formData.vacation_end}
+                          onChange={e => updateForm(p => ({ ...p, vacation_end: e.target.value }))}
+                          className="h-9"
+                          min={formData.vacation_start}
+                        />
+                      </div>
+                    </div>
+                    {formData.vacation_start && formData.vacation_end && (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                            Duration: {vacationDuration} {vacationDuration === 1 ? 'Day' : 'Days'}
+                          </Badge>
+                          {vacationDuration === 0 && (
+                            <span className="text-[10px] text-destructive font-medium flex items-center gap-1">
+                              <Ban className="w-3 h-3" /> Start date must be before end date
+                            </span>
+                          )}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-[10px] h-7 px-2 text-destructive"
+                          onClick={() => updateForm(p => ({ ...p, vacation_start: '', vacation_end: '' }))}
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" /> Clear Vacation Dates
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </SectionAccordion>
 
@@ -1089,21 +1165,23 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="space-y-0.5">
-                              <Label className="text-[11px] font-semibold flex items-center gap-1.5">
-                                <RotateCcw className="w-3.5 h-3.5 text-primary" /> Include Reviews
-                              </Label>
-                              <p className="text-[10px] text-muted-foreground">Count free visits in total</p>
+                          {hospital.settings?.max_registrations !== undefined && hospital.settings?.max_registrations !== null && (
+                            <div className="flex items-center justify-between gap-3 animate-in fade-in slide-in-from-right-2">
+                              <div className="space-y-0.5">
+                                <Label className="text-[11px] font-semibold flex items-center gap-1.5">
+                                  <RotateCcw className="w-3.5 h-3.5 text-primary" /> Include Reviews
+                                </Label>
+                                <p className="text-[10px] text-muted-foreground">Count free visits in total</p>
+                              </div>
+                              <Switch
+                                checked={hospital.settings?.include_reviews_in_limit ?? true}
+                                onCheckedChange={checked => handleUpdateHospitalUI(hospital.id, {
+                                  settings: { ...hospital.settings, include_reviews_in_limit: checked }
+                                })}
+                                className="scale-90"
+                              />
                             </div>
-                            <Switch
-                              checked={hospital.settings?.include_reviews_in_limit ?? true}
-                              onCheckedChange={checked => handleUpdateHospitalUI(hospital.id, {
-                                settings: { ...hospital.settings, include_reviews_in_limit: checked }
-                              })}
-                              className="scale-90"
-                            />
-                          </div>
+                          )}
                         </div>
                         <div className="mt-2">
                           <BilingualField

@@ -12,7 +12,7 @@ import { Loader2, User, Phone, Calendar as CalendarIcon, Search, MapPin, Briefca
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, differenceInDays } from 'date-fns';
-import { cn, normalizeSearchText } from '@/lib/utils';
+import { cn, normalizeSearchText, isConsultantOnVacation } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { useHospitals } from '@/context/HospitalsContext';
@@ -66,6 +66,9 @@ interface ConsultationRegistrationProps {
   consultantId?: string | number;
   maxRegistrations?: number;
   includeReviewsInLimit?: boolean;
+  vacationStart?: string;
+  vacationEnd?: string;
+  selectedDate?: Date;
 }
 
 /**
@@ -85,10 +88,17 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
   existingConsultations = [], 
   consultantId,
   maxRegistrations = 0,
-  includeReviewsInLimit = true
+  includeReviewsInLimit = true,
+  vacationStart,
+  vacationEnd,
+  selectedDate = new Date()
 }) => {
   const isOnline = useOnlineStatus();
   const { getHospitalByName } = useHospitals();
+
+  const isOnVacation = useMemo(() => {
+    return isConsultantOnVacation({ vacation_start: vacationStart, vacation_end: vacationEnd }, selectedDate);
+  }, [vacationStart, vacationEnd, selectedDate]);
 
   const currentRegistrationCount = useMemo(() => {
     if (!existingConsultations) return 0;
@@ -97,6 +107,8 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
   }, [existingConsultations, includeReviewsInLimit]);
 
   const isLimitReached = maxRegistrations > 0 && currentRegistrationCount >= maxRegistrations;
+  const isBlocked = isLimitReached || isOnVacation;
+
   const [formData, setFormData] = useState<FormData>({
     id: null,
     name: '',
@@ -458,7 +470,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isBusy.current || isLimitReached) return;
+    if (isBusy.current || isBlocked) return;
     if (!validateForm()) return;
     isBusy.current = true;
     setIsSubmitting(true);
@@ -853,12 +865,22 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
           </div>
         </div>
 
-        {isLimitReached && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 text-destructive">
-            <Ban className="w-4 h-4 mt-0.5 shrink-0" />
-            <div className="text-xs">
-              <p className="font-bold">Registration Limit Reached</p>
-              <p>This location has reached its daily limit of {maxRegistrations} registrations. Further registrations are currently blocked.</p>
+        {isOnVacation && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3 text-destructive animate-in fade-in slide-in-from-top-2">
+            <Ban className="h-5 w-5" />
+            <div className="text-sm">
+              <p className="font-bold">Consultant on Vacation</p>
+              <p>Registration is blocked until {vacationEnd ? format(new Date(vacationEnd), 'PPP') : 'return'}.</p>
+            </div>
+          </div>
+        )}
+
+        {isBlocked && !isOnVacation && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3 text-amber-800 animate-in fade-in slide-in-from-top-2">
+            <Ban className="h-5 w-5" />
+            <div className="text-sm">
+              <p className="font-bold">Daily Limit Reached</p>
+              <p>This location has reached its registration limit for today.</p>
             </div>
           </div>
         )}
@@ -866,15 +888,15 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
         <div className="pt-6">
           <Button 
             type="submit" 
-            className={cn("w-full h-12 text-lg font-semibold", isLimitReached && "bg-muted text-muted-foreground")} 
-            disabled={isSubmitting || isLimitReached}
+            className={cn("w-full h-12 text-lg font-semibold", isBlocked && "bg-muted text-muted-foreground")} 
+            disabled={isSubmitting || isBlocked}
           >
             {isSubmitting ? (
               <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Registering...</>
-            ) : isLimitReached ? (
-              'Limit Reached'
+            ) : isBlocked ? (
+              <><Ban className="mr-2 h-5 w-5" />Registration Blocked</>
             ) : (
-              'Register for Consultation'
+              'Complete Registration'
             )}
           </Button>
         </div>

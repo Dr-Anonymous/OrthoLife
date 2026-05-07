@@ -142,6 +142,8 @@ export interface Consultant {
     };
     profile_layout?: 'single' | 'team';
     team_members?: TeamMember[];
+    vacation_start?: string;
+    vacation_end?: string;
 }
 
 export interface Consultation {
