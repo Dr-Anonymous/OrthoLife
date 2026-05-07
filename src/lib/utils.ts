@@ -98,6 +98,7 @@ export function cleanConsultationData(data: any): any {
     temperature: removeBracketedText(data.temperature),
     allergy: removeBracketedText(data.allergy),
     medicalHistory: removeBracketedText(data.medicalHistory),
+    familyHistory: removeBracketedText(data.familyHistory),
     occupation: removeBracketedText(data.occupation),
     blood_group: removeBracketedText(data.blood_group),
   };
@@ -396,7 +397,7 @@ export function areExtraDataEqual(d1: any, d2: any, ignoreBrandName: boolean = f
   if (!d1 || !d2) return d1 === d2;
 
   const keysToCompare = [
-    'complaints', 'medicalHistory', 'findings', 'investigations',
+    'complaints', 'medicalHistory', 'familyHistory', 'findings', 'investigations',
     'diagnosis', 'advice', 'advice_te', 'followup', 'followup_te', 'weight', 'bp', 'temperature',
     'height', 'pulse', 'spo2', 'bmi', 'allergy', 'personalNote',
     'procedure', 'procedure_fee', 'procedure_consultant_cut',

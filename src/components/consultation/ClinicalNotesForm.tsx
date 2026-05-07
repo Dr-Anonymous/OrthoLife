@@ -15,6 +15,7 @@ interface ClinicalNotesFormProps {
     extraData: {
         complaints: string;
         medicalHistory: string;
+        familyHistory?: string;
         findings: string;
         investigations: string;
         diagnosis: string;
@@ -31,6 +32,7 @@ interface ClinicalNotesFormProps {
     // Refs
     complaintsRef: React.RefObject<HTMLTextAreaElement>;
     medicalHistoryRef: React.RefObject<HTMLTextAreaElement>;
+    familyHistoryRef: React.RefObject<HTMLTextAreaElement>;
     findingsRef: React.RefObject<HTMLTextAreaElement>;
     investigationsRef: React.RefObject<HTMLTextAreaElement>;
     diagnosisRef: React.RefObject<HTMLTextAreaElement>;
@@ -54,6 +56,12 @@ interface ClinicalNotesFormProps {
     setIsProcedureExpanded: (val: boolean) => void;
     isReferredToExpanded: boolean;
     setIsReferredToExpanded: (val: boolean) => void;
+    isMedicalHistoryExpanded: boolean;
+    setIsMedicalHistoryExpanded: (val: boolean) => void;
+    isFamilyHistoryExpanded: boolean;
+    setIsFamilyHistoryExpanded: (val: boolean) => void;
+    isOrthoticsExpanded: boolean;
+    setIsOrthoticsExpanded: (val: boolean) => void;
 
     referralDoctors: { id: string, name: string, specialization?: string, address?: string, phone?: string }[];
     language: string;
@@ -81,6 +89,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     onExtraChange,
     complaintsRef,
     medicalHistoryRef,
+    familyHistoryRef,
     findingsRef,
     investigationsRef,
     diagnosisRef,
@@ -99,6 +108,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     setIsProcedureExpanded,
     isReferredToExpanded,
     setIsReferredToExpanded,
+    isMedicalHistoryExpanded,
+    setIsMedicalHistoryExpanded,
+    isFamilyHistoryExpanded,
+    setIsFamilyHistoryExpanded,
+    isOrthoticsExpanded,
+    setIsOrthoticsExpanded,
     referralDoctors,
     language,
     onLanguageChange,
@@ -281,7 +296,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
                     <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
                     <Textarea
                         ref={complaintsRef}
@@ -306,18 +321,166 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     )}
                 </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="medicalHistory" className="text-sm font-medium">Past History</Label>
-                    <Textarea
-                        ref={medicalHistoryRef}
-                        id="medicalHistory"
-                        value={extraData.medicalHistory}
-                        onChange={e => onExtraChange('medicalHistory', e.target.value, e.target.selectionStart)}
-                        placeholder="Previous history, chronic conditions..."
-                        className={cn("min-h-[100px]", getStyle('medicalHistory', extraData.medicalHistory))}
-                        disabled={isReadOnly}
-                    />
-                </div>
+                {(!isMedicalHistoryExpanded && !extraData.medicalHistory && !isFamilyHistoryExpanded && !extraData.familyHistory) ? (
+                    <div className="space-y-4 sm:col-span-1">
+                        <div className="space-y-2">
+                            <Label 
+                                htmlFor="medicalHistory" 
+                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                tabIndex={0}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    if (!isMedicalHistoryExpanded) {
+                                        setIsMedicalHistoryExpanded(true);
+                                        setTimeout(() => medicalHistoryRef.current?.focus(), 50);
+                                    } else if (!extraData.medicalHistory) {
+                                        setIsMedicalHistoryExpanded(false);
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        if (!isMedicalHistoryExpanded) {
+                                            setIsMedicalHistoryExpanded(true);
+                                            setTimeout(() => medicalHistoryRef.current?.focus(), 50);
+                                        } else if (!extraData.medicalHistory) {
+                                            setIsMedicalHistoryExpanded(false);
+                                        }
+                                    }
+                                }}
+                            >
+                                Past History
+                                {(!isMedicalHistoryExpanded && !extraData.medicalHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
+                            </Label>
+                        </div>
+                        <div className="space-y-2">
+                            <Label 
+                                htmlFor="familyHistory" 
+                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                tabIndex={0}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    if (!isFamilyHistoryExpanded) {
+                                        setIsFamilyHistoryExpanded(true);
+                                        setTimeout(() => familyHistoryRef.current?.focus(), 50);
+                                    } else if (!extraData.familyHistory) {
+                                        setIsFamilyHistoryExpanded(false);
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        if (!isFamilyHistoryExpanded) {
+                                            setIsFamilyHistoryExpanded(true);
+                                            setTimeout(() => familyHistoryRef.current?.focus(), 50);
+                                        } else if (!extraData.familyHistory) {
+                                            setIsFamilyHistoryExpanded(false);
+                                        }
+                                    }
+                                }}
+                            >
+                                Family History
+                                {(!isFamilyHistoryExpanded && !extraData.familyHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
+                            </Label>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
+                            <Label 
+                                htmlFor="medicalHistory" 
+                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                tabIndex={0}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    if (!isMedicalHistoryExpanded) {
+                                        setIsMedicalHistoryExpanded(true);
+                                        setTimeout(() => medicalHistoryRef.current?.focus(), 50);
+                                    } else if (!extraData.medicalHistory) {
+                                        setIsMedicalHistoryExpanded(false);
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        if (!isMedicalHistoryExpanded) {
+                                            setIsMedicalHistoryExpanded(true);
+                                            setTimeout(() => medicalHistoryRef.current?.focus(), 50);
+                                        } else if (!extraData.medicalHistory) {
+                                            setIsMedicalHistoryExpanded(false);
+                                        }
+                                    }
+                                }}
+                            >
+                                Past History
+                                {(!isMedicalHistoryExpanded && !extraData.medicalHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
+                            </Label>
+                            {(extraData.medicalHistory || isMedicalHistoryExpanded) && (
+                                <Textarea
+                                    ref={medicalHistoryRef}
+                                    id="medicalHistory"
+                                    value={extraData.medicalHistory}
+                                    onChange={e => onExtraChange('medicalHistory', e.target.value, e.target.selectionStart)}
+                                    placeholder="Previous history, chronic conditions..."
+                                    className={cn("min-h-[100px]", getStyle('medicalHistory', extraData.medicalHistory))}
+                                    disabled={isReadOnly}
+                                    onBlur={() => {
+                                        if (!extraData.medicalHistory || extraData.medicalHistory.trim() === '') {
+                                            setIsMedicalHistoryExpanded(false);
+                                        }
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
+                            <Label 
+                                htmlFor="familyHistory" 
+                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                tabIndex={0}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    if (!isFamilyHistoryExpanded) {
+                                        setIsFamilyHistoryExpanded(true);
+                                        setTimeout(() => familyHistoryRef.current?.focus(), 50);
+                                    } else if (!extraData.familyHistory) {
+                                        setIsFamilyHistoryExpanded(false);
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        if (!isFamilyHistoryExpanded) {
+                                            setIsFamilyHistoryExpanded(true);
+                                            setTimeout(() => familyHistoryRef.current?.focus(), 50);
+                                        } else if (!extraData.familyHistory) {
+                                            setIsFamilyHistoryExpanded(false);
+                                        }
+                                    }
+                                }}
+                            >
+                                Family History
+                                {(!isFamilyHistoryExpanded && !extraData.familyHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
+                            </Label>
+                            {(extraData.familyHistory || isFamilyHistoryExpanded) && (
+                                <Textarea
+                                    ref={familyHistoryRef}
+                                    id="familyHistory"
+                                    value={extraData.familyHistory || ''}
+                                    onChange={e => onExtraChange('familyHistory', e.target.value, e.target.selectionStart)}
+                                    placeholder="Family history of similar conditions, genetic disorders..."
+                                    className={cn("min-h-[80px]", getStyle('familyHistory', extraData.familyHistory))}
+                                    disabled={isReadOnly}
+                                    onBlur={() => {
+                                        if (!extraData.familyHistory || extraData.familyHistory.trim() === '') {
+                                            setIsFamilyHistoryExpanded(false);
+                                        }
+                                    }}
+                                />
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -536,10 +699,17 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             <div className="space-y-2">
                 <Label
                     htmlFor="procedure"
-                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2"
+                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                    tabIndex={0}
                     onMouseDown={(e) => {
                         e.preventDefault();
                         setIsProcedureExpanded(!isProcedureExpanded);
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setIsProcedureExpanded(!isProcedureExpanded);
+                        }
                     }}
                 >
                     Procedure Done
@@ -635,44 +805,73 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             </div>
 
             <div className="space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <Label htmlFor="orthotics" className="text-sm font-medium">Orthotics</Label>
-                    {suggestedOrthotics.map((orthotics) => {
-                        const text = typeof orthotics === 'string' ? orthotics : orthotics.text;
-                        return (
-                            <Button key={text} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onOrthoticsSuggestionClick(orthotics)} disabled={isReadOnly}>
-                                {text}
-                            </Button>
-                        );
-                    })}
-                </div>
-                <Textarea
-                    ref={orthoticsRef}
-                    id="orthotics"
-                    value={extraData.orthotics || ''}
-                    onChange={e => onExtraChange('orthotics', e.target.value, e.target.selectionStart)}
-                    placeholder="Enter details about braces, splints, or plaster..."
-                    className={cn("min-h-[100px]", getStyle('orthotics', extraData.orthotics))}
-                    disabled={isReadOnly}
-                />
+                <Label 
+                    htmlFor="orthotics" 
+                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                    tabIndex={0}
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        setIsOrthoticsExpanded(!isOrthoticsExpanded);
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setIsOrthoticsExpanded(!isOrthoticsExpanded);
+                        }
+                    }}
+                >
+                    Orthotics
+                    {(!isOrthoticsExpanded && !extraData.orthotics) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
+                </Label>
+                {(extraData.orthotics || isOrthoticsExpanded) && (
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                        {suggestedOrthotics.map((orthotics) => {
+                            const text = typeof orthotics === 'string' ? orthotics : orthotics.text;
+                            return (
+                                <Button key={text} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onOrthoticsSuggestionClick(orthotics)} disabled={isReadOnly}>
+                                    {text}
+                                </Button>
+                            );
+                        })}
+                    </div>
+                )}
+                {(extraData.orthotics || isOrthoticsExpanded) && (
+                    <Textarea
+                        ref={orthoticsRef}
+                        id="orthotics"
+                        value={extraData.orthotics || ''}
+                        onChange={e => onExtraChange('orthotics', e.target.value, e.target.selectionStart)}
+                        placeholder="Enter details about braces, splints, or plaster..."
+                        className={cn("min-h-[100px]", getStyle('orthotics', extraData.orthotics))}
+                        disabled={isReadOnly}
+                        onBlur={() => {
+                            if (!extraData.orthotics || extraData.orthotics.trim() === '') {
+                                setIsOrthoticsExpanded(false);
+                            }
+                        }}
+                    />
+                )}
             </div>
 
             {/* Referred To keeping in ClinicalNotes as implied by "Notes" structure */}
             <div className="space-y-2">
                 <Label
                     htmlFor="referred_to"
-                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2"
+                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                    tabIndex={0}
                     onMouseDown={(e) => {
                         e.preventDefault();
                         setIsReferredToExpanded(!isReferredToExpanded);
                     }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setIsReferredToExpanded(!isReferredToExpanded);
+                        }
+                    }}
                 >
                     Referred To
-                    {/* Only show + if:
-                        1. Not expanded (so inputs are hidden)
-                        2. AND no data in the list (if there is data, we don't need a prompt, we see the list)
-                     */}
-                    {(!isReferredToExpanded && (!extraData.referred_to_list || !extraData.referred_to_list.some(s => s.trim()))) && <Plus className="w-4 h-4 text-muted-foreground ml-auto" />}
+                    {(!isReferredToExpanded && (!extraData.referred_to_list || !extraData.referred_to_list.some(s => s.trim()))) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                 </Label>
                 {/* Show list if:
                     1. Expanded (user clicked to add)

@@ -11,6 +11,7 @@ import { Consultant, PrintOptions } from '@/types/consultation';
 interface ConsultationData {
   complaints: string;
   medicalHistory?: string;
+  familyHistory?: string;
   findings: string;
   investigations: string;
   diagnosis: string;
@@ -295,6 +296,15 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   Past History:
                 </h3>
                 <p className="whitespace-pre-wrap">{consultation.medicalHistory}</p>
+              </div>
+            )}
+            {consultation.familyHistory && effectivePrintOptions.clinicalNotes && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <Dna className="h-4 w-4" />
+                  Family History:
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.familyHistory}</p>
               </div>
             )}
             {consultation.findings && effectivePrintOptions.clinicalNotes && (

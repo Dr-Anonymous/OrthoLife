@@ -6,7 +6,7 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } fr
 import { Loader2, IndianRupee, ChevronDown } from 'lucide-react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { format } from 'date-fns';
-import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName, escapeRegex, areExtraDataEqual, arePatientsEqual, areLocationsEqual } from '@/lib/utils';
+import { cleanConsultationData, pruneEmptyFields, cn, calculateFollowUpDate, normalizeMedName, escapeRegex, areExtraDataEqual, arePatientsEqual, areLocationsEqual, normalizeSearchText } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { fetchRecentHistory, generateAutofillData, calculateLastVisitString } from '@/lib/consultation-history';
@@ -274,6 +274,7 @@ const ConsultationPage = () => {
   const [extraData, setExtraData] = useState<ExtraData>({
     complaints: '',
     medicalHistory: '',
+    familyHistory: '',
     findings: '',
     investigations: '',
     diagnosis: '',
@@ -370,6 +371,7 @@ const ConsultationPage = () => {
   // Refs
   const complaintsRef = useRef<HTMLTextAreaElement>(null);
   const medicalHistoryRef = useRef<HTMLTextAreaElement>(null);
+  const familyHistoryRef = useRef<HTMLTextAreaElement>(null);
   const findingsRef = useRef<HTMLTextAreaElement>(null);
   const investigationsRef = useRef<HTMLTextAreaElement>(null);
   const diagnosisRef = useRef<HTMLTextAreaElement>(null);
@@ -405,6 +407,7 @@ const ConsultationPage = () => {
 
     syncField('complaints', complaintsRef);
     syncField('medicalHistory', medicalHistoryRef);
+    syncField('familyHistory', familyHistoryRef);
     syncField('findings', findingsRef);
     syncField('investigations', investigationsRef);
     syncField('diagnosis', diagnosisRef);
@@ -451,6 +454,9 @@ const ConsultationPage = () => {
   // Suggestions state
   const [isProcedureExpanded, setIsProcedureExpanded] = useState(false);
   const [isReferredToExpanded, setIsReferredToExpanded] = useState(false);
+  const [isMedicalHistoryExpanded, setIsMedicalHistoryExpanded] = useState(false);
+  const [isFamilyHistoryExpanded, setIsFamilyHistoryExpanded] = useState(false);
+  const [isOrthoticsExpanded, setIsOrthoticsExpanded] = useState(false);
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
   const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string, phone?: string }[]>([]);
   const [isFinancialExpanded, setIsFinancialExpanded] = useState(false);
@@ -657,6 +663,7 @@ const ConsultationPage = () => {
     const newExtraData: ExtraData = {
       complaints: savedData.complaints || '',
       medicalHistory: savedData.medicalHistory || (savedData as any).medical_history || '',
+      familyHistory: savedData.familyHistory || (savedData as any).family_history || '',
       findings: savedData.findings || '',
       investigations: savedData.investigations || '',
       diagnosis: savedData.diagnosis || '',
@@ -708,6 +715,9 @@ const ConsultationPage = () => {
 
     setIsProcedureExpanded(!!newExtraData.procedure);
     setIsReferredToExpanded(!!newExtraData.referred_to);
+    setIsMedicalHistoryExpanded(!!newExtraData.medicalHistory);
+    setIsFamilyHistoryExpanded(!!newExtraData.familyHistory);
+    setIsOrthoticsExpanded(!!newExtraData.orthotics);
     setIsFinancialExpanded(false);
 
 
@@ -1451,7 +1461,7 @@ const ConsultationPage = () => {
       }
 
       const shortcutFields = [
-        'complaints', 'medicalHistory', 'findings', 'diagnosis', 
+        'complaints', 'medicalHistory', 'familyHistory', 'findings', 'diagnosis', 
         'advice', 'followup', 'personalNote', 'procedure', 
         'investigations', 'referred_to', 'orthotics'
       ];
@@ -1473,6 +1483,7 @@ const ConsultationPage = () => {
             const refs: any = {
               advice: adviceRef,
               medicalHistory: medicalHistoryRef,
+              familyHistory: familyHistoryRef,
               investigations: investigationsRef,
               complaints: complaintsRef,
               orthotics: orthoticsRef,
@@ -2457,6 +2468,7 @@ const ConsultationPage = () => {
                     onExtraChange={handleExtraChange}
                     complaintsRef={complaintsRef}
                     medicalHistoryRef={medicalHistoryRef}
+                    familyHistoryRef={familyHistoryRef}
                     findingsRef={findingsRef}
                     investigationsRef={investigationsRef}
                     diagnosisRef={diagnosisRef}
@@ -2475,6 +2487,12 @@ const ConsultationPage = () => {
                     setIsProcedureExpanded={setIsProcedureExpanded}
                     isReferredToExpanded={isReferredToExpanded}
                     setIsReferredToExpanded={setIsReferredToExpanded}
+                    isMedicalHistoryExpanded={isMedicalHistoryExpanded}
+                    setIsMedicalHistoryExpanded={setIsMedicalHistoryExpanded}
+                    isFamilyHistoryExpanded={isFamilyHistoryExpanded}
+                    setIsFamilyHistoryExpanded={setIsFamilyHistoryExpanded}
+                    isOrthoticsExpanded={isOrthoticsExpanded}
+                    setIsOrthoticsExpanded={setIsOrthoticsExpanded}
                     referralDoctors={referralDoctors}
                     language={consultationLanguage}
                     onLanguageChange={handleLanguageChange}

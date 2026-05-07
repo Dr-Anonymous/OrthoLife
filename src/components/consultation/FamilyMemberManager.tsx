@@ -5,11 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Loader2, Search, Link as LinkIcon, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Loader2, Search, Link as LinkIcon, ArrowRight, ArrowLeft, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface FamilyMemberManagerProps {
     currentPatientId: string;
@@ -92,6 +93,15 @@ export const FamilyMemberManager: React.FC<FamilyMemberManagerProps> = ({ curren
         }
     }, [currentPatientId]);
 
+    const [isViewingHistory, setIsViewingHistory] = useState(false);
+
+    const handleViewHistory = (id: string, name: string) => {
+        setIsViewingHistory(true);
+        onViewHistory(id, name);
+        // Reset after a short delay to allow the modal to settle without closing the popover
+        setTimeout(() => setIsViewingHistory(false), 1000);
+    };
+
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
         setIsSearching(true);
@@ -100,9 +110,22 @@ export const FamilyMemberManager: React.FC<FamilyMemberManagerProps> = ({ curren
                 body: { searchTerm: searchQuery, searchType: /^\d+$/.test(searchQuery) ? 'phone' : 'name' },
             });
             if (error) throw error;
-            // Filter out self
-            const filtered = (data || []).filter((p: any) => String(p.id) !== String(currentPatientId));
+
+            // Get IDs of patients already linked (both outgoing and incoming)
+            const linkedIds = new Set([
+                ...relationships.map(r => String(r.related_patient_id)),
+                ...incomingRelationships.map(r => String(r.patient_id))
+            ]);
+
+            // Filter out self and already linked patients
+            const filtered = (data || []).filter((p: any) =>
+                String(p.id) !== String(currentPatientId) && !linkedIds.has(String(p.id))
+            );
             setSearchResults(filtered);
+
+            if (filtered.length === 0 && (data || []).length > 0) {
+                toast({ title: "Note", description: "All matching patients are already linked." });
+            }
         } catch (e) {
             console.error(e);
             toast({ variant: "destructive", title: "Search failed", description: "Could not find patients." });
@@ -206,71 +229,152 @@ export const FamilyMemberManager: React.FC<FamilyMemberManagerProps> = ({ curren
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                        className="w-80 p-4 max-h-[60vh] overflow-y-auto"
+                        className="w-80 p-0 max-h-[80vh] flex flex-col overflow-hidden shadow-2xl border-secondary/20"
                         align="end"
+                        sideOffset={8}
                         avoidCollisions
                         onOpenAutoFocus={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => {
+                            if (isViewingHistory) e.preventDefault();
+                        }}
                     >
-                        <div className="space-y-4">
-                            <h4 className="font-medium leading-none">Add Relationship</h4>
-                            <div className="space-y-2">
-                                <Label>Search Patient</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Name or Phone"
-                                        value={searchQuery}
-                                        onChange={e => setSearchQuery(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                                    />
-                                    <Button size="icon" variant="secondary" onClick={handleSearch} disabled={isSearching}>
-                                        {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                                    </Button>
+                        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-semibold text-sm">Add Relationship</h4>
+                                    {selectedRelatedPatient && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 text-[10px] uppercase tracking-wider font-bold text-primary hover:text-primary/80"
+                                            onClick={() => {
+                                                setSelectedRelatedPatient(null);
+                                                setSelectedType('');
+                                            }}
+                                        >
+                                            Change Patient
+                                        </Button>
+                                    )}
                                 </div>
-                            </div>
 
-                            {searchResults.length > 0 && (
-                                <ScrollArea className="h-32 border rounded-md p-2">
-                                    <div className="space-y-1">
-                                        {searchResults.map(p => (
-                                            <div
-                                                key={p.id}
-                                                className={cn(
-                                                    "text-sm p-2 rounded cursor-pointer hover:bg-accent",
-                                                    selectedRelatedPatient?.id === p.id && "bg-accent text-accent-foreground"
-                                                )}
-                                                onClick={() => setSelectedRelatedPatient(p)}
-                                            >
-                                                <div className="font-medium">{p.name}</div>
-                                                <div className="text-xs text-muted-foreground flex justify-between items-center gap-2">
-                                                    <span className="truncate">{p.phone} • {getAge(p.dob)} {p.sex} {p.occupation && `• ${p.occupation}`}</span>
-                                                    {p.hometown && <span className="text-[10px] bg-muted-foreground/10 px-1 rounded shrink-0">{p.hometown}</span>}
-                                                </div>
+                                {!selectedRelatedPatient && (
+                                    <div className="space-y-2">
+                                        <div className="flex gap-1.5">
+                                            <div className="relative flex-1">
+                                                <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                                <Input
+                                                    placeholder="Search name or phone..."
+                                                    className="pl-8 h-9 text-sm bg-secondary/5"
+                                                    value={searchQuery}
+                                                    onChange={e => setSearchQuery(e.target.value)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                                                />
                                             </div>
-                                        ))}
-                                    </div>
-                                </ScrollArea>
-                            )}
+                                            <Button size="sm" variant="secondary" className="h-9 px-3" onClick={handleSearch} disabled={isSearching}>
+                                                {isSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+                                            </Button>
+                                        </div>
 
-                            {selectedRelatedPatient && (
-                                <div className="space-y-2">
-                                    <Label>Relationship</Label>
-                                    <div className="text-sm text-muted-foreground mb-1">
-                                        {currentPatientName} is <span className="font-medium text-foreground">...</span> of {selectedRelatedPatient.name}
+                                        {searchResults.length > 0 && (
+                                            <ScrollArea className="h-44 border rounded-md p-1 bg-secondary/5">
+                                                <div className="space-y-1">
+                                                    {searchResults.map(p => (
+                                                        <div
+                                                            key={p.id}
+                                                            className="group text-sm p-2 rounded cursor-pointer hover:bg-accent border border-transparent hover:border-accent-foreground/10 transition-all flex items-center justify-between gap-2"
+                                                            onClick={() => setSelectedRelatedPatient(p)}
+                                                        >
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="font-medium flex items-center justify-between">
+                                                                    <span className="truncate">{p.name}</span>
+                                                                    <span className="text-[10px] text-muted-foreground shrink-0">{getAge(p.dob)} {p.sex}</span>
+                                                                </div>
+                                                                <div className="text-[11px] text-muted-foreground flex justify-between items-center">
+                                                                    <span className="truncate">{p.phone}</span>
+                                                                    {p.hometown && <span className="bg-muted/50 px-1 rounded-sm shrink-0 truncate max-w-[80px]">{p.hometown}</span>}
+                                                                </div>
+                                                            </div>
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-primary/5 hover:bg-primary/20 text-primary"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleViewHistory(String(p.id), p.name);
+                                                                            }}
+                                                                        >
+                                                                            <FileText className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>View Last Prescription</TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        )}
                                     </div>
-                                    <Select value={selectedType} onValueChange={setSelectedType}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {relationshipTypes.map(t => (
-                                                <SelectItem key={t} value={t}>{t}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
+                                )}
 
-                            <Button className="w-full" disabled={!selectedRelatedPatient || !selectedType} onClick={handleAdd}>
+                                {selectedRelatedPatient && (
+                                    <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                                        {/* Selected Patient Mini Card */}
+                                        <div className="flex items-center gap-3 p-2.5 bg-primary/5 rounded-lg border border-primary/10 group relative">
+                                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                                <span className="text-xs font-bold text-primary">{selectedRelatedPatient.name[0]}</span>
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-semibold text-sm truncate">{selectedRelatedPatient.name}</div>
+                                                <div className="text-[10px] text-muted-foreground truncate">{selectedRelatedPatient.phone} • {getAge(selectedRelatedPatient.dob)} {selectedRelatedPatient.sex}</div>
+                                            </div>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-primary bg-primary/10 hover:bg-primary/20"
+                                                            onClick={() => handleViewHistory(String(selectedRelatedPatient.id), selectedRelatedPatient.name)}
+                                                        >
+                                                            <FileText className="h-4 w-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>View Prescription History</TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+
+                                        <div className="space-y-2 p-2.5 bg-secondary/10 rounded-lg border border-secondary/20">
+                                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">Relationship Type</Label>
+                                            <div className="text-xs text-muted-foreground leading-snug">
+                                                {currentPatientName} is <span className="font-bold text-foreground">...</span> of {selectedRelatedPatient.name}
+                                            </div>
+                                            <Select value={selectedType} onValueChange={setSelectedType}>
+                                                <SelectTrigger className="h-9 bg-background border-secondary/30">
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {relationshipTypes.map(t => (
+                                                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-3 border-t bg-secondary/5 mt-auto">
+                            <Button
+                                className="w-full h-10 shadow-md font-semibold transition-all active:scale-[0.98]"
+                                disabled={!selectedRelatedPatient || !selectedType}
+                                onClick={handleAdd}
+                            >
                                 Save Relationship
                             </Button>
                         </div>
