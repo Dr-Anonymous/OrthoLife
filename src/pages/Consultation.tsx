@@ -1742,12 +1742,14 @@ const ConsultationPage = () => {
 
   // Suggestions Helpers (Protocol Logic)
 
-  const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications, suggestedOrthotics } = useMemo(() => {
+  const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications, suggestedOrthotics, suggestedMedicalHistory, suggestedFamilyHistory } = useMemo(() => {
     const inputDerivedSuggestions = {
       advice: new Set<{ text: string; translatedText?: string; badge?: string }>(),
       investigations: new Set<string>(),
       followup: new Set<{ text: string; translatedText?: string }>(),
       orthotics: new Set<{ text: string; translatedText?: string }>(),
+      medicalHistory: new Set<{ text: string; translatedText?: string }>(),
+      familyHistory: new Set<{ text: string; translatedText?: string }>(),
       medicationIds: new Set<number>()
     };
 
@@ -1854,6 +1856,39 @@ const ConsultationPage = () => {
           }
         }
 
+        // Medical History & Family History Support
+        const medHistory = protocol.medical_history || '';
+        const medHistoryTe = protocol.medical_history_te || '';
+        if (medHistory || medHistoryTe) {
+          const active = isTelugu ? medHistoryTe : medHistory;
+          const backup = isTelugu ? medHistory : medHistoryTe;
+          if (active) {
+            active.split('\n').filter(Boolean).forEach((s, idx) => {
+              const translatedLines = backup.split('\n').filter(Boolean);
+              inputDerivedSuggestions.medicalHistory.add({
+                text: s.trim(),
+                translatedText: translatedLines[idx]?.trim()
+              });
+            });
+          }
+        }
+
+        const familyHistory = protocol.family_history || '';
+        const familyHistoryTe = protocol.family_history_te || '';
+        if (familyHistory || familyHistoryTe) {
+          const active = isTelugu ? familyHistoryTe : familyHistory;
+          const backup = isTelugu ? familyHistory : familyHistoryTe;
+          if (active) {
+            active.split('\n').filter(Boolean).forEach((s, idx) => {
+              const translatedLines = backup.split('\n').filter(Boolean);
+              inputDerivedSuggestions.familyHistory.add({
+                text: s.trim(),
+                translatedText: translatedLines[idx]?.trim()
+              });
+            });
+          }
+        }
+
         if (protocol.medication_ids) {
           protocol.medication_ids.forEach(id => inputDerivedSuggestions.medicationIds.add(id));
         }
@@ -1861,53 +1896,52 @@ const ConsultationPage = () => {
     });
 
     const medications = savedMedications.filter(m => {
-      // Handle both number/string ID mismatch if necessary, though Supabase returns what column is.
-      // Assuming savedMedications have IDs that match protocol.medication_ids
       return inputDerivedSuggestions.medicationIds.has(Number(m.id)) || inputDerivedSuggestions.medicationIds.has(String(m.id) as any);
     });
 
-    // Logic: Only show protocol-matched medications.
-    const finalMedications = medications;
-
     const currentlyAddedMedIds = new Set(extraData.medications.map(m => m.savedMedicationId).filter(Boolean));
     const currentlyAddedMedNames = new Set(extraData.medications.map(m => normalizeMedName(m.brandName || m.composition || '')));
+
+    const finalMedications = medications
+      .filter(m => {
+        const isAddedById = currentlyAddedMedIds.has(m.id) || currentlyAddedMedIds.has(String(m.id) as any);
+        const cleanedName = normalizeMedName(m.composition);
+        const isAddedByName = Array.from(currentlyAddedMedNames).some(name => normalizeMedName(name) === cleanedName);
+        return !isAddedById && !isAddedByName;
+      })
+      .map(med => {
+        const affordabilityPreference = extraData.affordabilityPreference || 'none';
+        const currentLocation = selectedHospital?.name || '';
+        let bestBrand: string | undefined = undefined;
+
+        if (med.brand_metadata && med.brand_metadata.length > 0) {
+          let validBrands = med.brand_metadata.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation));
+          if (validBrands.length === 0) validBrands = [...med.brand_metadata];
+
+          if (affordabilityPreference === 'cheap') {
+            validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
+          } else if (affordabilityPreference === 'costly') {
+            validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
+          }
+          bestBrand = validBrands[0].name;
+        }
+
+        return {
+          ...med,
+          brandName: bestBrand
+        };
+      });
 
     return {
       suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s.text)),
       suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.includes(s)),
       suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s.text)),
       suggestedOrthotics: Array.from(inputDerivedSuggestions.orthotics).filter(s => !extraData.orthotics.includes(s.text)),
+      suggestedMedicalHistory: Array.from(inputDerivedSuggestions.medicalHistory).filter(s => !extraData.medicalHistory?.includes(s.text)),
+      suggestedFamilyHistory: Array.from(inputDerivedSuggestions.familyHistory).filter(s => !extraData.familyHistory?.includes(s.text)),
       suggestedMedications: finalMedications
-        .filter(m => {
-          const isAddedById = currentlyAddedMedIds.has(m.id) || currentlyAddedMedIds.has(String(m.id) as any);
-          const cleanedName = normalizeMedName(m.composition);
-          const isAddedByName = Array.from(currentlyAddedMedNames).some(name => normalizeMedName(name) === cleanedName);
-          return !isAddedById && !isAddedByName;
-        })
-        .map(med => {
-          const affordabilityPreference = extraData.affordabilityPreference || 'none';
-          const currentLocation = selectedHospital?.name || '';
-          let bestBrand: string | undefined = undefined;
-
-          if (med.brand_metadata && med.brand_metadata.length > 0) {
-            let validBrands = med.brand_metadata.filter(b => !b.locations || b.locations.length === 0 || b.locations.includes(currentLocation));
-            if (validBrands.length === 0) validBrands = [...med.brand_metadata];
-
-            if (affordabilityPreference === 'cheap') {
-              validBrands.sort((a, b) => ((a.cost || 0) / (a.packSize || 1)) - ((b.cost || 0) / (b.packSize || 1)));
-            } else if (affordabilityPreference === 'costly') {
-              validBrands.sort((a, b) => ((b.cost || 0) / (b.packSize || 1)) - ((a.cost || 0) / (a.packSize || 1)));
-            }
-            bestBrand = validBrands[0].name;
-          }
-
-          return {
-            ...med,
-            brandName: bestBrand
-          };
-        })
     };
-  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.orthotics, extraData.medications, consultationLanguage, savedMedications, selectedLocation, extraData.affordabilityPreference]);
+  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.familyHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.orthotics, extraData.medications, extraData.affordabilityPreference, consultationLanguage, savedMedications, selectedLocation, selectedHospital]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -2511,9 +2545,13 @@ const ConsultationPage = () => {
                     suggestedInvestigations={suggestedInvestigations}
                     suggestedAdvice={suggestedAdvice}
                     suggestedOrthotics={suggestedOrthotics}
+                    suggestedMedicalHistory={suggestedMedicalHistory}
+                    suggestedFamilyHistory={suggestedFamilyHistory}
                     onInvestigationSuggestionClick={(val) => handleAppendSuggestion('investigations', val)}
                     onAdviceSuggestionClick={(val) => handleAppendSuggestion('advice', val)}
                     onOrthoticsSuggestionClick={(val) => handleAppendSuggestion('orthotics', val)}
+                    onMedicalHistorySuggestionClick={(val) => handleAppendSuggestion('medicalHistory', val)}
+                    onFamilyHistorySuggestionClick={(val) => handleAppendSuggestion('familyHistory', val)}
                     matchedGuides={matchedGuides}
                     isProcedureExpanded={isProcedureExpanded}
                     setIsProcedureExpanded={setIsProcedureExpanded}
@@ -2576,6 +2614,10 @@ const ConsultationPage = () => {
                   baseDate={selectedConsultation ? new Date(selectedConsultation.created_at) : new Date()}
                   initialFollowup={initialExtraData?.followup}
                   isReadOnly={isReadOnly}
+                  vacationStart={consultant?.vacation_start}
+                  vacationEnd={consultant?.vacation_end}
+                  isVacationEnabled={consultant?.is_vacation_enabled}
+                  onProfileClick={handleProfileClick}
                 />
 
                 <SavedDocumentsSection

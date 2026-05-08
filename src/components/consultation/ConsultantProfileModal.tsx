@@ -194,6 +194,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
     profile_layout: c?.profile_layout || 'single',
     vacation_start: c?.vacation_start || '',
     vacation_end: c?.vacation_end || '',
+    is_vacation_enabled: c?.is_vacation_enabled !== false, // default to true
   });
 
   const [formData, setFormData] = useState(buildInitialFormData(consultant));
@@ -262,18 +263,32 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
   // Deep linking to specific hospital
   useEffect(() => {
-    if (isOpen && targetHospitalId && activeTab === 'practice' && editableHospitals.length > 0 && !hasScrolledRef.current) {
+    if (isOpen && targetHospitalId && activeTab === 'practice' && !hasScrolledRef.current) {
       const scrollTimer = setTimeout(() => {
-        const inputElement = document.getElementById(`limit-input-${targetHospitalId}`);
-        const containerElement = document.getElementById(`hospital-${targetHospitalId}`);
-        
-        if (inputElement && containerElement) {
-          containerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          containerElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-          inputElement.focus();
+        if (targetHospitalId === 'vacation') {
+          const vacationSection = document.getElementById('vacation-mode-section');
+          if (vacationSection) {
+            vacationSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            vacationSection.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2');
+            hasScrolledRef.current = true;
+            setTimeout(() => vacationSection.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2'), 3000);
+            return;
+          }
+        }
+
+        if (editableHospitals.length > 0) {
+          const inputElement = document.getElementById(`limit-input-${targetHospitalId}`);
+          const containerElement = document.getElementById(`hospital-${targetHospitalId}`);
           
-          hasScrolledRef.current = true;
-          setTimeout(() => containerElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2'), 3000);
+          if (inputElement && containerElement) {
+            containerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Use orange highlight for the hospital container as well when deep-linked
+            containerElement.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2');
+            inputElement.focus();
+            
+            hasScrolledRef.current = true;
+            setTimeout(() => containerElement.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2'), 3000);
+          }
         }
       }, 600); // Wait for data to render
       return () => clearTimeout(scrollTimer);
@@ -348,6 +363,7 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           lead_services,
           vacation_start: formData.vacation_start || null,
           vacation_end: formData.vacation_end || null,
+          is_vacation_enabled: formData.is_vacation_enabled,
           updated_at: new Date().toISOString()
         })
         .eq('id', consultant.id);
@@ -1028,65 +1044,6 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   </div>
                 </SectionAccordion>
 
-                <SectionAccordion value="vacation" title="Vacation Mode" description="Block registrations during your absence" icon={CalendarOff}>
-                  <div className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
-                      Set a date range during which you will be away. This will prevent any new consultations from being booked at <strong>all</strong> practice locations during these dates.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="vacation_start" className="text-xs">From Date</Label>
-                        <Input
-                          id="vacation_start"
-                          type="date"
-                          value={formData.vacation_start}
-                          onChange={e => {
-                            const newStart = e.target.value;
-                            updateForm(p => ({
-                              ...p,
-                              vacation_start: newStart,
-                              vacation_end: p.vacation_end && p.vacation_end >= newStart ? p.vacation_end : newStart
-                            }));
-                          }}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="vacation_end" className="text-xs">To Date (Inclusive)</Label>
-                        <Input
-                          id="vacation_end"
-                          type="date"
-                          value={formData.vacation_end}
-                          onChange={e => updateForm(p => ({ ...p, vacation_end: e.target.value }))}
-                          className="h-9"
-                          min={formData.vacation_start}
-                        />
-                      </div>
-                    </div>
-                    {formData.vacation_start && formData.vacation_end && (
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                            Duration: {vacationDuration} {vacationDuration === 1 ? 'Day' : 'Days'}
-                          </Badge>
-                          {vacationDuration === 0 && (
-                            <span className="text-[10px] text-destructive font-medium flex items-center gap-1">
-                              <Ban className="w-3 h-3" /> Start date must be before end date
-                            </span>
-                          )}
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-[10px] h-7 px-2 text-destructive"
-                          onClick={() => updateForm(p => ({ ...p, vacation_start: '', vacation_end: '' }))}
-                        >
-                          <RotateCcw className="w-3 h-3 mr-1" /> Clear Vacation Dates
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </SectionAccordion>
 
                 <SectionAccordion
                   value="locations"
@@ -1094,7 +1051,89 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                   description={`${editableHospitals.length} location${editableHospitals.length === 1 ? '' : 's'}`}
                   icon={MapPin}
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-6">
+                    {/* Vacation Mode Integrated here as requested by user */}
+                    <div id="vacation-mode-section" className="p-4 border rounded-xl bg-orange-50/30 border-orange-200/50 space-y-4 transition-all duration-500">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-orange-100/50">
+                            <CalendarOff className="w-4 h-4 text-orange-600" />
+                          </div>
+                          <div className="space-y-0.5">
+                            <h4 className="text-xs font-bold text-orange-900 tracking-tight">Vacation Mode</h4>
+                            <p className="text-[10px] text-orange-800/70">Block registrations across all locations</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("text-[10px] font-bold uppercase", formData.is_vacation_enabled ? "text-orange-600" : "text-muted-foreground")}>
+                            {formData.is_vacation_enabled ? 'Active' : 'Disabled'}
+                          </span>
+                          <Switch 
+                            checked={formData.is_vacation_enabled} 
+                            onCheckedChange={checked => updateForm(p => ({ ...p, is_vacation_enabled: checked }))}
+                            className="scale-90 data-[state=checked]:bg-orange-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className={cn("space-y-4 transition-all duration-300", !formData.is_vacation_enabled && "opacity-50 grayscale")}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="vacation_start" className="text-[11px] font-semibold text-orange-900/80">From Date</Label>
+                          <Input
+                            id="vacation_start"
+                            type="date"
+                            value={formData.vacation_start}
+                            onChange={e => {
+                              const newStart = e.target.value;
+                              updateForm(p => ({
+                                ...p,
+                                vacation_start: newStart,
+                                vacation_end: p.vacation_end && p.vacation_end >= newStart ? p.vacation_end : newStart
+                              }));
+                            }}
+                            className="h-8 text-xs border-orange-200/50 focus-visible:ring-orange-500/30"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="vacation_end" className="text-[11px] font-semibold text-orange-900/80">To Date (Inclusive)</Label>
+                          <Input
+                            id="vacation_end"
+                            type="date"
+                            value={formData.vacation_end}
+                            onChange={e => updateForm(p => ({ ...p, vacation_end: e.target.value }))}
+                            className="h-8 text-xs border-orange-200/50 focus-visible:ring-orange-500/30"
+                            min={formData.vacation_start}
+                          />
+                        </div>
+                      </div>
+                      
+                      {formData.vacation_start && formData.vacation_end && (
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-orange-200/30">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200/50 text-[10px] h-5 px-1.5 font-bold">
+                              Duration: {vacationDuration} {vacationDuration === 1 ? 'Day' : 'Days'}
+                            </Badge>
+                            {vacationDuration === 0 && (
+                              <span className="text-[10px] text-destructive font-medium flex items-center gap-1">
+                                <Ban className="w-3 h-3" /> Error in dates
+                              </span>
+                            )}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-[10px] h-6 px-2 text-orange-800 hover:text-destructive hover:bg-orange-100/50"
+                            onClick={() => updateForm(p => ({ ...p, vacation_start: '', vacation_end: '' }))}
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1" /> Clear
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                    <div className="space-y-3">
                     {editableHospitals.map((hospital, hIdx) => (
                       <div key={hospital.id} id={`hospital-${hospital.id}`} className="border rounded-lg p-4 space-y-4 bg-secondary/5 transition-all duration-500">
                         <div className="flex items-center justify-between pb-2 border-b border-border/60">
@@ -1206,7 +1245,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
                       </div>
                     )}
                   </div>
-                </SectionAccordion>
+                </div>
+              </SectionAccordion>
               </Accordion>
             </TabsContent>
 

@@ -45,10 +45,14 @@ interface ClinicalNotesFormProps {
     suggestedInvestigations: string[];
     suggestedAdvice: (string | { text: string; translatedText?: string; badge?: string })[];
     suggestedOrthotics: (string | { text: string; translatedText?: string })[];
+    suggestedMedicalHistory?: (string | { text: string; translatedText?: string })[];
+    suggestedFamilyHistory?: (string | { text: string; translatedText?: string })[];
 
     onInvestigationSuggestionClick: (val: string) => void;
     onAdviceSuggestionClick: (val: string | { text: string; translatedText?: string; badge?: string }) => void;
     onOrthoticsSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
+    onMedicalHistorySuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
+    onFamilyHistorySuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
 
     matchedGuides: MatchedGuide[];
 
@@ -100,9 +104,13 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     suggestedInvestigations,
     suggestedAdvice,
     suggestedOrthotics,
+    suggestedMedicalHistory = [],
+    suggestedFamilyHistory = [],
     onInvestigationSuggestionClick,
     onAdviceSuggestionClick,
     onOrthoticsSuggestionClick,
+    onMedicalHistorySuggestionClick,
+    onFamilyHistorySuggestionClick,
     matchedGuides,
     isProcedureExpanded,
     setIsProcedureExpanded,
@@ -326,7 +334,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         <div className="space-y-2">
                             <Label 
                                 htmlFor="medicalHistory" 
-                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
                                     e.preventDefault();
@@ -349,14 +357,42 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     }
                                 }}
                             >
-                                Past History
+                                <span className="shrink-0 group-hover:underline">Past History</span>
+                                {suggestedMedicalHistory.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {suggestedMedicalHistory.map((sh) => {
+                                            const text = typeof sh === 'string' ? sh : sh.text;
+                                            return (
+                                                <Button 
+                                                    key={text} 
+                                                    type="button" 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsMedicalHistoryExpanded(true);
+                                                        onMedicalHistorySuggestionClick(sh);
+                                                    }} 
+                                                    disabled={isReadOnly}
+                                                >
+                                                    {text}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 {(!isMedicalHistoryExpanded && !extraData.medicalHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                             </Label>
                         </div>
                         <div className="space-y-2">
                             <Label 
                                 htmlFor="familyHistory" 
-                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
                                     e.preventDefault();
@@ -379,7 +415,35 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     }
                                 }}
                             >
-                                Family History
+                                <span className="shrink-0 group-hover:underline">Family History</span>
+                                {suggestedFamilyHistory.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {suggestedFamilyHistory.map((sh) => {
+                                            const text = typeof sh === 'string' ? sh : sh.text;
+                                            return (
+                                                <Button 
+                                                    key={text} 
+                                                    type="button" 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsFamilyHistoryExpanded(true);
+                                                        onFamilyHistorySuggestionClick(sh);
+                                                    }} 
+                                                    disabled={isReadOnly}
+                                                >
+                                                    {text}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 {(!isFamilyHistoryExpanded && !extraData.familyHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                             </Label>
                         </div>
@@ -389,7 +453,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
                             <Label 
                                 htmlFor="medicalHistory" 
-                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
                                     e.preventDefault();
@@ -412,7 +476,35 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     }
                                 }}
                             >
-                                Past History
+                                <span className="shrink-0 group-hover:underline">Past History</span>
+                                {suggestedMedicalHistory.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {suggestedMedicalHistory.map((sh) => {
+                                            const text = typeof sh === 'string' ? sh : sh.text;
+                                            return (
+                                                <Button 
+                                                    key={text} 
+                                                    type="button" 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsMedicalHistoryExpanded(true);
+                                                        onMedicalHistorySuggestionClick(sh);
+                                                    }} 
+                                                    disabled={isReadOnly}
+                                                >
+                                                    {text}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 {(!isMedicalHistoryExpanded && !extraData.medicalHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                             </Label>
                             {(extraData.medicalHistory || isMedicalHistoryExpanded) && (
@@ -436,7 +528,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
                             <Label 
                                 htmlFor="familyHistory" 
-                                className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
                                     e.preventDefault();
@@ -459,7 +551,35 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     }
                                 }}
                             >
-                                Family History
+                                <span className="shrink-0 group-hover:underline">Family History</span>
+                                {suggestedFamilyHistory.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {suggestedFamilyHistory.map((sh) => {
+                                            const text = typeof sh === 'string' ? sh : sh.text;
+                                            return (
+                                                <Button 
+                                                    key={text} 
+                                                    type="button" 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsFamilyHistoryExpanded(true);
+                                                        onFamilyHistorySuggestionClick(sh);
+                                                    }} 
+                                                    disabled={isReadOnly}
+                                                >
+                                                    {text}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 {(!isFamilyHistoryExpanded && !extraData.familyHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                             </Label>
                             {(extraData.familyHistory || isFamilyHistoryExpanded) && (
@@ -534,7 +654,16 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             </div>
                         )}
                         {suggestedInvestigations.map((investigation) => (
-                            <Button key={investigation} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onInvestigationSuggestionClick(investigation)} disabled={isReadOnly}>
+                            <Button 
+                                key={investigation} 
+                                type="button" 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-auto px-2 py-1 text-xs" 
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => onInvestigationSuggestionClick(investigation)} 
+                                disabled={isReadOnly}
+                            >
                                 {investigation}
                             </Button>
                         ))}
@@ -765,7 +894,16 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         const text = typeof advice === 'string' ? advice : (advice.badge || advice.text);
                         const key = typeof advice === 'string' ? advice : advice.text;
                         return (
-                            <Button key={key} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onAdviceSuggestionClick(advice)} disabled={isReadOnly}>
+                            <Button 
+                                key={key} 
+                                type="button" 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-auto px-2 py-1 text-xs" 
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => onAdviceSuggestionClick(advice)} 
+                                disabled={isReadOnly}
+                            >
                                 {text}
                             </Button>
                         );
@@ -807,7 +945,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             <div className="space-y-2">
                 <Label 
                     htmlFor="orthotics" 
-                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                    className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                     tabIndex={0}
                     onMouseDown={(e) => {
                         e.preventDefault();
@@ -820,21 +958,37 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         }
                     }}
                 >
-                    Orthotics
+                    <span className="shrink-0 group-hover:underline">Orthotics</span>
+                    {suggestedOrthotics.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            {suggestedOrthotics.map((orthotics) => {
+                                const text = typeof orthotics === 'string' ? orthotics : orthotics.text;
+                                return (
+                                    <Button 
+                                        key={text} 
+                                        type="button" 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsOrthoticsExpanded(true);
+                                            onOrthoticsSuggestionClick(orthotics);
+                                        }} 
+                                        disabled={isReadOnly}
+                                    >
+                                        {text}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+                    )}
                     {(!isOrthoticsExpanded && !extraData.orthotics) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                 </Label>
-                {(extraData.orthotics || isOrthoticsExpanded) && (
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                        {suggestedOrthotics.map((orthotics) => {
-                            const text = typeof orthotics === 'string' ? orthotics : orthotics.text;
-                            return (
-                                <Button key={text} type="button" size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" onClick={() => onOrthoticsSuggestionClick(orthotics)} disabled={isReadOnly}>
-                                    {text}
-                                </Button>
-                            );
-                        })}
-                    </div>
-                )}
                 {(extraData.orthotics || isOrthoticsExpanded) && (
                     <Textarea
                         ref={orthoticsRef}

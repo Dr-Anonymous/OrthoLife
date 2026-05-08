@@ -214,7 +214,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     // helper for preview
                     const findInText = (text: string | null | undefined): string | null => {
                         if (!text || !fuzzyQueryRegex) return null;
-                        
+
                         fuzzyQueryRegex.lastIndex = 0;
                         const match = fuzzyQueryRegex.exec(text);
                         if (!match) return null;
@@ -259,7 +259,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             findInText(d.medicalHistory) ||
                             findInText(d.personalNote) ||
                             findInText(d.investigations);
-                        
+
                         if (preview) return { consultation: c, isVisible: true, preview };
 
                         // Vitals
@@ -399,7 +399,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 <div className="flex items-center justify-between pb-2 border-b">
                     <div className="flex flex-col">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Welcome,</span>
-                        <span className="text-sm font-bold text-primary">
+                        <span className="text-sm font-bold text-primary truncate max-w-[140px] block" title={typeof consultant.name === 'object' ? consultant.name.en : String(consultant.name)}>
                             {typeof consultant.name === 'object' && consultant.name !== null
                                 ? (consultant.name.en || consultant.name.te)
                                 : String(consultant.name || '')}
@@ -421,7 +421,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-primary hover:bg-primary/10"
-                                onClick={onProfileClick}
+                                onClick={() => onProfileClick()}
                                 id="profile-settings-button"
                             >
                                 <UserCog className="h-5 w-5" />
@@ -646,7 +646,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             const hospital = hospitals.find(h => h.name === selectedHospitalName);
                             if (!hospital?.settings?.max_registrations) return null;
                             return (
-                                <button 
+                                <button
                                     onClick={() => onProfileClick?.('practice', hospital.id)}
                                     title="Click to edit registration limit"
                                     className="hover:text-primary hover:underline cursor-pointer transition-colors"
@@ -821,8 +821,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                             setSearchQuery('');
                                         }}>
                                             <div className="flex flex-col items-start overflow-hidden w-full">
-                                                <div className="flex items-center justify-between w-full">
-                                                    <span className="truncate font-medium text-left">{c.patient.name}</span>
+                                                <div className="flex items-center justify-between w-full min-w-0">
+                                                    <span className="truncate font-medium text-left flex-1" title={c.patient.name}>{c.patient.name}</span>
                                                     <span className="text-[10px] opacity-70 font-normal shrink-0 ml-2">
                                                         {formatLocalTime(c.created_at)}
                                                     </span>
@@ -866,8 +866,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                             setSearchQuery('');
                                         }}>
                                             <div className="flex flex-col items-start overflow-hidden w-full">
-                                                <div className="flex items-center justify-between w-full">
-                                                    <span className="truncate font-medium text-left">{c.patient.name}</span>
+                                                <div className="flex items-center justify-between w-full min-w-0">
+                                                    <span className="truncate font-medium text-left flex-1" title={c.patient.name}>{c.patient.name}</span>
                                                     <span className="text-[10px] opacity-70 font-normal shrink-0 ml-2">
                                                         {formatLocalTime(c.created_at)}
                                                     </span>

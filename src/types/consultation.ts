@@ -144,6 +144,7 @@ export interface Consultant {
     team_members?: TeamMember[];
     vacation_start?: string;
     vacation_end?: string;
+    is_vacation_enabled?: boolean;
 }
 
 export interface Consultation {
@@ -257,6 +258,10 @@ export interface AutofillProtocol {
     followup_te?: string;
     orthotics?: string;
     orthotics_te?: string;
+    medical_history?: string;
+    medical_history_te?: string;
+    family_history?: string;
+    family_history_te?: string;
 }
 export interface PrintOptions {
     vitals: boolean;

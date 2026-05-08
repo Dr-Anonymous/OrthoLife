@@ -510,6 +510,7 @@ export function isEqual(a: any, b: any): boolean {
  * @param date The date to check (Date or ISO string)
  */
 export function isConsultantOnVacation(consultant: any, date: Date | string): boolean {
+  if (consultant?.is_vacation_enabled === false) return false;
   if (!consultant?.vacation_start || !consultant?.vacation_end) return false;
   
   const checkDate = typeof date === 'string' ? new Date(date) : date;
