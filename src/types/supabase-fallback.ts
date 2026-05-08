@@ -27,6 +27,11 @@ export type Database = {
         Insert: { guide_id: string; language: string; title: string; content: string; description?: string; next_steps?: string };
         Update: { title?: string; content?: string; description?: string; next_steps?: string };
       };
+      lims_catalog_cache: {
+        Row: { id: string; item_type: string; external_id: string; data: any; last_synced_at: string };
+        Insert: { id?: string; item_type: string; external_id: string; data: any; last_synced_at?: string };
+        Update: { item_type?: string; external_id?: string; data?: any; last_synced_at?: string };
+      };
     };
     Functions: {
       search_patients_normalized: {

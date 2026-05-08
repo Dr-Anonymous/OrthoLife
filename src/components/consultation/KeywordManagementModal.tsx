@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, X, Plus, Edit, Save, Search } from 'lucide-react';
 import { normalizeSearchText } from '@/lib/utils';
+import { useLimsCatalog } from '@/hooks/useLimsCatalog';
+import { useMemo } from 'react';
 
 interface Keyword {
   id: number;
@@ -73,6 +75,16 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [searchQuery, setSearchQuery] = useState('');
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+  const [investigationSearch, setInvestigationSearch] = useState('');
+  const { data: limsCatalog } = useLimsCatalog();
+
+  const filteredLimsTests = useMemo(() => {
+    const query = normalizeSearchText(investigationSearch);
+    if (!query) return [];
+    return limsCatalog?.services?.filter(s => 
+      normalizeSearchText(s.name).includes(query)
+    ).slice(0, 20) || [];
+  }, [limsCatalog, investigationSearch]);
 
   const displayedMeds = React.useMemo(() => {
     const normalizedQuery = normalizeSearchText(searchQuery);
@@ -352,7 +364,45 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="investigations">Investigations</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="investigations">Investigations</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                  <Input
+                    placeholder="Search LIMS tests..."
+                    value={investigationSearch}
+                    onChange={(e) => setInvestigationSearch(e.target.value)}
+                    className="h-8 w-40 pl-8"
+                  />
+                  {filteredLimsTests.length > 0 ? (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-40 overflow-y-auto bg-popover border rounded-md shadow-md">
+                      {filteredLimsTests.map(test => (
+                        <button
+                          key={test.id}
+                          className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground border-b last:border-0 flex flex-col gap-0.5"
+                          onClick={() => {
+                            const current = investigations.trim();
+                            const separator = current ? '\n' : '';
+                            setInvestigations(current + separator + test.name);
+                            setInvestigationSearch('');
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-medium truncate">{test.name}</div>
+                            {test.type === 'package' && (
+                              <span className="shrink-0 bg-blue-100 text-blue-700 px-1 rounded-[2px] text-[8px] font-bold uppercase">Panel</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : investigationSearch && (limsCatalog?.services?.length === 0 || !limsCatalog) && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 p-2 bg-popover border rounded-md shadow-md text-[10px] text-muted-foreground">
+                      LIMS catalog not synced yet. Run the refresh cron or check LIMS integration.
+                    </div>
+                  )}
+                </div>
+              </div>
               <Textarea id="investigations" value={investigations} onChange={(e) => setInvestigations(e.target.value)} placeholder="e.g., X-ray, Blood Test" />
             </div>
             <div className="space-y-2">

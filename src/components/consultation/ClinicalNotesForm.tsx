@@ -3,13 +3,16 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown, FileUp, BrainCircuit, Loader2, X, Download, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchedGuide, InvestigationReport } from '@/types/consultation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
+import { normalizeSearchText } from '@/lib/utils';
+import { useLimsCatalog } from '@/hooks/useLimsCatalog';
 
 interface ClinicalNotesFormProps {
     extraData: {
@@ -133,25 +136,16 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
     const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
     const [pendingDeletions, setPendingDeletions] = React.useState<string[]>([]);
-    const [labSuggestions, setLabSuggestions] = React.useState<any[]>([]);
+    const { data: limsCatalog } = useLimsCatalog();
+    const [investigationSearch, setInvestigationSearch] = React.useState('');
 
-    // Fetch lab data dynamically since it's in the public directory and can be refreshed
-    React.useEffect(() => {
-        const fetchLabData = async () => {
-            try {
-                const response = await fetch('/lab-data.json');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data?.medicines) {
-                        setLabSuggestions(data.medicines);
-                    }
-                }
-            } catch (err) {
-                console.error('Error fetching lab data suggestions:', err);
-            }
-        };
-        fetchLabData();
-    }, []);
+    const filteredLimsTests = React.useMemo(() => {
+        const query = normalizeSearchText(investigationSearch);
+        if (!query) return [];
+        return limsCatalog?.services?.filter(s => 
+            normalizeSearchText(s.name).includes(query)
+        ).slice(0, 20) || [];
+    }, [limsCatalog, investigationSearch]);
 
     // We use a ref to track the last saved consultation ID to know when a "save" happened
     const lastSavedIdRef = React.useRef<string | number | null | undefined>(initialData?.investigation_reports ? 'initialized' : null);
@@ -632,10 +626,51 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
             <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                            {!isReadOnly && (
+                                <div className="relative">
+                                    <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Quick add test..."
+                                        value={investigationSearch}
+                                        onChange={(e) => setInvestigationSearch(e.target.value)}
+                                        className="h-8 w-40 pl-8 bg-background"
+                                    />
+                                    {filteredLimsTests.length > 0 && (
+                                        <div className="absolute top-full left-0 z-50 mt-1 w-64 max-h-60 overflow-y-auto bg-popover border rounded-md shadow-lg animate-in fade-in zoom-in-95">
+                                            {filteredLimsTests.map(test => (
+                                                <button
+                                                    key={test.id}
+                                                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground border-b last:border-0 flex flex-col gap-0.5"
+                                                    onClick={() => {
+                                                        const current = extraData.investigations.trim();
+                                                        const separator = current ? '\n' : '';
+                                                        onExtraChange('investigations', current + separator + test.name);
+                                                        setInvestigationSearch('');
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="font-medium truncate">{test.name}</span>
+                                                        {test.type === 'package' && (
+                                                            <span className="shrink-0 bg-blue-100 text-blue-700 px-1 rounded-[2px] text-[9px] font-bold uppercase">Panel</span>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {investigationSearch && filteredLimsTests.length === 0 && (
+                                        <div className="absolute top-full left-0 z-50 mt-1 w-40 p-2 bg-popover border rounded-md shadow-sm text-[10px] text-muted-foreground">
+                                            No matching tests found
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                         {!isReadOnly && (!extraData.investigation_reports || extraData.investigation_reports.length === 0) && (
-                            <div className="relative">
+                            <div className="relative ml-auto">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -669,31 +704,13 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         ))}
                     </div>
                     <div className="relative w-full">
-                        <AutosuggestInput
-                            ref={investigationsRef as any}
-                            multiline
+                        <Textarea
+                            ref={investigationsRef}
+                            id="investigations"
                             value={extraData.investigations}
-                            onChange={(value, cursor) => onExtraChange('investigations', value, cursor)}
-                            onSuggestionSelected={suggestion => {
-                                const current = extraData.investigations;
-                                const lines = current.split('\n');
-                                
-                                // Replace the LAST line (the one currently being typed) with the suggestion
-                                // And add a newline to prepare for the NEXT entry
-                                lines[lines.length - 1] = suggestion.name;
-                                
-                                onExtraChange('investigations', lines.join('\n') + '\n');
-                            }}
-                            suggestions={labSuggestions.map(m => ({
-                                id: m.id,
-                                name: m.name,
-                                label: m.name,
-                                searchTerms: m.category + ' ' + m.description
-                            }))}
-                            placeholder="Investigations required..."
-                            inputProps={{
-                                className: cn("min-h-[100px] w-full", getStyle('investigations', extraData.investigations))
-                            }}
+                            onChange={(e) => onExtraChange('investigations', e.target.value, e.target.selectionStart)}
+                            placeholder="Investigations required... (e.g. CRP: 45, Hb: 12)"
+                            className={cn("min-h-[100px] w-full", getStyle('investigations', extraData.investigations))}
                             disabled={isReadOnly}
                         />
                     </div>
