@@ -161,7 +161,7 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
   // 1. Fetch Last Consultation (Any status, meant to capture "Last Visit")
   const { data: lastConsultation } = await supabase
     .from('consultations')
-    .select('consultation_data, created_at, referred_by')
+    .select('consultation_data, created_at, referred_by, consultant_id')
     .in('patient_id', patientIds) // Use IN instead of EQ
     .lt('created_at', referenceDateIso)
     .order('created_at', { ascending: false })
@@ -184,7 +184,7 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
   // 2. Fetch Last Discharge Summary
   const { data: lastDischarge } = await supabase
     .from('in_patients')
-    .select('discharge_date, discharge_summary, procedure_date')
+    .select('discharge_date, discharge_summary, procedure_date, consultant_id')
     .in('patient_id', patientIds) // Use IN instead of EQ
     .eq('status', 'discharged')
     .not('discharge_summary', 'is', null)
@@ -212,6 +212,77 @@ function calculateLastVisitString(lastOpDate: Date | null, lastDischargeDate: Da
     return `Visited ${formatDistanceToNow(lastOpDate, { addSuffix: true })} (${format(lastOpDate, 'dd MMM yyyy')})`;
   }
   return 'First Consultation';
+}
+
+/**
+ * Removes bracketed text from strings.
+ */
+function removeBracketedText(text: string): string {
+  if (!text) return '';
+  return text.replace(/[ \t]*\(.*?\)[ \t]*/g, ' ').trim();
+}
+
+/**
+ * Replicates the clinical data cleaning logic for the Edge Function.
+ */
+function cleanConsultationData(data: any, keepBrackets: boolean = false): any {
+  if (!data) return data;
+
+  const process = (text: any) => keepBrackets ? (text || '') : removeBracketedText(text);
+
+  const cleanMedication = (med: any) => ({
+    ...med,
+    composition: process(med.composition || med.name),
+    dose: process(med.dose),
+    frequency: process(med.frequency),
+    frequency_te: process(med.frequency_te),
+    duration: process(med.duration),
+    duration_te: process(med.duration_te),
+    instructions: process(med.instructions),
+    instructions_te: process(med.instructions_te),
+    notes: process(med.notes),
+    notes_te: process(med.notes_te),
+  });
+
+  const hasReferredToListField = 'referred_to_list' in data && Array.isArray(data.referred_to_list);
+  const referredToList = hasReferredToListField
+    ? data.referred_to_list.map((s: string) => process(s)).filter((s: string) => s && s.trim().length > 0)
+    : [];
+
+  const referredToString = hasReferredToListField
+    ? (referredToList.length > 0 ? referredToList.map((s: string) => `• ${s}`).join('\n') : '')
+    : process(data.referred_to);
+
+  return {
+    ...data,
+    complaints: process(data.complaints),
+    findings: process(data.findings),
+    investigations: process(data.investigations),
+    diagnosis: process(data.diagnosis),
+    advice: process(data.advice),
+    advice_te: process(data.advice_te),
+    followup: process(data.followup),
+    followup_te: process(data.followup_te),
+    referred_by: process(data.referred_by),
+    medications: (data.medications?.map(cleanMedication) || []).filter((m: any) => m.composition && m.composition.trim().length > 0),
+    procedure: process(data.procedure),
+    referred_to: referredToString,
+    referred_to_list: referredToList,
+    weight: process(data.weight),
+    height: process(data.height),
+    pulse: process(data.pulse),
+    spo2: process(data.spo2),
+    bp: process(data.bp),
+    temperature: process(data.temperature),
+    allergy: process(data.allergy),
+    medicalHistory: process(data.medicalHistory),
+    familyHistory: process(data.familyHistory),
+    occupation: process(data.occupation),
+    blood_group: process(data.blood_group),
+    orthotics: process(data.orthotics),
+    orthotics_te: process(data.orthotics_te),
+    personalNote: process(data.personalNote),
+  };
 }
 
 /**
@@ -258,23 +329,52 @@ function generateAutofillData(
         }
       }
 
-      return {
+      const autofillData = {
         complaints: complaintsText,
         diagnosis: course.diagnosis || '',
         procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? new Date(lastDischarge.procedure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}` : '',
-        medications: (discharge.medications || []).map((m: any) => ({ ...m, composition: m.composition || m.name || '' })),
+        medications: discharge.medications || [],
         advice: discharge.post_op_care || '',
         findings: discharge.clinical_notes || course.operation_notes || '',
         followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         investigations: '',
         visit_type: currentConsultation.visit_type || 'paid',
-        weight: '', bp: '', temperature: '', allergy: '', personalNote: '', referred_to: ''
+        weight: '', 
+        bp: '', 
+        temperature: '', 
+        allergy: '', 
+        personalNote: '', 
+        referred_to: '',
+        procedure_fee: '',
+        procedure_consultant_cut: '',
+        referral_amount: '',
+        referred_by: '',
+        affordabilityPreference: 'none',
+        certificates: [],
+        receipts: []
       };
+
+      const isDifferentConsultant = !!lastDischarge.consultant_id && !!currentConsultation.consultant_id && lastDischarge.consultant_id !== currentConsultation.consultant_id;
+      return cleanConsultationData(autofillData, !isDifferentConsultant);
     } catch (e) {
       console.error("Error parsing discharge summary:", e);
     }
   } else if (lastConsultation && lastConsultation.consultation_data) {
-    return lastConsultation.consultation_data;
+    const data = { ...lastConsultation.consultation_data };
+    const isDifferentConsultant = !!lastConsultation.consultant_id && !!currentConsultation.consultant_id && lastConsultation.consultant_id !== currentConsultation.consultant_id;
+
+    if (isDifferentConsultant) {
+      data.personalNote = '';
+      data.procedure_fee = '';
+      data.procedure_consultant_cut = '';
+      data.referral_amount = '';
+      data.referred_by = '';
+      data.affordabilityPreference = 'none';
+      data.certificates = [];
+      data.receipts = [];
+    }
+    
+    return cleanConsultationData(data, !isDifferentConsultant);
   }
   return null;
 }

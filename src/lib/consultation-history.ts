@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { format, formatDistanceToNow } from 'date-fns';
+import { cleanConsultationData } from './utils';
 
 /**
  * Fetches the most recent completed consultation and discharge summary *strictly before* the reference date.
@@ -20,7 +21,7 @@ export async function fetchRecentHistory(patientId: string, referenceDateIso: st
   // 1. Fetch Last Consultation
   const { data: lastConsultation } = await supabase
     .from('consultations')
-    .select('consultation_data, created_at, referred_by')
+    .select('consultation_data, created_at, referred_by, consultant_id')
     .in('patient_id', patientIds)
     .lt('created_at', referenceDateIso)
     .order('created_at', { ascending: false })
@@ -34,7 +35,7 @@ export async function fetchRecentHistory(patientId: string, referenceDateIso: st
   // 2. Fetch Last Discharge Summary
   const { data: lastDischarge } = await supabase
     .from('in_patients')
-    .select('discharge_date, discharge_summary, procedure_date')
+    .select('discharge_date, discharge_summary, procedure_date, consultant_id')
     .in('patient_id', patientIds)
     .eq('status', 'discharged')
     .not('discharge_summary', 'is', null)
@@ -101,27 +102,54 @@ export function generateAutofillData(
         }
       }
 
-      return {
+      const autofillData = {
         complaints: complaintsText,
         diagnosis: course.diagnosis || '',
         procedure: course.procedure ? `${course.procedure} done on ${lastDischarge.procedure_date ? new Date(lastDischarge.procedure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}` : '',
-        medications: (discharge.medications || []).map((m: any) => ({ ...m, composition: m.composition || m.name || '' })),
+        medications: discharge.medications || [],
         advice: discharge.post_op_care || '',
         findings: discharge.clinical_notes || course.operation_notes || '',
         followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         investigations: '',
         visit_type: currentConsultation.visit_type || 'paid',
-        weight: '', bp: '', temperature: '', allergy: '', personalNote: '', referred_to: ''
+        weight: '', 
+        bp: '', 
+        temperature: '', 
+        allergy: '', 
+        personalNote: '', 
+        referred_to: '',
+        procedure_fee: '',
+        procedure_consultant_cut: '',
+        referral_amount: '',
+        referred_by: '',
+        affordabilityPreference: 'none',
+        certificates: [],
+        receipts: []
       };
+
+      const isDifferentConsultant = !!lastDischarge.consultant_id && !!currentConsultation.consultant_id && lastDischarge.consultant_id !== currentConsultation.consultant_id;
+
+      return cleanConsultationData(autofillData, !isDifferentConsultant);
     } catch (e) {
       console.error("Error parsing discharge summary:", e);
     }
   } else if (lastConsultation && lastConsultation.consultation_data) {
     const data = { ...lastConsultation.consultation_data };
-    if (data.medications) {
-      data.medications = data.medications.map((m: any) => ({ ...m, composition: m.composition || m.name || '' }));
+    const isDifferentConsultant = !!lastConsultation.consultant_id && !!currentConsultation.consultant_id && lastConsultation.consultant_id !== currentConsultation.consultant_id;
+
+    if (isDifferentConsultant) {
+      // Clear personal/financial fields for autofill
+      data.personalNote = '';
+      data.procedure_fee = '';
+      data.procedure_consultant_cut = '';
+      data.referral_amount = '';
+      data.referred_by = ''; // Usually specific to first visit or changed per visit
+      data.affordabilityPreference = 'none';
+      data.certificates = [];
+      data.receipts = [];
     }
-    return data;
+
+    return cleanConsultationData(data, !isDifferentConsultant);
   }
   return null;
 }

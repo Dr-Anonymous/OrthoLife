@@ -52,55 +52,66 @@ export function cleanAdviceLine(line: string): string {
   return cleaned;
 }
 
-export function cleanConsultationData(data: any): any {
+export function cleanConsultationData(data: any, keepBrackets: boolean = false): any {
   if (!data) return data;
+
+  const process = (text: any) => keepBrackets ? (text || '') : removeBracketedText(text);
 
   const cleanMedication = (med: any) => ({
     ...med,
-    composition: removeBracketedText(med.composition || med.name),
-    dose: removeBracketedText(med.dose),
-    frequency: removeBracketedText(med.frequency),
-    duration: removeBracketedText(med.duration),
-    instructions: removeBracketedText(med.instructions),
-    notes: removeBracketedText(med.notes),
+    composition: process(med.composition || med.name),
+    dose: process(med.dose),
+    frequency: process(med.frequency),
+    frequency_te: process(med.frequency_te),
+    duration: process(med.duration),
+    duration_te: process(med.duration_te),
+    instructions: process(med.instructions),
+    instructions_te: process(med.instructions_te),
+    notes: process(med.notes),
+    notes_te: process(med.notes_te),
   });
 
   const hasReferredToListField = 'referred_to_list' in data && Array.isArray(data.referred_to_list);
   const referredToList = hasReferredToListField
-    ? data.referred_to_list.map((s: string) => removeBracketedText(s)).filter((s: string) => s && s.trim().length > 0)
+    ? data.referred_to_list.map((s: string) => process(s)).filter((s: string) => s && s.trim().length > 0)
     : [];
 
   // Use the list to populate the string if the list field exists, otherwise use the existing string (cleaned)
   // This prevents resurrection of deleted fields when the user clears the list.
   const referredToString = hasReferredToListField
     ? (referredToList.length > 0 ? referredToList.map((s: string) => `• ${s}`).join('\n') : '')
-    : removeBracketedText(data.referred_to);
+    : process(data.referred_to);
 
   return {
     ...data,
-    complaints: removeBracketedText(data.complaints),
-    findings: removeBracketedText(data.findings),
-    investigations: removeBracketedText(data.investigations),
-    diagnosis: removeBracketedText(data.diagnosis),
-    advice: removeBracketedText(data.advice),
-    followup: removeBracketedText(data.followup),
-    referred_by: removeBracketedText(data.referred_by),
+    complaints: process(data.complaints),
+    findings: process(data.findings),
+    investigations: process(data.investigations),
+    diagnosis: process(data.diagnosis),
+    advice: process(data.advice),
+    advice_te: process(data.advice_te),
+    followup: process(data.followup),
+    followup_te: process(data.followup_te),
+    referred_by: process(data.referred_by),
     medications: (data.medications?.map(cleanMedication) || []).filter((m: any) => m.composition && m.composition.trim().length > 0),
-    procedure: removeBracketedText(data.procedure),
+    procedure: process(data.procedure),
     referred_to: referredToString,
     // maintain the list in cleaned data too, though print might not use it directly yet
     referred_to_list: referredToList,
-    weight: removeBracketedText(data.weight),
-    height: removeBracketedText(data.height),
-    pulse: removeBracketedText(data.pulse),
-    spo2: removeBracketedText(data.spo2),
-    bp: removeBracketedText(data.bp),
-    temperature: removeBracketedText(data.temperature),
-    allergy: removeBracketedText(data.allergy),
-    medicalHistory: removeBracketedText(data.medicalHistory),
-    familyHistory: removeBracketedText(data.familyHistory),
-    occupation: removeBracketedText(data.occupation),
-    blood_group: removeBracketedText(data.blood_group),
+    weight: process(data.weight),
+    height: process(data.height),
+    pulse: process(data.pulse),
+    spo2: process(data.spo2),
+    bp: process(data.bp),
+    temperature: process(data.temperature),
+    allergy: process(data.allergy),
+    medicalHistory: process(data.medicalHistory),
+    familyHistory: process(data.familyHistory),
+    occupation: process(data.occupation),
+    blood_group: process(data.blood_group),
+    orthotics: process(data.orthotics),
+    orthotics_te: process(data.orthotics_te),
+    personalNote: process(data.personalNote),
   };
 }
 

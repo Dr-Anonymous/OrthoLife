@@ -2,9 +2,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
 import { cn, calculateFollowUpDate, getNextFollowUpText, isConsultantOnVacation } from '@/lib/utils';
-import { Minus, Plus, CalendarOff, AlertTriangle } from 'lucide-react';
+import { Minus, Plus, CalendarOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface FollowUpSectionProps {
@@ -62,13 +61,13 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
 
     const calculatedDateStr = calculateFollowUpDate(followup, baseDate);
     const calculatedDate = calculatedDateStr ? new Date(calculatedDateStr) : null;
-    
-    const isOnVacation = calculatedDate && vacationStart && vacationEnd 
-        ? isConsultantOnVacation({ 
-            vacation_start: vacationStart, 
+
+    const isOnVacation = calculatedDate && vacationStart && vacationEnd
+        ? isConsultantOnVacation({
+            vacation_start: vacationStart,
             vacation_end: vacationEnd,
-            is_vacation_enabled: isVacationEnabled 
-          }, calculatedDate)
+            is_vacation_enabled: isVacationEnabled
+        }, calculatedDate)
         : false;
 
     const handleAdjustDate = (days: number) => {
@@ -83,8 +82,8 @@ export const FollowUpSection: React.FC<FollowUpSectionProps> = ({
                 <div className="flex items-center gap-2">
                     <Label htmlFor="followup" className="text-sm font-medium">Follow-up</Label>
                     {isOnVacation && (
-                        <Badge 
-                            variant="destructive" 
+                        <Badge
+                            variant="destructive"
                             className={cn(
                                 "h-5 px-1.5 py-0 text-[10px] gap-1 animate-pulse shadow-sm",
                                 onProfileClick ? "cursor-pointer hover:bg-destructive/80 transition-colors" : ""
