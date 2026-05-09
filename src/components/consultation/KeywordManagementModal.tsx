@@ -427,7 +427,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                     </div>
                   ) : investigationSearch && (limsCatalog?.services?.length === 0 || !limsCatalog) && (
                     <div className="absolute top-full left-0 right-0 z-50 mt-1 p-2 bg-popover border rounded-md shadow-md text-[10px] text-muted-foreground">
-                      LIMS catalog not synced yet. Run the refresh cron or check LIMS integration.
+                      LIMS catalog unavailable. Check network connectivity or LIMS integration.
                     </div>
                   )}
                 </div>

@@ -1,12 +1,13 @@
-
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
-import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown, FileUp, BrainCircuit, Loader2, X, Download, FileText } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown, FileUp, BrainCircuit, Loader2, X, Download, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchedGuide, InvestigationReport } from '@/types/consultation';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { normalizeSearchText } from '@/lib/utils';
 import { useLimsCatalog } from '@/hooks/useLimsCatalog';
+import { useInvestigationHistory } from '@/hooks/useInvestigationHistory';
 import { ClinicalParser } from '@/lib/clinical-parser';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -82,6 +84,7 @@ interface ClinicalNotesFormProps {
     onShortcutsClick?: () => void;
     patientAge?: number | '';
     patientSex?: string;
+    consultationId?: string;
 }
 
 
@@ -139,20 +142,24 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     isReadOnly = false,
     onShortcutsClick,
     patientAge,
-    patientSex
+    patientSex,
+    consultationId
 }) => {
+    const queryClient = useQueryClient();
+    const { data: investigationHistory } = useInvestigationHistory(patientId);
     const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
     const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
     const [pendingDeletions, setPendingDeletions] = React.useState<string[]>([]);
-    const { data: limsCatalog } = useLimsCatalog();
+    const { data: limsCatalog, isLoading: isCatalogLoading } = useLimsCatalog();
     const [investigationSearch, setInvestigationSearch] = React.useState('');
     const [activeInvestigationIndex, setActiveInvestigationIndex] = React.useState(0);
+    const [ghostText, setGhostText] = React.useState('');
 
     const parser = React.useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
     const parsedInvestigations = React.useMemo(() => {
-        return parser.parse(extraData.investigations, { 
-            age: typeof patientAge === 'number' ? patientAge : 30, 
-            sex: patientSex 
+        return parser.parse(extraData.investigations, {
+            age: typeof patientAge === 'number' ? patientAge : 30,
+            sex: patientSex
         });
     }, [parser, extraData.investigations, patientAge, patientSex]);
 
@@ -160,35 +167,89 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         setActiveInvestigationIndex(0);
     }, [investigationSearch]);
 
-    const handleInvestigationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (filteredLimsTests.length === 0) return;
+    const handleInvestigationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        const selectionStart = e.target.selectionStart;
+        onExtraChange('investigations', value, selectionStart);
 
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setActiveInvestigationIndex(prev => (prev + 1) % filteredLimsTests.length);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setActiveInvestigationIndex(prev => (prev - 1 + filteredLimsTests.length) % filteredLimsTests.length);
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            const selected = filteredLimsTests[activeInvestigationIndex];
-            if (selected) {
-                const current = extraData.investigations.trim();
-                const separator = current ? '\n' : '';
-                onExtraChange('investigations', current + separator + selected.name);
-                setInvestigationSearch('');
+        // Detect current query and ghost text
+        const lines = value.substring(0, selectionStart).split('\n');
+        const currentLine = lines[lines.length - 1];
+
+        // Only search if current line looks like a name (no colon/value yet)
+        if (currentLine.trim().length > 1 && !currentLine.includes(':') && !currentLine.includes('-')) {
+            setInvestigationSearch(currentLine.trim());
+
+            // Ghost text check
+            const matchedHistory = investigationHistory?.[currentLine.trim().toLowerCase()]?.[0];
+            if (matchedHistory) {
+                setGhostText(`: ${matchedHistory.value}`);
+            } else {
+                setGhostText('');
             }
-        } else if (e.key === 'Escape') {
+        } else {
             setInvestigationSearch('');
+            setGhostText('');
         }
     };
+
+    const handleInvestigationKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Tab' && ghostText) {
+            e.preventDefault();
+            const currentVal = extraData.investigations;
+            const selectionStart = (e.target as HTMLTextAreaElement).selectionStart;
+            const before = currentVal.substring(0, selectionStart);
+            const after = currentVal.substring(selectionStart);
+            onExtraChange('investigations', before + ghostText + after, selectionStart + ghostText.length);
+            setGhostText('');
+            setInvestigationSearch('');
+            return;
+        }
+
+        if (filteredLimsTests.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setActiveInvestigationIndex(prev => (prev + 1) % filteredLimsTests.length);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setActiveInvestigationIndex(prev => (prev - 1 + filteredLimsTests.length) % filteredLimsTests.length);
+            } else if (e.key === 'Enter' && investigationSearch) {
+                e.preventDefault();
+                const selected = filteredLimsTests[activeInvestigationIndex];
+                if (selected) {
+                    const currentVal = extraData.investigations;
+                    const selectionStart = (e.target as HTMLTextAreaElement).selectionStart;
+                    const lines = currentVal.substring(0, selectionStart).split('\n');
+                    const lastLine = lines[lines.length - 1];
+                    const before = currentVal.substring(0, selectionStart - lastLine.length);
+                    const after = currentVal.substring(selectionStart);
+
+                    const selectedName = selected.name + ': ';
+                    const separator = '\n';
+                    onExtraChange('investigations', before + selectedName + separator + after, before.length + selectedName.length + separator.length);
+                    setInvestigationSearch('');
+                    setGhostText('');
+                }
+            } else if (e.key === 'Escape') {
+                setInvestigationSearch('');
+                setGhostText('');
+            }
+        }
+    };
+
+
 
     const filteredLimsTests = React.useMemo(() => {
         const query = normalizeSearchText(investigationSearch);
         if (!query) return [];
-        return limsCatalog?.services?.filter(s => 
-            normalizeSearchText(s.name).includes(query)
-        ).slice(0, 20) || [];
+        return limsCatalog?.services?.filter(s => {
+            const normalizedName = normalizeSearchText(s.name);
+            // Filter out consultations from the investigations search
+            if (normalizedName.includes('consultation')) {
+                return false;
+            }
+            return normalizedName.includes(query);
+        }).slice(0, 20) || [];
     }, [limsCatalog, investigationSearch]);
 
     // We use a ref to track the last saved consultation ID to know when a "save" happened
@@ -204,24 +265,24 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         // (meaning Consultation.tsx has completed its save/sync cycle)
         const currentReports = extraData.investigation_reports || [];
         const initialReports = initialData?.investigation_reports || [];
-        
+
         const isSynced = JSON.stringify(currentReports) === JSON.stringify(initialReports);
 
         if (isSynced && lastSavedIdRef.current !== 'initialized') {
             console.log('Save detected, executing pending Drive deletions:', pendingDeletions);
-            
+
             pendingDeletions.forEach(fileId => {
                 supabase.functions.invoke('delete-file-from-drive', {
                     body: { fileId }
                 }).catch(err => console.error('Delayed delete error:', err));
             });
-            
+
             setPendingDeletions([]);
         }
-        
+
         lastSavedIdRef.current = 'active';
     }, [extraData.investigation_reports, initialData?.investigation_reports, pendingDeletions]);
-    
+
     // Auto-focus Procedure textarea when expanded
     React.useEffect(() => {
         if (isProcedureExpanded && procedureRef?.current) {
@@ -356,7 +417,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     {!isReadOnly && (
                         <p className="text-[10px] text-muted-foreground/70 leading-none">
                             Example: Type a custom shortcut (like <code className="font-bold">ra.</code> or <code className="font-bold">acl.</code>) to expand text. Manage these in{" "}
-                            <button 
+                            <button
                                 onClick={onShortcutsClick}
                                 className="font-bold text-primary hover:underline underline-offset-2"
                             >
@@ -370,8 +431,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 {(!isMedicalHistoryExpanded && !extraData.medicalHistory && !isFamilyHistoryExpanded && !extraData.familyHistory) ? (
                     <div className="space-y-4 sm:col-span-1">
                         <div className="space-y-2">
-                            <Label 
-                                htmlFor="medicalHistory" 
+                            <Label
+                                htmlFor="medicalHistory"
                                 className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
@@ -401,12 +462,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         {suggestedMedicalHistory.map((sh) => {
                                             const text = typeof sh === 'string' ? sh : sh.text;
                                             return (
-                                                <Button 
-                                                    key={text} 
-                                                    type="button" 
-                                                    size="sm" 
-                                                    variant="outline" 
-                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                <Button
+                                                    key={text}
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
                                                     onMouseDown={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
@@ -415,7 +476,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                         e.stopPropagation();
                                                         setIsMedicalHistoryExpanded(true);
                                                         onMedicalHistorySuggestionClick(sh);
-                                                    }} 
+                                                    }}
                                                     disabled={isReadOnly}
                                                 >
                                                     {text}
@@ -428,8 +489,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             </Label>
                         </div>
                         <div className="space-y-2">
-                            <Label 
-                                htmlFor="familyHistory" 
+                            <Label
+                                htmlFor="familyHistory"
                                 className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
@@ -459,12 +520,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         {suggestedFamilyHistory.map((sh) => {
                                             const text = typeof sh === 'string' ? sh : sh.text;
                                             return (
-                                                <Button 
-                                                    key={text} 
-                                                    type="button" 
-                                                    size="sm" 
-                                                    variant="outline" 
-                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                <Button
+                                                    key={text}
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
                                                     onMouseDown={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
@@ -473,7 +534,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                         e.stopPropagation();
                                                         setIsFamilyHistoryExpanded(true);
                                                         onFamilyHistorySuggestionClick(sh);
-                                                    }} 
+                                                    }}
                                                     disabled={isReadOnly}
                                                 >
                                                     {text}
@@ -489,8 +550,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 ) : (
                     <>
                         <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
-                            <Label 
-                                htmlFor="medicalHistory" 
+                            <Label
+                                htmlFor="medicalHistory"
                                 className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
@@ -520,12 +581,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         {suggestedMedicalHistory.map((sh) => {
                                             const text = typeof sh === 'string' ? sh : sh.text;
                                             return (
-                                                <Button 
-                                                    key={text} 
-                                                    type="button" 
-                                                    size="sm" 
-                                                    variant="outline" 
-                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                <Button
+                                                    key={text}
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
                                                     onMouseDown={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
@@ -534,7 +595,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                         e.stopPropagation();
                                                         setIsMedicalHistoryExpanded(true);
                                                         onMedicalHistorySuggestionClick(sh);
-                                                    }} 
+                                                    }}
                                                     disabled={isReadOnly}
                                                 >
                                                     {text}
@@ -564,8 +625,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         </div>
 
                         <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
-                            <Label 
-                                htmlFor="familyHistory" 
+                            <Label
+                                htmlFor="familyHistory"
                                 className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                                 tabIndex={0}
                                 onMouseDown={(e) => {
@@ -595,12 +656,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         {suggestedFamilyHistory.map((sh) => {
                                             const text = typeof sh === 'string' ? sh : sh.text;
                                             return (
-                                                <Button 
-                                                    key={text} 
-                                                    type="button" 
-                                                    size="sm" 
-                                                    variant="outline" 
-                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                                <Button
+                                                    key={text}
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
                                                     onMouseDown={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
@@ -609,7 +670,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                         e.stopPropagation();
                                                         setIsFamilyHistoryExpanded(true);
                                                         onFamilyHistorySuggestionClick(sh);
-                                                    }} 
+                                                    }}
                                                     disabled={isReadOnly}
                                                 >
                                                     {text}
@@ -670,55 +731,49 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
             <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2 mb-2 w-full">
+                        <div className="flex items-center gap-3">
                             <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
-                            {!isReadOnly && (
-                                <div className="relative">
-                                    <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Quick add test..."
-                                        value={investigationSearch}
-                                        onChange={(e) => setInvestigationSearch(e.target.value)}
-                                        onKeyDown={handleInvestigationKeyDown}
-                                        className="h-8 w-40 pl-8 bg-background"
+                            {limsCatalog && (
+                                <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-1">
+                                    <div
+                                        className={cn(
+                                            "w-1.5 h-1.5 rounded-full cursor-pointer",
+                                            limsCatalog.services.length > 0 ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+                                        )}
+                                        title={limsCatalog.services.length > 0 ? "Live Catalog Active - Click to Refetch" : "Catalog Loading - Click to Refetch"}
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            toast.info('Refetching live catalog...');
+                                            await queryClient.invalidateQueries({ queryKey: ['lims-catalog'] });
+                                        }}
                                     />
-                                    {filteredLimsTests.length > 0 && (
-                                        <div className="absolute top-full left-0 z-50 mt-1 w-64 max-h-60 overflow-y-auto bg-popover border rounded-md shadow-lg animate-in fade-in zoom-in-95">
-                                            {filteredLimsTests.map((test, idx) => (
-                                                <button
-                                                    key={test.id}
-                                                    className={cn(
-                                                        "w-full text-left px-3 py-2 text-xs border-b last:border-0 flex flex-col gap-0.5 transition-colors",
-                                                        idx === activeInvestigationIndex ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
-                                                    )}
-                                                    onClick={() => {
-                                                        const current = extraData.investigations.trim();
-                                                        const separator = current ? '\n' : '';
-                                                        onExtraChange('investigations', current + separator + test.name);
-                                                        setInvestigationSearch('');
-                                                    }}
-                                                >
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="font-medium truncate">{test.name}</span>
-                                                        {test.type === 'package' && (
-                                                            <span className="shrink-0 bg-blue-100 text-blue-700 px-1 rounded-[2px] text-[9px] font-bold uppercase">Panel</span>
-                                                        )}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {investigationSearch && filteredLimsTests.length === 0 && (
-                                        <div className="absolute top-full left-0 z-50 mt-1 w-40 p-2 bg-popover border rounded-md shadow-sm text-[10px] text-muted-foreground">
-                                            No matching tests found
-                                        </div>
-                                    )}
+                                    <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-bold opacity-70">Live LIMS</span>
                                 </div>
                             )}
                         </div>
+
+
+
+                        <div className="flex flex-wrap gap-1.5">
+                            {suggestedInvestigations.map((investigation) => (
+                                <Button
+                                    key={investigation}
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-auto px-2 py-1 text-xs"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => onInvestigationSuggestionClick(investigation)}
+                                    disabled={isReadOnly}
+                                >
+                                    {investigation}
+                                </Button>
+                            ))}
+                        </div>
+
                         {!isReadOnly && (!extraData.investigation_reports || extraData.investigation_reports.length === 0) && (
-                            <div className="relative ml-auto">
+                            <div className="ml-auto">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -736,94 +791,191 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                 </Button>
                             </div>
                         )}
-                        {suggestedInvestigations.map((investigation) => (
-                            <Button 
-                                key={investigation} 
-                                type="button" 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-auto px-2 py-1 text-xs" 
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => onInvestigationSuggestionClick(investigation)} 
-                                disabled={isReadOnly}
-                            >
-                                {investigation}
-                            </Button>
-                        ))}
                     </div>
                     <div className="relative w-full">
-                        <Textarea
-                            ref={investigationsRef}
-                            id="investigations"
-                            value={extraData.investigations}
-                            onChange={(e) => onExtraChange('investigations', e.target.value, e.target.selectionStart)}
-                            placeholder="Investigations required... (e.g. CRP: 45, Hb: 12)"
-                            className={cn("min-h-[100px] w-full", getStyle('investigations', extraData.investigations))}
-                            disabled={isReadOnly}
-                        />
+                        <div className="relative">
+                            <Textarea
+                                ref={investigationsRef}
+                                id="investigations"
+                                value={extraData.investigations}
+                                onChange={handleInvestigationChange}
+                                onKeyDown={handleInvestigationKeyDown}
+                                placeholder="Investigations ordered... (e.g. CRP: 45, Hb: 12)"
+                                className={cn("min-h-[100px] w-full", getStyle('investigations', extraData.investigations))}
+                                disabled={isReadOnly}
+                            />
+
+                            {/* Ghost Text Overlay */}
+                            {ghostText && (
+                                <div className="absolute top-2 left-3 pointer-events-none text-sm text-muted-foreground/30 whitespace-pre-wrap">
+                                    <span className="invisible">{extraData.investigations.substring(0, investigationsRef.current?.selectionStart || 0)}</span>
+                                    {ghostText}
+                                    <span className="ml-2 text-[10px] bg-muted px-1 rounded font-sans opacity-100">Tab to accept</span>
+                                </div>
+                            )}
+
+                            {/* Integrated LIMS Suggestions */}
+                            {investigationSearch && (
+                                <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-md shadow-lg max-h-[300px] overflow-auto">
+                                    {isCatalogLoading ? (
+                                        <div className="p-4 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground animate-pulse">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span>Fetching live catalog...</span>
+                                        </div>
+                                    ) : filteredLimsTests.length > 0 ? (
+                                        <>
+                                            <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground border-b flex justify-between items-center bg-muted/20">
+                                                <span>CATALOG SUGGESTIONS</span>
+                                                <div className="flex gap-2">
+                                                    <span className="flex items-center gap-1"><kbd className="px-1 bg-background border rounded text-[8px]">↑↓</kbd> Navigate</span>
+                                                    <span className="flex items-center gap-1"><kbd className="px-1 bg-background border rounded text-[8px]">↵</kbd> Select</span>
+                                                </div>
+                                            </div>
+                                            {filteredLimsTests.map((test, idx) => (
+                                                <button
+                                                    key={test.id}
+                                                    className={cn(
+                                                        "w-full text-left px-2 py-2 text-xs rounded-sm hover:bg-accent flex items-center justify-between gap-2 border-b last:border-0",
+                                                        idx === activeInvestigationIndex && "bg-accent"
+                                                    )}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => {
+                                                        const currentVal = extraData.investigations;
+                                                        const selectionStart = investigationsRef.current?.selectionStart || currentVal.length;
+                                                        const lines = currentVal.substring(0, selectionStart).split('\n');
+                                                        const lastLine = lines[lines.length - 1];
+                                                        const before = currentVal.substring(0, selectionStart - lastLine.length);
+                                                        const after = currentVal.substring(selectionStart);
+                                                        
+                                                        const selectedName = test.name + ': ';
+                                                        const separator = '\n';
+                                                        onExtraChange('investigations', before + selectedName + separator + after, before.length + selectedName.length + separator.length);
+                                                        setInvestigationSearch('');
+                                                        setGhostText('');
+                                                    }}
+                                                >
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{test.name}</span>
+                                                        {test.category && <span className="text-[10px] text-muted-foreground italic">{test.category}</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {test.type === 'package' && (
+                                                            <Badge variant="outline" className="h-4 text-[8px] bg-blue-50 text-blue-700 border-blue-200">Panel</Badge>
+                                                        )}
+                                                        <Search className="w-3 h-3 text-muted-foreground/40" />
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <div className="p-2 text-[10px] text-muted-foreground">
+                                            No matching tests found in catalog.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {parsedInvestigations.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1">
                                 <TooltipProvider>
-                                    {parsedInvestigations.map((res, i) => (
-                                        <Tooltip key={i}>
-                                            <TooltipTrigger asChild>
-                                                <Badge 
-                                                    variant="outline" 
-                                                    className={cn(
-                                                        "cursor-help gap-1.5 px-2 py-1 border-2 transition-all hover:scale-105",
-                                                        res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-200",
-                                                        (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-200",
-                                                        (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-300 animate-pulse",
-                                                        res.status === 'unknown' && "bg-slate-50 text-slate-600 border-slate-200"
-                                                    )}
-                                                >
-                                                    <span className="font-bold">{res.name}:</span>
-                                                    <span>{res.value}</span>
-                                                    {res.status !== 'normal' && res.status !== 'unknown' && (
-                                                        <AlertTriangle className="w-3 h-3" />
-                                                    )}
-                                                </Badge>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-[200px] p-3">
-                                                <div className="space-y-1.5">
-                                                    <div className="font-bold border-b pb-1 mb-1">{res.name}</div>
-                                                    {res.range ? (
-                                                        <div className="text-xs space-y-1">
-                                                            <div className="flex justify-between gap-4">
-                                                                <span className="text-muted-foreground">Normal Range:</span>
-                                                                <span className="font-mono">{res.range.low_value} - {res.range.high_value}</span>
-                                                            </div>
-                                                            {(res.range.critical_low || res.range.critical_high) && (
-                                                                <div className="flex justify-between gap-4 text-rose-600">
-                                                                    <span>Critical:</span>
-                                                                    <span className="font-mono">
-                                                                        {res.range.critical_low ? `<${res.range.critical_low}` : ''}
-                                                                        {res.range.critical_low && res.range.critical_high ? ' or ' : ''}
-                                                                        {res.range.critical_high ? `>${res.range.critical_high}` : ''}
-                                                                    </span>
+                                    {parsedInvestigations.map((res, i) => {
+                                        const history = investigationHistory?.[res.name.toLowerCase()] || [];
+                                        const filteredHistory = history.filter(h => h.consultationId !== consultationId);
+                                        const prevResult = filteredHistory[0];
+
+                                        const hasTrend = prevResult && res.value !== undefined;
+                                        const trend = hasTrend ? (res.value! > prevResult!.value ? 'up' : res.value! < prevResult!.value ? 'down' : 'stable') : null;
+
+                                        return (
+                                            <Tooltip key={i}>
+                                                <TooltipTrigger asChild>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={cn(
+                                                            "cursor-help gap-1.5 px-2 py-1 border-2 transition-all hover:scale-105",
+                                                            res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                                            (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-200",
+                                                            (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-300 animate-pulse",
+                                                            res.status === 'unknown' && "bg-slate-50 text-slate-600 border-slate-200"
+                                                        )}
+                                                    >
+                                                        <span className="font-bold">{res.name}:</span>
+                                                        <span>{res.value}</span>
+                                                        {trend === 'up' && <TrendingUp className="w-3 h-3 text-rose-500" />}
+                                                        {trend === 'down' && <TrendingDown className="w-3 h-3 text-emerald-500" />}
+                                                        {prevResult && (
+                                                            <span className="text-[10px] opacity-60 ml-1 border-l pl-1">
+                                                                Prev: {prevResult.value}
+                                                            </span>
+                                                        )}
+                                                        {res.status !== 'normal' && res.status !== 'unknown' && (
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                        )}
+                                                    </Badge>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-[280px] p-3">
+                                                    <div className="space-y-2">
+                                                        <div className="font-bold border-b pb-1 flex justify-between items-center">
+                                                            <span>{res.name}</span>
+                                                            <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">Clinical Insight</span>
+                                                        </div>
+
+                                                        {res.range ? (
+                                                            <div className="text-xs space-y-1 bg-muted/30 p-2 rounded">
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Normal Range:</span>
+                                                                    <span className="font-mono font-bold">{res.range.low_value} - {res.range.high_value}</span>
                                                                 </div>
-                                                            )}
-                                                            <div className="pt-1 text-[10px] text-muted-foreground italic border-top mt-1">
-                                                                Ref: {patientSex}, {patientAge || 'Adult'}
+                                                                {(res.range.critical_low || res.range.critical_high) && (
+                                                                    <div className="flex justify-between gap-4 text-rose-600">
+                                                                        <span>Critical Limits:</span>
+                                                                        <span className="font-mono">
+                                                                            {res.range.critical_low ? `<${res.range.critical_low}` : ''}
+                                                                            {res.range.critical_low && res.range.critical_high ? ' | ' : ''}
+                                                                            {res.range.critical_high ? `>${res.range.critical_high}` : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                             </div>
+                                                        ) : (
+                                                            <div className="text-[10px] text-muted-foreground italic">
+                                                                No reference range in LIMS catalog for this test.
+                                                            </div>
+                                                        )}
+
+                                                        {filteredHistory.length > 0 && (
+                                                            <div className="space-y-1.5 pt-1">
+                                                                <div className="text-[10px] font-bold text-muted-foreground uppercase">Recent History</div>
+                                                                <div className="space-y-1">
+                                                                    {filteredHistory.map((h, idx) => (
+                                                                        <div key={idx} className="flex justify-between text-[11px] border-b border-dashed last:border-0 pb-1">
+                                                                            <span className="text-muted-foreground">{format(new Date(h.date), 'dd MMM yyyy')}</span>
+                                                                            <span className={cn(
+                                                                                "font-mono font-bold",
+                                                                                h.status === 'normal' ? "text-emerald-600" : "text-rose-600"
+                                                                            )}>{h.value}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="pt-1 text-[9px] text-muted-foreground italic border-t flex justify-between">
+                                                            <span>Ref: {patientSex}, {patientAge || 'Adult'}</span>
+                                                            {prevResult && <span>Last: {format(new Date(prevResult.date), 'MMM dd')}</span>}
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            No reference range available for this test in the LIMS catalog.
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    ))}
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        );
+                                    })}
                                 </TooltipProvider>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Hidden File Input (Always present) */}
                 {!isReadOnly && (
                     <input
                         id="report-upload"
@@ -900,7 +1052,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                         const newList = [...(extraData.investigation_reports || [])];
                                                         newList.splice(idx, 1);
                                                         onExtraChange('investigation_reports', newList);
-                                                        
+
                                                         toast.info('Report removed from list. Changes will be permanent after saving.');
                                                     }}
                                                 >
@@ -1018,14 +1170,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         const text = typeof advice === 'string' ? advice : (advice.badge || advice.text);
                         const key = typeof advice === 'string' ? advice : advice.text;
                         return (
-                            <Button 
-                                key={key} 
-                                type="button" 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-auto px-2 py-1 text-xs" 
+                            <Button
+                                key={key}
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-auto px-2 py-1 text-xs"
                                 onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => onAdviceSuggestionClick(advice)} 
+                                onClick={() => onAdviceSuggestionClick(advice)}
                                 disabled={isReadOnly}
                             >
                                 {text}
@@ -1067,8 +1219,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             </div>
 
             <div className="space-y-2">
-                <Label 
-                    htmlFor="orthotics" 
+                <Label
+                    htmlFor="orthotics"
                     className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
                     tabIndex={0}
                     onMouseDown={(e) => {
@@ -1088,12 +1240,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             {suggestedOrthotics.map((orthotics) => {
                                 const text = typeof orthotics === 'string' ? orthotics : orthotics.text;
                                 return (
-                                    <Button 
-                                        key={text} 
-                                        type="button" 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5" 
+                                    <Button
+                                        key={text}
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
                                         onMouseDown={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
@@ -1102,7 +1254,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             e.stopPropagation();
                                             setIsOrthoticsExpanded(true);
                                             onOrthoticsSuggestionClick(orthotics);
-                                        }} 
+                                        }}
                                         disabled={isReadOnly}
                                     >
                                         {text}

@@ -6,6 +6,10 @@ export interface LimsService {
   name: string;
   type: string; // 'test', 'package', 'radiology'
   category: string;
+  price?: number;
+  market_price?: number;
+  details?: string;
+  duration?: string;
   result_schema?: any;
   package_content?: any;
 }
@@ -28,23 +32,21 @@ export const useLimsCatalog = () => {
   return useQuery({
     queryKey: ["lims-catalog"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lims_catalog_cache")
-        .select("*");
+      const LIMS_URL = 'https://fkfocqqszalvplvqsskb.supabase.co/functions/v1/export-catalog';
+      const res = await fetch(LIMS_URL);
+      
+      if (!res.ok) {
+        throw new Error(`LIMS fetch failed: ${res.status}`);
+      }
 
-      if (error) throw error;
-
-      const services: LimsService[] = data
-        .filter((item) => item.item_type === "service")
-        .map((item) => item.data as LimsService);
-
-      const ranges: LimsRange[] = data
-        .filter((item) => item.item_type === "range")
-        .map((item) => item.data as LimsRange);
+      const data = await res.json();
+      
+      const services: LimsService[] = data.services || [];
+      const ranges: LimsRange[] = data.ranges || [];
 
       return { services, ranges };
     },
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours
-    gcTime: 48 * 60 * 60 * 1000, // 48 hours
+    staleTime: 1 * 60 * 60 * 1000, // 1 hour (fetch more often now that it's direct)
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
   });
 };

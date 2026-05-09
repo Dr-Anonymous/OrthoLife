@@ -34,11 +34,14 @@ interface Test {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 
+import { useLimsCatalog } from '@/hooks/useLimsCatalog';
+import { useQueryClient } from '@tanstack/react-query';
+
 const DiagnosticsPage = () => {
   const { consultant, refreshConsultant, isMasterAdmin } = useConsultant();
-  const [tests, setTests] = useState<Test[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: limsCatalog, isLoading: loading, error: limsError } = useLimsCatalog();
+  
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showTimeSlotSelection, setShowTimeSlotSelection] = useState(false);
@@ -92,90 +95,45 @@ const DiagnosticsPage = () => {
     }
   }, []);
 
+  const tests = React.useMemo(() => {
+    if (!limsCatalog?.services) return [];
+    return limsCatalog.services.map(s => ({
+      id: s.id,
+      name: s.name,
+      description: s.details || '',
+      price: s.price || 0,
+      marketPrice: s.market_price || (s.price ? Math.ceil(s.price * 3) : 0), // Fallback if no market price
+      category: s.category,
+      duration: s.duration || '24 hours'
+    }));
+  }, [limsCatalog]);
 
-  const fetchTests = async (bustCache = false) => {
+  const handleRefresh = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const url = bustCache ? `/lab-data.json?v=${new Date().getTime()}` : '/lab-data.json';
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // File doesn't exist, which is a valid state before the first refresh.
-          setTests([]);
-          setError("Lab data has not been generated yet. Please click the refresh button to fetch it.");
-        } else {
-          console.error('Error fetching tests:', await response.text());
-          setError('Failed to load tests. Please try again.');
-        }
-        return;
-      }
-
-      const responseText = await response.text();
-      if (!responseText) {
-        // The file is empty, treat it as if it's not there.
-        setTests([]);
-        setError("Lab data is empty. Please click the refresh button to fetch it.");
-        return;
-      }
-
-      const data = JSON.parse(responseText);
-      setTests(data?.medicines || []);
-
-    } catch (err) {
-      console.error('Error parsing lab data:', err);
-      setError('Failed to load tests. The data file might be corrupted or in an invalid format.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTestsWithRefresh = async () => {
-    try {
-      setLoading(true);
-      setError(null);
       toast({
         title: "Refreshing...",
-        description: "Fetching the latest test data.",
+        description: "Fetching the latest test data from LIMS.",
       });
 
-      const { error } = await supabase.functions.invoke('fetch-lab-data?refresh=true');
+      const { error } = await supabase.functions.invoke('fetch-lab-data');
 
-      if (error) {
-        console.error('Error refreshing tests:', error);
-        setError('Failed to refresh tests. Please try again.');
-        toast({
-          title: "Refresh failed",
-          description: "Could not fetch the latest data.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
+      if (error) throw error;
 
-      // Data has been refreshed, now fetch it from the static file, busting the cache.
-      await fetchTests(true);
+      await queryClient.invalidateQueries({ queryKey: ['lims-catalog'] });
+      
       toast({
         title: "Refresh complete",
         description: "You are viewing the latest test data.",
       });
-
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error during refresh:', err);
-      setError('An unexpected error occurred during refresh.');
       toast({
         title: "Refresh failed",
-        description: "An unexpected error occurred.",
+        description: err.message || "Could not fetch the latest data.",
         variant: "destructive",
       });
-      setLoading(false);
     }
   };
-  useEffect(() => {
-    fetchTests();
-  }, []);
 
   const filteredTests = (() => {
     const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
@@ -369,7 +327,7 @@ const DiagnosticsPage = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={fetchTestsWithRefresh}
+                  onClick={handleRefresh}
                   disabled={loading}
                   title="Refresh tests"
                 >
@@ -434,13 +392,13 @@ const DiagnosticsPage = () => {
               </p>
             </div>
 
-            {error && (
+            {limsError && (
               <div className="max-w-md mx-auto mb-8">
                 <Card className="border-destructive">
                   <CardContent className="pt-6">
                     <div className="text-center">
-                      <p className="text-destructive mb-4">{error}</p>
-                      <Button onClick={fetchTestsWithRefresh} disabled={loading}>
+                      <p className="text-destructive mb-4">{(limsError as any).message || 'Failed to load catalogue'}</p>
+                      <Button onClick={handleRefresh} disabled={loading}>
                         {loading ? 'Loading...' : 'Try Again'}
                       </Button>
                     </div>

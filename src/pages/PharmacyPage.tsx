@@ -51,12 +51,15 @@ interface Medicine {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 
+import { usePharmacyCatalog } from '@/hooks/usePharmacyCatalog';
+import { useQueryClient } from '@tanstack/react-query';
+
 const PharmacyPage = () => {
   const { consultant, refreshConsultant, isMasterAdmin } = useConsultant();
+  const queryClient = useQueryClient();
+  const { data: medicines = [], isLoading: loading, error: pharmacyError } = usePharmacyCatalog();
+  
   const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
-  const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [selectedSizes, setSelectedSizes] = useState<{ [key: string]: string }>({});
   const [orderType, setOrderType] = useState<{ [key: string]: 'pack' | 'unit' }>({});
@@ -148,7 +151,7 @@ const PharmacyPage = () => {
     }
   }, [location.hash]);
 
-  const addMultipleToCart = (medicine: Medicine, quantity: number) => {
+  const addMultipleToCart = (medicine: any, quantity: number) => {
     if (!medicine) return;
 
     const packSize = medicine.packSize ? parseInt(medicine.packSize, 10) : 0;
@@ -192,28 +195,26 @@ const PharmacyPage = () => {
     }
   };
 
-  const fetchMedicines = async (): Promise<Medicine[]> => {
+  const handleRefresh = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      toast({
+        title: "Refreshing...",
+        description: "Fetching the latest pharmacy data.",
+      });
 
-      const { data, error } = await supabase.functions.invoke('fetch-pharmacy-data');
-
-      if (error) {
-        console.error('Error fetching medicines:', error);
-        setError('Failed to load medicines. Please try again.');
-        return [];
-      }
-
-      const medicinesData = data?.medicines || [];
-      setMedicines(medicinesData);
-      return medicinesData;
-    } catch (err) {
-      console.error('Error:', err);
-      setError('Failed to load medicines. Please try again.');
-      return [];
-    } finally {
-      setLoading(false);
+      await queryClient.invalidateQueries({ queryKey: ['pharmacy-catalog'] });
+      
+      toast({
+        title: "Refresh complete",
+        description: "You are viewing the latest pharmacy data.",
+      });
+    } catch (err: any) {
+      console.error('Error during refresh:', err);
+      toast({
+        title: "Refresh failed",
+        description: err.message || "Could not fetch the latest data.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -221,8 +222,6 @@ const PharmacyPage = () => {
     const processUrlQuery = async () => {
       const params = new URLSearchParams(window.location.search);
       const query = params.get('q');
-
-      const medicinesData = await fetchMedicines();
 
       if (query && query.includes('*')) {
         const items = query.split(',').map(item => {
@@ -239,7 +238,7 @@ const PharmacyPage = () => {
 
         items.forEach(item => {
           const searchTerm = item.name.toLowerCase();
-          const medicine = medicinesData.find(m =>
+          const medicine = medicines.find(m =>
             (m.name && m.name.toLowerCase().includes(searchTerm)) ||
             (m.category && m.category.toLowerCase().includes(searchTerm)) ||
             (m.description && m.description.toLowerCase().includes(searchTerm))
@@ -264,8 +263,10 @@ const PharmacyPage = () => {
       }
     };
 
-    processUrlQuery();
-  }, []);
+    if (medicines.length > 0) {
+      processUrlQuery();
+    }
+  }, [medicines.length]);
 
   const filteredMedicines = (() => {
     const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim()).filter(term => term);
@@ -585,7 +586,7 @@ const PharmacyPage = () => {
           description: "Your medicines will be delivered within 2-3 hours.",
         });
 
-        fetchMedicines();
+        handleRefresh();
       }
 
       setCart({});
@@ -615,7 +616,7 @@ const PharmacyPage = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={fetchMedicines}
+                  onClick={handleRefresh}
                   disabled={loading}
                   title="Refresh medicines"
                 >
@@ -680,13 +681,13 @@ const PharmacyPage = () => {
               </p>
             </div>
 
-            {error && (
+            {pharmacyError && (
               <div className="max-w-md mx-auto mb-8">
                 <Card className="border-destructive">
                   <CardContent className="pt-6">
                     <div className="text-center">
-                      <p className="text-destructive mb-4">{error}</p>
-                      <Button onClick={fetchMedicines} disabled={loading}>
+                      <p className="text-destructive mb-4">{(pharmacyError as any).message || 'Failed to load medicines'}</p>
+                      <Button onClick={handleRefresh} disabled={loading}>
                         {loading ? 'Loading...' : 'Try Again'}
                       </Button>
                     </div>

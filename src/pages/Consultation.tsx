@@ -2578,6 +2578,9 @@ const ConsultationPage = () => {
                     suggestedOrthotics={suggestedOrthotics}
                     suggestedMedicalHistory={suggestedMedicalHistory}
                     suggestedFamilyHistory={suggestedFamilyHistory}
+                    patientAge={age}
+                    patientSex={editablePatientDetails?.sex}
+                    consultationId={selectedConsultation?.id}
                     onInvestigationSuggestionClick={(val) => handleAppendSuggestion('investigations', val)}
                     onAdviceSuggestionClick={(val) => handleAppendSuggestion('advice', val)}
                     onOrthoticsSuggestionClick={(val) => handleAppendSuggestion('orthotics', val)}
