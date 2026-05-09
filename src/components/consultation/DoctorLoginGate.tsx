@@ -72,7 +72,7 @@ export const DoctorLoginGate: React.FC<DoctorLoginGateProps> = ({ onLogin, restr
       }
 
       toast.success(`Welcome back, ${data.name}!`);
-      onLogin(data.phone, data.name, data.id);
+      onLogin(sanitizedPhone, data.name, data.id);
     } catch (err: any) {
       console.error('Login error:', err);
       toast.error(err.message || 'Login failed');

@@ -35,7 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Switch } from '@/components/ui/switch';
 
 const DiagnosticsPage = () => {
-  const { consultant, refreshConsultant } = useConsultant();
+  const { consultant, refreshConsultant, isMasterAdmin } = useConsultant();
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -375,7 +375,7 @@ const DiagnosticsPage = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
-                {consultant && (
+                {consultant && isMasterAdmin && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="icon" title="Messaging Settings">

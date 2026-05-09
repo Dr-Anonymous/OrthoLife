@@ -52,7 +52,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Switch } from '@/components/ui/switch';
 
 const PharmacyPage = () => {
-  const { consultant, refreshConsultant } = useConsultant();
+  const { consultant, refreshConsultant, isMasterAdmin } = useConsultant();
   const [isMessagingSettingsModalOpen, setIsMessagingSettingsModalOpen] = useState(false);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -621,7 +621,7 @@ const PharmacyPage = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
-                {consultant && (
+                {consultant && isMasterAdmin && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="icon" title="Messaging Settings">

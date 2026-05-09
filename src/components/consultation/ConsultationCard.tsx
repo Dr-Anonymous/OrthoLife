@@ -219,6 +219,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             {/* Content Sections */}
             {[
                 { label: "Medical History", value: data.medicalHistory || data.medical_history, icon: Activity },
+                { label: "Family History", value: data.familyHistory || data.family_history, icon: User },
                 { label: "Allergies", value: data.allergies || data.allergy, icon: AlertCircle, color: "text-destructive" },
                 { label: "Doctor's Note", value: data.personalNote || data.personal_note, icon: NotebookText },
                 { label: "Complaints", value: data.complaints, icon: Stethoscope },

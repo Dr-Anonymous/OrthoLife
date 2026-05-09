@@ -76,7 +76,35 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const [investigationSearch, setInvestigationSearch] = useState('');
+  const [activeInvestigationIndex, setActiveInvestigationIndex] = useState(0);
   const { data: limsCatalog } = useLimsCatalog();
+
+  useEffect(() => {
+    setActiveInvestigationIndex(0);
+  }, [investigationSearch]);
+
+  const handleInvestigationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredLimsTests.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveInvestigationIndex(prev => (prev + 1) % filteredLimsTests.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveInvestigationIndex(prev => (prev - 1 + filteredLimsTests.length) % filteredLimsTests.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const selected = filteredLimsTests[activeInvestigationIndex];
+      if (selected) {
+        const current = investigations.trim();
+        const separator = current ? '\n' : '';
+        setInvestigations(current + separator + selected.name);
+        setInvestigationSearch('');
+      }
+    } else if (e.key === 'Escape') {
+      setInvestigationSearch('');
+    }
+  };
 
   const filteredLimsTests = useMemo(() => {
     const query = normalizeSearchText(investigationSearch);
@@ -372,14 +400,15 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                     placeholder="Search LIMS tests..."
                     value={investigationSearch}
                     onChange={(e) => setInvestigationSearch(e.target.value)}
+                    onKeyDown={handleInvestigationKeyDown}
                     className="h-8 w-40 pl-8"
                   />
                   {filteredLimsTests.length > 0 ? (
                     <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-40 overflow-y-auto bg-popover border rounded-md shadow-md">
-                      {filteredLimsTests.map(test => (
+                      {filteredLimsTests.map((test, idx) => (
                         <button
                           key={test.id}
-                          className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground border-b last:border-0 flex flex-col gap-0.5"
+                          className={`w-full text-left px-2 py-1.5 text-xs border-b last:border-0 flex flex-col gap-0.5 transition-colors ${idx === activeInvestigationIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
                           onClick={() => {
                             const current = investigations.trim();
                             const separator = current ? '\n' : '';

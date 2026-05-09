@@ -18,7 +18,7 @@ interface MessagingSettingsModalProps {
 }
 
 export const MessagingSettingsModal: React.FC<MessagingSettingsModalProps> = ({ isOpen, onClose, initialTab = 'discharge' }) => {
-    const { consultant, refreshConsultant } = useConsultant();
+    const { consultant, refreshConsultant, isMasterAdmin } = useConsultant();
     const [isSaving, setIsSaving] = useState(false);
 
     const DEFAULT_MESSAGES = {
@@ -183,12 +183,16 @@ export const MessagingSettingsModal: React.FC<MessagingSettingsModalProps> = ({ 
                         <TabsTrigger value="npo" className="gap-1 text-[10px] px-1">
                             NPO
                         </TabsTrigger>
-                        <TabsTrigger value="pharmacy" className="gap-1 text-[10px] px-1">
-                            Pharmacy
-                        </TabsTrigger>
-                        <TabsTrigger value="diagnostics" className="gap-1 text-[10px] px-1">
-                            Tests
-                        </TabsTrigger>
+                        {isMasterAdmin && (
+                            <>
+                                <TabsTrigger value="pharmacy" className="gap-1 text-[10px] px-1">
+                                    Pharmacy
+                                </TabsTrigger>
+                                <TabsTrigger value="diagnostics" className="gap-1 text-[10px] px-1">
+                                    Tests
+                                </TabsTrigger>
+                            </>
+                        )}
                     </TabsList>
 
                     {/* DISCHARGE REVIEW TAB */}
@@ -377,117 +381,121 @@ export const MessagingSettingsModal: React.FC<MessagingSettingsModalProps> = ({ 
                         </div>
                     </TabsContent>
 
-                    {/* PHARMACY TAB */}
-                    <TabsContent value="pharmacy" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/10">
-                            <div className="space-y-0.5">
-                                <Label className="text-base font-bold">Enable Pharmacy Reorders</Label>
-                                <p className="text-xs text-muted-foreground">Sends a reminder to reorder medications.</p>
-                            </div>
-                            <Switch 
-                                checked={pharmacyConfig.enabled} 
-                                onCheckedChange={(v) => setPharmacyConfig(prev => ({ ...prev, enabled: v }))} 
-                            />
-                        </div>
-
-                        <div className={pharmacyConfig.enabled ? "space-y-6" : "space-y-6 opacity-50 pointer-events-none"}>
-                            <div className="space-y-3">
-                                <Label className="text-sm font-bold flex items-center gap-2">
-                                    <Clock size={14} /> Frequency (Days)
-                                </Label>
-                                <div className="flex items-center gap-4">
-                                    <Input 
-                                        type="number" 
-                                        min={1} 
-                                        max={365} 
-                                        value={pharmacyConfig.frequency_days}
-                                        onChange={(e) => setPharmacyConfig(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 30 }))}
-                                        className="w-24"
-                                    />
-                                    <span className="text-sm text-muted-foreground">days between reorder reminders.</span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <Label className="text-sm font-bold">Message Templates</Label>
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase">English Template</Label>
-                                    <Textarea 
-                                        placeholder="e.g. Hello {{patient_name}}, it's time to reorder your medications..."
-                                        value={pharmacyConfig.message_en}
-                                        onChange={(e) => setPharmacyConfig(prev => ({ ...prev, message_en: e.target.value }))}
-                                        className="min-h-[100px] text-sm"
+                    {isMasterAdmin && (
+                        <>
+                            {/* PHARMACY TAB */}
+                            <TabsContent value="pharmacy" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/10">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-base font-bold">Enable Pharmacy Reorders</Label>
+                                        <p className="text-xs text-muted-foreground">Sends a reminder to reorder medications.</p>
+                                    </div>
+                                    <Switch 
+                                        checked={pharmacyConfig.enabled} 
+                                        onCheckedChange={(v) => setPharmacyConfig(prev => ({ ...prev, enabled: v }))} 
                                     />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase">Telugu Template</Label>
-                                    <Textarea 
-                                        placeholder="నమస్కారం {{patient_name}} గారు, మందులు మళ్ళీ ఆర్డర్ చేయడానికి సమయం అయింది..."
-                                        value={pharmacyConfig.message_te}
-                                        onChange={(e) => setPharmacyConfig(prev => ({ ...prev, message_te: e.target.value }))}
-                                        className="min-h-[100px] text-sm"
+                                <div className={pharmacyConfig.enabled ? "space-y-6" : "space-y-6 opacity-50 pointer-events-none"}>
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-bold flex items-center gap-2">
+                                            <Clock size={14} /> Frequency (Days)
+                                        </Label>
+                                        <div className="flex items-center gap-4">
+                                            <Input 
+                                                type="number" 
+                                                min={1} 
+                                                max={365} 
+                                                value={pharmacyConfig.frequency_days}
+                                                onChange={(e) => setPharmacyConfig(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 30 }))}
+                                                className="w-24"
+                                            />
+                                            <span className="text-sm text-muted-foreground">days between reorder reminders.</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <Label className="text-sm font-bold">Message Templates</Label>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-muted-foreground uppercase">English Template</Label>
+                                            <Textarea 
+                                                placeholder="e.g. Hello {{patient_name}}, it's time to reorder your medications..."
+                                                value={pharmacyConfig.message_en}
+                                                onChange={(e) => setPharmacyConfig(prev => ({ ...prev, message_en: e.target.value }))}
+                                                className="min-h-[100px] text-sm"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-muted-foreground uppercase">Telugu Template</Label>
+                                            <Textarea 
+                                                placeholder="నమస్కారం {{patient_name}} గారు, మందులు మళ్ళీ ఆర్డర్ చేయడానికి సమయం అయింది..."
+                                                value={pharmacyConfig.message_te}
+                                                onChange={(e) => setPharmacyConfig(prev => ({ ...prev, message_te: e.target.value }))}
+                                                className="min-h-[100px] text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            {/* DIAGNOSTICS TAB */}
+                            <TabsContent value="diagnostics" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/10">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-base font-bold">Enable Lab Test Reminders</Label>
+                                        <p className="text-xs text-muted-foreground">Sends a reminder for recurring lab tests.</p>
+                                    </div>
+                                    <Switch 
+                                        checked={diagnosticsConfig.enabled} 
+                                        onCheckedChange={(v) => setDiagnosticsConfig(prev => ({ ...prev, enabled: v }))} 
                                     />
                                 </div>
-                            </div>
-                        </div>
-                    </TabsContent>
 
-                    {/* DIAGNOSTICS TAB */}
-                    <TabsContent value="diagnostics" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/10">
-                            <div className="space-y-0.5">
-                                <Label className="text-base font-bold">Enable Lab Test Reminders</Label>
-                                <p className="text-xs text-muted-foreground">Sends a reminder for recurring lab tests.</p>
-                            </div>
-                            <Switch 
-                                checked={diagnosticsConfig.enabled} 
-                                onCheckedChange={(v) => setDiagnosticsConfig(prev => ({ ...prev, enabled: v }))} 
-                            />
-                        </div>
+                                <div className={diagnosticsConfig.enabled ? "space-y-6" : "space-y-6 opacity-50 pointer-events-none"}>
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-bold flex items-center gap-2">
+                                            <Clock size={14} /> Frequency (Days)
+                                        </Label>
+                                        <div className="flex items-center gap-4">
+                                            <Input 
+                                                type="number" 
+                                                min={1} 
+                                                max={365} 
+                                                value={diagnosticsConfig.frequency_days}
+                                                onChange={(e) => setDiagnosticsConfig(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 90 }))}
+                                                className="w-24"
+                                            />
+                                            <span className="text-sm text-muted-foreground">days between test reminders.</span>
+                                        </div>
+                                    </div>
 
-                        <div className={diagnosticsConfig.enabled ? "space-y-6" : "space-y-6 opacity-50 pointer-events-none"}>
-                            <div className="space-y-3">
-                                <Label className="text-sm font-bold flex items-center gap-2">
-                                    <Clock size={14} /> Frequency (Days)
-                                </Label>
-                                <div className="flex items-center gap-4">
-                                    <Input 
-                                        type="number" 
-                                        min={1} 
-                                        max={365} 
-                                        value={diagnosticsConfig.frequency_days}
-                                        onChange={(e) => setDiagnosticsConfig(prev => ({ ...prev, frequency_days: parseInt(e.target.value) || 90 }))}
-                                        className="w-24"
-                                    />
-                                    <span className="text-sm text-muted-foreground">days between test reminders.</span>
+                                    <div className="space-y-4">
+                                        <Label className="text-sm font-bold">Message Templates</Label>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-muted-foreground uppercase">English Template</Label>
+                                            <Textarea 
+                                                placeholder="e.g. Hello {{patient_name}}, it's time for your periodic lab tests..."
+                                                value={diagnosticsConfig.message_en}
+                                                onChange={(e) => setDiagnosticsConfig(prev => ({ ...prev, message_en: e.target.value }))}
+                                                className="min-h-[100px] text-sm"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-muted-foreground uppercase">Telugu Template</Label>
+                                            <Textarea 
+                                                placeholder="నమస్కారం {{patient_name}} గారు, ల్యాబ్ పరీక్షలు చేయించుకోవడానికి సమయం అయింది..."
+                                                value={diagnosticsConfig.message_te}
+                                                onChange={(e) => setDiagnosticsConfig(prev => ({ ...prev, message_te: e.target.value }))}
+                                                className="min-h-[100px] text-sm"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <Label className="text-sm font-bold">Message Templates</Label>
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase">English Template</Label>
-                                    <Textarea 
-                                        placeholder="e.g. Hello {{patient_name}}, it's time for your periodic lab tests..."
-                                        value={diagnosticsConfig.message_en}
-                                        onChange={(e) => setDiagnosticsConfig(prev => ({ ...prev, message_en: e.target.value }))}
-                                        className="min-h-[100px] text-sm"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase">Telugu Template</Label>
-                                    <Textarea 
-                                        placeholder="నమస్కారం {{patient_name}} గారు, ల్యాబ్ పరీక్షలు చేయించుకోవడానికి సమయం అయింది..."
-                                        value={diagnosticsConfig.message_te}
-                                        onChange={(e) => setDiagnosticsConfig(prev => ({ ...prev, message_te: e.target.value }))}
-                                        className="min-h-[100px] text-sm"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </TabsContent>
+                            </TabsContent>
+                        </>
+                    )}
                 </Tabs>
 
                 <DialogFooter className="mt-8 border-t pt-6">

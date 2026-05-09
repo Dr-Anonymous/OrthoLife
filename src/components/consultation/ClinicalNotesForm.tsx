@@ -11,8 +11,12 @@ import { cn } from '@/lib/utils';
 import { MatchedGuide, InvestigationReport } from '@/types/consultation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { normalizeSearchText } from '@/lib/utils';
 import { useLimsCatalog } from '@/hooks/useLimsCatalog';
+import { ClinicalParser } from '@/lib/clinical-parser';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ClinicalNotesFormProps {
     extraData: {
@@ -76,6 +80,8 @@ interface ClinicalNotesFormProps {
     initialData?: Partial<ClinicalNotesFormProps['extraData']>;
     isReadOnly?: boolean;
     onShortcutsClick?: () => void;
+    patientAge?: number | '';
+    patientSex?: string;
 }
 
 
@@ -131,13 +137,51 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     initialData,
     patientId,
     isReadOnly = false,
-    onShortcutsClick
+    onShortcutsClick,
+    patientAge,
+    patientSex
 }) => {
     const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
     const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
     const [pendingDeletions, setPendingDeletions] = React.useState<string[]>([]);
     const { data: limsCatalog } = useLimsCatalog();
     const [investigationSearch, setInvestigationSearch] = React.useState('');
+    const [activeInvestigationIndex, setActiveInvestigationIndex] = React.useState(0);
+
+    const parser = React.useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
+    const parsedInvestigations = React.useMemo(() => {
+        return parser.parse(extraData.investigations, { 
+            age: typeof patientAge === 'number' ? patientAge : 30, 
+            sex: patientSex 
+        });
+    }, [parser, extraData.investigations, patientAge, patientSex]);
+
+    React.useEffect(() => {
+        setActiveInvestigationIndex(0);
+    }, [investigationSearch]);
+
+    const handleInvestigationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (filteredLimsTests.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveInvestigationIndex(prev => (prev + 1) % filteredLimsTests.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveInvestigationIndex(prev => (prev - 1 + filteredLimsTests.length) % filteredLimsTests.length);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const selected = filteredLimsTests[activeInvestigationIndex];
+            if (selected) {
+                const current = extraData.investigations.trim();
+                const separator = current ? '\n' : '';
+                onExtraChange('investigations', current + separator + selected.name);
+                setInvestigationSearch('');
+            }
+        } else if (e.key === 'Escape') {
+            setInvestigationSearch('');
+        }
+    };
 
     const filteredLimsTests = React.useMemo(() => {
         const query = normalizeSearchText(investigationSearch);
@@ -636,14 +680,18 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         placeholder="Quick add test..."
                                         value={investigationSearch}
                                         onChange={(e) => setInvestigationSearch(e.target.value)}
+                                        onKeyDown={handleInvestigationKeyDown}
                                         className="h-8 w-40 pl-8 bg-background"
                                     />
                                     {filteredLimsTests.length > 0 && (
                                         <div className="absolute top-full left-0 z-50 mt-1 w-64 max-h-60 overflow-y-auto bg-popover border rounded-md shadow-lg animate-in fade-in zoom-in-95">
-                                            {filteredLimsTests.map(test => (
+                                            {filteredLimsTests.map((test, idx) => (
                                                 <button
                                                     key={test.id}
-                                                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground border-b last:border-0 flex flex-col gap-0.5"
+                                                    className={cn(
+                                                        "w-full text-left px-3 py-2 text-xs border-b last:border-0 flex flex-col gap-0.5 transition-colors",
+                                                        idx === activeInvestigationIndex ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
+                                                    )}
                                                     onClick={() => {
                                                         const current = extraData.investigations.trim();
                                                         const separator = current ? '\n' : '';
@@ -713,6 +761,65 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             className={cn("min-h-[100px] w-full", getStyle('investigations', extraData.investigations))}
                             disabled={isReadOnly}
                         />
+
+                        {parsedInvestigations.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1">
+                                <TooltipProvider>
+                                    {parsedInvestigations.map((res, i) => (
+                                        <Tooltip key={i}>
+                                            <TooltipTrigger asChild>
+                                                <Badge 
+                                                    variant="outline" 
+                                                    className={cn(
+                                                        "cursor-help gap-1.5 px-2 py-1 border-2 transition-all hover:scale-105",
+                                                        res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                                        (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-200",
+                                                        (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-300 animate-pulse",
+                                                        res.status === 'unknown' && "bg-slate-50 text-slate-600 border-slate-200"
+                                                    )}
+                                                >
+                                                    <span className="font-bold">{res.name}:</span>
+                                                    <span>{res.value}</span>
+                                                    {res.status !== 'normal' && res.status !== 'unknown' && (
+                                                        <AlertTriangle className="w-3 h-3" />
+                                                    )}
+                                                </Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-[200px] p-3">
+                                                <div className="space-y-1.5">
+                                                    <div className="font-bold border-b pb-1 mb-1">{res.name}</div>
+                                                    {res.range ? (
+                                                        <div className="text-xs space-y-1">
+                                                            <div className="flex justify-between gap-4">
+                                                                <span className="text-muted-foreground">Normal Range:</span>
+                                                                <span className="font-mono">{res.range.low_value} - {res.range.high_value}</span>
+                                                            </div>
+                                                            {(res.range.critical_low || res.range.critical_high) && (
+                                                                <div className="flex justify-between gap-4 text-rose-600">
+                                                                    <span>Critical:</span>
+                                                                    <span className="font-mono">
+                                                                        {res.range.critical_low ? `<${res.range.critical_low}` : ''}
+                                                                        {res.range.critical_low && res.range.critical_high ? ' or ' : ''}
+                                                                        {res.range.critical_high ? `>${res.range.critical_high}` : ''}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <div className="pt-1 text-[10px] text-muted-foreground italic border-top mt-1">
+                                                                Ref: {patientSex}, {patientAge || 'Adult'}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            No reference range available for this test in the LIMS catalog.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    ))}
+                                </TooltipProvider>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -30,10 +30,13 @@ export const ConsultantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isReceptionMode, setIsReceptionMode] = useState(false);
-
     const fetchConsultant = useCallback(async () => {
         if (authLoading) return;
-        if (!user?.phoneNumber) {
+
+        const manualPhone = localStorage.getItem('consultant_phone');
+        const effectivePhone = (manualPhone ? `+91${manualPhone}` : null) || user?.phoneNumber;
+
+        if (!effectivePhone) {
             setConsultant(null);
             setIsLoading(false);
             setIsReceptionMode(false);
@@ -41,7 +44,7 @@ export const ConsultantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
 
         try {
-            const rawPhone = user.phoneNumber;
+            const rawPhone = effectivePhone;
             const formattedPhone = rawPhone.replace(/\D/g, '').slice(-10);
 
             const { data, error: fetchError } = await supabase

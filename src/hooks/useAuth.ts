@@ -64,19 +64,10 @@ export const useAuth = () => {
         return;
       }
 
-      // 2. Fallback to Manual Consultant Session (Phone + Password flow)
-      const manualPhone = localStorage.getItem('consultant_phone');
-      if (manualPhone) {
-        setUser({
-          phoneNumber: `+91${manualPhone}`,
-          displayName: localStorage.getItem('consultant_name') || 'Consultant',
-          uid: manualPhone, // Proxy UID
-        } as unknown as User);
-      } else {
-        setUser(null);
-        setPatients([]);
-        setSelectedPatient(null);
-      }
+      // 2. Clear state if no Firebase user
+      setUser(null);
+      setPatients([]);
+      setSelectedPatient(null);
       setLoading(false);
     });
 

@@ -44,7 +44,7 @@ const ConsultationStats = () => {
       // DEFAULT: Everyone starts with their own ID. Admins can toggle to Global View (null) manually.
       setSelectedConsultantId(consultant.id);
     }
-  }, [consultant, selectedConsultantId]);
+  }, [consultant, selectedConsultantId, isMasterAdmin]);
 
   const fetchConsultantsList = async () => {
     if (!isMasterAdmin) return;
@@ -80,9 +80,8 @@ const ConsultationStats = () => {
   const [showMonthlyDetails, setShowMonthlyDetails] = useState(false);
 
   useEffect(() => {
-    // Prevent fetching Global stats for non-admins before their ID is wired
-    if (isConsultantLoading) return;
-    if (!isMasterAdmin && selectedConsultantId === undefined) return;
+    // Prevent fetching before consultant ID is wired
+    if (isConsultantLoading || selectedConsultantId === undefined) return;
 
     if (selectedDate) {
       fetchStats(selectedDate);

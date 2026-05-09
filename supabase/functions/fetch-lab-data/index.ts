@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(
 );
 
 async function fetchLimsCatalog() {
-  const LIMS_URL = Deno.env.get('LIMS_EXPORT_URL');
+  const LIMS_URL = 'https://fkfocqqszalvplvqsskb.supabase.co/functions/v1/export-catalog';
   if (!LIMS_URL) {
     console.warn("LIMS_EXPORT_URL not set, skipping LIMS sync");
     return null;
@@ -43,7 +43,7 @@ async function syncToCache(services: any[], ranges: any[]) {
         data: service,
         last_synced_at: syncTime
       }, { onConflict: 'item_type,external_id' });
-    
+
     if (error) console.error(`Failed to sync service ${service.id}:`, error);
   }
 
@@ -56,7 +56,7 @@ async function syncToCache(services: any[], ranges: any[]) {
         data: range,
         last_synced_at: syncTime
       }, { onConflict: 'item_type,external_id' });
-    
+
     if (error) console.error(`Failed to sync range ${range.id}:`, error);
   }
 
@@ -65,7 +65,7 @@ async function syncToCache(services: any[], ranges: any[]) {
     .from('lims_catalog_cache')
     .delete()
     .lt('last_synced_at', syncTime);
-  
+
   if (deleteError) console.error("Failed to cleanup stale cache rows:", deleteError);
 }
 
@@ -78,16 +78,16 @@ serve(async (req) => {
     const limsData = await fetchLimsCatalog();
     if (limsData && limsData.services) {
       await syncToCache(limsData.services, limsData.ranges || []);
-      
-      return new Response(JSON.stringify({ 
-        message: "Lab data refreshed successfully from LIMS." 
+
+      return new Response(JSON.stringify({
+        message: "Lab data refreshed successfully from LIMS."
       }), {
         headers: { "Content-Type": "application/json", ...corsHeaders }
       });
     } else {
       // Soft-fail: return 200 with warning to avoid cron alerts
       console.warn("⚠️ LIMS catalog fetch failed or returned empty data. App will use existing cache.");
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         message: "LIMS sync skipped or failed. Using existing cache.",
         warning: true
       }), {
@@ -98,12 +98,12 @@ serve(async (req) => {
   } catch (err: any) {
     // Also soft-fail for runtime errors to avoid cron alerts
     console.error("❌ Sync Error:", err.message);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: err.message,
       message: "Sync failed, using existing cache.",
       warning: true
     }), {
-      status: 200, 
+      status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders }
     });
   }

@@ -74,7 +74,7 @@ const FollowUpDashboard = () => {
 
       let query = supabase
         .from('consultations')
-        .select('*, patient:patients(*)')
+        .select('*, patient:patients(*), consultant:consultants(name)')
         .eq('next_review_date', formattedDate);
 
       if (!fetchAll && consultant?.id) {
@@ -572,10 +572,15 @@ const FollowUpDashboard = () => {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                       <User className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className="flex flex-col">
                       <p className="text-sm text-muted-foreground flex items-center gap-1 font-medium">
                         <Phone className="w-3.5 h-3.5" /> {selectedConsultation.patient.phone}
                       </p>
+                      {selectedConsultation.patient.secondary_phone && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span className="font-semibold text-[10px] uppercase tracking-wider">Alt:</span> {selectedConsultation.patient.secondary_phone}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -586,6 +591,7 @@ const FollowUpDashboard = () => {
                       ...selectedConsultation.consultation_data,
                       name: selectedConsultation.patient.name,
                       phone: selectedConsultation.patient.phone,
+                      secondary_phone: selectedConsultation.patient.secondary_phone,
                       created_at: selectedConsultation.created_at,
                       location: selectedConsultation.location,
                       visit_type: selectedConsultation.visit_type,
@@ -595,7 +601,11 @@ const FollowUpDashboard = () => {
                       blood_group: selectedConsultation.patient.blood_group,
                       allergies: selectedConsultation.patient.allergies,
                       sex: selectedConsultation.patient.sex,
-                      dob: selectedConsultation.patient.dob
+                      dob: selectedConsultation.patient.dob,
+                      referred_by: selectedConsultation.referred_by,
+                      consultant_name: typeof selectedConsultation.consultant?.name === 'object'
+                        ? (selectedConsultation.consultant.name as any).en || (selectedConsultation.consultant.name as any).te
+                        : (selectedConsultation.consultant?.name || '')
                     }}
                   />
                 )}
@@ -607,7 +617,7 @@ const FollowUpDashboard = () => {
 
       {/* WhatsApp Preview Dialog */}
       <Dialog open={whatsappPreviewVisible} onOpenChange={setWhatsappPreviewVisible}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md overflow-y-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-green-600" />
@@ -615,13 +625,13 @@ const FollowUpDashboard = () => {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-2">
             <div className="text-sm text-muted-foreground">
               To: <span className="font-semibold text-foreground">{targetConsultation?.patient.name}</span> ({targetConsultation?.patient.phone})
             </div>
 
             <textarea
-              className="w-full min-h-[150px] p-3 text-sm rounded-md border border-input focus:ring-1 focus:ring-primary outline-none resize-none bg-muted/50"
+              className="w-full h-32 p-3 text-sm rounded-md border border-input focus:ring-1 focus:ring-primary outline-none resize-none bg-muted/50"
               value={whatsappMessage}
               onChange={(e) => setWhatsappMessage(e.target.value)}
               placeholder="Type your message..."
@@ -633,16 +643,16 @@ const FollowUpDashboard = () => {
               Cancel
             </Button>
 
-            <Button
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50"
-              onClick={handleWhatsAppWebFallback}
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              WhatsApp Web
-            </Button>
-
-            {consultant?.is_whatsauto_active && (
+            {!consultant?.is_whatsauto_active ? (
+              <Button
+                variant="outline"
+                className="border-green-600 text-green-600 hover:bg-green-50"
+                onClick={handleWhatsAppWebFallback}
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                WhatsApp Web
+              </Button>
+            ) : (
               <div className="flex gap-2">
                 <SchedulePopover
                   scheduledDate={scheduledDate}

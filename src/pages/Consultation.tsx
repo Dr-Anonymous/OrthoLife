@@ -364,20 +364,42 @@ const ConsultationPage = () => {
 
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
-    if (hospitals.length === 0) return { 
-      name: 'OrthoLife', 
-      logoUrl: '', 
-      lat: 0, 
-      lng: 0, 
-      settings: { 
-        op_fees: 0, 
-        free_visit_duration_days: 14, 
-        max_registrations: 0,
-        include_reviews_in_limit: true,
-        address: '' 
-      } 
-    };
-    return hospitals.find(h => areLocationsEqual(h.name, selectedLocation)) || hospitals[0];
+    if (hospitals.length === 0 && !selectedLocation) {
+      return { 
+        name: 'OrthoLife', 
+        logoUrl: '', 
+        lat: 0, 
+        lng: 0, 
+        settings: { 
+          op_fees: 0, 
+          free_visit_duration_days: 14, 
+          max_registrations: 0,
+          include_reviews_in_limit: true,
+          address: '' 
+        } 
+      };
+    }
+
+    const found = hospitals.find(h => areLocationsEqual(h.name, selectedLocation));
+    if (found) return found;
+    
+    if (selectedLocation) {
+      return {
+        name: selectedLocation,
+        logoUrl: '',
+        lat: 0,
+        lng: 0,
+        settings: {
+          op_fees: 0,
+          free_visit_duration_days: 14,
+          max_registrations: 0,
+          include_reviews_in_limit: true,
+          address: ''
+        }
+      };
+    }
+
+    return hospitals[0] || { name: 'OrthoLife', logoUrl: '', lat: 0, lng: 0, settings: { op_fees: 0, free_visit_duration_days: 14, max_registrations: 0, include_reviews_in_limit: true, address: '' } };
   }, [hospitals, selectedLocation]);
 
   const { isGpsEnabled, toggleGps, autoLocation, handleManualLocationChange } = useHospitalLocation('consultation', consultant?.id);
@@ -605,6 +627,18 @@ const ConsultationPage = () => {
     activeConsultationIdRef.current = consultation.id;
     setSelectedConsultation(consultation);
 
+    // Sync location immediately to ensure UI and data fetching reflect the loaded consultation's context
+    const matchedHospital = hospitals.find(h => areLocationsEqual(h.name, consultation.location));
+    const consultationLocation = matchedHospital ? matchedHospital.name : (consultation.location || (hospitals.length > 0 ? hospitals[0].name : ''));
+    
+    // If GPS is enabled, disable it to allow switching to the consultation's location
+    if (isGpsEnabled) {
+      handleManualLocationChange(consultationLocation);
+    }
+
+    setSelectedLocation(consultationLocation);
+    setInitialLocation(consultationLocation);
+
     // If consultation has no data (e.g. registered by receptionist) OR missing precomputed last visit date, 
     // try to autofill on the fly. Skip for offline patients.
     let effectiveConsultationData = consultation.consultation_data;
@@ -725,9 +759,6 @@ const ConsultationPage = () => {
     };
     setExtraData(newExtraData);
     setInitialExtraData(newExtraData);
-    const consultationLocation = consultation.location || (hospitals.length > 0 ? hospitals[0].name : '');
-    setSelectedLocation(consultationLocation);
-    setInitialLocation(consultationLocation);
     const lang = consultation.language || 'te';
     setInitialLanguage(lang);
     setConsultationLanguage(lang);
@@ -748,7 +779,7 @@ const ConsultationPage = () => {
     setTimeout(() => {
       complaintsRef.current?.focus();
     }, 100);
-  }, [hospitals]);
+  }, [hospitals, isGpsEnabled, handleManualLocationChange]);
 
 
 
@@ -1000,15 +1031,27 @@ const ConsultationPage = () => {
     };
   }, [isOnline, selectedHospital.name, consultant, hydrateInsertedConsultation]);
 
+  // Derived state to check for changes
+  const isReadOnly = useMemo(() => {
+    if (!selectedConsultation || !consultant) return false;
+    // New/Offline consultations are editable by the current session creator
+    if (String(selectedConsultation.id).startsWith('offline-')) return false;
+
+    // Use robust comparison to handle possible missing fields from search results or type mismatches
+    if (!selectedConsultation.consultant_id) return false;
+
+    return String(selectedConsultation.consultant_id) !== String(consultant.id);
+  }, [selectedConsultation, consultant?.id]);
+
   useEffect(() => {
-    if (isGpsEnabled && autoLocation && autoLocation !== selectedHospital.name) {
+    if (isGpsEnabled && autoLocation && autoLocation !== selectedHospital.name && !isReadOnly) {
       setSelectedLocation(autoLocation);
       toast({
         title: "Location Updated",
         description: `Switched to ${autoLocation} based on your location.`,
       });
     }
-  }, [isGpsEnabled, autoLocation, selectedHospital.name]);
+  }, [isGpsEnabled, autoLocation, selectedHospital.name, isReadOnly]);
 
   // State for auto-sending WhatsApp messages
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState<boolean>(true);
@@ -1054,18 +1097,6 @@ const ConsultationPage = () => {
   }, [selectedConsultation?.id]);
 
 
-
-  // Derived state to check for changes
-  const isReadOnly = useMemo(() => {
-    if (!selectedConsultation || !consultant) return false;
-    // New/Offline consultations are editable by the current session creator
-    if (String(selectedConsultation.id).startsWith('offline-')) return false;
-
-    // Use robust comparison to handle possible missing fields from search results or type mismatches
-    if (!selectedConsultation.consultant_id) return false;
-
-    return String(selectedConsultation.consultant_id) !== String(consultant.id);
-  }, [selectedConsultation, consultant?.id]);
 
   const { hasChanges, hasSignificantChanges } = useMemo(() => {
     if (isReadOnly) return { hasChanges: false, hasSignificantChanges: false };

@@ -168,6 +168,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                             status: consultation.status,
                             name: patient.name,
                             phone: patient.phone,
+                            secondary_phone: patient.secondary_phone,
                             occupation: patient.occupation,
                             hometown: patient.hometown,
                             blood_group: patient.blood_group,
