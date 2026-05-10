@@ -14,8 +14,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { normalizeSearchText } from '@/lib/utils';
+
+const stripHtml = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
+};
 import { useLimsCatalog } from '@/hooks/useLimsCatalog';
-import { useInvestigationHistory } from '@/hooks/useInvestigationHistory';
+import { useInvestigationHistory, HistoricalResult } from '@/hooks/useInvestigationHistory';
 import { ClinicalParser } from '@/lib/clinical-parser';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -28,6 +33,8 @@ interface ClinicalNotesFormProps {
         familyHistory?: string;
         findings: string;
         investigations: string;
+        radiology_findings?: string;
+        radiology_images?: InvestigationReport[];
         diagnosis: string;
         procedure: string;
         advice: string;
@@ -45,6 +52,7 @@ interface ClinicalNotesFormProps {
     familyHistoryRef: React.RefObject<HTMLTextAreaElement>;
     findingsRef: React.RefObject<HTMLTextAreaElement>;
     investigationsRef: React.RefObject<HTMLTextAreaElement>;
+    radiologyFindingsRef: React.RefObject<HTMLTextAreaElement>;
     diagnosisRef: React.RefObject<HTMLTextAreaElement>;
     procedureRef: React.RefObject<HTMLTextAreaElement>;
     adviceRef: React.RefObject<HTMLTextAreaElement>;
@@ -110,6 +118,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     familyHistoryRef,
     findingsRef,
     investigationsRef,
+    radiologyFindingsRef,
     diagnosisRef,
     procedureRef,
     adviceRef,
@@ -151,11 +160,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const queryClient = useQueryClient();
     const { data: investigationHistory } = useInvestigationHistory(patientId);
     const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
+    const [uploadingRadiology, setUploadingRadiology] = React.useState<boolean>(false);
     const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
     const [pendingDeletions, setPendingDeletions] = React.useState<string[]>([]);
     const { data: limsCatalog, isLoading: isCatalogLoading } = useLimsCatalog();
     const [investigationSearch, setInvestigationSearch] = React.useState('');
     const [activeInvestigationIndex, setActiveInvestigationIndex] = React.useState(0);
+    const [radiologySearch, setRadiologySearch] = React.useState('');
+    const [activeRadiologyIndex, setActiveRadiologyIndex] = React.useState(0);
     const [ghostText, setGhostText] = React.useState('');
     const [isTrendsOpen, setIsTrendsOpen] = React.useState(false);
     const [selectedTrendTestId, setSelectedTrendTestId] = React.useState<string | null>(null);
@@ -173,11 +185,34 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         });
     }, [parser, extraData.investigations, patientAge, patientSex]);
 
+    const allHistoryDates = React.useMemo(() => {
+        if (!investigationHistory) return [];
+        const dateSet = new Set<string>();
+        Object.values(investigationHistory).forEach((history: HistoricalResult[]) => {
+            history.forEach(h => {
+                // Exclude current consultation from history columns as it is shown in the 'Current' column
+                if (consultationId && h.consultationId === consultationId) return;
+                
+                if (h.date) {
+                    dateSet.add(format(new Date(h.date), 'dd/MM/yy'));
+                }
+            });
+        });
+        // Sort dates descending
+        return Array.from(dateSet).sort((a, b) => {
+            const [da, ma, ya] = a.split('/').map(Number);
+            const [db, mb, yb] = b.split('/').map(Number);
+            const dateA = new Date(ya + 2000, ma - 1, da).getTime();
+            const dateB = new Date(yb + 2000, mb - 1, db).getTime();
+            return dateB - dateA;
+        }).slice(0, 3); // Show latest 3 historical dates
+    }, [investigationHistory]);
+
     const displayInvestigations = React.useMemo(() => {
         const list = [...parsedInvestigations];
 
         if (investigationHistory) {
-            Object.entries(investigationHistory).forEach(([groupKey, history]) => {
+            Object.entries(investigationHistory).forEach(([groupKey, history]: [string, HistoricalResult[]]) => {
                 if (history.length === 0) return;
 
                 const isAlreadyPresent = list.some(item => {
@@ -186,16 +221,18 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 });
 
                 if (!isAlreadyPresent) {
-                    const lastResult = history[history.length - 1];
                     const [serviceIdFromKey, ...nameParts] = groupKey.includes(':') ? groupKey.split(':') : ['', groupKey];
+                    const testName = nameParts.join(':') || groupKey;
 
                     // Use the parser to resolve the latest range for this name
-                    const [resolved] = parser.parse(`${lastResult.name}: ${lastResult.value}`);
+                    const [resolved] = parser.parse(`${testName}: -`, {
+                        age: typeof patientAge === 'number' ? patientAge : 30,
+                        sex: patientSex
+                    });
 
                     list.push({
-                        // Crucial: Use the same ID and name structure that formed the groupKey
                         id: serviceIdFromKey || (resolved?.serviceId || ''),
-                        name: resolved?.name || lastResult.name,
+                        name: resolved?.name || testName,
                         value: '-',
                         status: 'unknown',
                         range: resolved?.range || '',
@@ -213,6 +250,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     React.useEffect(() => {
         setActiveInvestigationIndex(0);
     }, [investigationSearch]);
+
+    React.useEffect(() => {
+        setActiveRadiologyIndex(0);
+    }, [radiologySearch]);
 
     const handleInvestigationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
@@ -290,14 +331,28 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         const query = normalizeSearchText(investigationSearch);
         if (!query) return [];
         return limsCatalog?.services?.filter(s => {
+            const type = s.type?.toUpperCase();
+            if (type !== 'LAB') return false;
+
             const normalizedName = normalizeSearchText(s.name);
-            // Filter out consultations from the investigations search
             if (normalizedName.includes('consultation')) {
                 return false;
             }
             return normalizedName.includes(query);
         }).slice(0, 20) || [];
     }, [limsCatalog, investigationSearch]);
+
+    const filteredLimsScans = React.useMemo(() => {
+        const query = normalizeSearchText(radiologySearch);
+        if (!query) return [];
+        return limsCatalog?.services?.filter(s => {
+            const type = s.type?.toUpperCase();
+            if (type !== 'SCAN') return false;
+
+            const normalizedName = normalizeSearchText(s.name);
+            return normalizedName.includes(query);
+        }).slice(0, 20) || [];
+    }, [limsCatalog, radiologySearch]);
 
     // We use a ref to track the last saved consultation ID to know when a "save" happened
     const lastSavedIdRef = React.useRef<string | number | null | undefined>(initialData?.investigation_reports ? 'initialized' : null);
@@ -312,8 +367,11 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         // (meaning Consultation.tsx has completed its save/sync cycle)
         const currentReports = extraData.investigation_reports || [];
         const initialReports = initialData?.investigation_reports || [];
+        const currentScans = extraData.radiology_images || [];
+        const initialScans = initialData?.radiology_images || [];
 
-        const isSynced = JSON.stringify(currentReports) === JSON.stringify(initialReports);
+        const isSynced = JSON.stringify(currentReports) === JSON.stringify(initialReports) &&
+            JSON.stringify(currentScans) === JSON.stringify(initialScans);
 
         if (isSynced && lastSavedIdRef.current !== 'initialized') {
             console.log('Save detected, executing pending Drive deletions:', pendingDeletions);
@@ -328,7 +386,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         }
 
         lastSavedIdRef.current = 'active';
-    }, [extraData.investigation_reports, initialData?.investigation_reports, pendingDeletions]);
+    }, [extraData.investigation_reports, initialData?.investigation_reports, extraData.radiology_images, initialData?.radiology_images, pendingDeletions]);
 
     // Auto-focus Procedure textarea when expanded
     React.useEffect(() => {
@@ -396,6 +454,49 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         reader.readAsDataURL(file);
     };
 
+    const handleRadiologyUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !patientId) return;
+
+        setUploadingRadiology(true);
+        const reader = new FileReader();
+
+        reader.onloadend = async () => {
+            try {
+                const fileContent = reader.result as string;
+                const { data, error } = await supabase.functions.invoke('upload-file-to-drive', {
+                    body: {
+                        patientId,
+                        fileName: file.name,
+                        fileContent,
+                        mimeType: file.type
+                    }
+                });
+
+                if (error) throw error;
+
+                const newReport: InvestigationReport = {
+                    fileId: data.file.id,
+                    fileName: file.name,
+                    gist: '',
+                    mimeType: file.type
+                };
+
+                const currentReports = extraData.radiology_images || [];
+                onExtraChange('radiology_images', [...currentReports, newReport]);
+                toast.success('Radiology image uploaded successfully');
+            } catch (error: any) {
+                console.error('Radiology upload error:', error);
+                toast.error('Failed to upload radiology image');
+            } finally {
+                setUploadingRadiology(false);
+                e.target.value = '';
+            }
+        };
+
+        reader.readAsDataURL(file);
+    };
+
     const generateAISummary = async (report: InvestigationReport, index: number) => {
         if (!report.fileId) return;
 
@@ -424,7 +525,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     };
 
     // Helper to determine if a field is autofilled (unchanged from initial) and highlighted
-    const getStyle = (field: keyof ClinicalNotesFormProps['extraData'], value: any) => {
+    const getStyle = (field: keyof ClinicalNotesFormProps['extraData'] | 'radiology_findings', value: any) => {
         if (!initialData) return "bg-background/50";
 
         const initialValue = (initialData as any)[field];
@@ -777,11 +878,13 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2">
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Laboratory Investigations (Labs) Section */}
+                        <div className="space-y-2">
                         <div className="flex items-center flex-wrap gap-2 mb-2 w-full">
                             <div className="flex items-center gap-3">
-                                <Label htmlFor="investigations" className="text-sm font-medium">Investigations</Label>
+                                <Label htmlFor="investigations" className="text-sm font-medium">Labs</Label>
                                 {limsCatalog && (
                                     <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-1">
                                         <div
@@ -795,7 +898,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 toast.info('Refetching live catalog...');
                                                 await queryClient.invalidateQueries({ queryKey: ['lims-catalog'] });
                                             }}
-                                        />
+                                        ></div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -809,8 +912,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     </div>
                                 )}
                             </div>
-
-
 
                             <div className="flex flex-wrap gap-1.5">
                                 {suggestedInvestigations.map((investigation) => (
@@ -857,12 +958,11 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     value={extraData.investigations}
                                     onChange={handleInvestigationChange}
                                     onKeyDown={handleInvestigationKeyDown}
-                                    placeholder="Investigations ordered... (e.g. CRP: 45, Hb: 12)"
-                                    className={cn("min-h-[100px] w-full", getStyle('investigations', extraData.investigations))}
+                                    placeholder="Laboratory tests... (e.g. CRP: 45, Hb: 12)"
+                                    className={cn("min-h-[120px] w-full", getStyle('investigations', extraData.investigations))}
                                     disabled={isReadOnly}
                                 />
 
-                                {/* Ghost Text Overlay */}
                                 {ghostText && (
                                     <div className="absolute top-2 left-3 pointer-events-none text-sm text-muted-foreground/30 whitespace-pre-wrap">
                                         <span className="invisible">{extraData.investigations.substring(0, investigationsRef.current?.selectionStart || 0)}</span>
@@ -871,7 +971,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     </div>
                                 )}
 
-                                {/* Integrated LIMS Suggestions */}
                                 {investigationSearch && (
                                     <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-md shadow-lg max-h-[300px] overflow-auto">
                                         {isCatalogLoading ? (
@@ -882,11 +981,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         ) : filteredLimsTests.length > 0 ? (
                                             <>
                                                 <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground border-b flex justify-between items-center bg-muted/20">
-                                                    <span>CATALOG SUGGESTIONS</span>
-                                                    <div className="flex gap-2">
-                                                        <span className="flex items-center gap-1"><kbd className="px-1 bg-background border rounded text-[8px]">↑↓</kbd> Navigate</span>
-                                                        <span className="flex items-center gap-1"><kbd className="px-1 bg-background border rounded text-[8px]">↵</kbd> Select</span>
-                                                    </div>
+                                                    <span>LAB CATALOG SUGGESTIONS</span>
                                                 </div>
                                                 {filteredLimsTests.map((test, idx) => (
                                                     <button
@@ -915,156 +1010,270 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                             <span className="font-medium">{test.name}</span>
                                                             {test.category && <span className="text-[10px] text-muted-foreground italic">{test.category}</span>}
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {test.type?.toLowerCase() === 'package' && (
-                                                                <Badge variant="outline" className="h-4 text-[8px] bg-blue-50 text-blue-700 border-blue-200">Panel</Badge>
-                                                            )}
-                                                            <Search className="w-3 h-3 text-muted-foreground/40" />
-                                                        </div>
+                                                        <Search className="w-3 h-3 text-muted-foreground/40" />
                                                     </button>
                                                 ))}
                                             </>
                                         ) : (
                                             <div className="p-2 text-[10px] text-muted-foreground">
-                                                No matching tests found in catalog.
+                                                No matching lab tests found.
                                             </div>
                                         )}
                                     </div>
                                 )}
                             </div>
-
-                            {hasAnyInvestigationData && (
-                                <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
-                                    {/* Results Table */}
-                                    <div className="border rounded-lg overflow-x-auto bg-white shadow-sm border-slate-200">
-                                        {(() => {
-                                            // 1. Collect all unique dates from all tracked tests' history
-                                            const allDatesSet = new Set<string>();
-                                            displayInvestigations.forEach(res => {
-                                                const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
-                                                const history = investigationHistory?.[groupKey] || [];
-                                                history.forEach(h => {
-                                                    if (h.consultationId !== consultationId) {
-                                                        allDatesSet.add(format(new Date(h.date), 'yyyy-MM-dd'));
-                                                    }
-                                                });
-                                            });
-
-                                            // 2. Sort dates descending (most recent first) and take top 3
-                                            const sortedDates = Array.from(allDatesSet)
-                                                .sort((a, b) => b.localeCompare(a))
-                                                .slice(0, 3);
-
-                                            return (
-                                                <table className="w-full text-left border-collapse min-w-[600px]">
-                                                    <thead>
-                                                        <tr className="bg-slate-50 border-b border-slate-200">
-                                                            <th className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
-                                                            <th className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current</th>
-                                                            <th className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reference Range</th>
-                                                            {sortedDates.map(date => (
-                                                                <th key={date} className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-l border-slate-100">
-                                                                    {format(new Date(date), 'dd MMM')}
-                                                                </th>
-                                                            ))}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-100">
-                                                        {displayInvestigations.map((res, i) => {
-                                                            const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
-                                                            const history = investigationHistory?.[groupKey] || [];
-
-                                                            return (
-                                                                <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                                                    <td className={cn(
-                                                                        "px-3 py-2 text-xs font-semibold sticky left-0 bg-white z-10 border-r border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)]",
-                                                                        (res as any).isHistoricalOnly ? "text-slate-400" : "text-slate-700"
-                                                                    )}>
-                                                                        {res.name}
-                                                                    </td>
-                                                                    <td className="px-3 py-2">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className={cn(
-                                                                                "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold border",
-                                                                                res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-100",
-                                                                                (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-100",
-                                                                                (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-100",
-                                                                                res.status === 'unknown' && "bg-slate-50 text-slate-500 border-slate-100"
-                                                                            )}>
-                                                                                {res.value}
-                                                                                {res.status !== 'normal' && res.status !== 'unknown' && <AlertTriangle className="w-3 h-3" />}
-                                                                            </div>
-
-                                                                            {(() => {
-                                                                                const filteredHistory = history.filter(h => h.consultationId !== consultationId);
-                                                                                const prev = filteredHistory[0];
-                                                                                if (prev && typeof res.value === 'number' && typeof prev.value === 'number') {
-                                                                                    const trendIcon = res.value > prev.value
-                                                                                        ? <TrendingUp className="w-3.5 h-3.5 text-rose-500" />
-                                                                                        : res.value < prev.value
-                                                                                            ? <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
-                                                                                            : <Minus className="w-3.5 h-3.5 text-slate-300" />;
-
-                                                                                    return (
-                                                                                        <TooltipProvider>
-                                                                                            <Tooltip>
-                                                                                                <TooltipTrigger asChild>
-                                                                                                    <button
-                                                                                                        className="hover:scale-110 transition-transform focus:outline-none"
-                                                                                                        onClick={() => handleOpenTrends(groupKey)}
-                                                                                                    >
-                                                                                                        {trendIcon}
-                                                                                                    </button>
-                                                                                                </TooltipTrigger>
-                                                                                                <TooltipContent>
-                                                                                                    <p className="text-[10px]">Click to view {res.name} trends</p>
-                                                                                                </TooltipContent>
-                                                                                            </Tooltip>
-                                                                                        </TooltipProvider>
-                                                                                    );
-                                                                                }
-                                                                                return null;
-                                                                            })()}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-3 py-2">
-                                                                        <span className="text-xs text-slate-600 font-mono">
-                                                                            {res.range || <span className="text-[10px] text-slate-400 italic">Not in LIMS</span>}
-                                                                        </span>
-                                                                    </td>
-                                                                    {sortedDates.map(dateStr => {
-                                                                        const historyMatch = history.find(h => format(new Date(h.date), 'yyyy-MM-dd') === dateStr && h.consultationId !== consultationId);
-                                                                        return (
-                                                                            <td key={dateStr} className="px-3 py-2 border-l border-slate-50">
-                                                                                {historyMatch ? (
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <span className={cn(
-                                                                                            "text-xs font-mono font-medium",
-                                                                                            historyMatch.status === 'normal' ? "text-slate-500" : "text-rose-500"
-                                                                                        )}>
-                                                                                            {historyMatch.value}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <span className="text-slate-300">-</span>
-                                                                                )}
-                                                                            </td>
-                                                                        );
-                                                                    })}
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {!isReadOnly && (
+                    {/* Radiology Findings Section */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-2">
+                            <Label htmlFor="radiology_findings" className="text-sm font-medium">Radiology</Label>
+                            {!isReadOnly && (
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 py-0 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
+                                        disabled={uploadingRadiology}
+                                        onClick={() => document.getElementById('radiology-upload')?.click()}
+                                    >
+                                        {uploadingRadiology ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <FileUp className="w-3.5 h-3.5 text-primary" />
+                                        )}
+                                        Attach Scan
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative">
+                            <Textarea
+                                ref={radiologyFindingsRef}
+                                id="radiology_findings"
+                                value={extraData.radiology_findings || ''}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    const selectionStart = e.target.selectionStart;
+                                    onExtraChange('radiology_findings', value, selectionStart);
+
+                                    // Search logic for scans
+                                    const lines = value.substring(0, selectionStart).split('\n');
+                                    const currentLine = lines[lines.length - 1];
+                                    if (currentLine.trim().length > 1 && !currentLine.includes(':')) {
+                                        setRadiologySearch(currentLine.trim());
+                                    } else {
+                                        setRadiologySearch('');
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (filteredLimsScans.length > 0) {
+                                        if (e.key === 'ArrowDown') {
+                                            e.preventDefault();
+                                            setActiveRadiologyIndex(prev => (prev + 1) % filteredLimsScans.length);
+                                        } else if (e.key === 'ArrowUp') {
+                                            e.preventDefault();
+                                            setActiveRadiologyIndex(prev => (prev - 1 + filteredLimsScans.length) % filteredLimsScans.length);
+                                        } else if (e.key === 'Enter' && radiologySearch) {
+                                            e.preventDefault();
+                                            const selected = filteredLimsScans[activeRadiologyIndex];
+                                            if (selected) {
+                                                const currentVal = extraData.radiology_findings || '';
+                                                const selectionStart = (e.target as HTMLTextAreaElement).selectionStart;
+                                                const lines = currentVal.substring(0, selectionStart).split('\n');
+                                                const lastLine = lines[lines.length - 1];
+                                                const before = currentVal.substring(0, selectionStart - lastLine.length);
+                                                const after = currentVal.substring(selectionStart);
+
+                                                // Insert Template Header + Default Notes (Stripped of HTML)
+                                                const template = stripHtml(selected.default_notes || '');
+                                                const selectedName = selected.name.toUpperCase() + ':\n' + (template ? template + '\n' : '');
+                                                onExtraChange('radiology_findings', before + selectedName + after, before.length + selectedName.length);
+                                                setRadiologySearch('');
+                                            }
+                                        } else if (e.key === 'Escape') {
+                                            setRadiologySearch('');
+                                        }
+                                    }
+                                }}
+                                placeholder="Radiology findings... (e.g. X-Ray Knee AP/Lat: Normal study)"
+                                className={cn("min-h-[120px]", getStyle('radiology_findings', extraData.radiology_findings))}
+                                disabled={isReadOnly}
+                            />
+
+                            {radiologySearch && (
+                                <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-md shadow-lg max-h-[200px] overflow-auto">
+                                    <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground border-b bg-muted/20">
+                                        SCAN CATALOG
+                                    </div>
+                                    {filteredLimsScans.map((scan, idx) => (
+                                        <button
+                                            key={scan.id}
+                                            className={cn(
+                                                "w-full text-left px-2 py-1.5 text-xs rounded-sm hover:bg-accent flex flex-col",
+                                                idx === activeRadiologyIndex && "bg-accent"
+                                            )}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => {
+                                                const currentVal = extraData.radiology_findings || '';
+                                                const selectionStart = radiologyFindingsRef.current?.selectionStart || currentVal.length;
+                                                const lines = currentVal.substring(0, selectionStart).split('\n');
+                                                const lastLine = lines[lines.length - 1];
+                                                const before = currentVal.substring(0, selectionStart - lastLine.length);
+                                                const after = currentVal.substring(selectionStart);
+
+                                                const template = stripHtml(scan.default_notes || '');
+                                                const selectedName = scan.name.toUpperCase() + ':\n' + (template ? template + '\n' : '');
+                                                onExtraChange('radiology_findings', before + selectedName + after, before.length + selectedName.length);
+                                                setRadiologySearch('');
+                                            }}
+                                        >
+                                            <span className="font-medium">{scan.name}</span>
+                                            {scan.category && <span className="text-[10px] text-muted-foreground italic">{scan.category}</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Radiology Images List */}
+                        {extraData.radiology_images && extraData.radiology_images.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attached Scans</h4>
+                                {extraData.radiology_images.map((image, idx) => (
+                                    <div key={image.fileId || idx} className="flex items-center justify-between p-2 bg-white border rounded shadow-sm text-xs">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <span className="truncate">{image.fileName}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-600" onClick={() => window.open(`https://drive.google.com/file/d/${image.fileId}/view`, '_blank')}>
+                                                <Download className="h-3 w-3" />
+                                            </Button>
+                                            {!isReadOnly && (
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => {
+                                                    const newList = [...(extraData.radiology_images || [])];
+                                                    const img = newList[idx];
+                                                    if (img.fileId) setPendingDeletions(prev => [...prev, img.fileId]);
+                                                    newList.splice(idx, 1);
+                                                    onExtraChange('radiology_images', newList);
+                                                    toast.info('Scan removed. Changes permanent after saving.');
+                                                }}>
+                                                    <X className="h-3 w-3" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        </div>
+                    </div>
+
+                    {/* Investigation Results Table - Occupying full width below the grid */}
+                    {hasAnyInvestigationData && (
+                        <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 overflow-hidden w-full">
+                        {/* Investigation Results Table with Historical Trends */}
+                        <div className="border rounded-lg overflow-x-auto bg-white shadow-sm border-slate-200">
+                            <table className="w-full text-left border-collapse min-w-[400px]">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
+                                        <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider">Current</th>
+                                        {allHistoryDates.map(date => (
+                                            <th key={date} className="px-2 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">{date}</th>
+                                        ))}
+                                        <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Range</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {displayInvestigations.map((res, i) => (
+                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className={cn(
+                                                "px-2 py-1.5 text-[11px] font-semibold sticky left-0 bg-white z-10 border-r border-slate-100",
+                                                (res as any).isHistoricalOnly ? "text-slate-400" : "text-slate-700"
+                                            )}>
+                                                {res.name}
+                                            </td>
+                                            <td className="px-2 py-1.5">
+                                                <div className="flex items-center gap-1">
+                                                    <div className={cn(
+                                                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border",
+                                                        res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-100",
+                                                        (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-100",
+                                                        (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-100",
+                                                        res.status === 'unknown' && "bg-slate-50 text-slate-500 border-slate-100"
+                                                    )}>
+                                                        {res.value}
+                                                    </div>
+                                                    {(() => {
+                                                        const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+                                                        const history = investigationHistory?.[groupKey];
+                                                        const latestHist = history
+                                                            ?.filter(h => h.consultationId !== consultationId)
+                                                            .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
+
+                                                        const currNum = parseFloat(String(res.value).replace(/[^0-9.-]/g, ''));
+                                                        const prevNum = latestHist ? parseFloat(String(latestHist.value).replace(/[^0-9.-]/g, '')) : NaN;
+
+                                                        if (isNaN(currNum) || isNaN(prevNum)) {
+                                                            return (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-5 w-5 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
+                                                                    onClick={() => handleOpenTrends(res.name)}
+                                                                title={`Click to show trend for ${res.name}`}
+                                                                >
+                                                                    <TrendingUp className="w-3 h-3" />
+                                                                </Button>
+                                                            );
+                                                        }
+
+                                                        const TrendIcon = currNum > prevNum ? TrendingUp : (currNum < prevNum ? TrendingDown : Minus);
+                                                        const trendColor = currNum > prevNum ? "text-rose-500" : (currNum < prevNum ? "text-emerald-500" : "text-slate-300");
+
+                                                        return (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className={cn("h-5 w-5 hover:bg-primary/5 shrink-0", trendColor)}
+                                                                onClick={() => handleOpenTrends(res.name)}
+                                                                title={`Click to show trend for ${res.name}`}
+                                                            >
+                                                                <TrendIcon className="w-3 h-3" />
+                                                            </Button>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </td>
+                                            {allHistoryDates.map(date => {
+                                                const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+                                                const hist = investigationHistory?.[groupKey]?.find(h => h.date && format(new Date(h.date), 'dd/MM/yy') === date);
+                                                return (
+                                                    <td key={date} className="px-2 py-1.5 text-[10px] text-slate-400 tabular-nums">
+                                                        {hist ? hist.value : '-'}
+                                                    </td>
+                                                );
+                                            })}
+                                            <td className="px-2 py-1.5 text-[10px] text-slate-600 font-mono">
+                                                {res.range || '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+
+                {!isReadOnly && (
+                    <>
                         <input
                             id="report-upload"
                             type="file"
@@ -1073,121 +1282,16 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                             onChange={handleReportUpload}
                             disabled={uploadingReport}
                         />
-                    )}
-
-                    {/* Investigation Reports Section (Only visible if reports present) */}
-                    {extraData.investigation_reports && extraData.investigation_reports.length > 0 && (
-                        <div className="space-y-3 mt-4 p-4 border rounded-lg bg-slate-50/50">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <FileUp className="w-5 h-5 text-primary" />
-                                    <h3 className="text-sm font-semibold">Attached Investigation Reports</h3>
-                                </div>
-                                {!isReadOnly && (
-                                    <div className="relative">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-8 gap-2 bg-white"
-                                            disabled={uploadingReport}
-                                            onClick={() => document.getElementById('report-upload')?.click()}
-                                        >
-                                            {uploadingReport ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <Plus className="w-4 h-4" />
-                                            )}
-                                            Attach Report
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-3">
-                                {extraData.investigation_reports.map((report, idx) => (
-                                    <div key={report.fileId || idx} className="bg-white p-3 rounded-md border shadow-sm space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                <FileText className="w-4 h-4 text-slate-500 shrink-0" />
-                                                <span className="text-sm font-medium truncate max-w-[200px]">{report.fileName}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700"
-                                                    onClick={() => window.open(`https://drive.google.com/file/d/${report.fileId}/view`, '_blank')}
-                                                >
-                                                    <Download className="w-3 h-3 mr-1" /> View
-                                                </Button>
-                                                {!isReadOnly && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 text-destructive"
-                                                        onClick={() => {
-                                                            const confirmDelete = window.confirm(`Remove ${report.fileName} from this consultation?`);
-                                                            if (!confirmDelete) return;
-
-                                                            // Add to pending deletions for actual cleanup after save
-                                                            if (report.fileId) {
-                                                                setPendingDeletions(prev => [...prev, report.fileId]);
-                                                            }
-
-                                                            const newList = [...(extraData.investigation_reports || [])];
-                                                            newList.splice(idx, 1);
-                                                            onExtraChange('investigation_reports', newList);
-
-                                                            toast.info('Report removed from list. Changes will be permanent after saving.');
-                                                        }}
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="relative">
-                                            <Textarea
-                                                value={report.gist}
-                                                onChange={(e) => {
-                                                    const newList = [...(extraData.investigation_reports || [])];
-                                                    newList[idx] = { ...report, gist: e.target.value };
-                                                    onExtraChange('investigation_reports', newList);
-                                                }}
-                                                placeholder="Gist of report (e.g. Normal MRI, Fracture noted...)"
-                                                className="text-xs min-h-[60px] pr-10"
-                                                disabled={isReadOnly}
-                                            />
-                                            {!isReadOnly && (!report.gist || generatingSummaryId === report.fileId) && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className={cn(
-                                                        "absolute right-2 top-2 h-7 w-7 text-primary hover:bg-primary/10",
-                                                        generatingSummaryId === report.fileId && "animate-pulse"
-                                                    )}
-                                                    onClick={() => generateAISummary(report, idx)}
-                                                    disabled={generatingSummaryId !== null}
-                                                    title="Summarize with AI"
-                                                >
-                                                    {generatingSummaryId === report.fileId ? (
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                                    ) : (
-                                                        <BrainCircuit className="w-4 h-4" />
-                                                    )}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                        <input
+                            id="radiology-upload"
+                            type="file"
+                            className="hidden"
+                            accept="image/*,.pdf"
+                            onChange={handleRadiologyUpload}
+                            disabled={uploadingRadiology}
+                        />
+                    </>
+                )}
 
                 <div className="space-y-2">
                     <Label
@@ -1391,10 +1495,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         Referred To
                         {(!isReferredToExpanded && (!extraData.referred_to_list || !extraData.referred_to_list.some(s => s.trim()))) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
                     </Label>
-                    {/* Show list if:
-                    1. Expanded (user clicked to add)
-                    2. OR there is data (user previously added)
-                 */}
                     {((isReferredToExpanded) || (extraData.referred_to_list && extraData.referred_to_list.some(s => s.trim()))) && (
                         (extraData.referred_to_list && extraData.referred_to_list.length > 0 ? extraData.referred_to_list : ['']).map((item, index) => (
                             <div key={index} className="flex gap-2 items-center mb-2">
@@ -1431,18 +1531,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 return "bg-background/50";
                                             })(),
                                             onBlur: () => {
-                                                // Check if ALL entries are empty
                                                 const currentList = extraData.referred_to_list || [];
-                                                // We use the current state 'item' for this specific input, but we need to check the whole list.
-                                                // However, state updates might be async or buffered.
-                                                // But onBlur happens after typing.
-                                                // IMPORTANT: We must check the ACTUAL list data.
                                                 const hasData = currentList.some(str => str && str.trim().length > 0);
                                                 if (!hasData) {
-                                                    // Also check if the current input value (which might be in the process of updating?)
-                                                    // Actually 'item' is passed in.
-                                                    // If I just cleared it, 'item' might still be old in this render cycle?
-                                                    // No, React re-renders on change. onBlur happens after.
                                                     setIsReferredToExpanded(false);
                                                 }
                                             }
@@ -1451,7 +1542,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     />
                                 </div>
                                 <div className="flex gap-1">
-                                    {/* Only show delete if it's not the only item OR if it has value */}
                                     {(extraData.referred_to_list?.length > 1 || item) && (
                                         <Button
                                             variant="ghost"
@@ -1467,7 +1557,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     )}
-                                    {/* Show Add button on the last item */}
                                     {index === (extraData.referred_to_list?.length || 1) - 1 && (
                                         <Button
                                             variant="ghost"

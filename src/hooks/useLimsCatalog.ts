@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface LimsService {
   id: string;
   name: string;
-  type: string; // 'test', 'package', 'radiology'
+  type: string; // 'LAB', 'SCAN', 'PACKAGE', 'CONSULTANT'
   category: string;
   price?: number;
   market_price?: number;
@@ -12,6 +12,7 @@ export interface LimsService {
   duration?: string;
   result_schema?: any[];
   package_content?: any;
+  default_notes?: string;
 }
 
 export interface LimsRange {

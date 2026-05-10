@@ -123,6 +123,11 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
         if (bundle.referred_by !== undefined) consultationUpdate.referred_by = bundle.referred_by;
         if (bundle.referral_amount !== undefined) consultationUpdate.referral_amount = bundle.referral_amount;
         if (bundle.next_review_date !== undefined) consultationUpdate.next_review_date = bundle.next_review_date;
+        
+        // Use top-level fields from bundle, fallback to extraData for legacy transition
+        consultationUpdate.investigations = bundle.investigations || '';
+        consultationUpdate.radiology_findings = bundle.radiology_findings || '';
+        consultationUpdate.radiology_images = bundle.radiology_images || [];
         return consultationUpdate;
     };
 
@@ -229,6 +234,9 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
                                         status: finalStatus,
                                         visit_type: consultationPayload.visit_type || 'paid',
                                         location: location, // Ensure location is updated if backend default differs
+                                        investigations: consultationPayload.investigations ?? consultationPayload.consultation_data?.investigations ?? null,
+                                        radiology_findings: consultationPayload.radiology_findings ?? consultationPayload.consultation_data?.radiology_findings ?? null,
+                                        radiology_images: consultationPayload.radiology_images ?? consultationPayload.consultation_data?.radiology_images ?? [],
                                         next_review_date: consultationPayload.next_review_date || offlineData.next_review_date || null
                                     }).eq('id', createdConsultationId);
 
@@ -310,6 +318,9 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
                                     consultation_data: extraData || {},
                                     status: offlineData.status || 'pending',
                                     visit_type: extraData.visit_type || 'paid',
+                                    investigations: offlineData.investigations ?? null,
+                                    radiology_findings: offlineData.radiology_findings ?? null,
+                                    radiology_images: offlineData.radiology_images ?? [],
                                     next_review_date: offlineData.next_review_date || null
                                 });
 
@@ -381,7 +392,10 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
                                 const consultationUpdate = buildConsultationUpdatePayload({
                                     ...syncBundle,
                                     extraData: syncBundle.extraData || ({} as any),
-                                    status: syncBundle.status || 'pending'
+                                    status: syncBundle.status || 'pending',
+                                    investigations: syncBundle.investigations,
+                                    radiology_findings: syncBundle.radiology_findings,
+                                    radiology_images: syncBundle.radiology_images
                                 });
                                 const { error: consultationUpdateError } = await supabase
                                     .from('consultations')
@@ -447,7 +461,10 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
             const consultationUpdatePayload = buildConsultationUpdatePayload({
                 ...localBundle,
                 extraData: localBundle.extraData || ({} as any),
-                status: localBundle.status || 'pending'
+                status: localBundle.status || 'pending',
+                investigations: localBundle.investigations,
+                radiology_findings: localBundle.radiology_findings,
+                radiology_images: localBundle.radiology_images
             });
             const { error: consultationUpdateError } = await supabase
                 .from('consultations')

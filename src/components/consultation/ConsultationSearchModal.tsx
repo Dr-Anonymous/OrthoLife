@@ -161,6 +161,9 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
                         <ConsultationCard
                           data={{
                             ...consultation.consultation_data,
+                            investigations: consultation.investigations || consultation.consultation_data?.investigations,
+                            radiology_findings: consultation.radiology_findings || consultation.consultation_data?.radiology_findings,
+                            radiology_images: consultation.radiology_images || consultation.consultation_data?.radiology_images,
                             referred_by: consultation.referred_by,
                             created_at: consultation.created_at,
                             location: consultation.location,

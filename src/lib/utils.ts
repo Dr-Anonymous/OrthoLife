@@ -87,6 +87,7 @@ export function cleanConsultationData(data: any, keepBrackets: boolean = false):
     complaints: process(data.complaints),
     findings: process(data.findings),
     investigations: process(data.investigations),
+    radiology_findings: process(data.radiology_findings),
     diagnosis: process(data.diagnosis),
     advice: process(data.advice),
     advice_te: process(data.advice_te),
@@ -112,6 +113,7 @@ export function cleanConsultationData(data: any, keepBrackets: boolean = false):
     orthotics: process(data.orthotics),
     orthotics_te: process(data.orthotics_te),
     personalNote: process(data.personalNote),
+    radiology_images: (data.radiology_images || []).map((img: any) => ({ ...img, fileName: process(img.fileName) })),
   };
 }
 
@@ -412,7 +414,7 @@ export function areExtraDataEqual(d1: any, d2: any, ignoreBrandName: boolean = f
     'diagnosis', 'advice', 'advice_te', 'followup', 'followup_te', 'weight', 'bp', 'temperature',
     'height', 'pulse', 'spo2', 'bmi', 'allergy', 'personalNote',
     'procedure', 'procedure_fee', 'procedure_consultant_cut',
-    'referred_to', 'referred_by', 'referral_amount', 'orthotics'
+    'referred_to', 'referred_by', 'referral_amount', 'orthotics', 'radiology_findings'
   ];
 
   for (const key of keysToCompare) {
@@ -456,6 +458,7 @@ export function areExtraDataEqual(d1: any, d2: any, ignoreBrandName: boolean = f
   if (JSON.stringify(d1.certificates || []) !== JSON.stringify(d2.certificates || [])) return false;
   if (JSON.stringify(d1.receipts || []) !== JSON.stringify(d2.receipts || [])) return false;
   if (JSON.stringify(d1.investigation_reports || []) !== JSON.stringify(d2.investigation_reports || [])) return false;
+  if (JSON.stringify(d1.radiology_images || []) !== JSON.stringify(d2.radiology_images || [])) return false;
 
   return true;
 }

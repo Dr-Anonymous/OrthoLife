@@ -250,24 +250,27 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     if (preview) return { consultation: c, isVisible: true, preview };
 
                     // Check Clinical Fields
+                    const investigations = (c as any).investigations || d?.investigations;
+                    const radiology_findings = (c as any).radiology_findings || d?.radiology_findings;
+
+                    preview = findInText(d?.diagnosis) ||
+                        findInText(d?.complaints) ||
+                        findInText(d?.findings) ||
+                        findInText(d?.advice) ||
+                        findInText(d?.procedure) ||
+                        findInText(d?.medicalHistory) ||
+                        findInText(d?.personalNote) ||
+                        findInText(investigations) ||
+                        findInText(radiology_findings);
+
+                    if (preview) return { consultation: c, isVisible: true, preview };
+
+                    // Vitals, Medications, and Reports (only if data exists)
                     if (d) {
-                        preview = findInText(d.diagnosis) ||
-                            findInText(d.complaints) ||
-                            findInText(d.findings) ||
-                            findInText(d.advice) ||
-                            findInText(d.procedure) ||
-                            findInText(d.medicalHistory) ||
-                            findInText(d.personalNote) ||
-                            findInText(d.investigations);
-
-                        if (preview) return { consultation: c, isVisible: true, preview };
-
-                        // Vitals
                         const vitalsStr = `${d.weight || ''} ${d.bp || ''} ${d.pulse || ''} ${d.spo2 || ''} ${d.temperature || ''} ${d.height || ''} ${d.bmi || ''}`;
                         preview = findInText(vitalsStr);
                         if (preview) return { consultation: c, isVisible: true, preview };
 
-                        // Medications
                         if (d.medications) {
                             for (const m of d.medications) {
                                 preview = findInText(m.composition) || findInText(m.brandName) || findInText(m.instructions) || findInText(m.notes);
@@ -275,7 +278,6 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             }
                         }
 
-                        // Reports
                         if (d.investigation_reports) {
                             for (const r of d.investigation_reports) {
                                 preview = findInText(r.fileName) || findInText(r.gist);

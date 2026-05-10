@@ -63,6 +63,7 @@ async function fetchConsultations(date?: string, patientId?: string, hospital?: 
     .select(`
       id, status, consultation_data, visit_type, location, language, created_at, duration,
       procedure_fee, procedure_consultant_cut, referral_amount, referred_by, consultant_id,
+      investigations, radiology_findings, radiology_images,
       consultant:consultants (name),
       patient:patients (
         id, name, dob, sex, phone, drive_id, is_dob_estimated, secondary_phone,
@@ -161,7 +162,7 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
   // 1. Fetch Last Consultation (Any status, meant to capture "Last Visit")
   const { data: lastConsultation } = await supabase
     .from('consultations')
-    .select('consultation_data, created_at, referred_by, consultant_id')
+    .select('consultation_data, created_at, referred_by, consultant_id, investigations, radiology_findings')
     .in('patient_id', patientIds) // Use IN instead of EQ
     .lt('created_at', referenceDateIso)
     .order('created_at', { ascending: false })
@@ -281,6 +282,7 @@ function cleanConsultationData(data: any, keepBrackets: boolean = false): any {
     blood_group: process(data.blood_group),
     orthotics: process(data.orthotics),
     orthotics_te: process(data.orthotics_te),
+    radiology_findings: process(data.radiology_findings),
     personalNote: process(data.personalNote),
   };
 }
@@ -360,7 +362,11 @@ function generateAutofillData(
       console.error("Error parsing discharge summary:", e);
     }
   } else if (lastConsultation && lastConsultation.consultation_data) {
-    const data = { ...lastConsultation.consultation_data };
+    const data = { 
+      ...lastConsultation.consultation_data,
+      investigations: lastConsultation.investigations || '',
+      radiology_findings: lastConsultation.radiology_findings || '',
+    };
     const isDifferentConsultant = !!lastConsultation.consultant_id && !!currentConsultation.consultant_id && lastConsultation.consultant_id !== currentConsultation.consultant_id;
 
     if (isDifferentConsultant) {

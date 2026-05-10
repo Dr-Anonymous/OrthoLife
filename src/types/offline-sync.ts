@@ -34,4 +34,7 @@ export interface OfflineConsultationBundle {
     referred_by: string | null;
     referral_amount: number | null;
     next_review_date: string | null;
+    investigations?: string;
+    radiology_findings?: string;
+    radiology_images?: any[];
 }

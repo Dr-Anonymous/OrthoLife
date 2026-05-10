@@ -21,7 +21,7 @@ export async function fetchRecentHistory(patientId: string, referenceDateIso: st
   // 1. Fetch Last Consultation
   const { data: lastConsultation } = await supabase
     .from('consultations')
-    .select('consultation_data, created_at, referred_by, consultant_id')
+    .select('consultation_data, created_at, referred_by, consultant_id, investigations, radiology_findings')
     .in('patient_id', patientIds)
     .lt('created_at', referenceDateIso)
     .order('created_at', { ascending: false })
@@ -133,8 +133,12 @@ export function generateAutofillData(
     } catch (e) {
       console.error("Error parsing discharge summary:", e);
     }
-  } else if (lastConsultation && lastConsultation.consultation_data) {
-    const data = { ...lastConsultation.consultation_data };
+  } else if (lastConsultation && (lastConsultation.consultation_data || lastConsultation.investigations || lastConsultation.radiology_findings)) {
+    const data = { 
+      ...lastConsultation.consultation_data,
+      investigations: lastConsultation.investigations || '',
+      radiology_findings: lastConsultation.radiology_findings || '',
+    };
     const isDifferentConsultant = !!lastConsultation.consultant_id && !!currentConsultation.consultant_id && lastConsultation.consultant_id !== currentConsultation.consultant_id;
 
     if (isDifferentConsultant) {

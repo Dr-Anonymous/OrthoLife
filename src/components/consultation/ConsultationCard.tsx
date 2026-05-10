@@ -260,6 +260,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                         );
                     }
                 },
+                { label: "Radiology Findings", value: data.radiology_findings, icon: Activity },
                 { label: "Diagnosis", value: data.diagnosis, icon: Activity },
             ].map((section, idx) => section.value && (
                 <div key={idx} className="flex items-start gap-3 p-1">

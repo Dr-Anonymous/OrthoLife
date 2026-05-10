@@ -159,6 +159,9 @@ export interface Consultation {
     consultant_id?: string;
     consultant?: { name: any };
     consultation_data?: ExtraData;
+    investigations?: string;
+    radiology_findings?: string;
+    radiology_images?: InvestigationReport[];
     last_visit_date?: string;
     duration?: number;
     procedure_fee?: number | null;
@@ -242,6 +245,8 @@ export interface ExtraData {
     visit_type: string;
     affordabilityPreference: string;
     orthotics?: string;
+    radiology_findings?: string;
+    radiology_images?: InvestigationReport[];
     investigation_reports?: InvestigationReport[];
     certificates?: CertificateData[];
     receipts?: ReceiptData[];

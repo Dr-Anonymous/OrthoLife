@@ -448,7 +448,7 @@ const FollowUpDashboard = () => {
                              <TableCell>
                                <div className="flex flex-wrap gap-1 max-w-[200px]">
                                  {(() => {
-                                   const investigations = c.consultation_data?.investigations;
+                                   const investigations = (c as any).investigations || c.consultation_data?.investigations;
                                    if (!investigations) return <span className="text-[10px] text-muted-foreground italic">None</span>;
                                    const parsed = parser.parse(investigations);
                                    if (parsed.length === 0) return <span className="text-[10px] text-muted-foreground truncate">{investigations}</span>;
@@ -469,7 +469,7 @@ const FollowUpDashboard = () => {
                                    ));
                                  })()}
                                  {(() => {
-                                   const parsed = parser.parse(c.consultation_data?.investigations || '');
+                                   const parsed = parser.parse((c as any).investigations || c.consultation_data?.investigations || '');
                                    return parsed.length > 3 && <span className="text-[9px] text-muted-foreground">+{parsed.length - 3} more</span>;
                                  })()}
                                </div>
@@ -622,6 +622,9 @@ const FollowUpDashboard = () => {
                   <ConsultationCard
                     data={{
                       ...selectedConsultation.consultation_data,
+                    investigations: selectedConsultation.investigations || selectedConsultation.consultation_data?.investigations,
+                    radiology_findings: selectedConsultation.radiology_findings || selectedConsultation.consultation_data?.radiology_findings,
+                    radiology_images: selectedConsultation.radiology_images || selectedConsultation.consultation_data?.radiology_images,
                       name: selectedConsultation.patient.name,
                       phone: selectedConsultation.patient.phone,
                       secondary_phone: selectedConsultation.patient.secondary_phone,

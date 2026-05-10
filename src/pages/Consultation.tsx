@@ -416,6 +416,7 @@ const ConsultationPage = () => {
   const familyHistoryRef = useRef<HTMLTextAreaElement>(null);
   const findingsRef = useRef<HTMLTextAreaElement>(null);
   const investigationsRef = useRef<HTMLTextAreaElement>(null);
+  const radiologyFindingsRef = useRef<HTMLTextAreaElement>(null);
   const diagnosisRef = useRef<HTMLTextAreaElement>(null);
   const adviceRef = useRef<HTMLTextAreaElement>(null);
   const followupRef = useRef<HTMLTextAreaElement>(null);
@@ -452,6 +453,7 @@ const ConsultationPage = () => {
     syncField('familyHistory', familyHistoryRef);
     syncField('findings', findingsRef);
     syncField('investigations', investigationsRef);
+    syncField('radiology_findings', radiologyFindingsRef);
     syncField('diagnosis', diagnosisRef);
     syncField('advice', adviceRef);
     syncField('followup', followupRef);
@@ -719,7 +721,8 @@ const ConsultationPage = () => {
       medicalHistory: savedData.medicalHistory || (savedData as any).medical_history || '',
       familyHistory: savedData.familyHistory || (savedData as any).family_history || '',
       findings: savedData.findings || '',
-      investigations: savedData.investigations || '',
+      investigations: (consultation as any).investigations || '',
+      radiology_findings: (consultation as any).radiology_findings || '',
       diagnosis: savedData.diagnosis || '',
       advice: savedData.advice || '',
       followup: savedData.followup || '',
@@ -747,6 +750,7 @@ const ConsultationPage = () => {
       affordabilityPreference: savedData.affordabilityPreference || 'none',
       orthotics: savedData.orthotics || '',
       investigation_reports: savedData.investigation_reports || [],
+      radiology_images: (consultation as any).radiology_images || [],
       certificates: (savedData.certificates || []).map(cert => ({
         ...cert,
         restPeriodStartDate: cert.restPeriodStartDate ? new Date(cert.restPeriodStartDate) : new Date(),
@@ -1197,6 +1201,10 @@ const ConsultationPage = () => {
         referral_amount,
         referred_to,
         referred_to_list,
+        // Promote these to top-level columns, so exclude from JSON blob
+        investigations,
+        radiology_findings,
+        radiology_images,
         // Destructure backup fields to exclude them from the saved JSON
         advice_te,
         followup_te,
@@ -1245,6 +1253,9 @@ const ConsultationPage = () => {
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
         next_review_date: nextReviewDate,
+        investigations: activeExtraData.investigations,
+        radiology_findings: activeExtraData.radiology_findings,
+        radiology_images: activeExtraData.radiology_images,
       };
 
       // 2. PRIMARY WRITE: IndexedDB (offlineStore)
@@ -1270,6 +1281,9 @@ const ConsultationPage = () => {
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
         next_review_date: nextReviewDate,
+        investigations: activeExtraData.investigations,
+        radiology_findings: activeExtraData.radiology_findings,
+        radiology_images: activeExtraData.radiology_images,
       };
 
       setSelectedConsultation(updatedConsultation);
@@ -1522,7 +1536,7 @@ const ConsultationPage = () => {
       const shortcutFields = [
         'complaints', 'medicalHistory', 'familyHistory', 'findings', 'diagnosis', 
         'advice', 'followup', 'personalNote', 'procedure', 
-        'investigations', 'referred_to', 'orthotics'
+        'investigations', 'radiology_findings', 'referred_to', 'orthotics'
       ];
 
       if (shortcutFields.includes(field)) {
@@ -1551,7 +1565,8 @@ const ConsultationPage = () => {
               personalNote: personalNoteRef,
               procedure: procedureRef,
               referred_to: referredToRef,
-              followup: followupRef
+              followup: followupRef,
+              radiology_findings: radiologyFindingsRef
             };
             const targetRef = refs[field];
             if (targetRef && targetRef.current) {
@@ -1565,7 +1580,7 @@ const ConsultationPage = () => {
 
     if (isReadOnly) return;
     setExtraData(prev => ({ ...prev, [field]: value }));
-  }, [adviceRef, medicalHistoryRef, investigationsRef, complaintsRef, orthoticsRef, findingsRef, diagnosisRef, personalNoteRef, procedureRef, referredToRef, followupRef, isReadOnly, autofillProcessor, consultationLanguage]);
+  }, [adviceRef, medicalHistoryRef, familyHistoryRef, investigationsRef, complaintsRef, orthoticsRef, findingsRef, radiologyFindingsRef, diagnosisRef, personalNoteRef, procedureRef, referredToRef, followupRef, isReadOnly, autofillProcessor, consultationLanguage]);
 
 
   /**
@@ -2568,6 +2583,7 @@ const ConsultationPage = () => {
                     familyHistoryRef={familyHistoryRef}
                     findingsRef={findingsRef}
                     investigationsRef={investigationsRef}
+                    radiologyFindingsRef={radiologyFindingsRef}
                     diagnosisRef={diagnosisRef}
                     procedureRef={procedureRef}
                     adviceRef={adviceRef}

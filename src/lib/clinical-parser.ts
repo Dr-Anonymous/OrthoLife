@@ -4,7 +4,7 @@ import { analyzeResultValue } from './lims-utils';
 export interface LimsService {
   id: string;
   name: string;
-  type: string;
+  type: string; // 'LAB', 'SCAN', 'PACKAGE', 'CONSULTANT'
   result_schema?: any[];
 }
 
