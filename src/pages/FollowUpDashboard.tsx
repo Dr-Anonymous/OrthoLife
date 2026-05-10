@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
@@ -40,7 +40,8 @@ import { Label } from '@/components/ui/label';
 import { SchedulePopover } from '@/components/SchedulePopover';
 import { scheduleService } from '@/utils/scheduleService';
 import { getLocalDateTime } from '@/utils/dateUtils';
-
+import { useLimsCatalog } from '@/hooks/useLimsCatalog';
+import { ClinicalParser } from '@/lib/clinical-parser';
 
 const FollowUpDashboard = () => {
   const { consultant, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
@@ -58,6 +59,8 @@ const FollowUpDashboard = () => {
   const [fetchAll, setFetchAll] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date>();
   const [scheduledTime, setScheduledTime] = useState("");
+  const { data: limsCatalog } = useLimsCatalog();
+  const parser = React.useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
 
 
   useEffect(() => {
@@ -411,9 +414,10 @@ const FollowUpDashboard = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Patient</TableHead>
-                          <TableHead>Last Visit</TableHead>
-                          <TableHead>Instruction</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                           <TableHead>Last Visit</TableHead>
+                           <TableHead>Investigations</TableHead>
+                           <TableHead>Instruction</TableHead>
+                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -441,7 +445,36 @@ const FollowUpDashboard = () => {
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell className="max-w-[200px] truncate text-sm italic text-muted-foreground">
+                             <TableCell>
+                               <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                 {(() => {
+                                   const investigations = c.consultation_data?.investigations;
+                                   if (!investigations) return <span className="text-[10px] text-muted-foreground italic">None</span>;
+                                   const parsed = parser.parse(investigations);
+                                   if (parsed.length === 0) return <span className="text-[10px] text-muted-foreground truncate">{investigations}</span>;
+                                   
+                                   return parsed.slice(0, 3).map((res, i) => (
+                                     <Badge 
+                                       key={i} 
+                                       variant="outline" 
+                                       className={cn(
+                                         "text-[9px] px-1 py-0 h-4 border-none",
+                                         res.status === 'normal' ? "bg-emerald-50 text-emerald-700" :
+                                         res.status === 'unknown' ? "bg-slate-50 text-slate-500" :
+                                         "bg-amber-50 text-amber-700"
+                                       )}
+                                     >
+                                       {res.name}: {res.value}
+                                     </Badge>
+                                   ));
+                                 })()}
+                                 {(() => {
+                                   const parsed = parser.parse(c.consultation_data?.investigations || '');
+                                   return parsed.length > 3 && <span className="text-[9px] text-muted-foreground">+{parsed.length - 3} more</span>;
+                                 })()}
+                               </div>
+                             </TableCell>
+                             <TableCell className="max-w-[200px] truncate text-sm italic text-muted-foreground">
                               {stripFollowUpPrefix(c.consultation_data?.followup) || ''}
                             </TableCell>
                             <TableCell className="text-right">

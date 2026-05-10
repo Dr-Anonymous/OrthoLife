@@ -2603,6 +2603,7 @@ const ConsultationPage = () => {
                     initialData={initialExtraData}
                     isReadOnly={isReadOnly}
                     patientId={selectedConsultation?.patient?.id}
+                    patientName={editablePatientDetails?.name}
                     onShortcutsClick={() => setIsShortcutModalOpen(true)}
                   />
                 </div>

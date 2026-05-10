@@ -21,6 +21,10 @@ import {
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { calculateAge } from '@/lib/age';
+import { useLimsCatalog } from '@/hooks/useLimsCatalog';
+import { ClinicalParser } from '@/lib/clinical-parser';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export interface ConsultationData {
     created_at?: string;
@@ -81,6 +85,9 @@ export interface ConsultationCardProps {
  * - Handles backwards compatibility of referred_to vs referred_to_list.
  */
 const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyword }) => {
+    const { data: limsCatalog } = useLimsCatalog();
+    const parser = React.useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
+
     if (!data) return null;
 
     const renderText = (text: string) => {
@@ -224,14 +231,44 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                 { label: "Doctor's Note", value: data.personalNote || data.personal_note, icon: NotebookText },
                 { label: "Complaints", value: data.complaints, icon: Stethoscope },
                 { label: "Clinical Findings", value: data.findings, icon: Eye },
-                { label: "Investigations", value: data.investigations, icon: Microscope },
+                {
+                    label: "Investigations",
+                    value: data.investigations,
+                    icon: Microscope,
+                    render: (val: string) => {
+                        const parsed = parser.parse(val);
+                        if (parsed.length === 0) return <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-0.5 leading-relaxed">{renderText(val)}</p>;
+                        return (
+                            <div className="flex flex-wrap gap-2 mt-1.5">
+                                {parsed.map((res, i) => (
+                                    <Badge
+                                        key={i}
+                                        variant="outline"
+                                        className={cn(
+                                            "gap-1.5 px-2 py-0.5 border transition-all",
+                                            res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-100",
+                                            (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-100",
+                                            (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-200 animate-pulse",
+                                            res.status === 'unknown' && "bg-slate-50 text-slate-600 border-slate-100"
+                                        )}
+                                    >
+                                        <span className="font-bold">{res.name}:</span>
+                                        <span>{res.value}</span>
+                                    </Badge>
+                                ))}
+                            </div>
+                        );
+                    }
+                },
                 { label: "Diagnosis", value: data.diagnosis, icon: Activity },
             ].map((section, idx) => section.value && (
                 <div key={idx} className="flex items-start gap-3 p-1">
                     <section.icon className={`w-5 h-5 mt-1 ${section.color || 'text-primary'}`} />
                     <div className="flex-1">
                         <h4 className={`font-semibold text-sm ${section.color || ''}`}>{section.label}</h4>
-                        <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-0.5 leading-relaxed">{renderText(section.value)}</p>
+                        {section.render ? section.render(section.value) : (
+                            <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-0.5 leading-relaxed">{renderText(section.value)}</p>
+                        )}
                     </div>
                 </div>
             ))}

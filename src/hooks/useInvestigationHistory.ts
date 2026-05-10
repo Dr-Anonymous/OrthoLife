@@ -6,8 +6,10 @@ import React from "react";
 
 export interface HistoricalResult {
   date: string;
-  value: number;
+  value: number | string;
   status: ParsedInvestigation['status'];
+  name: string;
+  unit?: string;
   consultationId: string;
 }
 
@@ -24,40 +26,44 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
     queryFn: async () => {
       if (!patientId) return {};
 
-      // Fetch last 5 consultations
+      // Fetch last 15 consultations for better trend-line density
       const { data, error } = await supabase
         .from("consultations")
         .select("id, created_at, consultation_data")
         .eq("patient_id", patientId)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(15);
 
       if (error) throw error;
 
       const historyMap: Record<string, HistoricalResult[]> = {};
 
-      data.forEach((con) => {
+      // Process from oldest to newest for the graph
+      const reversedData = [...data].reverse();
+
+      reversedData.forEach((con) => {
         const investigationsText = (con.consultation_data as any)?.investigations || "";
         if (!investigationsText) return;
 
-        // Use parser to extract values from historical text
-        // We pass neutral metadata for history parsing to avoid mismatching based on age-at-the-time
         const parsed = parser.parse(investigationsText);
 
         parsed.forEach((res) => {
-          if (res.value === undefined) return;
+          if (res.value === undefined || res.value === null) return;
 
-          const testName = res.name.toLowerCase();
-          if (!historyMap[testName]) {
-            historyMap[testName] = [];
+          // Use a composite key of serviceId and name for unique tracking, especially for packages
+          const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+          
+          if (!historyMap[groupKey]) {
+            historyMap[groupKey] = [];
           }
 
-          // Avoid duplicates in the same consultation
-          if (historyMap[testName].some(h => h.consultationId === con.id)) return;
+          if (historyMap[groupKey].some(h => h.consultationId === con.id)) return;
 
-          historyMap[testName].push({
+          historyMap[groupKey].push({
             date: con.created_at,
+            name: res.name,
             value: res.value,
+            unit: res.unit,
             status: res.status,
             consultationId: con.id
           });
@@ -67,6 +73,6 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
       return historyMap;
     },
     enabled: !!patientId && !!limsCatalog,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };

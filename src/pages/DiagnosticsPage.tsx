@@ -115,10 +115,6 @@ const DiagnosticsPage = () => {
         description: "Fetching the latest test data from LIMS.",
       });
 
-      const { error } = await supabase.functions.invoke('fetch-lab-data');
-
-      if (error) throw error;
-
       await queryClient.invalidateQueries({ queryKey: ['lims-catalog'] });
       
       toast({

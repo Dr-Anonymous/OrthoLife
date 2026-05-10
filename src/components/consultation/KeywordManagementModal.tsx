@@ -77,7 +77,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const [investigationSearch, setInvestigationSearch] = useState('');
   const [activeInvestigationIndex, setActiveInvestigationIndex] = useState(0);
-  const { data: limsCatalog } = useLimsCatalog();
+  const { data: limsCatalog, isLoading: isCatalogLoading } = useLimsCatalog();
 
   useEffect(() => {
     setActiveInvestigationIndex(0);
@@ -403,6 +403,12 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                     onKeyDown={handleInvestigationKeyDown}
                     className="h-8 w-40 pl-8"
                   />
+                  {isCatalogLoading && investigationSearch && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 p-2 bg-popover border rounded-md shadow-md text-[10px] text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Loading tests...
+                    </div>
+                  )}
                   {filteredLimsTests.length > 0 ? (
                     <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-40 overflow-y-auto bg-popover border rounded-md shadow-md">
                       {filteredLimsTests.map((test, idx) => (
@@ -418,14 +424,14 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="font-medium truncate">{test.name}</div>
-                            {test.type === 'package' && (
+                            {test.type?.toLowerCase() === 'package' && (
                               <span className="shrink-0 bg-blue-100 text-blue-700 px-1 rounded-[2px] text-[8px] font-bold uppercase">Panel</span>
                             )}
                           </div>
                         </button>
                       ))}
                     </div>
-                  ) : investigationSearch && (limsCatalog?.services?.length === 0 || !limsCatalog) && (
+                  ) : investigationSearch && !isCatalogLoading && (limsCatalog?.services?.length === 0 || !limsCatalog) && (
                     <div className="absolute top-full left-0 right-0 z-50 mt-1 p-2 bg-popover border rounded-md shadow-md text-[10px] text-muted-foreground">
                       LIMS catalog unavailable. Check network connectivity or LIMS integration.
                     </div>

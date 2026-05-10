@@ -10,7 +10,7 @@ export interface LimsService {
   market_price?: number;
   details?: string;
   duration?: string;
-  result_schema?: any;
+  result_schema?: any[];
   package_content?: any;
 }
 
@@ -26,6 +26,8 @@ export interface LimsRange {
   high_value?: number;
   critical_low?: number;
   critical_high?: number;
+  display_range?: string;
+  normalRange?: string;
 }
 
 export const useLimsCatalog = () => {
@@ -41,8 +43,14 @@ export const useLimsCatalog = () => {
 
       const data = await res.json();
       
-      const services: LimsService[] = data.services || [];
+      const rawServices: LimsService[] = data.services || [];
       const ranges: LimsRange[] = data.ranges || [];
+
+      // Exclude PACKAGE and CONSULTANT types as requested to simplify logic
+      const services = rawServices.filter(s => {
+        const type = s.type?.toUpperCase();
+        return type !== 'PACKAGE' && type !== 'CONSULTANT';
+      });
 
       return { services, ranges };
     },
