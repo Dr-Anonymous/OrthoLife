@@ -633,8 +633,14 @@ const ConsultationPage = () => {
     const matchedHospital = hospitals.find(h => areLocationsEqual(h.name, consultation.location));
     const consultationLocation = matchedHospital ? matchedHospital.name : (consultation.location || (hospitals.length > 0 ? hospitals[0].name : ''));
     
-    // If GPS is enabled, disable it to allow switching to the consultation's location
+    // Only disable GPS if it's currently enabled and pointing to a different location than the consultation
     if (isGpsEnabled) {
+      const isSameAsAuto = autoLocation && areLocationsEqual(autoLocation, consultationLocation);
+      if (!isSameAsAuto) {
+        handleManualLocationChange(consultationLocation);
+      }
+    } else {
+      // If GPS is not enabled, ensure manual location matches
       handleManualLocationChange(consultationLocation);
     }
 
@@ -783,7 +789,7 @@ const ConsultationPage = () => {
     setTimeout(() => {
       complaintsRef.current?.focus();
     }, 100);
-  }, [hospitals, isGpsEnabled, handleManualLocationChange]);
+  }, [hospitals, isGpsEnabled, handleManualLocationChange, autoLocation]);
 
 
 
