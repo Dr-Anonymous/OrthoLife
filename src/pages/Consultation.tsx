@@ -727,8 +727,8 @@ const ConsultationPage = () => {
       medicalHistory: savedData.medicalHistory || (savedData as any).medical_history || '',
       familyHistory: savedData.familyHistory || (savedData as any).family_history || '',
       findings: savedData.findings || '',
-      investigations: (consultation as any).investigations || '',
-      radiology_findings: (consultation as any).radiology_findings || '',
+      investigations: (consultation as any).investigations || savedData.investigations || '',
+      radiology_findings: (consultation as any).radiology_findings || savedData.radiology_findings || '',
       diagnosis: savedData.diagnosis || '',
       advice: savedData.advice || '',
       followup: savedData.followup || '',
@@ -756,7 +756,9 @@ const ConsultationPage = () => {
       affordabilityPreference: savedData.affordabilityPreference || 'none',
       orthotics: savedData.orthotics || '',
       investigation_reports: savedData.investigation_reports || [],
-      radiology_images: (consultation as any).radiology_images || [],
+      radiology_images: (consultation as any).radiology_images?.length
+        ? (consultation as any).radiology_images
+        : (savedData.radiology_images || []),
       certificates: (savedData.certificates || []).map(cert => ({
         ...cert,
         restPeriodStartDate: cert.restPeriodStartDate ? new Date(cert.restPeriodStartDate) : new Date(),

@@ -15,15 +15,9 @@ import { toast } from 'sonner';
 import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { normalizeSearchText } from '@/lib/utils';
 
-const stripHtml = (html: string) => {
-    if (!html) return '';
-    return html.replace(/<[^>]*>?/gm, '');
-};
 import { useLimsCatalog } from '@/hooks/useLimsCatalog';
 import { useInvestigationHistory, HistoricalResult } from '@/hooks/useInvestigationHistory';
 import { ClinicalParser } from '@/lib/clinical-parser';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import InvestigationTrends from './InvestigationTrends';
 
 interface ClinicalNotesFormProps {
@@ -179,11 +173,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
     const parser = React.useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
     const parsedInvestigations = React.useMemo(() => {
-        return parser.parse(extraData.investigations, {
+        const combinedText = (extraData.investigations || '') + '\n' + (extraData.radiology_findings || '');
+        return parser.parse(combinedText, {
             age: typeof patientAge === 'number' ? patientAge : 30,
             sex: patientSex
         });
-    }, [parser, extraData.investigations, patientAge, patientSex]);
+    }, [parser, extraData.investigations, extraData.radiology_findings, patientAge, patientSex]);
 
     const allHistoryDates = React.useMemo(() => {
         if (!investigationHistory) return [];
@@ -191,8 +186,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         Object.values(investigationHistory).forEach((history: HistoricalResult[]) => {
             history.forEach(h => {
                 // Exclude current consultation from history columns as it is shown in the 'Current' column
-                if (consultationId && h.consultationId === consultationId) return;
-                
+                if (consultationId && String(h.consultationId) === String(consultationId)) return;
+
                 if (h.date) {
                     dateSet.add(format(new Date(h.date), 'dd/MM/yy'));
                 }
@@ -206,14 +201,15 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             const dateB = new Date(yb + 2000, mb - 1, db).getTime();
             return dateB - dateA;
         }).slice(0, 3); // Show latest 3 historical dates
-    }, [investigationHistory]);
+    }, [investigationHistory, consultationId]);
 
     const displayInvestigations = React.useMemo(() => {
         const list = [...parsedInvestigations];
 
         if (investigationHistory) {
             Object.entries(investigationHistory).forEach(([groupKey, history]: [string, HistoricalResult[]]) => {
-                if (history.length === 0) return;
+                const hasOtherHistory = history.some(h => !consultationId || String(h.consultationId) !== String(consultationId));
+                if (!hasOtherHistory) return;
 
                 const isAlreadyPresent = list.some(item => {
                     const itemKey = item.id ? `${item.id}:${item.name.toLowerCase()}` : item.name.toLowerCase();
@@ -243,7 +239,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             });
         }
         return list;
-    }, [parsedInvestigations, investigationHistory, limsCatalog, parser]);
+    }, [parsedInvestigations, investigationHistory, limsCatalog, parser, consultationId]);
 
     const hasAnyInvestigationData = displayInvestigations.length > 0;
 
@@ -882,394 +878,396 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Laboratory Investigations (Labs) Section */}
                         <div className="space-y-2">
-                        <div className="flex items-center flex-wrap gap-2 mb-2 w-full">
-                            <div className="flex items-center gap-3">
-                                <Label htmlFor="investigations" className="text-sm font-medium">Labs</Label>
-                                {limsCatalog && (
-                                    <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-1">
-                                        <div
-                                            className={cn(
-                                                "w-1.5 h-1.5 rounded-full cursor-pointer",
-                                                limsCatalog.services.length > 0 ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
-                                            )}
-                                            title={limsCatalog.services.length > 0 ? "Live Catalog Active - Click to Refetch" : "Catalog Loading - Click to Refetch"}
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                toast.info('Refetching live catalog...');
-                                                await queryClient.invalidateQueries({ queryKey: ['lims-catalog'] });
-                                            }}
-                                        ></div>
+                            <div className="flex items-center flex-wrap gap-2 mb-2 w-full">
+                                <div className="flex items-center gap-3">
+                                    <Label htmlFor="investigations" className="text-sm font-medium">Labs</Label>
+                                    {limsCatalog && (
+                                        <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-1">
+                                            <div
+                                                className={cn(
+                                                    "w-1.5 h-1.5 rounded-full cursor-pointer",
+                                                    limsCatalog.services.length > 0 ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+                                                )}
+                                                title={limsCatalog.services.length > 0 ? "Live Catalog Active - Click to Refetch" : "Catalog Loading - Click to Refetch"}
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    toast.info('Refetching live catalog...');
+                                                    await queryClient.invalidateQueries({ queryKey: ['lims-catalog'] });
+                                                }}
+                                            ></div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-muted-foreground hover:text-primary animate-in fade-in slide-in-from-left-2 delay-75"
+                                                title="View Trends"
+                                                onClick={() => handleOpenTrends()}
+                                                disabled={!patientId}
+                                            >
+                                                <TrendingUp className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-wrap gap-1.5">
+                                    {suggestedInvestigations.map((investigation) => (
                                         <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6 text-muted-foreground hover:text-primary animate-in fade-in slide-in-from-left-2 delay-75"
-                                            title="View Trends"
-                                            onClick={() => handleOpenTrends()}
-                                            disabled={!patientId}
+                                            key={investigation}
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-auto px-2 py-1 text-xs"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => onInvestigationSuggestionClick(investigation)}
+                                            disabled={isReadOnly}
                                         >
-                                            <TrendingUp className="h-4 w-4" />
+                                            {investigation}
+                                        </Button>
+                                    ))}
+                                </div>
+
+                                {!isReadOnly && (!extraData.investigation_reports || extraData.investigation_reports.length === 0) && (
+                                    <div className="ml-auto">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 px-2 py-0 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
+                                            disabled={uploadingReport}
+                                            onClick={() => document.getElementById('report-upload')?.click()}
+                                        >
+                                            {uploadingReport ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                                <FileUp className="w-3.5 h-3.5 text-primary" />
+                                            )}
+                                            Attach Report
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="relative w-full">
+                                <div className="relative">
+                                    <Textarea
+                                        ref={investigationsRef}
+                                        id="investigations"
+                                        value={extraData.investigations}
+                                        onChange={handleInvestigationChange}
+                                        onKeyDown={handleInvestigationKeyDown}
+                                        placeholder="Laboratory tests... (e.g. CRP: 45, Hb: 12)"
+                                        className={cn("min-h-[120px] w-full", getStyle('investigations', extraData.investigations))}
+                                        disabled={isReadOnly}
+                                        onBlur={() => {
+                                            setInvestigationSearch('');
+                                            setGhostText('');
+                                        }}
+                                    />
+
+                                    {ghostText && (
+                                        <div className="absolute top-2 left-3 pointer-events-none text-sm text-muted-foreground/30 whitespace-pre-wrap">
+                                            <span className="invisible">{extraData.investigations.substring(0, investigationsRef.current?.selectionStart || 0)}</span>
+                                            {ghostText}
+                                            <span className="ml-2 text-[10px] bg-muted px-1 rounded font-sans opacity-100">Tab to accept</span>
+                                        </div>
+                                    )}
+
+                                    {investigationSearch && filteredLimsTests.length > 0 && (
+                                        <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-md shadow-lg max-h-[300px] overflow-auto">
+                                            {isCatalogLoading ? (
+                                                <div className="p-4 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground animate-pulse">
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <span>Fetching live catalog...</span>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground border-b flex justify-between items-center bg-muted/20">
+                                                        <span>LAB CATALOG SUGGESTIONS</span>
+                                                    </div>
+                                                    {filteredLimsTests.map((test, idx) => (
+                                                        <button
+                                                            key={test.id}
+                                                            className={cn(
+                                                                "w-full text-left px-2 py-2 text-xs rounded-sm hover:bg-accent flex items-center justify-between gap-2 border-b last:border-0",
+                                                                idx === activeInvestigationIndex && "bg-accent"
+                                                            )}
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            onClick={() => {
+                                                                const currentVal = extraData.investigations;
+                                                                const selectionStart = investigationsRef.current?.selectionStart || currentVal.length;
+                                                                const lines = currentVal.substring(0, selectionStart).split('\n');
+                                                                const lastLine = lines[lines.length - 1];
+                                                                const before = currentVal.substring(0, selectionStart - lastLine.length);
+                                                                const after = currentVal.substring(selectionStart);
+
+                                                                const selectedName = test.name + ': ';
+                                                                const separator = '\n';
+                                                                onExtraChange('investigations', before + selectedName + separator + after, before.length + selectedName.length + separator.length);
+                                                                setInvestigationSearch('');
+                                                                setGhostText('');
+                                                            }}
+                                                        >
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium">{test.name}</span>
+                                                                {test.category && <span className="text-[10px] text-muted-foreground italic">{test.category}</span>}
+                                                            </div>
+                                                            <Search className="w-3 h-3 text-muted-foreground/40" />
+                                                        </button>
+                                                    ))}
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Radiology Findings Section */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between mb-2">
+                                <Label htmlFor="radiology_findings" className="text-sm font-medium">Radiology</Label>
+                                {!isReadOnly && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 px-2 py-0 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
+                                            disabled={uploadingRadiology}
+                                            onClick={() => document.getElementById('radiology-upload')?.click()}
+                                        >
+                                            {uploadingRadiology ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                                <FileUp className="w-3.5 h-3.5 text-primary" />
+                                            )}
+                                            Attach Scan
                                         </Button>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex flex-wrap gap-1.5">
-                                {suggestedInvestigations.map((investigation) => (
-                                    <Button
-                                        key={investigation}
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-auto px-2 py-1 text-xs"
-                                        onMouseDown={(e) => e.preventDefault()}
-                                        onClick={() => onInvestigationSuggestionClick(investigation)}
-                                        disabled={isReadOnly}
-                                    >
-                                        {investigation}
-                                    </Button>
-                                ))}
-                            </div>
-
-                            {!isReadOnly && (!extraData.investigation_reports || extraData.investigation_reports.length === 0) && (
-                                <div className="ml-auto">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 py-0 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
-                                        disabled={uploadingReport}
-                                        onClick={() => document.getElementById('report-upload')?.click()}
-                                    >
-                                        {uploadingReport ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        ) : (
-                                            <FileUp className="w-3.5 h-3.5 text-primary" />
-                                        )}
-                                        Attach Report
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="relative w-full">
                             <div className="relative">
                                 <Textarea
-                                    ref={investigationsRef}
-                                    id="investigations"
-                                    value={extraData.investigations}
-                                    onChange={handleInvestigationChange}
-                                    onKeyDown={handleInvestigationKeyDown}
-                                    placeholder="Laboratory tests... (e.g. CRP: 45, Hb: 12)"
-                                    className={cn("min-h-[120px] w-full", getStyle('investigations', extraData.investigations))}
+                                    ref={radiologyFindingsRef}
+                                    id="radiology_findings"
+                                    value={extraData.radiology_findings || ''}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const selectionStart = e.target.selectionStart;
+                                        onExtraChange('radiology_findings', value, selectionStart);
+
+                                        // Search logic for scans
+                                        const lines = value.substring(0, selectionStart).split('\n');
+                                        const currentLine = lines[lines.length - 1];
+                                        if (currentLine.trim().length > 1 && !currentLine.includes(':')) {
+                                            setRadiologySearch(currentLine.trim());
+                                        } else {
+                                            setRadiologySearch('');
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (filteredLimsScans.length > 0) {
+                                            if (e.key === 'ArrowDown') {
+                                                e.preventDefault();
+                                                setActiveRadiologyIndex(prev => (prev + 1) % filteredLimsScans.length);
+                                            } else if (e.key === 'ArrowUp') {
+                                                e.preventDefault();
+                                                setActiveRadiologyIndex(prev => (prev - 1 + filteredLimsScans.length) % filteredLimsScans.length);
+                                            } else if (e.key === 'Enter' && radiologySearch) {
+                                                e.preventDefault();
+                                                const selected = filteredLimsScans[activeRadiologyIndex];
+                                                if (selected) {
+                                                    const currentVal = extraData.radiology_findings || '';
+                                                    const selectionStart = (e.target as HTMLTextAreaElement).selectionStart;
+                                                    const lines = currentVal.substring(0, selectionStart).split('\n');
+                                                    const lastLine = lines[lines.length - 1];
+                                                    const before = currentVal.substring(0, selectionStart - lastLine.length);
+                                                    const after = currentVal.substring(selectionStart);
+
+                                                    const selectedName = selected.name.toUpperCase() + ': ';
+                                                    onExtraChange('radiology_findings', before + selectedName + after, before.length + selectedName.length);
+                                                    setRadiologySearch('');
+                                                }
+                                            } else if (e.key === 'Escape') {
+                                                setRadiologySearch('');
+                                            }
+                                        }
+                                    }}
+                                    placeholder="Radiology findings... (e.g. X-Ray Knee AP/Lat: Normal study)"
+                                    className={cn("min-h-[120px]", getStyle('radiology_findings', extraData.radiology_findings))}
                                     disabled={isReadOnly}
+                                    onBlur={() => setRadiologySearch('')}
                                 />
 
-                                {ghostText && (
-                                    <div className="absolute top-2 left-3 pointer-events-none text-sm text-muted-foreground/30 whitespace-pre-wrap">
-                                        <span className="invisible">{extraData.investigations.substring(0, investigationsRef.current?.selectionStart || 0)}</span>
-                                        {ghostText}
-                                        <span className="ml-2 text-[10px] bg-muted px-1 rounded font-sans opacity-100">Tab to accept</span>
-                                    </div>
-                                )}
+                                {radiologySearch && filteredLimsScans.length > 0 && (
+                                    <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-md shadow-lg max-h-[200px] overflow-auto">
+                                        <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground border-b bg-muted/20">
+                                            SCAN CATALOG
+                                        </div>
+                                        {filteredLimsScans.map((scan, idx) => (
+                                            <button
+                                                key={scan.id}
+                                                className={cn(
+                                                    "w-full text-left px-2 py-1.5 text-xs rounded-sm hover:bg-accent flex flex-col",
+                                                    idx === activeRadiologyIndex && "bg-accent"
+                                                )}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => {
+                                                    const currentVal = extraData.radiology_findings || '';
+                                                    const selectionStart = radiologyFindingsRef.current?.selectionStart || currentVal.length;
+                                                    const lines = currentVal.substring(0, selectionStart).split('\n');
+                                                    const lastLine = lines[lines.length - 1];
+                                                    const before = currentVal.substring(0, selectionStart - lastLine.length);
+                                                    const after = currentVal.substring(selectionStart);
 
-                                {investigationSearch && (
-                                    <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-md shadow-lg max-h-[300px] overflow-auto">
-                                        {isCatalogLoading ? (
-                                            <div className="p-4 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground animate-pulse">
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                <span>Fetching live catalog...</span>
-                                            </div>
-                                        ) : filteredLimsTests.length > 0 ? (
-                                            <>
-                                                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground border-b flex justify-between items-center bg-muted/20">
-                                                    <span>LAB CATALOG SUGGESTIONS</span>
-                                                </div>
-                                                {filteredLimsTests.map((test, idx) => (
-                                                    <button
-                                                        key={test.id}
-                                                        className={cn(
-                                                            "w-full text-left px-2 py-2 text-xs rounded-sm hover:bg-accent flex items-center justify-between gap-2 border-b last:border-0",
-                                                            idx === activeInvestigationIndex && "bg-accent"
-                                                        )}
-                                                        onMouseDown={(e) => e.preventDefault()}
-                                                        onClick={() => {
-                                                            const currentVal = extraData.investigations;
-                                                            const selectionStart = investigationsRef.current?.selectionStart || currentVal.length;
-                                                            const lines = currentVal.substring(0, selectionStart).split('\n');
-                                                            const lastLine = lines[lines.length - 1];
-                                                            const before = currentVal.substring(0, selectionStart - lastLine.length);
-                                                            const after = currentVal.substring(selectionStart);
-
-                                                            const selectedName = test.name + ': ';
-                                                            const separator = '\n';
-                                                            onExtraChange('investigations', before + selectedName + separator + after, before.length + selectedName.length + separator.length);
-                                                            setInvestigationSearch('');
-                                                            setGhostText('');
-                                                        }}
-                                                    >
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">{test.name}</span>
-                                                            {test.category && <span className="text-[10px] text-muted-foreground italic">{test.category}</span>}
-                                                        </div>
-                                                        <Search className="w-3 h-3 text-muted-foreground/40" />
-                                                    </button>
-                                                ))}
-                                            </>
-                                        ) : (
-                                            <div className="p-2 text-[10px] text-muted-foreground">
-                                                No matching lab tests found.
-                                            </div>
-                                        )}
+                                                    const selectedName = scan.name.toUpperCase() + ': ';
+                                                    onExtraChange('radiology_findings', before + selectedName + after, before.length + selectedName.length);
+                                                    setRadiologySearch('');
+                                                }}
+                                            >
+                                                <span className="font-medium">{scan.name}</span>
+                                                {scan.category && <span className="text-[10px] text-muted-foreground italic">{scan.category}</span>}
+                                            </button>
+                                        ))}
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Radiology Findings Section */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between mb-2">
-                            <Label htmlFor="radiology_findings" className="text-sm font-medium">Radiology</Label>
-                            {!isReadOnly && (
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 py-0 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
-                                        disabled={uploadingRadiology}
-                                        onClick={() => document.getElementById('radiology-upload')?.click()}
-                                    >
-                                        {uploadingRadiology ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        ) : (
-                                            <FileUp className="w-3.5 h-3.5 text-primary" />
-                                        )}
-                                        Attach Scan
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="relative">
-                            <Textarea
-                                ref={radiologyFindingsRef}
-                                id="radiology_findings"
-                                value={extraData.radiology_findings || ''}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    const selectionStart = e.target.selectionStart;
-                                    onExtraChange('radiology_findings', value, selectionStart);
-
-                                    // Search logic for scans
-                                    const lines = value.substring(0, selectionStart).split('\n');
-                                    const currentLine = lines[lines.length - 1];
-                                    if (currentLine.trim().length > 1 && !currentLine.includes(':')) {
-                                        setRadiologySearch(currentLine.trim());
-                                    } else {
-                                        setRadiologySearch('');
-                                    }
-                                }}
-                                onKeyDown={(e) => {
-                                    if (filteredLimsScans.length > 0) {
-                                        if (e.key === 'ArrowDown') {
-                                            e.preventDefault();
-                                            setActiveRadiologyIndex(prev => (prev + 1) % filteredLimsScans.length);
-                                        } else if (e.key === 'ArrowUp') {
-                                            e.preventDefault();
-                                            setActiveRadiologyIndex(prev => (prev - 1 + filteredLimsScans.length) % filteredLimsScans.length);
-                                        } else if (e.key === 'Enter' && radiologySearch) {
-                                            e.preventDefault();
-                                            const selected = filteredLimsScans[activeRadiologyIndex];
-                                            if (selected) {
-                                                const currentVal = extraData.radiology_findings || '';
-                                                const selectionStart = (e.target as HTMLTextAreaElement).selectionStart;
-                                                const lines = currentVal.substring(0, selectionStart).split('\n');
-                                                const lastLine = lines[lines.length - 1];
-                                                const before = currentVal.substring(0, selectionStart - lastLine.length);
-                                                const after = currentVal.substring(selectionStart);
-
-                                                // Insert Template Header + Default Notes (Stripped of HTML)
-                                                const template = stripHtml(selected.default_notes || '');
-                                                const selectedName = selected.name.toUpperCase() + ':\n' + (template ? template + '\n' : '');
-                                                onExtraChange('radiology_findings', before + selectedName + after, before.length + selectedName.length);
-                                                setRadiologySearch('');
-                                            }
-                                        } else if (e.key === 'Escape') {
-                                            setRadiologySearch('');
-                                        }
-                                    }
-                                }}
-                                placeholder="Radiology findings... (e.g. X-Ray Knee AP/Lat: Normal study)"
-                                className={cn("min-h-[120px]", getStyle('radiology_findings', extraData.radiology_findings))}
-                                disabled={isReadOnly}
-                            />
-
-                            {radiologySearch && (
-                                <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-md shadow-lg max-h-[200px] overflow-auto">
-                                    <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground border-b bg-muted/20">
-                                        SCAN CATALOG
-                                    </div>
-                                    {filteredLimsScans.map((scan, idx) => (
-                                        <button
-                                            key={scan.id}
-                                            className={cn(
-                                                "w-full text-left px-2 py-1.5 text-xs rounded-sm hover:bg-accent flex flex-col",
-                                                idx === activeRadiologyIndex && "bg-accent"
-                                            )}
-                                            onMouseDown={(e) => e.preventDefault()}
-                                            onClick={() => {
-                                                const currentVal = extraData.radiology_findings || '';
-                                                const selectionStart = radiologyFindingsRef.current?.selectionStart || currentVal.length;
-                                                const lines = currentVal.substring(0, selectionStart).split('\n');
-                                                const lastLine = lines[lines.length - 1];
-                                                const before = currentVal.substring(0, selectionStart - lastLine.length);
-                                                const after = currentVal.substring(selectionStart);
-
-                                                const template = stripHtml(scan.default_notes || '');
-                                                const selectedName = scan.name.toUpperCase() + ':\n' + (template ? template + '\n' : '');
-                                                onExtraChange('radiology_findings', before + selectedName + after, before.length + selectedName.length);
-                                                setRadiologySearch('');
-                                            }}
-                                        >
-                                            <span className="font-medium">{scan.name}</span>
-                                            {scan.category && <span className="text-[10px] text-muted-foreground italic">{scan.category}</span>}
-                                        </button>
+                            {/* Radiology Images List */}
+                            {extraData.radiology_images && extraData.radiology_images.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attached Scans</h4>
+                                    {extraData.radiology_images.map((image, idx) => (
+                                        <div key={image.fileId || idx} className="flex items-center justify-between p-2 bg-white border rounded shadow-sm text-xs">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                <span className="truncate">{image.fileName}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-600" onClick={() => window.open(`https://drive.google.com/file/d/${image.fileId}/view`, '_blank')}>
+                                                    <Download className="h-3 w-3" />
+                                                </Button>
+                                                {!isReadOnly && (
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => {
+                                                        const newList = [...(extraData.radiology_images || [])];
+                                                        const img = newList[idx];
+                                                        if (img.fileId) setPendingDeletions(prev => [...prev, img.fileId]);
+                                                        newList.splice(idx, 1);
+                                                        onExtraChange('radiology_images', newList);
+                                                        toast.info('Scan removed. Changes permanent after saving.');
+                                                    }}>
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             )}
-                        </div>
-
-                        {/* Radiology Images List */}
-                        {extraData.radiology_images && extraData.radiology_images.length > 0 && (
-                            <div className="mt-4 space-y-2">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attached Scans</h4>
-                                {extraData.radiology_images.map((image, idx) => (
-                                    <div key={image.fileId || idx} className="flex items-center justify-between p-2 bg-white border rounded shadow-sm text-xs">
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                            <span className="truncate">{image.fileName}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-600" onClick={() => window.open(`https://drive.google.com/file/d/${image.fileId}/view`, '_blank')}>
-                                                <Download className="h-3 w-3" />
-                                            </Button>
-                                            {!isReadOnly && (
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => {
-                                                    const newList = [...(extraData.radiology_images || [])];
-                                                    const img = newList[idx];
-                                                    if (img.fileId) setPendingDeletions(prev => [...prev, img.fileId]);
-                                                    newList.splice(idx, 1);
-                                                    onExtraChange('radiology_images', newList);
-                                                    toast.info('Scan removed. Changes permanent after saving.');
-                                                }}>
-                                                    <X className="h-3 w-3" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                         </div>
                     </div>
 
                     {/* Investigation Results Table - Occupying full width below the grid */}
                     {hasAnyInvestigationData && (
                         <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 overflow-hidden w-full">
-                        {/* Investigation Results Table with Historical Trends */}
-                        <div className="border rounded-lg overflow-x-auto bg-white shadow-sm border-slate-200">
-                            <table className="w-full text-left border-collapse min-w-[400px]">
-                                <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-200">
-                                        <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
-                                        <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider">Current</th>
-                                        {allHistoryDates.map(date => (
-                                            <th key={date} className="px-2 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">{date}</th>
-                                        ))}
-                                        <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Range</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {displayInvestigations.map((res, i) => (
-                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className={cn(
-                                                "px-2 py-1.5 text-[11px] font-semibold sticky left-0 bg-white z-10 border-r border-slate-100",
-                                                (res as any).isHistoricalOnly ? "text-slate-400" : "text-slate-700"
-                                            )}>
-                                                {res.name}
-                                            </td>
-                                            <td className="px-2 py-1.5">
-                                                <div className="flex items-center gap-1">
-                                                    <div className={cn(
-                                                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border",
-                                                        res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-100",
-                                                        (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-100",
-                                                        (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-100",
-                                                        res.status === 'unknown' && "bg-slate-50 text-slate-500 border-slate-100"
-                                                    )}>
-                                                        {res.value}
-                                                    </div>
-                                                    {(() => {
-                                                        const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
-                                                        const history = investigationHistory?.[groupKey];
-                                                        const latestHist = history
-                                                            ?.filter(h => h.consultationId !== consultationId)
-                                                            .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
+                            {/* Investigation Results Table with Historical Trends */}
+                            <div className="border rounded-lg overflow-x-auto bg-white shadow-sm border-slate-200">
+                                <table className="w-full text-left border-collapse min-w-[400px]">
+                                    <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-200">
+                                            <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
+                                            <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider">Current</th>
+                                            {allHistoryDates.map(date => (
+                                                <th key={date} className="px-2 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">{date}</th>
+                                            ))}
+                                            <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Range</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {displayInvestigations.map((res, i) => (
+                                            <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className={cn(
+                                                    "px-2 py-1.5 text-[11px] font-semibold sticky left-0 bg-white z-10 border-r border-slate-100",
+                                                    (res as any).isHistoricalOnly ? "text-slate-400" : "text-slate-700"
+                                                )}>
+                                                    {res.name}
+                                                </td>
+                                                <td className="px-2 py-1.5">
+                                                    <div className="flex items-center gap-1">
+                                                        <div className={cn(
+                                                            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border",
+                                                            res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-100",
+                                                            (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-100",
+                                                            (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-100",
+                                                            res.status === 'unknown' && "bg-slate-50 text-slate-500 border-slate-100"
+                                                        )}>
+                                                            {res.value}
+                                                        </div>
+                                                        {(() => {
+                                                            const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+                                                            const history = investigationHistory?.[groupKey];
+                                                            const latestHist = history
+                                                                ?.filter(h => h.consultationId !== consultationId)
+                                                                .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
 
-                                                        const currNum = parseFloat(String(res.value).replace(/[^0-9.-]/g, ''));
-                                                        const prevNum = latestHist ? parseFloat(String(latestHist.value).replace(/[^0-9.-]/g, '')) : NaN;
+                                                            const currNum = parseFloat(String(res.value).replace(/[^0-9.-]/g, ''));
+                                                            const prevNum = latestHist ? parseFloat(String(latestHist.value).replace(/[^0-9.-]/g, '')) : NaN;
 
-                                                        if (isNaN(currNum) || isNaN(prevNum)) {
+                                                            if (isNaN(currNum) || isNaN(prevNum)) {
+                                                                return (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-5 w-5 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
+                                                                        onClick={() => handleOpenTrends(res.name)}
+                                                                        title={`Click to show trend for ${res.name}`}
+                                                                    >
+                                                                        <TrendingUp className="w-3 h-3" />
+                                                                    </Button>
+                                                                );
+                                                            }
+
+                                                            const TrendIcon = currNum > prevNum ? TrendingUp : (currNum < prevNum ? TrendingDown : Minus);
+                                                            const trendColor = currNum > prevNum ? "text-rose-500" : (currNum < prevNum ? "text-emerald-500" : "text-slate-300");
+
                                                             return (
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    className="h-5 w-5 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
+                                                                    className={cn("h-5 w-5 hover:bg-primary/5 shrink-0", trendColor)}
                                                                     onClick={() => handleOpenTrends(res.name)}
-                                                                title={`Click to show trend for ${res.name}`}
+                                                                    title={`Click to show trend for ${res.name}`}
                                                                 >
-                                                                    <TrendingUp className="w-3 h-3" />
+                                                                    <TrendIcon className="w-3 h-3" />
                                                                 </Button>
                                                             );
-                                                        }
-
-                                                        const TrendIcon = currNum > prevNum ? TrendingUp : (currNum < prevNum ? TrendingDown : Minus);
-                                                        const trendColor = currNum > prevNum ? "text-rose-500" : (currNum < prevNum ? "text-emerald-500" : "text-slate-300");
-
-                                                        return (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className={cn("h-5 w-5 hover:bg-primary/5 shrink-0", trendColor)}
-                                                                onClick={() => handleOpenTrends(res.name)}
-                                                                title={`Click to show trend for ${res.name}`}
-                                                            >
-                                                                <TrendIcon className="w-3 h-3" />
-                                                            </Button>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </td>
-                                            {allHistoryDates.map(date => {
-                                                const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
-                                                const hist = investigationHistory?.[groupKey]?.find(h => h.date && format(new Date(h.date), 'dd/MM/yy') === date);
-                                                return (
-                                                    <td key={date} className="px-2 py-1.5 text-[10px] text-slate-400 tabular-nums">
-                                                        {hist ? hist.value : '-'}
-                                                    </td>
-                                                );
-                                            })}
-                                            <td className="px-2 py-1.5 text-[10px] text-slate-600 font-mono">
-                                                {res.range || '-'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                        })()}
+                                                    </div>
+                                                </td>
+                                                {allHistoryDates.map(date => {
+                                                    const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+                                                    const hist = investigationHistory?.[groupKey]?.find(h =>
+                                                        h.date &&
+                                                        format(new Date(h.date), 'dd/MM/yy') === date &&
+                                                        (!consultationId || h.consultationId !== consultationId)
+                                                    );
+                                                    return (
+                                                        <td key={date} className="px-2 py-1.5 text-[10px] text-slate-400 tabular-nums">
+                                                            {hist ? hist.value : '-'}
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="px-2 py-1.5 text-[10px] text-slate-600 font-mono">
+                                                    {res.range || '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
 
 
                 {!isReadOnly && (

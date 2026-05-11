@@ -125,9 +125,9 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
         if (bundle.next_review_date !== undefined) consultationUpdate.next_review_date = bundle.next_review_date;
         
         // Use top-level fields from bundle, fallback to extraData for legacy transition
-        consultationUpdate.investigations = bundle.investigations || '';
-        consultationUpdate.radiology_findings = bundle.radiology_findings || '';
-        consultationUpdate.radiology_images = bundle.radiology_images || [];
+        consultationUpdate.investigations = bundle.investigations ?? null;
+        consultationUpdate.radiology_findings = bundle.radiology_findings ?? null;
+        consultationUpdate.radiology_images = bundle.radiology_images ?? [];
         return consultationUpdate;
     };
 

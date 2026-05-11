@@ -88,19 +88,29 @@ export class ClinicalParser {
     const baseName = normalizeSearchText(name.replace(/\(.*?\)/g, '').trim());
     const canonical = this.synonymsMap.get(query) || this.synonymsMap.get(baseName);
 
-    // Helper to check if a service is a good match
-    const isGoodMatch = (s: LimsService, q: string, b: string, c?: string) => {
+    // 1. Try exact matches first
+    const exactMatch = this.services.find(s => {
+      const sName = normalizeSearchText(s.name);
+      return sName === query || (canonical && sName === canonical);
+    });
+    if (exactMatch) return exactMatch;
+
+    // 2. Try canonical/synonym matches on the service record itself
+    const synonymMatch = this.services.find(s => {
       const sName = normalizeSearchText(s.name);
       const sCanonical = this.synonymsMap.get(sName);
-      return sName === q || sName === b || (c && sName === c) || (c && sCanonical === c);
-    };
+      return (canonical && sCanonical === canonical);
+    });
+    if (synonymMatch) return synonymMatch;
 
-    // 1. Direct/Canonical match - Prioritize those WITH result_schema
-    const directMatches = this.services.filter(s => isGoodMatch(s, query, baseName, canonical));
-    const bestDirect = directMatches.find(s => s.result_schema && Array.isArray(s.result_schema) && s.result_schema.length > 0) || directMatches[0];
-    if (bestDirect) return bestDirect;
+    // 3. Try base name match (stripped of parentheses)
+    const baseMatch = this.services.find(s => {
+      const sName = normalizeSearchText(s.name);
+      return sName === baseName;
+    });
+    if (baseMatch) return baseMatch;
 
-    // 2. Check within result_schema of all services (Packages)
+    // 4. Check within result_schema of all services (Packages)
     for (const s of this.services) {
       if (s.result_schema && Array.isArray(s.result_schema)) {
         const matchingParam = s.result_schema.find(p => {
@@ -112,10 +122,7 @@ export class ClinicalParser {
           
           return pName === query || 
                  pName === baseName ||
-                 pBaseName === query ||
-                 pBaseName === baseName ||
                  pCode === query ||
-                 pCode === baseName ||
                  (canonical && (pName === canonical || pBaseName === canonical || pCode === canonical)) ||
                  (pCanonical && (pCanonical === query || pCanonical === baseName)) ||
                  (canonical && pCanonical === canonical);
@@ -249,14 +256,20 @@ export class ClinicalParser {
     const age = patientMetadata?.age;
     const pSex = patientMetadata?.sex;
 
-    const medicalKeywords = ['positive', 'negative', 'absent', 'present', 'nil', 'detected', 'reactive', 'non-reactive', 'normal', 'abnormal', 'reactive'];
+    const medicalKeywords = [
+      'positive', 'negative', 'absent', 'present', 'nil', 'detected', 
+      'reactive', 'non-reactive', 'normal', 'abnormal', 'noted', 'seen',
+      'observed', 'visualized', 'fracture', 'effusion', 'degeneration',
+      'metastasized', 'stable', 'unchanged', 'improved'
+    ];
     const keywordsPattern = medicalKeywords.join('|');
 
     for (const line of lines) {
       if (!line.trim()) continue;
 
-      // Allow empty values if there is a colon or equals sign
-      const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)]+?)([:=])\\s*(${keywordsPattern}|(?:<|<=|>|>=)?\\s*\\d*\\.?\\d*)?`, 'gi');
+      // More robust regex that captures everything until the next parameter or end of line
+      // Supports :, =, and - (if preceded by alphanumeric and followed by space, or surrounded by spaces) as separators
+      const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.+?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)]+[:=]|$)`, 'gi');
       let match;
 
       while ((match = regex.exec(line)) !== null) {
@@ -265,8 +278,12 @@ export class ClinicalParser {
         
         if (rawName.length < 2 || !/[a-zA-Z0-9]/.test(rawName)) continue;
         
-        const valNum = parseFloat(rawValue.replace(/[^\d\.]/g, ''));
-        const value = rawValue === '' ? '' : (isNaN(valNum) ? rawValue : valNum);
+        // Only convert to number if it's a clean numeric value (possibly with < or > signs)
+        // Otherwise keep as string to avoid breaking descriptive findings like "D2-3"
+        const cleanValue = rawValue.replace(/\s+/g, '');
+        const isNumeric = /^[<>=]?\d*\.?\d+$/.test(cleanValue);
+        const valNum = isNumeric ? parseFloat(cleanValue.replace(/[<>=]/g, '')) : NaN;
+        const value = isNumeric ? valNum : rawValue;
 
         const service = this.findServiceByName(rawName);
         
