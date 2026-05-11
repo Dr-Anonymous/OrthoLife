@@ -42,9 +42,7 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
       const reversedData = [...data].reverse();
 
       reversedData.forEach((con) => {
-        const investigationsText = (con as any).investigations 
-          ?? (con.consultation_data as any)?.investigations 
-          ?? "";
+        const investigationsText = (con as any).investigations ?? "";
         if (!investigationsText) return;
 
         const parsed = parser.parse(investigationsText);

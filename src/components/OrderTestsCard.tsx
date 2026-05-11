@@ -23,6 +23,7 @@ import { generatePdf } from '@/lib/pdfUtils';
 
 interface OrderTestsCardProps {
   investigations: string;
+  radiology?: string;
 }
 
 interface TestResult {
@@ -36,7 +37,7 @@ interface TestResult {
   comments: string | null;
 }
 
-const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
+const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations, radiology = '' }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -66,13 +67,15 @@ const OrderTestsCard: React.FC<OrderTestsCardProps> = ({ investigations }) => {
     const lab = allInvestigations.filter(line =>
       !radiologicalKeywords.some(keyword => line.toLowerCase().includes(keyword))
     );
-    const radiological = allInvestigations.filter(line =>
+    const radiologicalFromInvestigations = allInvestigations.filter(line =>
       radiologicalKeywords.some(keyword => line.toLowerCase().includes(keyword))
     );
+    
+    const additionalRadiology = radiology.split('\n').filter(line => line.trim());
 
     setLabInvestigations(lab.join('\n'));
-    setRadiologicalInvestigations(radiological);
-  }, [investigations]);
+    setRadiologicalInvestigations([...radiologicalFromInvestigations, ...additionalRadiology]);
+  }, [investigations, radiology]);
 
   // Effect for Test Results and Reorders
   useEffect(() => {

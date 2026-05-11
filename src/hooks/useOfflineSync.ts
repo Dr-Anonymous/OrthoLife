@@ -234,9 +234,9 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
                                         status: finalStatus,
                                         visit_type: consultationPayload.visit_type || 'paid',
                                         location: location, // Ensure location is updated if backend default differs
-                                        investigations: consultationPayload.investigations ?? consultationPayload.consultation_data?.investigations ?? null,
-                                        radiology_findings: consultationPayload.radiology_findings ?? consultationPayload.consultation_data?.radiology_findings ?? null,
-                                        radiology_images: consultationPayload.radiology_images ?? consultationPayload.consultation_data?.radiology_images ?? [],
+                                        investigations: consultationPayload.investigations ?? null,
+                                        radiology_findings: consultationPayload.radiology_findings ?? null,
+                                        radiology_images: consultationPayload.radiology_images ?? [],
                                         next_review_date: consultationPayload.next_review_date || offlineData.next_review_date || null
                                     }).eq('id', createdConsultationId);
 

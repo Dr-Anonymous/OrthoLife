@@ -24,6 +24,7 @@ const MySpace = () => {
 
   const [medications, setMedications] = useState<any[]>([]);
   const [investigations, setInvestigations] = useState<string>('');
+  const [radiology, setRadiology] = useState<string>('');
   const [advice, setAdvice] = useState<string>('');
   const [patientName, setPatientName] = useState<string>('');
   const [patientId, setPatientId] = useState<string | undefined>(undefined);
@@ -75,6 +76,7 @@ const MySpace = () => {
       const patientData = Array.isArray(data) ? data[0] : data;
       setMedications(patientData?.medications || []);
       setInvestigations(patientData?.investigations || '');
+      setRadiology(patientData?.radiology_findings || '');
       setAdvice(patientData?.advice || '');
       setPatientName(patientData?.name || '');
       setPatientId(patientData?.id || undefined);
@@ -159,7 +161,7 @@ const MySpace = () => {
                 <PrescriptionsCard patientId={patientId} patientPhone={patientPhone} />
                 <DietAndExercisesCard advice={advice} />
                 <OrderMedicationCard medications={medications} />
-                <OrderTestsCard investigations={investigations} />
+                <OrderTestsCard investigations={investigations} radiology={radiology} />
                 <AppointmentsCard />
               </>
             )}

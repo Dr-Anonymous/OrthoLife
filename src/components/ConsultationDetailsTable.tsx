@@ -454,9 +454,9 @@ export const ConsultationDetailsTable = ({ title, data, onFilteredDataChange }: 
                 <ConsultationCard 
                   data={{ 
                     ...selectedConsultation.consultation_data,
-                    investigations: selectedConsultation.investigations || selectedConsultation.consultation_data?.investigations,
-                    radiology_findings: selectedConsultation.radiology_findings || selectedConsultation.consultation_data?.radiology_findings,
-                    radiology_images: selectedConsultation.radiology_images || selectedConsultation.consultation_data?.radiology_images,
+                    investigations: selectedConsultation.investigations,
+                    radiology_findings: selectedConsultation.radiology_findings,
+                    radiology_images: selectedConsultation.radiology_images,
                     created_at: selectedConsultation.created_at,
                     location: selectedConsultation.location,
                     visit_type: selectedConsultation.visit_type,

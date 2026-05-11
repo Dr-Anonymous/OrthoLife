@@ -250,8 +250,8 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     if (preview) return { consultation: c, isVisible: true, preview };
 
                     // Check Clinical Fields
-                    const investigations = (c as any).investigations || d?.investigations;
-                    const radiology_findings = (c as any).radiology_findings || d?.radiology_findings;
+                    const investigations = (c as any).investigations;
+                    const radiology_findings = (c as any).radiology_findings;
 
                     preview = findInText(d?.diagnosis) ||
                         findInText(d?.complaints) ||
