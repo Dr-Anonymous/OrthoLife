@@ -54,7 +54,7 @@ interface ConsultationSidebarProps {
 
 
     personalNote: string;
-    onPersonalNoteChange: (value: string) => void;
+    onPersonalNoteChange: (value: string, cursorPosition?: number | null) => void;
     personalNoteRef?: React.RefObject<HTMLTextAreaElement>;
     initialPersonalNote?: string;
 
@@ -68,7 +68,7 @@ interface ConsultationSidebarProps {
 
     timerSeconds: number;
     referredBy: string;
-    onReferredByChange: (value: string) => void;
+    onReferredByChange: (value: string, cursorPosition?: number | null) => void;
     referredByRef?: React.RefObject<HTMLInputElement>;
     initialReferredBy?: string;
     onProfileClick?: (tab?: string, hospitalId?: string) => void;
@@ -547,7 +547,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                             <Input
                                 ref={referredByRef}
                                 value={referredBy}
-                                onChange={e => onReferredByChange(e.target.value)}
+                                onChange={e => onReferredByChange(e.target.value, e.target.selectionStart)}
                                 placeholder="Referrer name..."
                                 className={cn(
                                     "mt-1 text-sm transition-all",
@@ -597,7 +597,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                                 ref={personalNoteRef}
                                 id="personalNoteSidebar"
                                 value={personalNote}
-                                onChange={e => onPersonalNoteChange(e.target.value)}
+                                onChange={e => onPersonalNoteChange(e.target.value, e.target.selectionStart)}
                                 placeholder="Private notes..."
                                 className={cn(
                                     "min-h-[100px] text-sm resize-y transition-all",

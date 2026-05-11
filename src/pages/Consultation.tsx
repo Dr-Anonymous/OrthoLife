@@ -1542,18 +1542,19 @@ const ConsultationPage = () => {
       const shortcutFields = [
         'complaints', 'medicalHistory', 'familyHistory', 'findings', 'diagnosis', 
         'advice', 'followup', 'personalNote', 'procedure', 
-        'investigations', 'radiology_findings', 'referred_to', 'orthotics'
+        'investigations', 'radiology_findings', 'referred_to', 'orthotics',
+        'referred_by'
       ];
 
       if (shortcutFields.includes(field)) {
-        const result = autofillProcessor(value, cursorPosition || value.length, {
+        const result = autofillProcessor(value, cursorPosition ?? value.length, {
           enableDurationShortcuts: true,
           language: ['advice', 'followup', 'orthotics'].includes(field) ? consultationLanguage : 'en',
           variant: field === 'followup' ? 'followup' : 'default'
         });
 
         const processedValue = result ? result.newValue : value;
-        const newCursor = result ? result.newCursorPosition : (cursorPosition || value.length);
+        const newCursor = result ? result.newCursorPosition : (cursorPosition ?? value.length);
 
         setExtraData(prev => ({ ...prev, [field]: processedValue }));
 
@@ -1572,7 +1573,8 @@ const ConsultationPage = () => {
               procedure: procedureRef,
               referred_to: referredToRef,
               followup: followupRef,
-              radiology_findings: radiologyFindingsRef
+              radiology_findings: radiologyFindingsRef,
+              referred_by: referredByRef
             };
             const targetRef = refs[field];
             if (targetRef && targetRef.current) {
@@ -1681,7 +1683,10 @@ const ConsultationPage = () => {
       }
 
       if (typeof value === 'string' && (field === 'composition' || field === 'dose' || field === 'frequency' || field === 'duration' || field === 'instructions' || field === 'notes')) {
-        const processed = processTextShortcuts(value, cursorPosition || value.length, textShortcuts);
+        const processed = autofillProcessor(value, cursorPosition ?? value.length, {
+          enableDurationShortcuts: true,
+          language: consultationLanguage
+        });
         if (processed) {
           newMeds[index] = { ...newMeds[index], [field]: processed.newValue };
           // Cursor update logic
@@ -1714,7 +1719,7 @@ const ConsultationPage = () => {
       }
       return { ...prev, medications: newMeds };
     });
-  }, [textShortcuts, isReadOnly, isMasterAdmin, setIsMedicationsModalOpen, setIsKeywordModalOpen]);
+  }, [isReadOnly, isMasterAdmin, autofillProcessor, consultationLanguage, setIsMedicationsModalOpen, setIsKeywordModalOpen]);
 
   /**
    * Handles language change for the entire consultation.
@@ -2515,7 +2520,7 @@ const ConsultationPage = () => {
             onShowPatientHistory={handleOpenHistory}
             onShortcutsClick={() => setIsShortcutModalOpen(true)}
             personalNote={extraData.personalNote || ''}
-            onPersonalNoteChange={(val) => handleExtraChange('personalNote', val)}
+            onPersonalNoteChange={(val, cursor) => handleExtraChange('personalNote', val, cursor)}
             personalNoteRef={personalNoteRef}
             initialPersonalNote={initialExtraData?.personalNote}
             isEvaluationCollapsed={isEvaluationCollapsed}
@@ -2526,7 +2531,7 @@ const ConsultationPage = () => {
             setIsTimerVisible={setIsTimerVisible}
             timerSeconds={timerSeconds}
             referredBy={extraData.referred_by}
-            onReferredByChange={(val) => handleExtraChange('referred_by', val)}
+            onReferredByChange={(val, cursor) => handleExtraChange('referred_by', val, cursor)}
             referredByRef={referredByRef}
             initialReferredBy={initialExtraData?.referred_by}
             onProfileClick={handleProfileClick}

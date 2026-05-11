@@ -1,5 +1,16 @@
 import { TextShortcut } from '@/types/consultation';
 
+const formatExpansion = (expansion: string, needsSpace: boolean) => {
+    const endsWithSpace = expansion.endsWith(' ');
+    if (endsWithSpace && !needsSpace) {
+        return expansion.slice(0, -1);
+    }
+    if (!endsWithSpace && needsSpace) {
+        return expansion + ' ';
+    }
+    return expansion;
+};
+
 export const processTextShortcuts = (
     currentValue: string,
     cursorPosition: number,
@@ -39,10 +50,11 @@ export const processTextShortcuts = (
             }
 
             const textAfter = currentValue.substring(cursorPosition);
-            const needsSpace = !textAfter.startsWith(' ');
+            const needsSpace = !textAfter.startsWith(' ') && !textAfter.startsWith('\n');
             
-            const newValue = textBeforeContent + prefix + expansion + (needsSpace ? ' ' : '') + textAfter;
-            const newCursorPosition = (textBeforeContent + prefix + expansion).length + (needsSpace ? 1 : 0);
+            const finalExpansion = formatExpansion(expansion, needsSpace);
+            const newValue = textBeforeContent + prefix + finalExpansion + textAfter;
+            const newCursorPosition = (textBeforeContent + prefix + finalExpansion).length;
 
             return { newValue, newCursorPosition };
         }
@@ -123,12 +135,9 @@ export const processDurationShortcuts = (
             if (shortcutIndex !== -1) {
                 const textBefore = value.substring(0, shortcutIndex);
                 const textAfter = value.substring(cursorPosition);
-                const needsSpace = !textAfter.startsWith(' ');
+                const needsSpace = !textAfter.startsWith(' ') && !textAfter.startsWith('\n');
                 
-                // If expansion ends with space and we don't need one, trim it
-                const finalExpandedText = expandedText.endsWith(' ') && !needsSpace 
-                    ? expandedText.slice(0, -1) 
-                    : expandedText;
+                const finalExpandedText = formatExpansion(expandedText, needsSpace);
 
                 return {
                     newValue: textBefore + finalExpandedText + textAfter,
@@ -171,11 +180,9 @@ export const processDurationShortcuts = (
                 if (shortcutIndex !== -1) {
                     const textBefore = value.substring(0, shortcutIndex);
                     const textAfter = value.substring(cursorPosition);
-                    const needsSpace = !textAfter.startsWith(' ');
+                    const needsSpace = !textAfter.startsWith(' ') && !textAfter.startsWith('\n');
 
-                    const finalExpandedText = expandedText.endsWith(' ') && !needsSpace 
-                        ? expandedText.slice(0, -1) 
-                        : expandedText;
+                    const finalExpandedText = formatExpansion(expandedText, needsSpace);
 
                     return {
                         newValue: textBefore + finalExpandedText + textAfter,
@@ -188,3 +195,4 @@ export const processDurationShortcuts = (
 
     return null;
 };
+
