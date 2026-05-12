@@ -62,7 +62,7 @@ const InvestigationTrends: React.FC<InvestigationTrendsProps> = ({
   const trendableTests = React.useMemo(() => {
     if (!historyMap) return [];
     return Object.entries(historyMap)
-      .filter(([_, results]) => results.filter(r => typeof r.value === 'number').length >= 2)
+      .filter(([_, results]) => results.length >= 2)
       .map(([id, results]) => {
         // If id is a composite key (UUID:name), split it
         const [serviceId, ...nameParts] = id.includes(':') ? id.split(':') : [id, ''];
@@ -259,95 +259,151 @@ const InvestigationTrends: React.FC<InvestigationTrendsProps> = ({
                   </div>
                 )}
 
-                <div className="flex-1 p-6 pt-0">
-                  <ChartContainer config={chartConfig} className="h-full w-full">
-                    <LineChart
-                      data={selectedData}
-                      margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
-                    >
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" strokeOpacity={0.3} />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(val) => format(new Date(val), "MMM d, yy")}
-                        tick={{ fontSize: 10 }}
-                        tickLine={false}
-                        axisLine={false}
-                        dy={10}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 10 }}
-                        tickLine={false}
-                        axisLine={false}
-                        dx={-10}
-                        domain={['auto', 'auto']}
-                      />
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            labelFormatter={(val) => format(new Date(val), "MMMM d, yyyy")}
-                          />
-                        }
-                      />
+                {selectedData.length === 0 && (
+                  <div className="mx-6 mb-4 p-4 bg-muted/50 border border-border/50 rounded-lg text-xs text-muted-foreground flex items-center gap-3">
+                    <Info className="w-4 h-4 text-primary shrink-0" />
+                    <p>No historical records found for this test.</p>
+                  </div>
+                )}
 
-                      {(() => {
-                        if (!currentRange) return null;
+                {selectedData.length === 1 && (
+                  <div className="mx-6 mb-4 p-4 bg-muted/50 border border-border/50 rounded-lg text-xs text-muted-foreground flex items-center gap-3">
+                    <Info className="w-4 h-4 text-primary shrink-0" />
+                    <p>Only one historical record found. A trend line requires at least two consultations.</p>
+                  </div>
+                )}
 
-                        let low = currentRange.low_value;
-                        let high = currentRange.high_value;
-
-                        // Try to derive from display_range if numbers are missing
-                        if (typeof low !== 'number' || typeof high !== 'number') {
-                          const rangeStr = (currentRange.display_range || currentRange.normalRange || "").trim().toLowerCase();
-
-                          // Handle "min - max"
-                          const rangeMatch = rangeStr.match(/^([0-9.]+)\s*-\s*([0-9.]+)/);
-                          if (rangeMatch) {
-                            low = parseFloat(rangeMatch[1]);
-                            high = parseFloat(rangeMatch[2]);
-                          } else {
-                            // Handle "< max"
-                            const upToMatch = rangeStr.match(/^(?:<|<=|less than|upto|up to|within)\s*([0-9.]+)/);
-                            if (upToMatch) {
-                              low = 0;
-                              high = parseFloat(upToMatch[1]);
-                            } else {
-                              // Handle "> min"
-                              const moreThanMatch = rangeStr.match(/^(?:>|>=|more than|above|greater than)\s*([0-9.]+)/);
-                              if (moreThanMatch) {
-                                low = parseFloat(moreThanMatch[1]);
-                                high = 1000; // Arbitrary high value for shading
-                              }
-                            }
-                          }
-                        }
-
-                        if (typeof low === 'number' && typeof high === 'number') {
-                          return (
-                            <ReferenceArea
-                              y1={low}
-                              y2={high}
-                              fill="hsl(var(--primary))"
-                              fillOpacity={0.05}
-                              stroke="hsl(var(--primary))"
-                              strokeOpacity={0.1}
-                              strokeDasharray="3 3"
+                <div className="flex-1 p-6 pt-0 flex flex-col min-h-0">
+                  {(() => {
+                    const hasNumericData = selectedData.filter(r => typeof r.value === 'number').length >= 2;
+                    
+                    if (hasNumericData) {
+                      return (
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                          <LineChart
+                            data={selectedData}
+                            margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+                          >
+                            <CartesianGrid vertical={false} strokeDasharray="3 3" strokeOpacity={0.3} />
+                            <XAxis
+                              dataKey="date"
+                              tickFormatter={(val) => format(new Date(val), "MMM d, yy")}
+                              tick={{ fontSize: 10 }}
+                              tickLine={false}
+                              axisLine={false}
+                              dy={10}
                             />
-                          );
-                        }
-                        return null;
-                      })()}
+                            <YAxis
+                              tick={{ fontSize: 10 }}
+                              tickLine={false}
+                              axisLine={false}
+                              dx={-10}
+                              domain={['auto', 'auto']}
+                            />
+                            <ChartTooltip
+                              content={
+                                <ChartTooltipContent
+                                  labelFormatter={(val) => format(new Date(val), "MMMM d, yyyy")}
+                                />
+                              }
+                            />
 
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2.5}
-                        dot={renderCustomDot}
-                        activeDot={{ r: 8, strokeWidth: 0 }}
-                        animationDuration={1000}
-                      />
-                    </LineChart>
-                  </ChartContainer>
+                            {(() => {
+                              if (!currentRange) return null;
+
+                              let low = currentRange.low_value;
+                              let high = currentRange.high_value;
+
+                              // Try to derive from display_range if numbers are missing
+                              if (typeof low !== 'number' || typeof high !== 'number') {
+                                const rangeStr = (currentRange.display_range || currentRange.normalRange || "").trim().toLowerCase();
+
+                                // Handle "min - max"
+                                const rangeMatch = rangeStr.match(/^([0-9.]+)\s*-\s*([0-9.]+)/);
+                                if (rangeMatch) {
+                                  low = parseFloat(rangeMatch[1]);
+                                  high = parseFloat(rangeMatch[2]);
+                                } else {
+                                  // Handle "< max"
+                                  const upToMatch = rangeStr.match(/^(?:<|<=|less than|upto|up to|within)\s*([0-9.]+)/);
+                                  if (upToMatch) {
+                                    low = 0;
+                                    high = parseFloat(upToMatch[1]);
+                                  } else {
+                                    // Handle "> min"
+                                    const moreThanMatch = rangeStr.match(/^(?:>|>=|more than|above|greater than)\s*([0-9.]+)/);
+                                    if (moreThanMatch) {
+                                      low = parseFloat(moreThanMatch[1]);
+                                      high = 1000; // Arbitrary high value for shading
+                                    }
+                                  }
+                                }
+                              }
+
+                              if (typeof low === 'number' && typeof high === 'number') {
+                                return (
+                                  <ReferenceArea
+                                    y1={low}
+                                    y2={high}
+                                    fill="hsl(var(--primary))"
+                                    fillOpacity={0.05}
+                                    stroke="hsl(var(--primary))"
+                                    strokeOpacity={0.1}
+                                    strokeDasharray="3 3"
+                                  />
+                                );
+                              }
+                              return null;
+                            })()}
+
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth={2.5}
+                              dot={renderCustomDot}
+                              activeDot={{ r: 8, strokeWidth: 0 }}
+                              animationDuration={1000}
+                            />
+                          </LineChart>
+                        </ChartContainer>
+                      );
+                    } else if (selectedData.length > 0) {
+                      return (
+                        <div className="flex-1 overflow-auto border rounded-lg bg-muted/10">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted/50 sticky top-0">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Finding / Value</th>
+                                <th className="px-4 py-2 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {[...selectedData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((res, idx) => (
+                                <tr key={idx} className="hover:bg-muted/30">
+                                  <td className="px-4 py-3 text-xs font-medium">{format(new Date(res.date), "dd MMM, yyyy")}</td>
+                                  <td className="px-4 py-3 text-sm">{res.value} <span className="text-[10px] text-muted-foreground">{res.unit}</span></td>
+                                  <td className="px-4 py-3">
+                                    <Badge variant="outline" className={cn(
+                                      "text-[10px] px-1.5 h-5",
+                                      res.status === 'normal' && "border-emerald-200 text-emerald-700 bg-emerald-50",
+                                      (res.status === 'high' || res.status === 'low') && "border-amber-200 text-amber-700 bg-amber-50",
+                                      (res.status === 'critical-high' || res.status === 'critical-low') && "border-rose-200 text-rose-700 bg-rose-50",
+                                      res.status === 'unknown' && "border-slate-200 text-slate-500 bg-slate-50"
+                                    )}>
+                                      {res.status?.toUpperCase() || 'UNKNOWN'}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* Legend / Info */}

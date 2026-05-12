@@ -1205,9 +1205,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                         </div>
                                                         {(() => {
                                                             const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
-                                                            const history = investigationHistory?.[groupKey];
-                                                            const latestHist = history
-                                                                ?.filter(h => h.consultationId !== consultationId)
+                                                            const history = investigationHistory?.[groupKey] || [];
+                                                            const otherHistory = history.filter(h => String(h.consultationId) !== String(consultationId));
+                                                            const hasCurrentValue = res.value !== '-' && res.value !== '';
+                                                            const totalPoints = otherHistory.length + (hasCurrentValue ? 1 : 0);
+
+                                                            if (totalPoints < 2) return null;
+
+                                                            const latestHist = otherHistory
                                                                 .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
 
                                                             const currNum = parseFloat(String(res.value).replace(/[^0-9.-]/g, ''));
@@ -1219,7 +1224,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         className="h-5 w-5 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
-                                                                        onClick={() => handleOpenTrends(res.name)}
+                                                                        onClick={() => handleOpenTrends(groupKey)}
                                                                         title={`Click to show trend for ${res.name}`}
                                                                     >
                                                                         <TrendingUp className="w-3 h-3" />
@@ -1235,7 +1240,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                                     variant="ghost"
                                                                     size="icon"
                                                                     className={cn("h-5 w-5 hover:bg-primary/5 shrink-0", trendColor)}
-                                                                    onClick={() => handleOpenTrends(res.name)}
+                                                                    onClick={() => handleOpenTrends(groupKey)}
                                                                     title={`Click to show trend for ${res.name}`}
                                                                 >
                                                                     <TrendIcon className="w-3 h-3" />
