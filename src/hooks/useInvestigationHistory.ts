@@ -16,9 +16,9 @@ export interface HistoricalResult {
 
 export const useInvestigationHistory = (patientId: string | undefined) => {
   const { data: limsCatalog } = useLimsCatalog();
-  
-  const parser = React.useMemo(() => 
-    new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), 
+
+  const parser = React.useMemo(() =>
+    new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []),
     [limsCatalog]
   );
 
@@ -30,7 +30,7 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
       // Fetch last 15 consultations for better trend-line density
       const { data, error } = await supabase
         .from("consultations")
-        .select("id, created_at, investigations, radiology_findings")
+        .select("id, created_at, investigations, radiology_findings, consultation_data")
         .eq("patient_id", patientId)
         .order("created_at", { ascending: false })
         .limit(15);
@@ -42,11 +42,11 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
       // Process from oldest to newest for the graph
       const reversedData = [...data].reverse();
 
-      reversedData.forEach((con) => {
-        const investigationsText = con.investigations ?? "";
-        const radiologyText = con.radiology_findings ?? "";
+      reversedData.forEach((con: any) => {
+        const investigationsText = con.investigations ?? con.consultation_data?.investigations ?? "";
+        const radiologyText = con.radiology_findings ?? con.consultation_data?.radiology_findings ?? "";
         const combinedText = investigationsText + "\n" + radiologyText;
-        
+
         if (!combinedText.trim()) return;
 
         const parsed = parser.parse(combinedText);
@@ -56,7 +56,7 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
 
           // Use a composite key of serviceId and name for unique tracking, especially for packages
           const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
-          
+
           if (!historyMap[groupKey]) {
             historyMap[groupKey] = [];
           }

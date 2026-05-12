@@ -92,7 +92,7 @@ IMPORTANT: Return ONLY a valid JSON object in the following format:
         generationConfig: {
           maxOutputTokens: 800,
           temperature: 0.1,
-          response_mime_type: "application/json"
+          responseMimeType: "application/json"
         }
       }),
     });

@@ -24,7 +24,7 @@ interface HandbookSheetProps {
     isOpen: boolean;
     onClose: () => void;
     onShortcutsClick?: () => void;
-    onProfileClick?: () => void;
+    onProfileClick?: (tab?: string) => void;
 }
 
 export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClick }: HandbookSheetProps) => {
@@ -96,7 +96,31 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 </p>
                             </section>
 
-                            {/* 3. Clinical Shorthand (Clinical Notes) */}
+                            {/* 3. Clinical Investigations */}
+                            <section className="space-y-3">
+                                <div className="flex items-center gap-2 text-primary font-semibold">
+                                    <Activity className="w-4 h-4" />
+                                    <h4>Clinical Investigations</h4>
+                                </div>
+                                <p className="text-xs leading-relaxed text-muted-foreground">
+                                    A side-by-side workspace for <strong>Labs</strong> and <strong>Radiology</strong>.
+                                    Manage findings and view source documents in one place:
+                                </p>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {[
+                                        { action: 'AI Summary', desc: 'Click "Generate AI Summary" on reports to extract key findings automatically.' },
+                                        { action: 'Smart Grouping', desc: 'Attachments are nested directly under their respective input fields.' },
+                                        { action: 'Historical Trends', desc: 'Click the Trending icon next to "Labs" to visualize longitudinal data.' },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex gap-3 p-2 rounded-md bg-secondary/5 border border-secondary/10">
+                                            <div className="shrink-0 font-bold text-[10px] text-primary uppercase mt-0.5 w-24">{item.action}</div>
+                                            <div className="text-[10px] text-muted-foreground leading-tight flex-1">{item.desc}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            {/* 4. Clinical Shorthand (Clinical Notes) */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Stethoscope className="w-4 h-4" />
@@ -132,7 +156,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 </div>
                             </section>
 
-                            {/* 4. Medication Protocols */}
+                            {/* 5. Medication Protocols */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Info className="w-4 h-4" />
@@ -146,7 +170,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 </div>
                             </section>
 
-                            {/* 5. Bilingual Patient Advice */}
+                            {/* 6. Bilingual Patient Advice */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Activity className="w-4 h-4" />
@@ -157,7 +181,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 </p>
                             </section>
 
-                            {/* 6. Visit Type Logic */}
+                            {/* 7. Visit Type Logic */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <History className="w-4 h-4" />
@@ -173,11 +197,11 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                                 <button
                                                     onClick={() => {
                                                         onClose();
-                                                        onProfileClick?.();
+                                                        onProfileClick?.('practice');
                                                     }}
                                                     className="font-bold text-primary hover:underline underline-offset-2"
                                                 >
-                                                    My Profile &gt; Locations
+                                                    My Profile &gt; Practice &gt; Locations
                                                 </button>
                                                 .
                                             </p>
@@ -186,7 +210,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 </div>
                             </section>
 
-                            {/* 7. Family & Relations */}
+                            {/* 8. Family & Relations */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Users className="w-4 h-4" />
@@ -195,7 +219,7 @@ export const HandbookSheet = ({ isOpen, onClose, onShortcutsClick, onProfileClic
                                 <p className="text-xs leading-relaxed text-muted-foreground"> Group patients together for clinical continuity. Link family members (parents, spouses, children) by clicking the <strong>+ icon</strong> in the <strong>Family & Relations</strong> section of the sidebar to view shared medical patterns.</p>
                             </section>
 
-                            {/* 8. Digital Portal */}
+                            {/* 9. Digital Portal */}
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2 text-primary font-semibold">
                                     <Smartphone className="w-4 h-4" />

@@ -163,6 +163,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const [radiologySearch, setRadiologySearch] = React.useState('');
     const [activeRadiologyIndex, setActiveRadiologyIndex] = React.useState(0);
     const [ghostText, setGhostText] = React.useState('');
+    const [radiologyGhostText, setRadiologyGhostText] = React.useState('');
     const [isTrendsOpen, setIsTrendsOpen] = React.useState(false);
     const [selectedTrendTestId, setSelectedTrendTestId] = React.useState<string | null>(null);
     const [editingInvestigation, setEditingInvestigation] = React.useState<{ key: string, value: string } | null>(null);
@@ -1039,21 +1040,31 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         className={cn("min-h-[140px] focus:ring-primary/20", getStyle('investigations', extraData.investigations))}
                                         disabled={isReadOnly}
                                         onBlur={() => {
-                                            setInvestigationSearch('');
-                                            setGhostText('');
+                                            setTimeout(() => {
+                                                setInvestigationSearch('');
+                                                setGhostText('');
+                                            }, 200);
                                         }}
                                     />
-                                    {investigationSearch && filteredLimsTests.length > 0 && (
-                                        <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-xl shadow-xl max-h-[300px] overflow-auto">
-                                            <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b bg-slate-50/50">
-                                                Lab Catalog
+                                    {ghostText && (
+                                        <div className="absolute top-0 left-0 p-3 pointer-events-none text-transparent whitespace-pre-wrap font-mono text-[14px]">
+                                            {extraData.investigations}
+                                            <span className="text-muted-foreground/30">{ghostText}</span>
+                                        </div>
+                                    )}
+                                    {investigationSearch && (
+                                        <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-xl shadow-xl max-h-[300px] overflow-auto animate-in fade-in zoom-in-95">
+                                            <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b bg-slate-50/50 flex items-center justify-between">
+                                                <span>Lab Catalog</span>
+                                                {isCatalogLoading && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
                                             </div>
-                                            {filteredLimsTests.map((item, idx) => (
+                                            {filteredLimsTests.length > 0 ? filteredLimsTests.map((item, idx) => (
                                                 <button
                                                     key={item.id}
                                                     className={cn(
                                                         "w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-primary hover:text-white flex items-center justify-between group transition-colors",
-                                                        idx === activeInvestigationIndex && "bg-primary text-white"
+                                                        idx === activeInvestigationIndex && "bg-primary text-white",
+                                                        item.type === 'parameter' && "pl-6 border-l-2 border-slate-100 ml-2"
                                                     )}
                                                     onMouseDown={(e) => e.preventDefault()}
                                                     onClick={() => {
@@ -1064,17 +1075,41 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                         const before = currentVal.substring(0, selectionStart - lastLine.length);
                                                         const after = currentVal.substring(selectionStart);
                                                         const selectedName = item.name + ': ';
-                                                        onExtraChange('investigations', before + selectedName + '\n' + after, before.length + selectedName.length + 1);
+                                                        onExtraChange('investigations', before + selectedName + after, before.length + selectedName.length);
                                                         setInvestigationSearch('');
+                                                        setGhostText('');
                                                     }}
                                                 >
-                                                    <span className="font-medium truncate">{item.name}</span>
-                                                    <Search className="w-3 h-3 opacity-40 group-hover:opacity-100" />
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="font-medium truncate">{item.name}</span>
+                                                        {item.type === 'parameter' && <span className="text-[9px] opacity-60">in {item.parentName}</span>}
+                                                    </div>
+                                                    <Search className="w-3 h-3 opacity-40 group-hover:opacity-100 shrink-0 ml-2" />
                                                 </button>
-                                            ))}
+                                            )) : (
+                                                <div className="px-3 py-4 text-center text-xs text-muted-foreground italic">
+                                                    No matches found in catalog
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
+                                {!isReadOnly && suggestedInvestigations.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mt-3 animate-in fade-in slide-in-from-left-2">
+                                        {suggestedInvestigations.map((inv, idx) => (
+                                            <Button
+                                                key={idx}
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-7 text-[10px] font-bold px-2 py-0 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all rounded-lg active:scale-95"
+                                                onClick={() => onInvestigationSuggestionClick(inv)}
+                                            >
+                                                {inv}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* AI Extracted Findings */}
@@ -1122,7 +1157,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     </div>
                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-50" onClick={() => window.open(`https://drive.google.com/file/d/${report.fileId}/view`, '_blank')}>
-                                                            <Download className="h-3.5 h-3.5" />
+                                                            <Download className="w-3.5 h-3.5" />
                                                         </Button>
                                                         {!isReadOnly && (
                                                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/5" onClick={() => {
@@ -1201,11 +1236,32 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             const currentLine = lines[lines.length - 1];
                                             if (currentLine.trim().length > 1 && !currentLine.includes(':')) {
                                                 setRadiologySearch(currentLine.trim());
+
+                                                // Ghost text check for radiology
+                                                const matchedHistory = investigationHistory?.[currentLine.trim().toLowerCase()]?.[0];
+                                                if (matchedHistory) {
+                                                    setRadiologyGhostText(`: ${matchedHistory.value}`);
+                                                } else {
+                                                    setRadiologyGhostText('');
+                                                }
                                             } else {
                                                 setRadiologySearch('');
+                                                setRadiologyGhostText('');
                                             }
                                         }}
                                         onKeyDown={(e) => {
+                                            if (e.key === 'Tab' && radiologyGhostText) {
+                                                e.preventDefault();
+                                                const currentVal = extraData.radiology_findings || '';
+                                                const selectionStart = (e.target as HTMLTextAreaElement).selectionStart;
+                                                const before = currentVal.substring(0, selectionStart);
+                                                const after = currentVal.substring(selectionStart);
+                                                onExtraChange('radiology_findings', before + radiologyGhostText + after, selectionStart + radiologyGhostText.length);
+                                                setRadiologyGhostText('');
+                                                setRadiologySearch('');
+                                                return;
+                                            }
+
                                             if (filteredLimsScans.length > 0) {
                                                 if (e.key === 'ArrowDown') {
                                                     e.preventDefault();
@@ -1233,8 +1289,19 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         placeholder="Radiology findings... (e.g. X-Ray Knee AP/Lat: Normal study)"
                                         className={cn("min-h-[140px] focus:ring-primary/20", getStyle('radiology_findings', extraData.radiology_findings))}
                                         disabled={isReadOnly}
-                                        onBlur={() => setRadiologySearch('')}
+                                        onBlur={() => {
+                                            setTimeout(() => {
+                                                setRadiologySearch('');
+                                                setRadiologyGhostText('');
+                                            }, 200);
+                                        }}
                                     />
+                                    {radiologyGhostText && (
+                                        <div className="absolute top-0 left-0 p-3 pointer-events-none text-transparent whitespace-pre-wrap font-mono text-[14px]">
+                                            {extraData.radiology_findings}
+                                            <span className="text-muted-foreground/30">{radiologyGhostText}</span>
+                                        </div>
+                                    )}
                                     {radiologySearch && filteredLimsScans.length > 0 && (
                                         <div className="absolute top-full left-0 z-[100] mt-1 w-full max-w-sm p-1 bg-popover border rounded-xl shadow-xl max-h-[200px] overflow-auto animate-in fade-in zoom-in-95">
                                             <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b bg-slate-50/50">
@@ -1287,7 +1354,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 </div>
                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-50" onClick={() => window.open(`https://drive.google.com/file/d/${image.fileId}/view`, '_blank')}>
-                                                        <Download className="h-3.5 h-3.5" />
+                                                        <Download className="w-3.5 h-3.5" />
                                                     </Button>
                                                     {!isReadOnly && (
                                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/5" onClick={() => {
@@ -1296,7 +1363,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                             if (img.fileId) setPendingDeletions(prev => [...prev, img.fileId]);
                                                             newList.splice(idx, 1);
                                                             onExtraChange('radiology_images', newList);
-                                                            toast.info('Scan removed.');
+                                                            toast.info('Scan removed. Changes permanent after saving.');
                                                         }}>
                                                             <X className="h-3.5 h-3.5" />
                                                         </Button>
