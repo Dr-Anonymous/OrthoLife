@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
-import { Calendar as CalendarIcon, Loader2, Printer, FileEdit, X, MapPin, Phone, Mail } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, FileEdit, X, MapPin, Phone, Mail, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import RichTextEditor from '@/components/RichTextEditor';
-import { Consultant, ConsultantText, Patient, CertificateData } from '@/types/consultation';
+import { Consultant, ConsultantText, Patient, CertificateData, PrintOptions } from '@/types/consultation';
 
 interface MedicalCertificateProps {
   patient: Patient;
@@ -23,6 +23,7 @@ interface MedicalCertificateProps {
   address?: string | { en?: string; te?: string };
   language?: 'en' | 'te';
   className?: string;
+  printOptions?: PrintOptions;
 }
 
 
@@ -57,6 +58,7 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
   address,
   language = 'en',
   className,
+  printOptions,
 }) => {
 
   const { restPeriodDays, restPeriodStartDate, treatmentFromDate, rejoinDate, rejoinActivity, certificateDate, consultationDate, customContent } = certificateData;
@@ -82,28 +84,32 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
       <div className="w-full h-[297mm] p-4 sm:p-8 flex flex-col border-b-2 border-gray-300 box-border">
 
 
-        <header
-          className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
-          style={{ backgroundImage: backgroundPattern }}
-        >
-          <div className="flex items-center">
-            <img src={logoUrl || "/images/logos/logo.png"} alt="Clinic Logo" className="h-20 w-auto" />
-          </div>
+        {printOptions?.letterheadMode ? (
+          <div className="h-[3.3cm] w-full" />
+        ) : (
+          <header
+            className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
+            style={{ backgroundImage: backgroundPattern }}
+          >
+            <div className="flex items-center">
+              <img src={logoUrl || "/images/logos/logo.png"} alt="Clinic Logo" className="h-20 w-auto" />
+            </div>
 
-          <div className="text-right">
-            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultantName}</h2>
-            <p className="text-muted-foreground">{consultantQualifications}</p>
-            <p className="text-muted-foreground">{consultantSpecialization}</p>
-            {(consultant?.phone || consultant?.email) && (
-              <p className="mt-2 text-gray-700 whitespace-nowrap">
-                {consultant?.phone && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Phone className="h-4 w-4 inline-block text-blue-600" /> {consultant.phone}</span>}
-                {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
-                {consultant?.email && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Mail className="h-4 w-4 inline-block text-blue-600" /> {consultant.email}</span>}
-              </p>
+            <div className="text-right">
+              <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultantName}</h2>
+              <p className="text-muted-foreground">{consultantQualifications}</p>
+              <p className="text-muted-foreground">{consultantSpecialization}</p>
+              {(consultant?.phone || consultant?.email) && (
+                <p className="mt-2 text-gray-700 whitespace-nowrap">
+                  {consultant?.phone && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Phone className="h-4 w-4 inline-block text-blue-600" /> {consultant.phone}</span>}
+                  {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
+                  {consultant?.email && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Mail className="h-4 w-4 inline-block text-blue-600" /> {consultant.email}</span>}
+                </p>
 
-            )}
-          </div>
-        </header>
+              )}
+            </div>
+          </header>
+        )}
 
         <div className="text-right py-2 text-muted-foreground">
           {format(certificateDate, 'dd/MM/yyyy')}
@@ -139,21 +145,23 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           )}
         </main>
 
-        <footer className="mt-auto">
-          <div className="flex justify-between items-end">
-            <div></div>
-            <div className="text-center">
-              {showSignSeal && consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
-              <div className="relative">
-                {showSignSeal && consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-10 left-1/2 -translate-x-1/2 opacity-50" />}
+        {!printOptions?.letterheadMode && (
+          <footer className="mt-auto">
+            <div className="flex justify-between items-end">
+              <div></div>
+              <div className="text-center">
+                {showSignSeal && consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
+                <div className="relative">
+                  {showSignSeal && consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-10 left-1/2 -translate-x-1/2 opacity-50" />}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="border-t-2 border-blue-600 pt-4 mt-8 text-center text-sm">
-            <p>{hospitalName || 'OrthoLife'}</p>
-            <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
-          </div>
-        </footer>
+            <div className="border-t-2 border-blue-600 pt-4 mt-8 text-center text-sm">
+              <p>{hospitalName || 'OrthoLife'}</p>
+              <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
+            </div>
+          </footer>
+        )}
 
 
 
@@ -170,10 +178,12 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
             THIS DOCUMENT IS NOT INTENDED FOR MEDICOLEGAL PURPOSES
           </p>
         </main>
-        <footer className="mt-auto border-t-2 border-blue-600 pt-4 text-center text-sm">
-          <p>{hospitalName || 'OrthoLife'}</p>
-          <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
-        </footer>
+        {!printOptions?.letterheadMode && (
+          <footer className="mt-auto border-t-2 border-blue-600 pt-4 text-center text-sm">
+            <p>{hospitalName || 'OrthoLife'}</p>
+            <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
+          </footer>
+        )}
 
       </div>
     </div>
@@ -313,6 +323,28 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
       return;
     }
 
+    // Only generate default HTML if the editor is empty
+    if (!editorContent || editorContent.trim() === '') {
+      const data: CertificateData = {
+        restPeriodDays: Number(restPeriodDays),
+        restPeriodStartDate,
+        treatmentFromDate,
+        rejoinDate,
+        rejoinActivity,
+        certificateDate,
+        consultationDate,
+      };
+
+      const generatedHtml = generateDefaultCertificateHtml(patient, diagnosis, data);
+      setEditorContent(generatedHtml);
+    }
+    
+    setStep('edit');
+  };
+
+  const handleResetToDefault = () => {
+    if (!restPeriodDays || !restPeriodStartDate || !treatmentFromDate || !certificateDate || !consultationDate) return;
+
     const data: CertificateData = {
       restPeriodDays: Number(restPeriodDays),
       restPeriodStartDate,
@@ -325,7 +357,6 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
 
     const generatedHtml = generateDefaultCertificateHtml(patient, diagnosis, data);
     setEditorContent(generatedHtml);
-    setStep('edit');
   };
 
   const handleSubmit = () => {
@@ -447,17 +478,30 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Rejoin Date</Label>
-              <Popover open={isRejoinDatePickerOpen} onOpenChange={setIsRejoinDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !rejoinDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {rejoinDate ? format(rejoinDate, "PPP") : <span>Pick a date (Optional)</span>}
+              <div className="col-span-3 flex gap-2">
+                <Popover open={isRejoinDatePickerOpen} onOpenChange={setIsRejoinDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant={"outline"} className={cn("flex-grow justify-start text-left font-normal", !rejoinDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {rejoinDate ? format(rejoinDate, "PPP") : <span>Pick a date (Optional)</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarWithMonthYearPicker selected={rejoinDate} onSelect={(d) => { setRejoinDate(d); setIsRejoinDatePickerOpen(false); }} />
+                  </PopoverContent>
+                </Popover>
+                {rejoinDate && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setRejoinDate(undefined)}
+                    className="h-10 w-10 text-muted-foreground hover:text-destructive"
+                    title="Clear Rejoin Date"
+                  >
+                    <X className="h-4 w-4" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <CalendarWithMonthYearPicker selected={rejoinDate} onSelect={(d) => { setRejoinDate(d); setIsRejoinDatePickerOpen(false); }} />
-                </PopoverContent>
-              </Popover>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
@@ -482,7 +526,7 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
             <div className="flex w-full items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={handleNext} title="Edit Content">
                 <FileEdit className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Edit</span>
+                <span className="hidden sm:inline">Edit Content</span>
               </Button>
               <Button type="submit" onClick={handleSubmit} disabled={isSubmitting} title="Generate & Print">
                 {isSubmitting ? (
@@ -495,9 +539,15 @@ export const MedicalCertificateModal: React.FC<MedicalCertificateModalProps & {
             </div>
           ) : (
             <div className="flex w-full items-center justify-between">
-              <Button type="button" variant="outline" onClick={() => setStep('input')} title="Back">
-                Back
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setStep('input')} title="Back">
+                  Back
+                </Button>
+                <Button type="button" variant="ghost" onClick={handleResetToDefault} className="text-muted-foreground hover:text-primary" title="Reset to Default Text">
+                  <History className="h-4 w-4 mr-2" />
+                  Reset to Default
+                </Button>
+              </div>
               <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Generate & Print

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, MapPin, Phone, Mail } from 'lucide-react';
-import { Consultant, ConsultantText, Patient, ReceiptData } from '@/types/consultation';
+import { Consultant, ConsultantText, Patient, ReceiptData, PrintOptions } from '@/types/consultation';
 import { cn } from '@/lib/utils';
 
 
@@ -19,6 +19,7 @@ interface ReceiptProps {
   address?: string | { en?: string; te?: string };
   language?: 'en' | 'te';
   className?: string;
+  printOptions?: PrintOptions;
 }
 
 
@@ -40,7 +41,7 @@ interface ReceiptModalProps {
  * - Displays Amount Paid and Service Name.
  * - Includes clinic header and footer.
  */
-export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consultant, logoUrl, hospitalName, address, language = 'en', className }) => {
+export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consultant, logoUrl, hospitalName, address, language = 'en', className, printOptions }) => {
   const { amountPaid, serviceName } = receiptData;
 
 
@@ -62,27 +63,31 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consulta
     <div className={cn("bg-white text-black font-sans print:p-0 mx-auto overflow-hidden", className)} style={{ width: '100%', maxWidth: '210mm', fontFamily: 'var(--font-sans)' }}>
       <div className="w-full h-[297mm] p-4 sm:p-8 flex flex-col box-border">
 
-        <header
-          className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
-          style={{ backgroundImage: backgroundPattern }}
-        >
-          <div className="flex items-center">
-            <img src={logoUrl || "/images/logos/logo.png"} alt="Clinic Logo" className="h-20 w-auto" />
-          </div>
+        {printOptions?.letterheadMode ? (
+          <div className="h-[3.3cm] w-full" />
+        ) : (
+          <header
+            className="flex justify-between items-center pb-4 border-b-2 border-primary-light rounded-t-lg"
+            style={{ backgroundImage: backgroundPattern }}
+          >
+            <div className="flex items-center">
+              <img src={logoUrl || "/images/logos/logo.png"} alt="Clinic Logo" className="h-20 w-auto" />
+            </div>
 
-          <div className="text-right">
-            <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultantName}</h2>
-            <p className="text-muted-foreground">{consultantQualifications}</p>
-            <p className="text-muted-foreground">{consultantSpecialization}</p>
-            {(consultant?.phone || consultant?.email) && (
-              <p className="mt-2 text-gray-700 whitespace-nowrap">
-                {consultant?.phone && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Phone className="h-4 w-4 inline-block text-blue-600" /> {consultant.phone}</span>}
-                {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
-                {consultant?.email && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Mail className="h-4 w-4 inline-block text-blue-600" /> {consultant.email}</span>}
-              </p>
-            )}
-          </div>
-        </header>
+            <div className="text-right">
+              <h2 className="text-xl font-heading font-bold text-primary" style={{ fontFamily: 'var(--font-heading)' }}>{consultantName}</h2>
+              <p className="text-muted-foreground">{consultantQualifications}</p>
+              <p className="text-muted-foreground">{consultantSpecialization}</p>
+              {(consultant?.phone || consultant?.email) && (
+                <p className="mt-2 text-gray-700 whitespace-nowrap">
+                  {consultant?.phone && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Phone className="h-4 w-4 inline-block text-blue-600" /> {consultant.phone}</span>}
+                  {consultant?.phone && consultant?.email && <span className="mx-2">|</span>}
+                  {consultant?.email && <span className="font-semibold flex items-center justify-end gap-1 inline-flex"><Mail className="h-4 w-4 inline-block text-blue-600" /> {consultant.email}</span>}
+                </p>
+              )}
+            </div>
+          </header>
+        )}
 
         <div className="text-right py-2 text-muted-foreground">
           {format(new Date(), 'dd/MM/yyyy')}
@@ -99,21 +104,23 @@ export const Receipt: React.FC<ReceiptProps> = ({ patient, receiptData, consulta
           </div>
         </main>
 
-        <footer className="mt-auto">
-          <div className="flex justify-between items-end">
-            <div></div>
-            <div className="text-center">
-              {consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
-              <div className="relative">
-                {consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-10 left-1/2 -translate-x-1/2 opacity-50" />}
+        {!printOptions?.letterheadMode && (
+          <footer className="mt-auto">
+            <div className="flex justify-between items-end">
+              <div></div>
+              <div className="text-center">
+                {consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
+                <div className="relative">
+                  {consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-10 left-1/2 -translate-x-1/2 opacity-50" />}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="border-t-2 border-blue-600 pt-4 mt-8 text-center text-sm">
-            <p>{hospitalName || 'OrthoLife'}</p>
-            <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
-          </div>
-        </footer>
+            <div className="border-t-2 border-blue-600 pt-4 mt-8 text-center text-sm">
+              <p>{hospitalName || 'OrthoLife'}</p>
+              <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
+            </div>
+          </footer>
+        )}
 
 
       </div>

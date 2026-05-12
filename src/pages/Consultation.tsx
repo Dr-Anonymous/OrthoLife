@@ -1171,7 +1171,10 @@ const ConsultationPage = () => {
     const hasActualChanges = patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
     const shouldSave = hasActualChanges || statusChanged;
 
+    console.log('saveChanges check:', { hasActualChanges, statusChanged, shouldSave, extraDataChanged });
+
     if (!shouldSave) {
+      console.log('No changes detected, skipping save');
       return true;
     }
 
@@ -2073,7 +2076,10 @@ const ConsultationPage = () => {
     if (editingCertificateIndex !== null) {
       // Update existing
       updatedCertificates = [...(latestData.certificates || [])];
-      updatedCertificates[editingCertificateIndex] = data;
+      updatedCertificates[editingCertificateIndex] = {
+        ...(latestData.certificates?.[editingCertificateIndex] || {}),
+        ...data
+      };
     } else {
       // Add new
       updatedCertificates = [data, ...(latestData.certificates || [])];
@@ -2830,7 +2836,7 @@ const ConsultationPage = () => {
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={certificatePrintRef}>
           {selectedConsultation && editablePatientDetails && certificateData && (
-            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} consultant={consultant} showSignSeal={showSignSeal} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} />
+            <MedicalCertificate patient={editablePatientDetails} diagnosis={extraData.diagnosis} certificateData={certificateData} consultant={consultant} showSignSeal={showSignSeal} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} printOptions={printOptions} />
           )}
         </div>
       </div>
@@ -2838,7 +2844,7 @@ const ConsultationPage = () => {
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={receiptPrintRef}>
           {selectedConsultation && editablePatientDetails && receiptData && (
-            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} />
+            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} printOptions={printOptions} />
           )}
         </div>
       </div>
@@ -2934,6 +2940,7 @@ const ConsultationPage = () => {
               if (editingReceiptIndex !== null) {
                 updatedReceipts = [...(latestData.receipts || [])];
                 updatedReceipts[editingReceiptIndex] = {
+                  ...(latestData.receipts?.[editingReceiptIndex] || {}),
                   ...data,
                   created_at: latestData.receipts?.[editingReceiptIndex]?.created_at || new Date().toISOString()
                 };

@@ -171,6 +171,44 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         setIsTrendsOpen(true);
     };
 
+    const handleInvestigationValueChange = (res: any, newValue: string) => {
+        if (isReadOnly) return;
+
+        // 1. Determine field (investigations vs radiology)
+        const service = limsCatalog?.services?.find(s => s.id === res.id);
+        const field = service?.type === 'SCAN' ? 'radiology_findings' : 'investigations';
+        const currentText = extraData[field] || '';
+
+        if (res.isHistoricalOnly || res.value === '-') {
+            // APPEND mode
+            if (!newValue.trim()) return; // Don't append empty values
+            const separator = ': ';
+            const suffix = currentText.trim() ? (currentText.endsWith('\n') ? '' : '\n') : '';
+            const newEntry = `${res.name}${separator}${newValue}`;
+            onExtraChange(field, currentText + suffix + newEntry);
+        } else {
+            // UPDATE mode
+            const oldLine = res.originalText;
+            if (!oldLine) {
+                // Fallback to append if somehow originalText is missing but we have a name
+                const separator = ': ';
+                const suffix = currentText.trim() ? (currentText.endsWith('\n') ? '' : '\n') : '';
+                const newEntry = `${res.name}${separator}${newValue}`;
+                onExtraChange(field, currentText + suffix + newEntry);
+                return;
+            };
+
+            // Preserve separator
+            const separatorMatch = oldLine.match(/([:=]|\s-\s|(?<=[a-zA-Z0-9])-(?=\s))/);
+            const separator = separatorMatch ? separatorMatch[0] : ': ';
+            const paramNamePart = oldLine.split(separator)[0];
+            const newLine = `${paramNamePart}${separator}${newValue}`;
+
+            const updatedText = currentText.replace(oldLine, newLine);
+            onExtraChange(field, updatedText);
+        }
+    };
+
     const parser = React.useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
     const parsedInvestigations = React.useMemo(() => {
         const combinedText = (extraData.investigations || '') + '\n' + (extraData.radiology_findings || '');
@@ -1194,15 +1232,19 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 </td>
                                                 <td className="px-2 py-1.5">
                                                     <div className="flex items-center gap-1">
-                                                        <div className={cn(
-                                                            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border",
-                                                            res.status === 'normal' && "bg-emerald-50 text-emerald-700 border-emerald-100",
-                                                            (res.status === 'high' || res.status === 'low') && "bg-amber-50 text-amber-700 border-amber-100",
-                                                            (res.status === 'critical-high' || res.status === 'critical-low') && "bg-rose-50 text-rose-700 border-rose-100",
-                                                            res.status === 'unknown' && "bg-slate-50 text-slate-500 border-slate-100"
-                                                        )}>
-                                                            {res.value}
-                                                        </div>
+                                                            <input
+                                                                value={res.value === '-' ? '' : res.value}
+                                                                onChange={(e) => handleInvestigationValueChange(res, e.target.value)}
+                                                                className={cn(
+                                                                    "w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-[10px] font-bold",
+                                                                    res.status === 'normal' && "text-emerald-700",
+                                                                    (res.status === 'high' || res.status === 'low') && "text-amber-700",
+                                                                    (res.status === 'critical-high' || res.status === 'critical-low') && "text-rose-700",
+                                                                    res.status === 'unknown' && "text-slate-500 placeholder:text-slate-300"
+                                                                )}
+                                                                placeholder="-"
+                                                                disabled={isReadOnly}
+                                                            />
                                                         {(() => {
                                                             const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
                                                             const history = investigationHistory?.[groupKey] || [];
