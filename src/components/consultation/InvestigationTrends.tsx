@@ -13,7 +13,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer,
   ReferenceArea,
   Dot,
 } from "recharts";
@@ -23,7 +22,7 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from "@/components/ui/chart";
-import { useInvestigationHistory, HistoricalResult } from "@/hooks/useInvestigationHistory";
+import { useInvestigationHistory } from "@/hooks/useInvestigationHistory";
 import { useLimsCatalog } from "@/hooks/useLimsCatalog";
 import { format } from "date-fns";
 import { Activity, Beaker, Calendar, AlertCircle, Info } from "lucide-react";
@@ -105,7 +104,7 @@ const InvestigationTrends: React.FC<InvestigationTrendsProps> = ({
     const paramName = nameParts.length > 0 ? nameParts.join(':') : '';
 
     const parser = new ClinicalParser(limsCatalog.services, limsCatalog.ranges);
-    
+
     // 2. Try centralized findRange first (handles DB rows and basic schema fallback)
     const foundRange = parser.findRange(serviceId, paramName);
     if (foundRange) return foundRange;
@@ -129,9 +128,9 @@ const InvestigationTrends: React.FC<InvestigationTrendsProps> = ({
         id: `${schemaService.id}-schema`,
         service_id: String(schemaService.id),
         parameter_name: schemaParam.name || '',
-        sex: 'both', 
-        min_age: 0, 
-        max_age: 999, 
+        sex: 'both',
+        min_age: 0,
+        max_age: 999,
         age_unit: 'years',
         low_value: schemaParam.minLimit,
         high_value: schemaParam.maxLimit,
@@ -276,7 +275,7 @@ const InvestigationTrends: React.FC<InvestigationTrendsProps> = ({
                 <div className="flex-1 p-6 pt-0 flex flex-col min-h-0">
                   {(() => {
                     const hasNumericData = selectedData.filter(r => typeof r.value === 'number').length >= 2;
-                    
+
                     if (hasNumericData) {
                       return (
                         <ChartContainer config={chartConfig} className="h-full w-full">

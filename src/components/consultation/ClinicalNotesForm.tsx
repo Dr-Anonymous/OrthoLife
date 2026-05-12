@@ -258,7 +258,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             const dateA = new Date(ya + 2000, ma - 1, da).getTime();
             const dateB = new Date(yb + 2000, mb - 1, db).getTime();
             return dateB - dateA;
-        }).slice(0, 3); // Show latest 3 historical dates
+        }).slice(0, 10); // Show latest 10 historical dates to match trend density
     }, [investigationHistory, consultationId]);
 
     const displayInvestigations = React.useMemo(() => {
