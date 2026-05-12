@@ -165,6 +165,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const [ghostText, setGhostText] = React.useState('');
     const [isTrendsOpen, setIsTrendsOpen] = React.useState(false);
     const [selectedTrendTestId, setSelectedTrendTestId] = React.useState<string | null>(null);
+    const [editingInvestigation, setEditingInvestigation] = React.useState<{ key: string, value: string } | null>(null);
 
     const handleOpenTrends = (testId?: string) => {
         setSelectedTrendTestId(testId || null);
@@ -174,37 +175,56 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const handleInvestigationValueChange = (res: any, newValue: string) => {
         if (isReadOnly) return;
 
-        // 1. Determine field (investigations vs radiology)
-        const service = limsCatalog?.services?.find(s => s.id === res.id);
-        const field = service?.type === 'SCAN' ? 'radiology_findings' : 'investigations';
-        const currentText = extraData[field] || '';
+        const invText = extraData.investigations || '';
+        const invOffset = invText.length + 1;
+        const radText = extraData.radiology_findings || '';
+
+        // Determine source field and relative indices
+        let field: 'investigations' | 'radiology_findings' = 'investigations';
+        let currentText = invText;
+        let relativeStart = res.startIndex;
+        let relativeEnd = res.endIndex;
+
+        if (res.startIndex !== undefined && res.startIndex >= invOffset) {
+            field = 'radiology_findings';
+            currentText = radText;
+            relativeStart = res.startIndex - invOffset;
+            relativeEnd = res.endIndex - invOffset;
+        }
 
         if (res.isHistoricalOnly || res.value === '-') {
             // APPEND mode
             if (!newValue.trim()) return; // Don't append empty values
-            const separator = ': ';
-            const suffix = currentText.trim() ? (currentText.endsWith('\n') ? '' : '\n') : '';
-            const newEntry = `${res.name}${separator}${newValue}`;
-            onExtraChange(field, currentText + suffix + newEntry);
-        } else {
-            // UPDATE mode
-            const oldLine = res.originalText;
-            if (!oldLine) {
-                // Fallback to append if somehow originalText is missing but we have a name
-                const separator = ': ';
-                const suffix = currentText.trim() ? (currentText.endsWith('\n') ? '' : '\n') : '';
-                const newEntry = `${res.name}${separator}${newValue}`;
-                onExtraChange(field, currentText + suffix + newEntry);
-                return;
-            };
+            
+            // Double check if it's radiology based on service catalog
+            const service = limsCatalog?.services?.find(s => s.id === res.id);
+            const targetField = service?.type === 'SCAN' ? 'radiology_findings' : 'investigations';
+            const targetText = extraData[targetField] || '';
 
-            // Preserve separator
-            const separatorMatch = oldLine.match(/([:=]|\s-\s|(?<=[a-zA-Z0-9])-(?=\s))/);
-            const separator = separatorMatch ? separatorMatch[0] : ': ';
-            const paramNamePart = oldLine.split(separator)[0];
+            const separator = ': ';
+            const suffix = targetText.trim() ? (targetText.endsWith('\n') ? '' : '\n') : '';
+            const newEntry = `${res.name}${separator}${newValue}`;
+            onExtraChange(targetField, targetText + suffix + newEntry);
+        } else {
+            // UPDATE mode - surgical replacement using indices
+            if (relativeStart === undefined || relativeEnd === undefined) {
+                // Fallback to original replacement if indices are missing for some reason
+                const oldLine = res.originalText;
+                if (!oldLine) return;
+                const separatorMatch = oldLine.match(/([:=]|\s-\s|(?<=[a-zA-Z0-9])-(?=\s))/);
+                const separator = separatorMatch ? separatorMatch[0] : ': ';
+                const paramNamePart = oldLine.split(separator)[0];
+                const newLine = `${paramNamePart}${separator}${newValue}`;
+                onExtraChange(field, currentText.replace(oldLine, newLine));
+                return;
+            }
+
+            const oldLine = res.originalText;
+            const separator = ': ';
+            const paramNamePart = res.name;
             const newLine = `${paramNamePart}${separator}${newValue}`;
 
-            const updatedText = currentText.replace(oldLine, newLine);
+            const updatedText = currentText.substring(0, relativeStart) + newLine + currentText.substring(relativeEnd);
             onExtraChange(field, updatedText);
         }
     };
@@ -1222,75 +1242,82 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {displayInvestigations.map((res, i) => (
-                                            <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                                <td className={cn(
-                                                    "px-2 py-1.5 text-[11px] font-semibold sticky left-0 bg-white z-10 border-r border-slate-100",
-                                                    (res as any).isHistoricalOnly ? "text-slate-400" : "text-slate-700"
-                                                )}>
-                                                    {res.name}
-                                                </td>
-                                                <td className="px-2 py-1.5">
-                                                    <div className="flex items-center gap-1">
-                                                            <input
-                                                                value={res.value === '-' ? '' : res.value}
-                                                                onChange={(e) => handleInvestigationValueChange(res, e.target.value)}
-                                                                className={cn(
-                                                                    "w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-[10px] font-bold",
-                                                                    res.status === 'normal' && "text-emerald-700",
-                                                                    (res.status === 'high' || res.status === 'low') && "text-amber-700",
-                                                                    (res.status === 'critical-high' || res.status === 'critical-low') && "text-rose-700",
-                                                                    res.status === 'unknown' && "text-slate-500 placeholder:text-slate-300"
-                                                                )}
-                                                                placeholder="-"
-                                                                disabled={isReadOnly}
-                                                            />
-                                                        {(() => {
-                                                            const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
-                                                            const history = investigationHistory?.[groupKey] || [];
-                                                            const otherHistory = history.filter(h => String(h.consultationId) !== String(consultationId));
-                                                            const hasCurrentValue = res.value !== '-' && res.value !== '';
-                                                            const totalPoints = otherHistory.length + (hasCurrentValue ? 1 : 0);
+                                        {displayInvestigations.map((res) => {
+                                            const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+                                            return (
+                                                <tr key={groupKey} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className={cn(
+                                                        "px-2 py-1.5 text-[11px] font-semibold sticky left-0 bg-white z-10 border-r border-slate-100",
+                                                        (res as any).isHistoricalOnly ? "text-slate-400" : "text-slate-700"
+                                                    )}>
+                                                        {res.name}
+                                                    </td>
+                                                    <td className="px-2 py-1.5">
+                                                        <div className="flex items-center gap-1">
+                                                                <input
+                                                                    value={editingInvestigation?.key === groupKey ? editingInvestigation.value : (res.value === '-' ? '' : String(res.value))}
+                                                                    onFocus={() => !isReadOnly && setEditingInvestigation({ key: groupKey, value: res.value === '-' ? '' : String(res.value) })}
+                                                                    onBlur={() => setEditingInvestigation(null)}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        setEditingInvestigation({ key: groupKey, value: val });
+                                                                        handleInvestigationValueChange(res, val);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-[10px] font-bold",
+                                                                        res.status === 'normal' && "text-emerald-700",
+                                                                        (res.status === 'high' || res.status === 'low') && "text-amber-700",
+                                                                        (res.status === 'critical-high' || res.status === 'critical-low') && "text-rose-700",
+                                                                        res.status === 'unknown' && "text-slate-500 placeholder:text-slate-300"
+                                                                    )}
+                                                                    placeholder="-"
+                                                                    disabled={isReadOnly}
+                                                                />
+                                                            {(() => {
+                                                                const history = investigationHistory?.[groupKey] || [];
+                                                                const otherHistory = history.filter(h => String(h.consultationId) !== String(consultationId));
+                                                                const hasCurrentValue = res.value !== '-' && res.value !== '';
+                                                                const totalPoints = otherHistory.length + (hasCurrentValue ? 1 : 0);
 
-                                                            if (totalPoints < 2) return null;
+                                                                if (totalPoints < 2) return null;
 
-                                                            const latestHist = otherHistory
-                                                                .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
+                                                                const latestHist = otherHistory
+                                                                    .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
 
-                                                            const currNum = parseFloat(String(res.value).replace(/[^0-9.-]/g, ''));
-                                                            const prevNum = latestHist ? parseFloat(String(latestHist.value).replace(/[^0-9.-]/g, '')) : NaN;
+                                                                const currNum = parseFloat(String(res.value).replace(/[^0-9.-]/g, ''));
+                                                                const prevNum = latestHist ? parseFloat(String(latestHist.value).replace(/[^0-9.-]/g, '')) : NaN;
 
-                                                            if (isNaN(currNum) || isNaN(prevNum)) {
+                                                                if (isNaN(currNum) || isNaN(prevNum)) {
+                                                                    return (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-5 w-5 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
+                                                                            onClick={() => handleOpenTrends(groupKey)}
+                                                                            title={`Click to show trend for ${res.name}`}
+                                                                        >
+                                                                            <TrendingUp className="w-3 h-3" />
+                                                                        </Button>
+                                                                    );
+                                                                }
+
+                                                                const TrendIcon = currNum > prevNum ? TrendingUp : (currNum < prevNum ? TrendingDown : Minus);
+                                                                const trendColor = currNum > prevNum ? "text-rose-500" : (currNum < prevNum ? "text-emerald-500" : "text-slate-300");
+
                                                                 return (
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
-                                                                        className="h-5 w-5 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
+                                                                        className={cn("h-5 w-5 hover:bg-primary/5 shrink-0", trendColor)}
                                                                         onClick={() => handleOpenTrends(groupKey)}
                                                                         title={`Click to show trend for ${res.name}`}
                                                                     >
-                                                                        <TrendingUp className="w-3 h-3" />
+                                                                        <TrendIcon className="w-3 h-3" />
                                                                     </Button>
                                                                 );
-                                                            }
-
-                                                            const TrendIcon = currNum > prevNum ? TrendingUp : (currNum < prevNum ? TrendingDown : Minus);
-                                                            const trendColor = currNum > prevNum ? "text-rose-500" : (currNum < prevNum ? "text-emerald-500" : "text-slate-300");
-
-                                                            return (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className={cn("h-5 w-5 hover:bg-primary/5 shrink-0", trendColor)}
-                                                                    onClick={() => handleOpenTrends(groupKey)}
-                                                                    title={`Click to show trend for ${res.name}`}
-                                                                >
-                                                                    <TrendIcon className="w-3 h-3" />
-                                                                </Button>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                </td>
+                                                            })()}
+                                                        </div>
+                                                    </td>
                                                 {allHistoryDates.map(date => {
                                                     const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
                                                     const hist = investigationHistory?.[groupKey]?.find(h =>
@@ -1308,8 +1335,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     {res.range || '-'}
                                                 </td>
                                             </tr>
-                                        ))}
-                                    </tbody>
+                                        );
+                                    })}
+                                </tbody>
                                 </table>
                             </div>
                         </div>

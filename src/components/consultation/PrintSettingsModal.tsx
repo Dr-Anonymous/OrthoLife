@@ -112,34 +112,35 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
         if (isOpen) {
             // Capture snapshot for dirty checking if not already captured
             if (!snapshot) {
+                const initialProfile = isDoctorProfileEnabled;
+                const initialSignSeal = isSignSealEnabled;
+                const initialOptions = normalizedOptions;
+
                 setSnapshot({
-                    profile: isDoctorProfileEnabled,
-                    signSeal: isSignSealEnabled,
-                    options: normalizedOptions
+                    profile: initialProfile,
+                    signSeal: initialSignSeal,
+                    options: initialOptions
                 });
-            }
 
-            // Check if we have pending changes for this location first
-            if (currentLocation && pendingChanges[currentLocation]) {
-                const pc = pendingChanges[currentLocation];
-                if (localProfile !== pc.profile) setLocalProfile(pc.profile);
-                if (localSignSeal !== pc.signSeal) setLocalSignSeal(pc.signSeal);
-                if (JSON.stringify(localOptions) !== JSON.stringify(pc.options)) setLocalOptions(pc.options);
-            } else {
-                if (localProfile !== isDoctorProfileEnabled) setLocalProfile(isDoctorProfileEnabled);
-                if (localSignSeal !== isSignSealEnabled) setLocalSignSeal(isSignSealEnabled);
-
-                // Only reset localOptions if it's different from the incoming merged options
-                // This prevents the live-preview loop from clobbering input mid-keystroke
-                if (JSON.stringify(localOptions) !== JSON.stringify(normalizedOptions)) {
-                    setLocalOptions(normalizedOptions);
+                // Initialize local state from pending changes if they exist, otherwise from props
+                if (currentLocation && pendingChanges[currentLocation]) {
+                    const pc = pendingChanges[currentLocation];
+                    setLocalProfile(pc.profile);
+                    setLocalSignSeal(pc.signSeal);
+                    setLocalOptions(pc.options);
+                } else {
+                    setLocalProfile(initialProfile);
+                    setLocalSignSeal(initialSignSeal);
+                    setLocalOptions(initialOptions);
                 }
             }
         } else {
             // Reset snapshot when modal is closed
             setSnapshot(null);
         }
-    }, [isOpen, isDoctorProfileEnabled, isSignSealEnabled, normalizedOptions, currentLocation, pendingChanges, snapshot]);
+        // We intentionally only depend on isOpen, currentLocation, and pendingChanges for the initial sync
+        // to avoid clobbering local state when parent props re-render during live preview.
+    }, [isOpen, currentLocation]);
 
     const fields = [
         { id: 'vitals', label: 'Vitals' },

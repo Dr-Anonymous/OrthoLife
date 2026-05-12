@@ -145,23 +145,24 @@ export const MedicalCertificate: React.FC<MedicalCertificateProps> = ({
           )}
         </main>
 
-        {!printOptions?.letterheadMode && (
-          <footer className="mt-auto">
-            <div className="flex justify-between items-end">
-              <div></div>
-              <div className="text-center">
-                {showSignSeal && consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
-                <div className="relative">
-                  {showSignSeal && consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-10 left-1/2 -translate-x-1/2 opacity-50" />}
-                </div>
+        <footer className="mt-auto">
+          <div className="flex justify-between items-end mb-4">
+            <div></div>
+            <div className="text-center">
+              {showSignSeal && consultant?.sign_url && <img src={consultant.sign_url} alt="Doctor's Signature" className="h-20" />}
+              <div className="relative">
+                {showSignSeal && consultant?.seal_url && <img src={consultant.seal_url} alt="Doctor's Seal" className="h-24 absolute -top-10 left-1/2 -translate-x-1/2 opacity-50" />}
               </div>
             </div>
-            <div className="border-t-2 border-blue-600 pt-4 mt-8 text-center text-sm">
+          </div>
+          
+          {!printOptions?.letterheadMode && (
+            <div className="border-t-2 border-blue-600 pt-4 mt-4 text-center text-sm">
               <p>{hospitalName || 'OrthoLife'}</p>
               <p className="flex items-center justify-center gap-1"><MapPin className="h-4 w-4 inline-block text-blue-600" /> {cAddress}</p>
             </div>
-          </footer>
-        )}
+          )}
+        </footer>
 
 
 

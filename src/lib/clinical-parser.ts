@@ -34,6 +34,8 @@ export interface ParsedInvestigation {
   serviceId?: string;
   prevValue?: number | string;
   originalText: string;
+  startIndex?: number;
+  endIndex?: number;
 }
 
 export class ClinicalParser {
@@ -251,7 +253,6 @@ export class ClinicalParser {
   public parse(text: string, patientMetadata?: { age?: number, sex?: string }): ParsedInvestigation[] {
     if (!text) return [];
 
-    const lines = text.split('\n');
     const results: ParsedInvestigation[] = [];
     const age = patientMetadata?.age;
     const pSex = patientMetadata?.sex;
@@ -264,9 +265,9 @@ export class ClinicalParser {
     ];
     const keywordsPattern = medicalKeywords.join('|');
 
+    let currentOffset = 0;
+    const lines = text.split('\n');
     for (const line of lines) {
-      if (!line.trim()) continue;
-
       // More robust regex that captures everything until the next parameter or end of line
       // Supports :, =, and - (if preceded by alphanumeric and followed by space, or surrounded by spaces) as separators
       const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.+?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)]+[:=]|$)`, 'gi');
@@ -304,9 +305,12 @@ export class ClinicalParser {
           status,
           range: matchedRange?.display_range || matchedRange?.normalRange || '',
           originalText: match[0],
+          startIndex: currentOffset + match.index,
+          endIndex: currentOffset + match.index + match[0].length,
           serviceId: service?.id
         });
       }
+      currentOffset += line.length + 1; // +1 for the newline
     }
 
     return results;

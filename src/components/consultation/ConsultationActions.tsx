@@ -128,11 +128,11 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     })();
 
     const isSignSealEnabled = (() => {
-        if (!consultant || !currentLocation) return showSignSeal ?? true;
+        if (!consultant || !currentLocation) return showSignSeal ?? false;
         const settings = consultant.messaging_settings as any;
         const locationOverride = settings?.location_print_overrides?.[currentLocation]?.show_sign_seal;
         if (locationOverride !== undefined) return locationOverride;
-        return showSignSeal ?? true;
+        return showSignSeal ?? false;
     })();
 
     const updateLocationSetting = async (key: 'followup' | 'profile' | 'sign_seal' | 'print_options' | 'auto_send', value: boolean | PrintOptions) => {

@@ -365,24 +365,24 @@ const ConsultationPage = () => {
   // --- Derived State for Location ---
   const selectedHospital = useMemo(() => {
     if (hospitals.length === 0 && !selectedLocation) {
-      return { 
-        name: 'OrthoLife', 
-        logoUrl: '', 
-        lat: 0, 
-        lng: 0, 
-        settings: { 
-          op_fees: 0, 
-          free_visit_duration_days: 14, 
+      return {
+        name: 'OrthoLife',
+        logoUrl: '',
+        lat: 0,
+        lng: 0,
+        settings: {
+          op_fees: 0,
+          free_visit_duration_days: 14,
           max_registrations: 0,
           include_reviews_in_limit: true,
-          address: '' 
-        } 
+          address: ''
+        }
       };
     }
 
     const found = hospitals.find(h => areLocationsEqual(h.name, selectedLocation));
     if (found) return found;
-    
+
     if (selectedLocation) {
       return {
         name: selectedLocation,
@@ -632,7 +632,7 @@ const ConsultationPage = () => {
     // Sync location immediately to ensure UI and data fetching reflect the loaded consultation's context
     const matchedHospital = hospitals.find(h => areLocationsEqual(h.name, consultation.location));
     const consultationLocation = matchedHospital ? matchedHospital.name : (consultation.location || (hospitals.length > 0 ? hospitals[0].name : ''));
-    
+
     // Only disable GPS if it's currently enabled and pointing to a different location than the consultation
     if (isGpsEnabled) {
       const isSameAsAuto = autoLocation && areLocationsEqual(autoLocation, consultationLocation);
@@ -1171,10 +1171,8 @@ const ConsultationPage = () => {
     const hasActualChanges = patientDetailsChanged || extraDataChanged || locationChanged || languageChanged;
     const shouldSave = hasActualChanges || statusChanged;
 
-    console.log('saveChanges check:', { hasActualChanges, statusChanged, shouldSave, extraDataChanged });
-
     if (!shouldSave) {
-      console.log('No changes detected, skipping save');
+      //console.log('No changes detected, skipping save');
       return true;
     }
 
@@ -1182,7 +1180,7 @@ const ConsultationPage = () => {
     try {
       const { visit_type, location, language, ...restExtraData } = activeExtraData as any;
 
-        const cleanMedicationForSave = (med: any) => {
+      const cleanMedicationForSave = (med: any) => {
         const cleaned = { ...med };
         delete cleaned.freq_morning;
         delete cleaned.freq_noon;
@@ -1197,7 +1195,7 @@ const ConsultationPage = () => {
         delete cleaned.notes_te;
 
         // preserved clinical metadata: contraindications, interactions
-        
+
         // Clean up empty frequency values
         if (!cleaned.freqMorning && cleaned.freqMorning !== 0) delete cleaned.freqMorning;
         if (!cleaned.freqNoon && cleaned.freqNoon !== 0) delete cleaned.freqNoon;
@@ -1545,8 +1543,8 @@ const ConsultationPage = () => {
       }
 
       const shortcutFields = [
-        'complaints', 'medicalHistory', 'familyHistory', 'findings', 'diagnosis', 
-        'advice', 'followup', 'personalNote', 'procedure', 
+        'complaints', 'medicalHistory', 'familyHistory', 'findings', 'diagnosis',
+        'advice', 'followup', 'personalNote', 'procedure',
         'investigations', 'radiology_findings', 'referred_to', 'orthotics',
         'referred_by'
       ];
@@ -2844,7 +2842,7 @@ const ConsultationPage = () => {
       <div style={{ position: 'absolute', left: '-9999px' }}>
         <div ref={receiptPrintRef}>
           {selectedConsultation && editablePatientDetails && receiptData && (
-            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} printOptions={printOptions} />
+            <Receipt patient={editablePatientDetails} receiptData={receiptData} consultant={consultant} logoUrl={selectedHospital.logoUrl} hospitalName={selectedHospital.name} address={selectedHospital.settings?.address} language={consultationLanguage as 'en' | 'te'} printOptions={printOptions} showSignSeal={showSignSeal} />
           )}
         </div>
       </div>
