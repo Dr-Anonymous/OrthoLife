@@ -60,10 +60,17 @@ serve(async (req: Request) => {
     }
 
     const systemPrompt = `You are a clinical assistant. 
-Analyze the provided medical report (X-ray, blood test, MRI, etc.) and provide a very concise gist (2-3 sentences).
-Focus on findings and abnormalities. Be strictly factual and concise.`;
+Analyze the provided medical report (X-ray, blood test, MRI, etc.) and provide:
+1. A very concise gist (2-3 sentences).
+2. A structured array of extracted findings (e.g., {"name": "Hb", "value": "12.5"}).
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+IMPORTANT: Return ONLY a valid JSON object in the following format:
+{
+  "summary": "...",
+  "extractedData": [{"name": "...", "value": "..."}]
+}`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,11 +90,9 @@ Focus on findings and abnormalities. Be strictly factual and concise.`;
           }
         ],
         generationConfig: {
-          maxOutputTokens: 400,
+          maxOutputTokens: 800,
           temperature: 0.1,
-          thinkingConfig: {
-            thinkingBudget: 0
-          }
+          response_mime_type: "application/json"
         }
       }),
     });
@@ -102,9 +107,19 @@ Focus on findings and abnormalities. Be strictly factual and concise.`;
     }
 
     const data = await response.json();
-    const summary = data.candidates[0].content.parts[0].text.trim();
+    const rawText = data.candidates[0].content.parts[0].text.trim();
+    
+    // Parse the JSON returned by Gemini
+    let aiData;
+    try {
+        aiData = JSON.parse(rawText);
+    } catch (e) {
+        console.error("Failed to parse AI JSON:", rawText);
+        // Fallback to plain text if JSON parsing fails
+        aiData = { summary: rawText, extractedData: [] };
+    }
 
-    return new Response(JSON.stringify({ summary }), {
+    return new Response(JSON.stringify(aiData), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

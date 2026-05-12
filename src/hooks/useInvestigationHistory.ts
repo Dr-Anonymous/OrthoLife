@@ -30,7 +30,7 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
       // Fetch last 15 consultations for better trend-line density
       const { data, error } = await supabase
         .from("consultations")
-        .select("id, created_at, consultation_data, investigations, radiology_findings")
+        .select("id, created_at, investigations, radiology_findings")
         .eq("patient_id", patientId)
         .order("created_at", { ascending: false })
         .limit(15);
@@ -43,8 +43,8 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
       const reversedData = [...data].reverse();
 
       reversedData.forEach((con) => {
-        const investigationsText = (con as any).investigations ?? "";
-        const radiologyText = (con as any).radiology_findings ?? "";
+        const investigationsText = con.investigations ?? "";
+        const radiologyText = con.radiology_findings ?? "";
         const combinedText = investigationsText + "\n" + radiologyText;
         
         if (!combinedText.trim()) return;

@@ -96,9 +96,9 @@ const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({ isOpen, onClo
                       <ConsultationCard
                         data={{
                           ...item.consultation_data,
-                          investigations: item.investigations,
-                          radiology_findings: item.radiology_findings,
-                          radiology_images: item.radiology_images,
+                          investigations: item.investigations ?? item.consultation_data?.investigations,
+                          radiology_findings: item.radiology_findings ?? item.consultation_data?.radiology_findings,
+                          radiology_images: (item.radiology_images && item.radiology_images.length > 0) ? item.radiology_images : item.consultation_data?.radiology_images,
                           referred_by: item.referred_by,
                           created_at: item.created_at,
                           location: item.location,
