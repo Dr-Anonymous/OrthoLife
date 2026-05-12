@@ -222,8 +222,16 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             const oldLine = res.originalText;
             const separator = ': ';
             const paramNamePart = res.name;
-            const newLine = `${paramNamePart}${separator}${newValue}`;
 
+            if (!newValue.trim()) {
+                // Deletion mode: remove the line entirely to keep notes clean
+                // The parent package expansion will catch this and show a placeholder again
+                const updatedText = currentText.substring(0, relativeStart) + currentText.substring(relativeEnd);
+                onExtraChange(field, updatedText.replace(/\n\n+/g, '\n').trim());
+                return;
+            }
+
+            const newLine = `${paramNamePart}${separator}${newValue}`;
             const updatedText = currentText.substring(0, relativeStart) + newLine + currentText.substring(relativeEnd);
             onExtraChange(field, updatedText);
         }
@@ -381,20 +389,52 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
 
 
-    const filteredLimsTests = React.useMemo(() => {
+    const flattenedLimsTests = React.useMemo(() => {
         const query = normalizeSearchText(investigationSearch);
         if (!query) return [];
-        return limsCatalog?.services?.filter(s => {
+        
+        const matches: any[] = [];
+        limsCatalog?.services?.forEach(s => {
             const type = s.type?.toUpperCase();
-            if (type !== 'LAB') return false;
+            if (type !== 'LAB') return;
 
-            const normalizedName = normalizeSearchText(s.name);
-            if (normalizedName.includes('consultation')) {
-                return false;
+            const serviceName = normalizeSearchText(s.name);
+            if (serviceName.includes('consultation')) return;
+
+            const nameMatch = serviceName.includes(query);
+            const matchingParams = s.result_schema?.filter(p => {
+                const pName = normalizeSearchText(p.name || '');
+                return pName.includes(query);
+            }) || [];
+
+            if (nameMatch || matchingParams.length > 0) {
+                // Add the service itself
+                matches.push({
+                    type: 'service',
+                    id: s.id,
+                    name: s.name,
+                    category: s.category,
+                    data: s
+                });
+
+                // Add matching sub-parameters
+                matchingParams.forEach(p => {
+                    if (normalizeSearchText(p.name) === serviceName) return;
+                    matches.push({
+                        type: 'parameter',
+                        id: `${s.id}-${p.name}`,
+                        name: p.name,
+                        parentName: s.name,
+                        data: s
+                    });
+                });
             }
-            return normalizedName.includes(query);
-        }).slice(0, 20) || [];
+        });
+
+        return matches.slice(0, 25);
     }, [limsCatalog, investigationSearch]);
+
+    const filteredLimsTests = flattenedLimsTests; // For backward compatibility with existing code where possible
 
     const filteredLimsScans = React.useMemo(() => {
         const query = normalizeSearchText(radiologySearch);
@@ -1041,12 +1081,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground border-b flex justify-between items-center bg-muted/20">
                                                         <span>LAB CATALOG SUGGESTIONS</span>
                                                     </div>
-                                                    {filteredLimsTests.map((test, idx) => (
+                                                    {filteredLimsTests.map((item, idx) => (
                                                         <button
-                                                            key={test.id}
+                                                            key={item.id}
                                                             className={cn(
                                                                 "w-full text-left px-2 py-2 text-xs rounded-sm hover:bg-accent flex items-center justify-between gap-2 border-b last:border-0",
-                                                                idx === activeInvestigationIndex && "bg-accent"
+                                                                idx === activeInvestigationIndex ? "bg-accent text-accent-foreground" : (item.type === 'parameter' ? "pl-6 bg-muted/30" : "")
                                                             )}
                                                             onMouseDown={(e) => e.preventDefault()}
                                                             onClick={() => {
@@ -1057,7 +1097,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                                 const before = currentVal.substring(0, selectionStart - lastLine.length);
                                                                 const after = currentVal.substring(selectionStart);
 
-                                                                const selectedName = test.name + ': ';
+                                                                const selectedName = item.name + ': ';
                                                                 const separator = '\n';
                                                                 onExtraChange('investigations', before + selectedName + separator + after, before.length + selectedName.length + separator.length);
                                                                 setInvestigationSearch('');
@@ -1065,10 +1105,19 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                             }}
                                                         >
                                                             <div className="flex flex-col">
-                                                                <span className="font-medium">{test.name}</span>
-                                                                {test.category && <span className="text-[10px] text-muted-foreground italic">{test.category}</span>}
+                                                                <div className="flex items-center gap-2">
+                                                                    {item.type === 'parameter' && <div className={cn("w-1.5 h-1.5 rounded-full", idx === activeInvestigationIndex ? "bg-accent-foreground/60" : "bg-primary/40")} />}
+                                                                    <span className={cn("font-medium", item.type === 'parameter' && idx !== activeInvestigationIndex ? "text-primary/80" : "")}>
+                                                                        {item.name}
+                                                                    </span>
+                                                                </div>
+                                                                {item.type === 'service' && item.category && (
+                                                                    <span className={cn("text-[10px] italic", idx === activeInvestigationIndex ? "text-accent-foreground/70" : "text-muted-foreground")}>
+                                                                        {item.category}
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            <Search className="w-3 h-3 text-muted-foreground/40" />
+                                                            <Search className={cn("w-3 h-3", idx === activeInvestigationIndex ? "text-accent-foreground/40" : "text-muted-foreground/40")} />
                                                         </button>
                                                     ))}
                                                 </>
@@ -1273,6 +1322,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                                     placeholder="-"
                                                                     disabled={isReadOnly}
                                                                 />
+                                                                {res.criticalAlert && (
+                                                                    <div className="flex items-center gap-1 text-[8px] font-black text-rose-600 bg-rose-50 px-1 py-0.5 rounded border border-rose-100 animate-pulse shrink-0">
+                                                                        <AlertTriangle className="w-2.5 h-2.5" />
+                                                                        <span className="uppercase">{res.criticalAlert}</span>
+                                                                    </div>
+                                                                )}
                                                             {(() => {
                                                                 const history = investigationHistory?.[groupKey] || [];
                                                                 const otherHistory = history.filter(h => String(h.consultationId) !== String(consultationId));

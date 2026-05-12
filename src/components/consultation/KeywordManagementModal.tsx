@@ -22,6 +22,7 @@ interface Keyword {
   followup_te?: string;
   orthotics?: string;
   orthotics_te?: string;
+  radiology_findings?: string;
 }
 
 interface Medication {
@@ -39,6 +40,7 @@ export interface KeywordPrefillData {
   followup_te?: string;
   orthotics?: string;
   orthotics_te?: string;
+  radiology_findings?: string;
 }
 
 interface KeywordManagementModalProps {
@@ -71,17 +73,24 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const [followupTe, setFollowupTe] = useState('');
   const [orthotics, setOrthotics] = useState('');
   const [orthoticsTe, setOrthoticsTe] = useState('');
+  const [radiologyFindings, setRadiologyFindings] = useState('');
   const [editingKeyword, setEditingKeyword] = useState<Keyword | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const [investigationSearch, setInvestigationSearch] = useState('');
   const [activeInvestigationIndex, setActiveInvestigationIndex] = useState(0);
+  const [radiologySearch, setRadiologySearch] = useState('');
+  const [activeRadiologyIndex, setActiveRadiologyIndex] = useState(0);
   const { data: limsCatalog, isLoading: isCatalogLoading } = useLimsCatalog();
 
   useEffect(() => {
     setActiveInvestigationIndex(0);
   }, [investigationSearch]);
+
+  useEffect(() => {
+    setActiveRadiologyIndex(0);
+  }, [radiologySearch]);
 
   const handleInvestigationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (filteredLimsTests.length === 0) return;
@@ -109,10 +118,41 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
   const filteredLimsTests = useMemo(() => {
     const query = normalizeSearchText(investigationSearch);
     if (!query) return [];
-    return limsCatalog?.services?.filter(s => 
-      normalizeSearchText(s.name).includes(query)
+    return limsCatalog?.services?.filter(s =>
+      s.type?.toUpperCase() === 'LAB' && normalizeSearchText(s.name).includes(query)
     ).slice(0, 20) || [];
   }, [limsCatalog, investigationSearch]);
+
+  const filteredLimsScans = useMemo(() => {
+    const query = normalizeSearchText(radiologySearch);
+    if (!query) return [];
+    return limsCatalog?.services?.filter(s =>
+      s.type?.toUpperCase() === 'SCAN' && normalizeSearchText(s.name).includes(query)
+    ).slice(0, 20) || [];
+  }, [limsCatalog, radiologySearch]);
+
+  const handleRadiologyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredLimsScans.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveRadiologyIndex(prev => (prev + 1) % filteredLimsScans.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveRadiologyIndex(prev => (prev - 1 + filteredLimsScans.length) % filteredLimsScans.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const selected = filteredLimsScans[activeRadiologyIndex];
+      if (selected) {
+        const current = radiologyFindings.trim();
+        const separator = current ? '\n' : '';
+        setRadiologyFindings(current + separator + selected.name);
+        setRadiologySearch('');
+      }
+    } else if (e.key === 'Escape') {
+      setRadiologySearch('');
+    }
+  };
 
   const displayedMeds = React.useMemo(() => {
     const normalizedQuery = normalizeSearchText(searchQuery);
@@ -124,10 +164,10 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
     return filtered.sort((a, b) => {
       const aSelected = selectedMeds.includes(a.id);
       const bSelected = selectedMeds.includes(b.id);
-      
+
       if (aSelected && !bSelected) return -1;
       if (!aSelected && bSelected) return 1;
-      
+
       return a.composition.localeCompare(b.composition);
     });
   }, [medications, searchQuery, selectedMeds]);
@@ -198,6 +238,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
         if (prefilledData.followup_te) setFollowupTe(prefilledData.followup_te);
         if (prefilledData.orthotics) setOrthotics(prefilledData.orthotics);
         if (prefilledData.orthotics_te) setOrthoticsTe(prefilledData.orthotics_te);
+        if (prefilledData.radiology_findings) setRadiologyFindings(prefilledData.radiology_findings);
       }
     }
   }, [isOpen]);
@@ -238,10 +279,11 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
           advice,
           advice_te: adviceTe,
           investigations,
-          followup,
+          followup: followup,
           followup_te: followupTe,
           orthotics,
-          orthotics_te: orthoticsTe
+          orthotics_te: orthoticsTe,
+          radiology_findings: radiologyFindings
         };
         const { error } = await supabase.functions.invoke('update-autofill-keyword', {
           body: { id: editingKeyword.id, payload },
@@ -264,6 +306,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
             followup_te: followupTe,
             orthotics: orthotics,
             orthotics_te: orthoticsTe,
+            radiology_findings: radiologyFindings,
             consultant_id: consultantId
           },
         });
@@ -280,6 +323,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
       setFollowupTe('');
       setOrthotics('');
       setOrthoticsTe('');
+      setRadiologyFindings('');
       setEditingKeyword(null);
       fetchKeywords();
 
@@ -314,6 +358,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
     setFollowupTe(keyword.followup_te || '');
     setOrthotics(keyword.orthotics || '');
     setOrthoticsTe(keyword.orthotics_te || '');
+    setRadiologyFindings(keyword.radiology_findings || '');
   };
 
   return (
@@ -441,6 +486,55 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
               <Textarea id="investigations" value={investigations} onChange={(e) => setInvestigations(e.target.value)} placeholder="e.g., X-ray, Blood Test" />
             </div>
             <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="radiology_findings">Radiology</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                  <Input
+                    placeholder="Search LIMS scans..."
+                    value={radiologySearch}
+                    onChange={(e) => setRadiologySearch(e.target.value)}
+                    onKeyDown={handleRadiologyKeyDown}
+                    className="h-8 w-40 pl-8"
+                  />
+                  {isCatalogLoading && radiologySearch && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 p-2 bg-popover border rounded-md shadow-md text-[10px] text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Loading scans...
+                    </div>
+                  )}
+                  {filteredLimsScans.length > 0 ? (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-40 overflow-y-auto bg-popover border rounded-md shadow-md">
+                      {filteredLimsScans.map((scan, idx) => (
+                        <button
+                          key={scan.id}
+                          className={`w-full text-left px-2 py-1.5 text-xs border-b last:border-0 flex flex-col gap-0.5 transition-colors ${idx === activeRadiologyIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
+                          onClick={() => {
+                            const current = radiologyFindings.trim();
+                            const separator = current ? '\n' : '';
+                            setRadiologyFindings(current + separator + scan.name);
+                            setRadiologySearch('');
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-medium truncate">{scan.name}</div>
+                            {scan.type?.toLowerCase() === 'scan' && (
+                              <span className="shrink-0 bg-purple-100 text-purple-700 px-1 rounded-[2px] text-[8px] font-bold uppercase">Scan</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : radiologySearch && !isCatalogLoading && (limsCatalog?.services?.length === 0 || !limsCatalog) && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 p-2 bg-popover border rounded-md shadow-md text-[10px] text-muted-foreground">
+                      LIMS catalog unavailable.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Textarea id="radiology_findings" value={radiologyFindings} onChange={(e) => setRadiologyFindings(e.target.value)} placeholder="e.g., X-ray Ankle, MRI Spine" />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="followup">Follow-up</Label>
               <Textarea id="followup" value={followup} onChange={(e) => setFollowup(e.target.value)} placeholder="e.g., Review after 1 week" />
             </div>
@@ -487,6 +581,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                 setFollowupTe('');
                 setOrthotics('');
                 setOrthoticsTe('');
+                setRadiologyFindings('');
               }}>
                 Cancel Edit
               </Button>
@@ -512,7 +607,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                 {keywords.filter(kw => {
                   const query = normalizeSearchText(listSearchQuery);
                   if (!query) return true;
-                  
+
                   const hasKeywordMatch = (kw.keywords || []).some(k => normalizeSearchText(k).includes(query));
                   const hasAdviceMatch = normalizeSearchText(kw.advice).includes(query) || normalizeSearchText(kw.advice_te).includes(query);
                   const hasMedMatch = (kw.medication_ids || []).some(id => {
@@ -524,8 +619,9 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                   const hasInvestMatch = normalizeSearchText(kw.investigations).includes(query);
                   const hasFollowupMatch = normalizeSearchText(kw.followup).includes(query) || normalizeSearchText(kw.followup_te).includes(query);
                   const hasOrthoticsMatch = normalizeSearchText(kw.orthotics).includes(query) || normalizeSearchText(kw.orthotics_te).includes(query);
+                  const hasRadiologyMatch = normalizeSearchText(kw.radiology_findings).includes(query);
 
-                  return hasKeywordMatch || hasAdviceMatch || hasMedMatch || hasInvestMatch || hasFollowupMatch || hasOrthoticsMatch;
+                  return hasKeywordMatch || hasAdviceMatch || hasMedMatch || hasInvestMatch || hasFollowupMatch || hasOrthoticsMatch || hasRadiologyMatch;
                 }).map(kw => (
                   <div key={kw.id} className="flex items-center justify-between p-2 border rounded-md">
                     <div>
@@ -534,8 +630,8 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                         Meds: {(kw.medication_ids || []).map(id => {
                           const med = medications.find(m => m.id === id);
                           if (!med) return null;
-                          const brandStr = (med.brand_metadata || []).length > 0 
-                            ? ` (${med.brand_metadata?.map(b => b.name).join(', ')})` 
+                          const brandStr = (med.brand_metadata || []).length > 0
+                            ? ` (${med.brand_metadata?.map(b => b.name).join(', ')})`
                             : '';
                           return med.composition + brandStr;
                         }).filter(Boolean).join(', ')}
@@ -544,6 +640,7 @@ const KeywordManagementModal: React.FC<KeywordManagementModalProps> = ({ isOpen,
                       {kw.investigations && <p className="text-sm text-muted-foreground mt-1">Investigations: {kw.investigations}</p>}
                       {kw.followup && <p className="text-sm text-muted-foreground mt-1">Follow-up: {kw.followup}</p>}
                       {kw.orthotics && <p className="text-sm text-muted-foreground mt-1">Orthotics: {kw.orthotics}</p>}
+                      {kw.radiology_findings && <p className="text-sm text-muted-foreground mt-1">Radiology: {kw.radiology_findings}</p>}
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEdit(kw)}>

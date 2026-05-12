@@ -1153,7 +1153,7 @@ const ConsultationPage = () => {
     const activeExtraData = options.extraDataOverride || extraData;
 
     const hasMedsOrFollowup = activeExtraData.medications.length > 0 || (activeExtraData.followup && activeExtraData.followup.trim() !== '');
-    const hasInvestigations = activeExtraData.investigations && activeExtraData.investigations.trim() !== '';
+    const hasInvestigations = (activeExtraData.investigations && activeExtraData.investigations.trim() !== '') || (activeExtraData.radiology_findings && activeExtraData.radiology_findings.trim() !== '');
 
     let newStatus = selectedConsultation.status;
     if (options.markAsCompleted) {
@@ -1490,7 +1490,13 @@ const ConsultationPage = () => {
       const currentVal = prev[field as keyof typeof prev] as string || '';
       const separator = currentVal.trim() ? '\n' : '';
 
-      const newState = { ...prev, [field]: currentVal + separator + text };
+      // Clean the suggestion text by removing commas ONLY for diagnostic fields
+      // This prevents issues where 'TC, DC' gets cut off or incorrectly parsed
+      // but preserves commas in Advice, Diagnosis, etc.
+      const isDiagnostic = field === 'investigations' || field === 'radiology_findings';
+      const cleanText = isDiagnostic ? text.replace(/,/g, '') : text;
+
+      const newState = { ...prev, [field]: currentVal + separator + cleanText };
 
       // If there's a translation, also append it to the corresponding _te field
       const teField = `${field}_te`;

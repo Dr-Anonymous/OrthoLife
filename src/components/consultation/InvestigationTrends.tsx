@@ -25,7 +25,7 @@ import {
 import { useInvestigationHistory } from "@/hooks/useInvestigationHistory";
 import { useLimsCatalog } from "@/hooks/useLimsCatalog";
 import { format } from "date-fns";
-import { Activity, Beaker, Calendar, AlertCircle, Info } from "lucide-react";
+import { Activity, Beaker, Calendar, AlertCircle, Info, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClinicalParser } from "@/lib/clinical-parser";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -393,6 +393,12 @@ const InvestigationTrends: React.FC<InvestigationTrendsProps> = ({
                                     )}>
                                       {res.status?.toUpperCase() || 'UNKNOWN'}
                                     </Badge>
+                                    {res.criticalAlert && (
+                                      <div className="mt-1 flex items-center gap-1 text-[9px] font-black text-rose-600 bg-rose-50 px-1 py-0.5 rounded border border-rose-100 animate-pulse w-fit">
+                                        <AlertTriangle className="w-2.5 h-2.5" />
+                                        <span className="uppercase">{res.criticalAlert}</span>
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                               ))}

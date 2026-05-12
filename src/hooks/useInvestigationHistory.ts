@@ -10,6 +10,7 @@ export interface HistoricalResult {
   status: ParsedInvestigation['status'];
   name: string;
   unit?: string;
+  criticalAlert?: string;
   consultationId: string;
 }
 
@@ -68,6 +69,7 @@ export const useInvestigationHistory = (patientId: string | undefined) => {
             value: res.value,
             unit: res.unit,
             status: res.status,
+            criticalAlert: res.criticalAlert,
             consultationId: con.id
           });
         });

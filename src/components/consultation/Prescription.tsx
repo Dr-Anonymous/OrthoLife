@@ -14,6 +14,7 @@ interface ConsultationData {
   familyHistory?: string;
   findings: string;
   investigations: string;
+  radiology_findings?: string;
   diagnosis: string;
   advice: string;
   followup: string;
@@ -323,6 +324,15 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <span>Investigations:</span>
                 </h3>
                 <p className="whitespace-pre-wrap">{consultation.investigations}</p>
+              </div>
+            )}
+            {consultation.radiology_findings && effectivePrintOptions.investigations && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <Microscope className="h-4 w-4" />
+                  <span>Radiology Findings:</span>
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.radiology_findings}</p>
               </div>
             )}
             {consultation.diagnosis && effectivePrintOptions.diagnosis && (

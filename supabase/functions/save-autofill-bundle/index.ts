@@ -21,9 +21,10 @@ serve(async (req) => {
       investigations, 
       followup, 
       followup_te, 
-      orthotics,
-      orthotics_te,
-      consultant_id 
+      orthotics: orthotics,
+      orthotics_te: orthotics_te,
+      radiology_findings,
+      consultant_id: consultant_id 
     } = await req.json();
 
     if (!keywords || keywords.length === 0) {
@@ -89,6 +90,7 @@ serve(async (req) => {
         followup_te: followup_te,
         orthotics: orthotics,
         orthotics_te: orthotics_te,
+        radiology_findings: radiology_findings,
         consultant_id: consultant_id
       });
 

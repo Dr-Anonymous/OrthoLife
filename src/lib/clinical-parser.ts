@@ -22,6 +22,7 @@ export interface LimsRange {
   critical_high?: number;
   display_range?: string;
   normalRange?: string; // Support for schema field
+  criticalAlertMessage?: string;
 }
 
 export interface ParsedInvestigation {
@@ -31,6 +32,7 @@ export interface ParsedInvestigation {
   unit?: string;
   status: 'normal' | 'high' | 'low' | 'critical-high' | 'critical-low' | 'unknown';
   range?: string;
+  criticalAlert?: string;
   serviceId?: string;
   prevValue?: number | string;
   originalText: string;
@@ -208,7 +210,7 @@ export class ClinicalParser {
       }
     }
 
-    if (!matchedRange && service.result_schema && Array.isArray(service.result_schema)) {
+    if (service.result_schema && Array.isArray(service.result_schema)) {
       const schemaParam = service.result_schema.find(p => {
         const pName = normalizeSearchText(p.name || '');
         const pBaseName = normalizeSearchText((p.name || '').replace(/\(.*?\)/g, '').trim());
@@ -230,21 +232,46 @@ export class ClinicalParser {
       const finalParam = schemaParam || (service.result_schema.length === 1 ? service.result_schema[0] : undefined);
 
       if (finalParam) {
-        matchedRange = {
-          id: service.id + '-schema',
+        const schemaRange: LimsRange = {
+          id: (matchedRange?.id || service.id) + '-schema',
           service_id: service.id,
-          parameter_name: finalParam.name,
-          sex: 'both',
-          min_age: 0,
-          max_age: 999,
-          age_unit: 'years',
-          low_value: finalParam.minLimit,
-          high_value: finalParam.maxLimit,
-          critical_low: finalParam.criticalLow,
-          critical_high: finalParam.criticalHigh,
-          display_range: finalParam.normalRange,
+          parameter_name: finalParam.name || paramName,
+          sex: matchedRange?.sex || 'both',
+          min_age: matchedRange?.min_age || 0,
+          max_age: matchedRange?.max_age || 999,
+          age_unit: matchedRange?.age_unit || 'years',
+          low_value: finalParam.minLimit ?? finalParam.low_value ?? finalParam.min_limit ?? finalParam.min_value,
+          high_value: finalParam.maxLimit ?? finalParam.high_value ?? finalParam.max_limit ?? finalParam.max_value,
+          critical_low: finalParam.criticalLow ?? finalParam.critical_low,
+          critical_high: finalParam.criticalHigh ?? finalParam.critical_high,
+          display_range: finalParam.normalRange ?? finalParam.display_range ?? finalParam.range,
+          criticalAlertMessage: finalParam.criticalAlertMessage ?? finalParam.critical_alert_message,
         };
+
+        if (matchedRange) {
+           matchedRange = {
+             ...matchedRange,
+             critical_low: matchedRange.critical_low ?? schemaRange.critical_low,
+             critical_high: matchedRange.critical_high ?? schemaRange.critical_high,
+             criticalAlertMessage: matchedRange.criticalAlertMessage || schemaRange.criticalAlertMessage,
+           };
+        } else {
+           matchedRange = schemaRange;
+        }
       }
+    }
+
+    // Final filter for display_range if it contains both M and F info
+    // This MUST run even if matchedRange was found via schema above
+    if (matchedRange?.display_range && (matchedRange.display_range.includes('(M)') || matchedRange.display_range.includes('(F)'))) {
+      const isMale = sex?.toLowerCase() === 'male' || sex?.toLowerCase() === 'm';
+      const isFemale = sex?.toLowerCase() === 'female' || sex?.toLowerCase() === 'f';
+      
+      const mMatch = matchedRange.display_range.match(/([0-9\.\- ]+)\(M\)/);
+      const fMatch = matchedRange.display_range.match(/([0-9\.\- ]+)\(F\)/);
+      
+      if (isMale && mMatch) return { ...matchedRange, display_range: mMatch[1].trim() };
+      if (isFemale && fMatch) return { ...matchedRange, display_range: fMatch[1].trim() };
     }
 
     return matchedRange;
@@ -265,54 +292,103 @@ export class ClinicalParser {
     ];
     const keywordsPattern = medicalKeywords.join('|');
 
-    let currentOffset = 0;
+    // 1. Pre-parse the entire text to find all explicit results and their metadata.
+    const allResults: ParsedInvestigation[] = [];
     const lines = text.split('\n');
-    for (const line of lines) {
-      // More robust regex that captures everything until the next parameter or end of line
-      // Supports :, =, and - (if preceded by alphanumeric and followed by space, or surrounded by spaces) as separators
-      const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.+?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)]+[:=]|$)`, 'gi');
-      let match;
-
-      while ((match = regex.exec(line)) !== null) {
-        const rawName = match[1].trim();
-        const rawValue = (match[3] || '').trim();
-        
+    
+    let tempOffset = 0;
+    lines.forEach((line, lineIdx) => {
+      // Added comma (,) to the allowed characters in parameter names
+      const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&\\,]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.*?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&\\,]+[:=]|$)`, 'gi');
+      let m;
+      while ((m = regex.exec(line)) !== null) {
+        const rawName = m[1].trim();
+        const rawValue = (m[3] || '').trim();
         if (rawName.length < 2 || !/[a-zA-Z0-9]/.test(rawName)) continue;
-        
-        // Only convert to number if it's a clean numeric value (possibly with < or > signs)
-        // Otherwise keep as string to avoid breaking descriptive findings like "D2-3"
+
         const cleanValue = rawValue.replace(/\s+/g, '');
         const isNumeric = /^[<>=]?\d*\.?\d+$/.test(cleanValue);
         const valNum = isNumeric ? parseFloat(cleanValue.replace(/[<>=]/g, '')) : NaN;
         const value = isNumeric ? valNum : rawValue;
 
         const service = this.findServiceByName(rawName);
-        
         const stopwords = ['last', 'ref', 'normal', 'range', 'age', 'value', 'date', 'prev', 'previous', 'to', 'for', 'visit', 'at'];
         if (!service && stopwords.includes(rawName.toLowerCase())) continue;
 
-        let status: ParsedInvestigation['status'] = 'unknown';
         const matchedRange = this.findRange(service?.id || '', rawName, age, pSex);
-        
+        let status: ParsedInvestigation['status'] = 'unknown';
         if (matchedRange) {
           status = this.getStatus(value, matchedRange);
         }
 
-        results.push({
+        allResults.push({
           id: service?.id || '',
           name: matchedRange?.parameter_name || service?.name || rawName,
           value,
           status,
           range: matchedRange?.display_range || matchedRange?.normalRange || '',
-          originalText: match[0],
-          startIndex: currentOffset + match.index,
-          endIndex: currentOffset + match.index + match[0].length,
+          criticalAlert: (status === 'critical-high' || status === 'critical-low') ? matchedRange?.criticalAlertMessage : undefined,
+          originalText: m[0],
+          startIndex: tempOffset + m.index,
+          endIndex: tempOffset + m.index + m[0].length,
           serviceId: service?.id
         });
       }
-      currentOffset += line.length + 1; // +1 for the newline
-    }
+      tempOffset += line.length + 1;
+    });
 
-    return results;
+    const finalResults: ParsedInvestigation[] = [];
+    const claimedExplicitIndices = new Set<number>();
+
+    // 2. Second pass: Build final results, expanding packages and claiming explicit results
+    allResults.forEach((res, resIdx) => {
+      if (claimedExplicitIndices.has(resIdx)) return;
+
+      const service = this.services.find(s => s.id === res.serviceId);
+      const isPackage = (service?.type?.toUpperCase() === 'PACKAGE' || (service?.result_schema && service.result_schema.length > 1));
+      const isPlaceholder = res.value === '-' || res.value === '';
+      const isExactServiceMatch = service && normalizeSearchText(service.name) === normalizeSearchText(res.originalText.split(/[:=]|\s-\s|(?<=[a-zA-Z0-9])-(?=\s)/)[0].trim());
+
+      if (isExactServiceMatch && isPackage && isPlaceholder) {
+        // Expand this package!
+        service?.result_schema?.forEach((param: any) => {
+          const pCanonical = this.getCanonicalName(param.name) || normalizeSearchText(param.name);
+          
+          // Look for an explicit result for this parameter elsewhere in the text
+          const explicitIdx = allResults.findIndex((r, idx) => 
+            idx !== resIdx && 
+            !claimedExplicitIndices.has(idx) && 
+            (this.getCanonicalName(r.name) === pCanonical || normalizeSearchText(r.name) === pCanonical)
+          );
+
+          if (explicitIdx !== -1) {
+            finalResults.push(allResults[explicitIdx]);
+            claimedExplicitIndices.add(explicitIdx);
+          } else {
+            // Add as placeholder
+            const subService = this.findServiceByName(param.name);
+            const matchedRange = this.findRange(subService?.id || service.id, param.name, age, pSex);
+            finalResults.push({
+              id: subService?.id || service.id,
+              name: matchedRange?.parameter_name || param.name,
+              value: '-',
+              status: 'unknown',
+              range: matchedRange?.display_range || matchedRange?.normalRange || '',
+              criticalAlert: undefined,
+              originalText: undefined, 
+              startIndex: undefined,     
+              endIndex: undefined,
+              serviceId: subService?.id || service.id
+            });
+          }
+        });
+        claimedExplicitIndices.add(resIdx);
+      } else {
+        finalResults.push(res);
+        claimedExplicitIndices.add(resIdx);
+      }
+    });
+
+    return finalResults;
   }
 }
