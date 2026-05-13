@@ -7,13 +7,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
-import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown, FileUp, Brain, Loader2, X, Download, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, AlertTriangle, ChevronDown, FileUp, Brain, Loader2, X, Download, FileText, TrendingUp, TrendingDown, Minus, History, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchedGuide, InvestigationReport } from '@/types/consultation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { normalizeSearchText } from '@/lib/utils';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 import { useLimsCatalog } from '@/hooks/useLimsCatalog';
 import { useInvestigationHistory, HistoricalResult } from '@/hooks/useInvestigationHistory';
@@ -174,9 +177,30 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const [editingInvestigation, setEditingInvestigation] = React.useState<{ key: string, value: string } | null>(null);
     const [extractedAIFindings, setExtractedAIFindings] = React.useState<Array<{ name: string, value: string | number, sourceId: string, type?: 'investigations' | 'radiology_findings' }>>([]);
 
+    const [isPastReportModalOpen, setIsPastReportModalOpen] = React.useState(false);
+    const [pastReportDate, setPastReportDate] = React.useState<Date>(new Date());
+    const [pastReportText, setPastReportText] = React.useState('');
+
     const handleOpenTrends = (testId?: string) => {
         setSelectedTrendTestId(testId || null);
         setIsTrendsOpen(true);
+    };
+
+    const handleAddPastReport = () => {
+        if (!pastReportText.trim()) {
+            toast.error("Please enter report details");
+            return;
+        }
+
+        const dateHeader = format(pastReportDate, 'dd/MM/yyyy');
+        const currentVal = extraData.investigations || '';
+        const separator = currentVal.trim() ? (currentVal.endsWith('\n') ? '' : '\n') : '';
+        const formattedText = `${separator}${dateHeader}:\n${pastReportText.trim()}\n`;
+
+        onExtraChange('investigations', currentVal + formattedText);
+        setIsPastReportModalOpen(false);
+        setPastReportText('');
+        toast.success(`Added report for ${dateHeader}`);
     };
 
     const handleAddAISuggestion = (suggestion: { name: string, value: string | number, sourceId: string, type?: 'investigations' | 'radiology_findings' }) => {
@@ -1016,19 +1040,83 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 </div>
                                             )}
                                         </div>
-                                        {!isReadOnly && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                                                disabled={uploadingReport}
-                                                onClick={() => document.getElementById('report-upload')?.click()}
-                                            >
-                                                {uploadingReport ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileUp className="w-3 h-3" />}
-                                                Attach Report
-                                            </Button>
-                                        )}
+
+                                        <div className="flex items-center gap-2">
+                                            <Dialog open={isPastReportModalOpen} onOpenChange={setIsPastReportModalOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 text-[10px] text-muted-foreground hover:text-primary gap-1"
+                                                    >
+                                                        <History className="w-3 h-3" />
+                                                        Add Past Report
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-[425px]">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Add Historical Lab Report</DialogTitle>
+                                                    </DialogHeader>
+                                                    <div className="grid gap-4 py-4">
+                                                        <div className="flex flex-col gap-2">
+                                                            <Label className="text-xs">Report Date</Label>
+                                                            <Popover>
+                                                                <PopoverTrigger asChild>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        className={cn(
+                                                                            "w-full justify-start text-left font-normal text-xs",
+                                                                            !pastReportDate && "text-muted-foreground"
+                                                                        )}
+                                                                    >
+                                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                        {pastReportDate ? format(pastReportDate, "PPP") : <span>Pick a date</span>}
+                                                                    </Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-0" align="start">
+                                                                    <Calendar
+                                                                        mode="single"
+                                                                        selected={pastReportDate}
+                                                                        onSelect={(date) => date && setPastReportDate(date)}
+                                                                        initialFocus
+                                                                        disabled={(date) => date > new Date()}
+                                                                    />
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            <Label className="text-xs">Results</Label>
+                                                            <Textarea
+                                                                placeholder="e.g. Hb: 12.5, CRP: 8.0"
+                                                                className="text-xs min-h-[100px]"
+                                                                value={pastReportText}
+                                                                onChange={(e) => setPastReportText(e.target.value)}
+                                                            />
+                                                            <p className="text-[10px] text-muted-foreground">
+                                                                Enter parameters and values separated by colons or hyphens.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <Button size="sm" onClick={handleAddPastReport}>Add to Notes</Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+
+                                            {!isReadOnly && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                                                    disabled={uploadingReport}
+                                                    onClick={() => document.getElementById('report-upload')?.click()}
+                                                >
+                                                    {uploadingReport ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileUp className="w-3 h-3" />}
+                                                    Attach Report
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
 
                                 <div className="relative">

@@ -38,6 +38,7 @@ export interface ParsedInvestigation {
   originalText: string;
   startIndex?: number;
   endIndex?: number;
+  date?: string;
 }
 
 export class ClinicalParser {
@@ -296,8 +297,18 @@ export class ClinicalParser {
     const allResults: ParsedInvestigation[] = [];
     const lines = text.split('\n');
     
+    let currentDateContext: string | undefined = undefined;
+    const dateHeaderRegex = /^\s*(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})[:]?\s*$/;
+    
     let tempOffset = 0;
     lines.forEach((line, lineIdx) => {
+      const dateMatch = line.match(dateHeaderRegex);
+      if (dateMatch) {
+        currentDateContext = dateMatch[1];
+        tempOffset += line.length + 1;
+        return;
+      }
+
       // Added comma (,) to the allowed characters in parameter names
       const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&\\,]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.*?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&\\,]+[:=]|$)`, 'gi');
       let m;
@@ -331,7 +342,8 @@ export class ClinicalParser {
           originalText: m[0],
           startIndex: tempOffset + m.index,
           endIndex: tempOffset + m.index + m[0].length,
-          serviceId: service?.id
+          serviceId: service?.id,
+          date: currentDateContext
         });
       }
       tempOffset += line.length + 1;

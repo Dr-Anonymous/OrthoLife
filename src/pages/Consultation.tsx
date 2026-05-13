@@ -62,6 +62,8 @@ import { requestOfflineSyncNow } from '@/lib/offline-sync-events';
 import { OfflineConsultationBundle } from '@/types/offline-sync';
 import { useConsultationTimer } from '@/hooks/useConsultationTimer';
 import { Guide } from '@/types/consultation';
+import { useLimsCatalog } from '@/hooks/useLimsCatalog';
+import { ClinicalParser } from '@/lib/clinical-parser';
 
 const waitForNextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 
@@ -122,6 +124,9 @@ const ConsultationPage = () => {
   const { user } = useAuth();
   const { consultant, isReceptionist, isMasterAdmin, isLoading: isConsultantLoading } = useConsultant();
   const { hospitals, isLoading: isHospitalsLoading } = useHospitals();
+  const { data: limsCatalog, isLoading: isCatalogLoading } = useLimsCatalog();
+
+  const parser = useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
 
   // (Redirect to Auth removed to support same-page login)
 
@@ -1266,6 +1271,11 @@ const ConsultationPage = () => {
         investigations: activeExtraData.investigations,
         radiology_findings: activeExtraData.radiology_findings,
         radiology_images: activeExtraData.radiology_images,
+        investigations_parsed: parser.parse(activeExtraData.investigations || '', { 
+          sex: editablePatientDetails?.sex as any, 
+          age: typeof age === 'number' ? age : undefined 
+        }),
+        parser_version: (isCatalogLoading || !limsCatalog) ? 0 : 1,
       };
 
       // 2. PRIMARY WRITE: IndexedDB (offlineStore)
@@ -1294,6 +1304,8 @@ const ConsultationPage = () => {
         investigations: activeExtraData.investigations,
         radiology_findings: activeExtraData.radiology_findings,
         radiology_images: activeExtraData.radiology_images,
+        investigations_parsed: (offlineBundle as any).investigations_parsed,
+        parser_version: (offlineBundle as any).parser_version,
       };
 
       setSelectedConsultation(updatedConsultation);

@@ -37,4 +37,6 @@ export interface OfflineConsultationBundle {
     investigations?: string;
     radiology_findings?: string;
     radiology_images?: any[];
+    investigations_parsed?: any[];
+    parser_version?: number;
 }
