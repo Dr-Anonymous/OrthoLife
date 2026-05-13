@@ -145,7 +145,7 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
     const fields = [
         { id: 'vitals', label: 'Vitals' },
         { id: 'clinicalNotes', label: 'Clinical Notes' },
-        { id: 'investigations', label: 'Investigations' },
+        { id: 'investigations', label: 'Investigations & Radiology' },
         { id: 'diagnosis', label: 'Diagnosis' },
         { id: 'procedure', label: 'Procedure' },
         { id: 'advice', label: 'Advice' },

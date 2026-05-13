@@ -60,7 +60,7 @@ export class ClinicalParser {
       'Fasting Blood Sugar': ['FBS', 'F.B.S', 'Fasting Sugar', 'Blood Glucose Fasting', 'Glucose Fasting', 'Fasting Blood Glucose', 'Blood Sugar Fasting', 'S. Glucose Fasting', 'S.F.B.S', 'Plasma Glucose (Fasting)'],
       'Post Prandial Blood Sugar': ['PPBS', 'P.P.B.S', 'Post Prandial Sugar', 'Glucose Post Prandial', 'PP Glucose', 'S.P.P.B.S', 'Plasma Glucose (Post Prandial)'],
       'Random Blood Sugar': ['RBS', 'Random Sugar', 'Glucose Random', 'S.R.B.S', 'Plasma Glucose (Random)'],
-      'Glycated Hemoglobin': ['HbA1c', 'A1c', 'HbA1C', 'Hb A1c', 'Glycosylated Hemoglobin', 'Hba1c (Glycosylated Haemoglobin)'],
+      'Glycated Hemoglobin': ['HbA1c', 'A1c', 'HbA1C', 'Hb A1c', 'Hb A1C', 'Glycosylated Hemoglobin', 'Hba1c (Glycosylated Haemoglobin)', 'GLYCOSYLATED HAEMOGLOBIN (A1C)', 'GLYCOSYLATED HAEMOGLOBIN', 'GHB'],
       'Serum Creatinine': ['Creat', 'Creatinine', 'S.Creat', 'S Creatinine', 'S. Creatinine', 'Serum Creatinine'],
       'Uric Acid': ['S.Uric Acid', 'Serum Uric Acid', 'S Uric Acid', 'Serum Uric Acid'],
       'Blood Urea Nitrogen': ['BUN', 'Urea Nitrogen', 'BUN (Blood Urea Nitrogen)'],

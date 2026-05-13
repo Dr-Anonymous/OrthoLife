@@ -323,6 +323,7 @@ const ConsultationPage = () => {
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
 
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
+  const [sessionFileIds, setSessionFileIds] = useState<Set<string>>(new Set());
   const [pendingSelection, setPendingSelection] = useState<Consultation | null>(null);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [isMedicalCertificateModalOpen, setIsMedicalCertificateModalOpen] = useState(false);
@@ -1352,6 +1353,29 @@ const ConsultationPage = () => {
         }
       }
 
+      // 5. CLEANUP DRIVE FILES
+      const initialFiles = [
+        ...(initialExtraData.investigation_reports || []),
+        ...(initialExtraData.radiology_images || [])
+      ].map(r => r.fileId);
+
+      const currentFiles = [
+        ...(extraData.investigation_reports || []),
+        ...(extraData.radiology_images || [])
+      ].map(r => r.fileId);
+
+      const sessionFiles = Array.from(sessionFileIds);
+      const allPotentialIds = new Set([...initialFiles, ...sessionFiles]);
+      const currentIds = new Set(currentFiles);
+
+      const idsToDelete = Array.from(allPotentialIds).filter(id => id && !currentIds.has(id));
+
+      if (idsToDelete.length > 0) {
+        Promise.all(idsToDelete.map(fileId => supabase.functions.invoke('delete-file-from-drive', { body: { fileId } })))
+          .catch(err => console.error("Drive cleanup failed on save:", err));
+      }
+
+      setSessionFileIds(new Set());
       return true;
     } catch (err: any) {
       console.error('Local save failed:', err);
@@ -1360,7 +1384,7 @@ const ConsultationPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedConsultation, editablePatientDetails, extraData, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline, initialExtraData, initialLocation, initialPatientDetails, initialLanguage]);
+  }, [selectedConsultation, editablePatientDetails, extraData, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline, initialExtraData, initialLocation, initialPatientDetails, initialLanguage, sessionFileIds]);
 
 
   useEffect(() => {
@@ -1416,10 +1440,19 @@ const ConsultationPage = () => {
     setPendingSelection(null);
     setPendingPath(null);
   };
-
   const handleDiscardChanges = () => {
     setIsUnsavedModalOpen(false);
-    // No need to setHasUnsavedChanges(false) as we are selecting new data which resets initial/current state MATCH
+
+    // Identify NEWLY uploaded files to clean up from Drive
+    const sessionFiles = Array.from(sessionFileIds);
+    if (sessionFiles.length > 0) {
+      toast({ title: "Cleaning up...", description: "Removing discarded attachments from Drive." });
+      // Trigger deletions in background
+      Promise.all(sessionFiles.map(fileId => supabase.functions.invoke('delete-file-from-drive', { body: { fileId } })))
+        .catch(err => console.error("Discard cleanup failed:", err));
+    }
+
+    setSessionFileIds(new Set());
     if (pendingSelection) confirmSelection(pendingSelection);
     if (pendingPath) navigate(pendingPath);
     setPendingSelection(null);
@@ -1808,10 +1841,11 @@ const ConsultationPage = () => {
 
   // Suggestions Helpers (Protocol Logic)
 
-  const { suggestedAdvice, suggestedInvestigations, suggestedFollowup, suggestedMedications, suggestedOrthotics, suggestedMedicalHistory, suggestedFamilyHistory } = useMemo(() => {
+  const { suggestedAdvice, suggestedInvestigations, suggestedRadiology, suggestedFollowup, suggestedMedications, suggestedOrthotics, suggestedMedicalHistory, suggestedFamilyHistory } = useMemo(() => {
     const inputDerivedSuggestions = {
       advice: new Set<{ text: string; translatedText?: string; badge?: string }>(),
       investigations: new Set<string>(),
+      radiology: new Set<string>(),
       followup: new Set<{ text: string; translatedText?: string }>(),
       orthotics: new Set<{ text: string; translatedText?: string }>(),
       medicalHistory: new Set<{ text: string; translatedText?: string }>(),
@@ -1955,6 +1989,10 @@ const ConsultationPage = () => {
           }
         }
 
+        if (protocol.radiology_findings) {
+          protocol.radiology_findings.split('\n').filter(Boolean).forEach(s => inputDerivedSuggestions.radiology.add(s.trim()));
+        }
+
         if (protocol.medication_ids) {
           protocol.medication_ids.forEach(id => inputDerivedSuggestions.medicationIds.add(id));
         }
@@ -1999,15 +2037,16 @@ const ConsultationPage = () => {
       });
 
     return {
-      suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.includes(s.text)),
-      suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.includes(s)),
-      suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.includes(s.text)),
-      suggestedOrthotics: Array.from(inputDerivedSuggestions.orthotics).filter(s => !extraData.orthotics.includes(s.text)),
-      suggestedMedicalHistory: Array.from(inputDerivedSuggestions.medicalHistory).filter(s => !extraData.medicalHistory?.includes(s.text)),
-      suggestedFamilyHistory: Array.from(inputDerivedSuggestions.familyHistory).filter(s => !extraData.familyHistory?.includes(s.text)),
+      suggestedAdvice: Array.from(inputDerivedSuggestions.advice).filter(s => !extraData.advice.toLowerCase().includes(s.text.toLowerCase())),
+      suggestedInvestigations: Array.from(inputDerivedSuggestions.investigations).filter(s => !extraData.investigations.toLowerCase().includes(s.toLowerCase())),
+      suggestedRadiology: Array.from(inputDerivedSuggestions.radiology).filter(s => !extraData.radiology_findings?.toLowerCase().includes(s.toLowerCase())),
+      suggestedFollowup: Array.from(inputDerivedSuggestions.followup).filter(s => !extraData.followup.toLowerCase().includes(s.text.toLowerCase())),
+      suggestedOrthotics: Array.from(inputDerivedSuggestions.orthotics).filter(s => !extraData.orthotics.toLowerCase().includes(s.text.toLowerCase())),
+      suggestedMedicalHistory: Array.from(inputDerivedSuggestions.medicalHistory).filter(s => !extraData.medicalHistory?.toLowerCase().includes(s.text.toLowerCase())),
+      suggestedFamilyHistory: Array.from(inputDerivedSuggestions.familyHistory).filter(s => !extraData.familyHistory?.toLowerCase().includes(s.text.toLowerCase())),
       suggestedMedications: finalMedications
     };
-  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.familyHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.followup, extraData.orthotics, extraData.medications, extraData.affordabilityPreference, consultationLanguage, savedMedications, selectedLocation, selectedHospital]);
+  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.familyHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.radiology_findings, extraData.followup, extraData.orthotics, extraData.medications, extraData.affordabilityPreference, consultationLanguage, savedMedications, selectedLocation, selectedHospital]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -2613,6 +2652,7 @@ const ConsultationPage = () => {
                     orthoticsRef={orthoticsRef}
                     referredToRef={referredToRef}
                     suggestedInvestigations={suggestedInvestigations}
+                    suggestedRadiology={suggestedRadiology}
                     suggestedAdvice={suggestedAdvice}
                     suggestedOrthotics={suggestedOrthotics}
                     suggestedMedicalHistory={suggestedMedicalHistory}
@@ -2621,6 +2661,7 @@ const ConsultationPage = () => {
                     patientSex={editablePatientDetails?.sex}
                     consultationId={selectedConsultation?.id}
                     onInvestigationSuggestionClick={(val) => handleAppendSuggestion('investigations', val)}
+                    onRadiologySuggestionClick={(val) => handleAppendSuggestion('radiology_findings', val)}
                     onAdviceSuggestionClick={(val) => handleAppendSuggestion('advice', val)}
                     onOrthoticsSuggestionClick={(val) => handleAppendSuggestion('orthotics', val)}
                     onMedicalHistorySuggestionClick={(val) => handleAppendSuggestion('medicalHistory', val)}
@@ -2641,6 +2682,11 @@ const ConsultationPage = () => {
                     onLanguageChange={handleLanguageChange}
                     initialData={initialExtraData}
                     isReadOnly={isReadOnly}
+                    onFileUpload={(fileId) => setSessionFileIds(prev => {
+                      const next = new Set(prev);
+                      next.add(fileId);
+                      return next;
+                    })}
                     patientId={selectedConsultation?.patient?.id}
                     patientName={editablePatientDetails?.name}
                     onShortcutsClick={() => setIsShortcutModalOpen(true)}

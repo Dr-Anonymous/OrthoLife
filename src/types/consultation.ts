@@ -267,6 +267,7 @@ export interface AutofillProtocol {
     medical_history_te?: string;
     family_history?: string;
     family_history_te?: string;
+    radiology_findings?: string;
 }
 export interface PrintOptions {
     vitals: boolean;

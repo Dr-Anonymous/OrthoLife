@@ -55,12 +55,14 @@ interface ClinicalNotesFormProps {
 
     // Suggestions
     suggestedInvestigations: string[];
+    suggestedRadiology: string[];
     suggestedAdvice: (string | { text: string; translatedText?: string; badge?: string })[];
     suggestedOrthotics: (string | { text: string; translatedText?: string })[];
     suggestedMedicalHistory?: (string | { text: string; translatedText?: string })[];
     suggestedFamilyHistory?: (string | { text: string; translatedText?: string })[];
 
     onInvestigationSuggestionClick: (val: string) => void;
+    onRadiologySuggestionClick: (val: string) => void;
     onAdviceSuggestionClick: (val: string | { text: string; translatedText?: string; badge?: string }) => void;
     onOrthoticsSuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
     onMedicalHistorySuggestionClick: (val: string | { text: string; translatedText?: string }) => void;
@@ -89,6 +91,7 @@ interface ClinicalNotesFormProps {
     patientSex?: string;
     patientName?: string;
     consultationId?: string;
+    onFileUpload?: (fileId: string) => void;
 }
 
 
@@ -119,11 +122,13 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     orthoticsRef,
     referredToRef,
     suggestedInvestigations,
+    suggestedRadiology,
     suggestedAdvice,
     suggestedOrthotics,
     suggestedMedicalHistory = [],
     suggestedFamilyHistory = [],
     onInvestigationSuggestionClick,
+    onRadiologySuggestionClick,
     onAdviceSuggestionClick,
     onOrthoticsSuggestionClick,
     onMedicalHistorySuggestionClick,
@@ -149,14 +154,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     patientAge,
     patientSex,
     patientName,
-    consultationId
+    consultationId,
+    onFileUpload
 }) => {
     const queryClient = useQueryClient();
     const { data: investigationHistory } = useInvestigationHistory(patientId);
     const [uploadingReport, setUploadingReport] = React.useState<boolean>(false);
     const [uploadingRadiology, setUploadingRadiology] = React.useState<boolean>(false);
     const [generatingSummaryId, setGeneratingSummaryId] = React.useState<string | null>(null);
-    const [pendingDeletions, setPendingDeletions] = React.useState<string[]>([]);
     const { data: limsCatalog, isLoading: isCatalogLoading } = useLimsCatalog();
     const [investigationSearch, setInvestigationSearch] = React.useState('');
     const [activeInvestigationIndex, setActiveInvestigationIndex] = React.useState(0);
@@ -167,21 +172,21 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const [isTrendsOpen, setIsTrendsOpen] = React.useState(false);
     const [selectedTrendTestId, setSelectedTrendTestId] = React.useState<string | null>(null);
     const [editingInvestigation, setEditingInvestigation] = React.useState<{ key: string, value: string } | null>(null);
-    const [extractedAIFindings, setExtractedAIFindings] = React.useState<Array<{ name: string, value: string | number, sourceId: string }>>([]);
+    const [extractedAIFindings, setExtractedAIFindings] = React.useState<Array<{ name: string, value: string | number, sourceId: string, type?: 'investigations' | 'radiology_findings' }>>([]);
 
     const handleOpenTrends = (testId?: string) => {
         setSelectedTrendTestId(testId || null);
         setIsTrendsOpen(true);
     };
 
-    const handleAddAISuggestion = (suggestion: { name: string, value: string | number, sourceId: string }) => {
-        const textToAppend = `${suggestion.name}: ${suggestion.value}\n`;
-        const currentVal = extraData.investigations || '';
-        onExtraChange('investigations', currentVal + (currentVal.endsWith('\n') || currentVal === '' ? '' : '\n') + textToAppend);
-
-        // Remove from staging after adding
-        setExtractedAIFindings(prev => prev.filter(f => f !== suggestion));
-        toast.success(`Added ${suggestion.name} to notes`);
+    const handleAddAISuggestion = (suggestion: { name: string, value: string | number, sourceId: string, type?: 'investigations' | 'radiology_findings' }) => {
+        const textToAppend = `${suggestion.name}: ${suggestion.value}`;
+        const isRadiology = extraData.radiology_images?.some(r => r.fileId === suggestion.sourceId);
+        const targetField = isRadiology ? 'radiology_findings' : 'investigations';
+        const currentVal = extraData[targetField] || '';
+        const separator = currentVal.trim() ? (currentVal.endsWith('\n') ? '' : '\n') : '';
+        onExtraChange(targetField, currentVal + separator + textToAppend + '\n');
+        toast.success(`Added ${suggestion.name} to ${isRadiology ? 'Radiology' : 'Labs'}`);
     };
 
     const handleInvestigationValueChange = (res: any, newValue: string) => {
@@ -340,10 +345,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
         // Only search if current line looks like a name (no colon/value yet)
         if (currentLine.trim().length > 1 && !currentLine.includes(':') && !currentLine.includes('-')) {
-            setInvestigationSearch(currentLine.trim());
+            const query = currentLine.trim().toLowerCase();
+            setInvestigationSearch(query);
 
-            // Ghost text check
-            const matchedHistory = investigationHistory?.[currentLine.trim().toLowerCase()]?.[0];
+            // Ghost text check - support both "name" and "id:name" key formats
+            const historyKeys = Object.keys(investigationHistory || {});
+            const historyKey = historyKeys.find(k => k === query || k.endsWith(':' + query));
+            const matchedHistory = historyKey ? investigationHistory[historyKey][0] : null;
+
             if (matchedHistory) {
                 setGhostText(`: ${matchedHistory.value}`);
             } else {
@@ -460,40 +469,6 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         }).slice(0, 20) || [];
     }, [limsCatalog, radiologySearch]);
 
-    // We use a ref to track the last saved consultation ID to know when a "save" happened
-    const lastSavedIdRef = React.useRef<string | number | null | undefined>(initialData?.investigation_reports ? 'initialized' : null);
-
-    // Effect to handle actual deletions from Drive ONLY after a save is detected
-    // We detect a "save" by checking if the current extraData.investigation_reports
-    // is now the "initial" content (meaning saveChanges synced them)
-    React.useEffect(() => {
-        if (pendingDeletions.length === 0) return;
-
-        // Check if the current report list in extraData matches the "initial" list
-        // (meaning Consultation.tsx has completed its save/sync cycle)
-        const currentReports = extraData.investigation_reports || [];
-        const initialReports = initialData?.investigation_reports || [];
-        const currentScans = extraData.radiology_images || [];
-        const initialScans = initialData?.radiology_images || [];
-
-        const isSynced = JSON.stringify(currentReports) === JSON.stringify(initialReports) &&
-            JSON.stringify(currentScans) === JSON.stringify(initialScans);
-
-        if (isSynced && lastSavedIdRef.current !== 'initialized') {
-            console.log('Save detected, executing pending Drive deletions:', pendingDeletions);
-
-            pendingDeletions.forEach(fileId => {
-                supabase.functions.invoke('delete-file-from-drive', {
-                    body: { fileId }
-                }).catch(err => console.error('Delayed delete error:', err));
-            });
-
-            setPendingDeletions([]);
-        }
-
-        lastSavedIdRef.current = 'active';
-    }, [extraData.investigation_reports, initialData?.investigation_reports, extraData.radiology_images, initialData?.radiology_images, pendingDeletions]);
-
     // Auto-focus Procedure textarea when expanded
     React.useEffect(() => {
         if (isProcedureExpanded && procedureRef?.current) {
@@ -546,6 +521,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
                 const currentReports = extraData.investigation_reports || [];
                 onExtraChange('investigation_reports', [...currentReports, newReport]);
+                if (onFileUpload) onFileUpload(data.file.id);
                 toast.success('Report uploaded successfully');
             } catch (error: any) {
                 console.error('Upload error:', error);
@@ -590,6 +566,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
                 const currentReports = extraData.radiology_images || [];
                 onExtraChange('radiology_images', [...currentReports, newReport]);
+                if (onFileUpload) onFileUpload(data.file.id);
                 toast.success('Radiology image uploaded successfully');
             } catch (error: any) {
                 console.error('Radiology upload error:', error);
@@ -603,7 +580,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         reader.readAsDataURL(file);
     };
 
-    const generateAISummary = async (report: InvestigationReport, index: number) => {
+    const generateAISummary = async (report: InvestigationReport, index: number, type: 'lab' | 'radiology' = 'lab') => {
         if (!report.fileId) return;
 
         setGeneratingSummaryId(report.fileId);
@@ -611,25 +588,33 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             const { data, error } = await supabase.functions.invoke('summarize-report', {
                 body: {
                     fileId: report.fileId,
-                    mimeType: report.mimeType
+                    mimeType: report.mimeType,
+                    type
                 }
             });
 
             if (error) throw error;
             if (data.error) throw new Error(data.error);
 
-            const newList = [...(extraData.investigation_reports || [])];
-            newList[index] = { ...report, gist: data.summary };
-            onExtraChange('investigation_reports', newList);
+            if (type === 'lab') {
+                const newList = [...(extraData.investigation_reports || [])];
+                newList[index] = { ...report, gist: data.summary };
+                onExtraChange('investigation_reports', newList);
+            } else {
+                const newList = [...(extraData.radiology_images || [])];
+                newList[index] = { ...report, gist: data.summary };
+                onExtraChange('radiology_images', newList);
+            }
 
             if (data.extractedData && Array.isArray(data.extractedData)) {
                 const findingsWithSource = data.extractedData.map((f: any) => ({
                     ...f,
-                    sourceId: report.fileId
+                    sourceId: report.fileId,
+                    type: type === 'lab' ? 'investigations' : 'radiology_findings'
                 }));
                 setExtractedAIFindings(prev => [...prev, ...findingsWithSource]);
             }
-            toast.success('AI summary and suggestions generated');
+            toast.success('AI analysis completed');
         } catch (error: any) {
             console.error('AI Summary error:', error);
             toast.error(error.message || 'Failed to generate summary');
@@ -998,36 +983,53 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         {/* Left Column: Labs */}
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <Label htmlFor="investigations" className="text-sm font-medium">Labs</Label>
-                                        {allHistoryDates.length > 0 && (
+                                    <div className="flex items-center justify-between mb-2 gap-4">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <Label htmlFor="investigations" className="text-sm font-medium shrink-0">Labs</Label>
+                                            {allHistoryDates.length > 0 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                                                    title="View Trends"
+                                                    onClick={() => handleOpenTrends()}
+                                                    disabled={!patientId}
+                                                >
+                                                    <TrendingUp className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            
+                                            {!isReadOnly && suggestedInvestigations.length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5 ml-2">
+                                                    {suggestedInvestigations.map((inv, idx) => (
+                                                        <Button
+                                                            key={idx}
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-auto px-2 py-1 text-xs"
+                                                            onClick={() => onInvestigationSuggestionClick(inv)}
+                                                        >
+                                                            {inv}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {!isReadOnly && (
                                             <Button
+                                                type="button"
                                                 variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors"
-                                                title="View Trends"
-                                                onClick={() => handleOpenTrends()}
-                                                disabled={!patientId}
+                                                size="sm"
+                                                className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                                                disabled={uploadingReport}
+                                                onClick={() => document.getElementById('report-upload')?.click()}
                                             >
-                                                <TrendingUp className="h-4 w-4" />
+                                                {uploadingReport ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileUp className="w-3 h-3" />}
+                                                Attach Report
                                             </Button>
                                         )}
                                     </div>
-                                    {!isReadOnly && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
-                                            disabled={uploadingReport}
-                                            onClick={() => document.getElementById('report-upload')?.click()}
-                                        >
-                                            {uploadingReport ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileUp className="w-3 h-3" />}
-                                            Attach Report
-                                        </Button>
-                                    )}
-                                </div>
 
                                 <div className="relative">
                                     <Textarea
@@ -1047,7 +1049,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         }}
                                     />
                                     {ghostText && (
-                                        <div className="absolute top-0 left-0 p-3 pointer-events-none text-transparent whitespace-pre-wrap font-mono text-[14px]">
+                                        <div className="absolute top-0 left-0 px-3 py-2 pointer-events-none text-transparent whitespace-pre-wrap font-sans text-sm">
                                             {extraData.investigations}
                                             <span className="text-muted-foreground/30">{ghostText}</span>
                                         </div>
@@ -1094,49 +1096,43 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         </div>
                                     )}
                                 </div>
-                                {!isReadOnly && suggestedInvestigations.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5 mt-3 animate-in fade-in slide-in-from-left-2">
-                                        {suggestedInvestigations.map((inv, idx) => (
-                                            <Button
-                                                key={idx}
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-7 text-[10px] font-bold px-2 py-0 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all rounded-lg active:scale-95"
-                                                onClick={() => onInvestigationSuggestionClick(inv)}
-                                            >
-                                                {inv}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
 
                             {/* AI Extracted Findings */}
-                            {extractedAIFindings.length > 0 && (
-                                <div className="p-4 bg-primary/[0.03] border border-primary/10 rounded-2xl animate-in fade-in slide-in-from-top-2">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="relative">
-                                            <Brain className="w-4 h-4 text-primary" />
-                                            <div className="absolute inset-0 bg-primary/20 blur-sm animate-pulse rounded-full" />
+                            {(() => {
+                                const visibleFindings = extractedAIFindings.filter(finding => {
+                                    const textToMatch = `${finding.name}: ${finding.value}`;
+                                    const fieldToCheck = finding.type === 'radiology_findings' ? (extraData.radiology_findings || '') : (extraData.investigations || '');
+                                    return !fieldToCheck.includes(textToMatch);
+                                });
+
+                                if (visibleFindings.length === 0) return null;
+
+                                return (
+                                    <div className="p-4 bg-primary/[0.03] border border-primary/10 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="relative">
+                                                <Brain className="w-4 h-4 text-primary" />
+                                                <div className="absolute inset-0 bg-primary/20 blur-sm animate-pulse rounded-full" />
+                                            </div>
+                                            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">AI Extracted Findings</span>
                                         </div>
-                                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">AI Extracted Findings</span>
+                                        <div className="flex flex-wrap gap-2">
+                                            {visibleFindings.map((finding, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleAddAISuggestion(finding)}
+                                                    className="flex items-center gap-2 px-3 py-2 bg-white border border-primary/10 rounded-xl text-xs hover:bg-primary hover:text-white transition-all shadow-sm hover:shadow-md group active:scale-95"
+                                                >
+                                                    <span className="font-bold">{finding.name}</span>
+                                                    <span className="opacity-60">{finding.value}</span>
+                                                    <Plus className="w-3 h-3 ml-1 opacity-30 group-hover:opacity-100" />
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {extractedAIFindings.map((finding, idx) => (
-                                            <button
-                                                key={idx}
-                                                onClick={() => handleAddAISuggestion(finding)}
-                                                className="flex items-center gap-2 px-3 py-2 bg-white border border-primary/10 rounded-xl text-xs hover:bg-primary hover:text-white transition-all shadow-sm hover:shadow-md group active:scale-95"
-                                            >
-                                                <span className="font-bold">{finding.name}</span>
-                                                <span className="opacity-60">{finding.value}</span>
-                                                <Plus className="w-3 h-3 ml-1 opacity-30 group-hover:opacity-100" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                );
+                            })()}
 
                             {/* Attached Lab Reports */}
                             {extraData.investigation_reports && extraData.investigation_reports.length > 0 && (
@@ -1144,56 +1140,76 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Attached Lab Reports</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         {extraData.investigation_reports.map((report, idx) => (
-                                            <div key={report.fileId || idx} className="group relative flex flex-col p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/20 overflow-hidden">
+                                            <div 
+                                                key={report.fileId || idx} 
+                                                className="group relative flex flex-col p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/40 overflow-hidden cursor-pointer"
+                                                onClick={() => window.open(`https://drive.google.com/file/d/${report.fileId}/view`, '_blank')}
+                                            >
                                                 <div className="flex items-center justify-between gap-3">
                                                     <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="p-2.5 rounded-lg bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                                        <div className="p-2.5 rounded-lg bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
                                                             <FileText className="w-4 h-4" />
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="text-[11px] font-bold text-slate-700 truncate leading-tight">{report.fileName}</span>
+                                                            <span className="text-[11px] font-bold text-slate-700 truncate leading-tight group-hover:text-primary group-hover:underline transition-colors">{report.fileName}</span>
                                                             <span className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold mt-0.5">Lab Report</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-50" onClick={() => window.open(`https://drive.google.com/file/d/${report.fileId}/view`, '_blank')}>
-                                                            <Download className="w-3.5 h-3.5" />
-                                                        </Button>
                                                         {!isReadOnly && (
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/5" onClick={() => {
-                                                                const newList = [...(extraData.investigation_reports || [])];
-                                                                const r = newList[idx];
-                                                                if (r.fileId) setPendingDeletions(prev => [...prev, r.fileId]);
-                                                                newList.splice(idx, 1);
-                                                                onExtraChange('investigation_reports', newList);
-                                                                setExtractedAIFindings(prev => prev.filter(f => f.sourceId !== report.fileId));
-                                                            }}>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-7 w-7 text-destructive hover:bg-destructive/5" 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const newList = [...(extraData.investigation_reports || [])];
+                                                                    newList.splice(idx, 1);
+                                                                    onExtraChange('investigation_reports', newList);
+                                                                    setExtractedAIFindings(prev => prev.filter(f => f.sourceId !== report.fileId));
+                                                                }}
+                                                            >
                                                                 <X className="h-3.5 h-3.5" />
                                                             </Button>
                                                         )}
                                                     </div>
                                                 </div>
-                                                {report.gist ? (
-                                                    <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100 text-[10px] text-slate-600 italic leading-relaxed">
+                                                {report.gist && report.gist.trim() !== '' && (
+                                                    <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100 text-[10px] text-slate-600 italic leading-relaxed group/gist relative">
                                                         "{report.gist}"
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="absolute top-1 right-1 h-6 px-1.5 text-[8px] bg-white border opacity-0 group-hover/gist:opacity-100 transition-opacity"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const currentVal = extraData.investigations || '';
+                                                                onExtraChange('investigations', currentVal + (currentVal.trim() ? '\n' : '') + report.gist);
+                                                                toast.success('Summary added to notes');
+                                                            }}
+                                                        >
+                                                            Add to Notes
+                                                        </Button>
                                                     </div>
-                                                ) : (
-                                                    !isReadOnly && (
-                                                        <div className="mt-3 pt-3 border-t border-slate-50">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className={cn(
-                                                                    "h-8 text-[10px] w-full font-bold tracking-wide transition-all",
-                                                                    generatingSummaryId === report.fileId ? "bg-slate-50 text-slate-400" : "hover:bg-primary hover:text-white border-primary/20 text-primary"
-                                                                )}
-                                                                disabled={generatingSummaryId === report.fileId}
-                                                                onClick={() => generateAISummary(report, idx)}
-                                                            >
-                                                                {generatingSummaryId === report.fileId ? <><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Analyzing...</> : <><Brain className="w-3 h-3 mr-2" /> Generate AI Summary</>}
-                                                            </Button>
-                                                        </div>
-                                                    )
+                                                )}
+                                                {!report.gist && !isReadOnly && (
+                                                    <div className="mt-3 pt-3 border-t border-slate-50">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className={cn(
+                                                                "h-8 text-[10px] w-full font-bold tracking-wide transition-all",
+                                                                generatingSummaryId === report.fileId ? "bg-slate-50 text-slate-400" : "hover:bg-primary hover:text-white border-primary/20 text-primary"
+                                                            )}
+                                                            disabled={generatingSummaryId === report.fileId}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                generateAISummary(report, idx, 'lab');
+                                                            }}
+                                                        >
+                                                            {generatingSummaryId === report.fileId ? <><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Analyzing...</> : <><Brain className="w-3 h-3 mr-2" /> Generate AI Summary</>}
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </div>
                                         ))}
@@ -1206,14 +1222,32 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         {/* Right Column: Radiology */}
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between mb-2">
-                                    <Label htmlFor="radiology_findings" className="text-sm font-medium">Radiology</Label>
+                                <div className="flex items-center justify-between mb-2 gap-4">
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <Label htmlFor="radiology_findings" className="text-sm font-medium shrink-0">Radiology</Label>
+                                        {!isReadOnly && suggestedRadiology.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 ml-2">
+                                                {suggestedRadiology.map((scan, idx) => (
+                                                    <Button
+                                                        key={idx}
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-auto px-2 py-1 text-xs"
+                                                        onClick={() => onRadiologySuggestionClick(scan)}
+                                                    >
+                                                        {scan}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     {!isReadOnly && (
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="sm"
-                                            className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5"
+                                            className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
                                             disabled={uploadingRadiology}
                                             onClick={() => document.getElementById('radiology-upload')?.click()}
                                         >
@@ -1235,10 +1269,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             const lines = value.substring(0, selectionStart).split('\n');
                                             const currentLine = lines[lines.length - 1];
                                             if (currentLine.trim().length > 1 && !currentLine.includes(':')) {
-                                                setRadiologySearch(currentLine.trim());
+                                                const query = currentLine.trim().toLowerCase();
+                                                setRadiologySearch(query);
 
-                                                // Ghost text check for radiology
-                                                const matchedHistory = investigationHistory?.[currentLine.trim().toLowerCase()]?.[0];
+                                                // Ghost text check for radiology - support both "name" and "id:name" key formats
+                                                const historyKeys = Object.keys(investigationHistory || {});
+                                                const historyKey = historyKeys.find(k => k === query || k.endsWith(':' + query));
+                                                const matchedHistory = historyKey ? investigationHistory[historyKey][0] : null;
+
                                                 if (matchedHistory) {
                                                     setRadiologyGhostText(`: ${matchedHistory.value}`);
                                                 } else {
@@ -1297,7 +1335,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         }}
                                     />
                                     {radiologyGhostText && (
-                                        <div className="absolute top-0 left-0 p-3 pointer-events-none text-transparent whitespace-pre-wrap font-mono text-[14px]">
+                                        <div className="absolute top-0 left-0 px-3 py-2 pointer-events-none text-transparent whitespace-pre-wrap font-sans text-sm">
                                             {extraData.radiology_findings}
                                             <span className="text-muted-foreground/30">{radiologyGhostText}</span>
                                         </div>
@@ -1342,33 +1380,78 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Attached Scans</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         {extraData.radiology_images.map((image, idx) => (
-                                            <div key={image.fileId || idx} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/20 overflow-hidden">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="p-2.5 rounded-lg bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                                        <FileText className="w-4 h-4" />
+                                            <div 
+                                                key={image.fileId || idx} 
+                                                className="group relative flex flex-col p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/40 overflow-hidden cursor-pointer"
+                                                onClick={() => window.open(`https://drive.google.com/file/d/${image.fileId}/view`, '_blank')}
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="p-2.5 rounded-lg bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+                                                            <FileText className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-[11px] font-bold text-slate-700 truncate leading-tight group-hover:text-primary group-hover:underline transition-colors">{image.fileName}</span>
+                                                            <span className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold mt-0.5">Radiology Scan</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="text-[11px] font-bold text-slate-700 truncate leading-tight">{image.fileName}</span>
-                                                        <span className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold mt-0.5">Radiology Scan</span>
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {!isReadOnly && (
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-7 w-7 text-destructive hover:bg-destructive/5" 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const newList = [...(extraData.radiology_images || [])];
+                                                                    newList.splice(idx, 1);
+                                                                    onExtraChange('radiology_images', newList);
+                                                                    toast.info('Scan removed. Changes permanent after saving.');
+                                                                }}
+                                                            >
+                                                                <X className="h-3.5 h-3.5" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-50" onClick={() => window.open(`https://drive.google.com/file/d/${image.fileId}/view`, '_blank')}>
-                                                        <Download className="w-3.5 h-3.5" />
-                                                    </Button>
-                                                    {!isReadOnly && (
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/5" onClick={() => {
-                                                            const newList = [...(extraData.radiology_images || [])];
-                                                            const img = newList[idx];
-                                                            if (img.fileId) setPendingDeletions(prev => [...prev, img.fileId]);
-                                                            newList.splice(idx, 1);
-                                                            onExtraChange('radiology_images', newList);
-                                                            toast.info('Scan removed. Changes permanent after saving.');
-                                                        }}>
-                                                            <X className="h-3.5 h-3.5" />
+                                                {image.gist ? (
+                                                    <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100 text-[10px] text-slate-600 italic leading-relaxed group/gist relative">
+                                                        "{image.gist}"
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="absolute top-1 right-1 h-6 px-1.5 text-[8px] bg-white border opacity-0 group-hover/gist:opacity-100 transition-opacity"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const currentVal = extraData.radiology_findings || '';
+                                                                onExtraChange('radiology_findings', currentVal + (currentVal.trim() ? '\n' : '') + image.gist);
+                                                                toast.success('Summary added to findings');
+                                                            }}
+                                                        >
+                                                            Add to Notes
                                                         </Button>
-                                                    )}
-                                                </div>
+                                                    </div>
+                                                ) : (
+                                                    !isReadOnly && (
+                                                        <div className="mt-3 pt-3 border-t border-slate-50">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className={cn(
+                                                                    "h-8 text-[10px] w-full font-bold tracking-wide transition-all",
+                                                                    generatingSummaryId === image.fileId ? "bg-slate-50 text-slate-400" : "hover:bg-primary hover:text-white border-primary/20 text-primary"
+                                                                )}
+                                                                disabled={generatingSummaryId === image.fileId}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    generateAISummary(image, idx, 'radiology');
+                                                                }}
+                                                            >
+                                                                {generatingSummaryId === image.fileId ? <><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Analyzing...</> : <><Brain className="w-3 h-3 mr-2" /> Generate AI Summary</>}
+                                                            </Button>
+                                                        </div>
+                                                    )
+                                                )}
                                             </div>
                                         ))}
                                     </div>

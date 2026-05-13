@@ -13,35 +13,36 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { fileContent, fileId, mimeType } = await req.json();
-    
+    const { fileContent, fileId, mimeType, type } = await req.json();
+    const isLab = type === 'lab';
+
     let base64Data = '';
     let finalMimeType = mimeType;
 
     if (fileId) {
-        // Fetch from Google Drive
-        const accessToken = await getGoogleAccessToken();
-        const driveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
+      // Fetch from Google Drive
+      const accessToken = await getGoogleAccessToken();
+      const driveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+
+      if (!driveResponse.ok) {
+        throw new Error(`Failed to fetch file from Drive: ${driveResponse.status}`);
+      }
+
+      const blob = await driveResponse.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      base64Data = encode(new Uint8Array(arrayBuffer));
+
+      if (!finalMimeType) {
+        const metaResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-
-        if (!driveResponse.ok) {
-            throw new Error(`Failed to fetch file from Drive: ${driveResponse.status}`);
-        }
-
-        const blob = await driveResponse.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        base64Data = encode(new Uint8Array(arrayBuffer));
-        
-        if (!finalMimeType) {
-            const metaResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            const meta = await metaResponse.json();
-            finalMimeType = meta.mimeType;
-        }
+        const meta = await metaResponse.json();
+        finalMimeType = meta.mimeType;
+      }
     } else if (fileContent) {
-        base64Data = fileContent.includes(',') ? fileContent.split(',')[1] : fileContent;
+      base64Data = fileContent.includes(',') ? fileContent.split(',')[1] : fileContent;
     }
 
     if (!base64Data || !finalMimeType) {
@@ -59,10 +60,21 @@ serve(async (req: Request) => {
       });
     }
 
-    const systemPrompt = `You are a clinical assistant. 
-Analyze the provided medical report (X-ray, blood test, MRI, etc.) and provide:
-1. A very concise gist (2-3 sentences).
-2. A structured array of extracted findings (e.g., {"name": "Hb", "value": "12.5"}).
+    const systemPrompt = isLab 
+      ? `You are a clinical assistant. 
+Analyze the provided blood test/lab report.
+Extract a structured array of findings (e.g., {"name": "Hb", "value": "12.5 mg/dL"}).
+Do NOT provide a text summary/gist. Keep "summary" field empty string.
+
+IMPORTANT: Return ONLY a valid JSON object in the following format:
+{
+  "summary": "",
+  "extractedData": [{"name": "...", "value": "..."}]
+}`
+      : `You are a clinical assistant. 
+Analyze the provided radiology scan (X-ray, MRI, CT, etc.).
+Provide a very concise gist (exactly 2 sentences) summarizing the key impression or finding.
+Extract a structured array of key observations if any.
 
 IMPORTANT: Return ONLY a valid JSON object in the following format:
 {
@@ -70,7 +82,7 @@ IMPORTANT: Return ONLY a valid JSON object in the following format:
   "extractedData": [{"name": "...", "value": "..."}]
 }`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,15 +120,15 @@ IMPORTANT: Return ONLY a valid JSON object in the following format:
 
     const data = await response.json();
     const rawText = data.candidates[0].content.parts[0].text.trim();
-    
+
     // Parse the JSON returned by Gemini
     let aiData;
     try {
-        aiData = JSON.parse(rawText);
+      aiData = JSON.parse(rawText);
     } catch (e) {
-        console.error("Failed to parse AI JSON:", rawText);
-        // Fallback to plain text if JSON parsing fails
-        aiData = { summary: rawText, extractedData: [] };
+      console.error("Failed to parse AI JSON:", rawText);
+      // Fallback to plain text if JSON parsing fails
+      aiData = { summary: rawText, extractedData: [] };
     }
 
     return new Response(JSON.stringify(aiData), {
