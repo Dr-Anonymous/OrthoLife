@@ -1,4 +1,4 @@
-import { Patient, Medication } from './consultation';
+import { Patient, Medication, ParsedInvestigation } from './consultation';
 
 export interface OfflineConsultationBundle {
     schemaVersion: 2;
@@ -37,6 +37,6 @@ export interface OfflineConsultationBundle {
     investigations?: string;
     radiology_findings?: string;
     radiology_images?: any[];
-    investigations_parsed?: any[];
+    investigations_parsed?: ParsedInvestigation[];
     parser_version?: number;
 }

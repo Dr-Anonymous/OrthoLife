@@ -41,6 +41,22 @@ export interface DrugWarning {
     message: string;
 }
 
+export interface ParsedInvestigation {
+  id: string;
+  name: string;
+  value: number | string;
+  unit?: string;
+  status: 'normal' | 'high' | 'low' | 'critical-high' | 'critical-low' | 'unknown';
+  range?: string;
+  criticalAlert?: string;
+  serviceId?: string;
+  prevValue?: number | string;
+  originalText: string;
+  startIndex?: number;
+  endIndex?: number;
+  date?: string;
+}
+
 export interface Patient {
     id: string;
     name: string;
@@ -162,6 +178,8 @@ export interface Consultation {
     investigations?: string;
     radiology_findings?: string;
     radiology_images?: InvestigationReport[];
+    investigations_parsed?: ParsedInvestigation[];
+    parser_version?: number;
     last_visit_date?: string;
     duration?: number;
     procedure_fee?: number | null;

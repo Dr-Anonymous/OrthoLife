@@ -1,5 +1,6 @@
 import { normalizeSearchText } from './utils';
 import { analyzeResultValue } from './lims-utils';
+import { ParsedInvestigation } from '@/types/consultation';
 
 export interface LimsService {
   id: string;
@@ -25,21 +26,6 @@ export interface LimsRange {
   criticalAlertMessage?: string;
 }
 
-export interface ParsedInvestigation {
-  id: string;
-  name: string;
-  value: number | string;
-  unit?: string;
-  status: 'normal' | 'high' | 'low' | 'critical-high' | 'critical-low' | 'unknown';
-  range?: string;
-  criticalAlert?: string;
-  serviceId?: string;
-  prevValue?: number | string;
-  originalText: string;
-  startIndex?: number;
-  endIndex?: number;
-  date?: string;
-}
 
 export class ClinicalParser {
   private services: LimsService[] = [];
@@ -309,12 +295,16 @@ export class ClinicalParser {
         return;
       }
 
-      // Added comma (,) to the allowed characters in parameter names
-      const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&\\,]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.*?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&\\,]+[:=]|$)`, 'gi');
+      // Improved regex: less greedy on commas, and better lookahead
+      // This regex handles "Name: Value", "Name = Value", "Name - Value"
+      const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.*?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&]+[:=]|,|$)`, 'gi');
+      
       let m;
+      let matchedIndices = new Set<number>();
+
       while ((m = regex.exec(line)) !== null) {
         const rawName = m[1].trim();
-        const rawValue = (m[3] || '').trim();
+        const rawValue = (m[3] || '').trim().replace(/,$/, ''); // Remove trailing comma from value
         if (rawName.length < 2 || !/[a-zA-Z0-9]/.test(rawName)) continue;
 
         const cleanValue = rawValue.replace(/\s+/g, '');
@@ -345,6 +335,51 @@ export class ClinicalParser {
           serviceId: service?.id,
           date: currentDateContext
         });
+
+        for (let i = m.index; i < m.index + m[0].length; i++) matchedIndices.add(i);
+      }
+
+      // 2. Fallback: Look for "Name Value" pairs for known synonyms (e.g., "FBS 120")
+      // Split remaining parts of the line by spaces/commas and check for known terms
+      const remainingText = line.split('').map((char, i) => matchedIndices.has(i) ? ' ' : char).join('');
+      const tokens = remainingText.split(/[\s,]+/);
+      
+      for (let i = 0; i < tokens.length - 1; i++) {
+        const token = tokens[i].trim();
+        const nextToken = tokens[i+1].trim();
+        
+        if (token.length < 2) continue;
+        
+        const service = this.findServiceByName(token);
+        if (service) {
+          // Check if next token is a value (numeric or status keyword)
+          const isNumeric = /^[<>=]?\d*\.?\d+$/.test(nextToken);
+          const isStatus = ['positive', 'negative', 'reactive', 'nil', 'normal', 'abnormal'].includes(nextToken.toLowerCase());
+          
+          if (isNumeric || isStatus) {
+            const value = isNumeric ? parseFloat(nextToken.replace(/[<>=]/g, '')) : nextToken;
+            const matchedRange = this.findRange(service.id, token, age, pSex);
+            let status: ParsedInvestigation['status'] = 'unknown';
+            if (matchedRange) {
+              status = this.getStatus(value, matchedRange);
+            }
+
+            allResults.push({
+              id: service.id,
+              name: matchedRange?.parameter_name || service.name,
+              value,
+              status,
+              range: matchedRange?.display_range || matchedRange?.normalRange || '',
+              criticalAlert: (status === 'critical-high' || status === 'critical-low') ? matchedRange?.criticalAlertMessage : undefined,
+              originalText: `${token} ${nextToken}`,
+              startIndex: tempOffset + line.indexOf(token),
+              endIndex: tempOffset + line.indexOf(nextToken) + nextToken.length,
+              serviceId: service.id,
+              date: currentDateContext
+            });
+            i++; // Skip the value token
+          }
+        }
       }
       tempOffset += line.length + 1;
     });

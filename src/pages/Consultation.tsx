@@ -1304,8 +1304,8 @@ const ConsultationPage = () => {
         investigations: activeExtraData.investigations,
         radiology_findings: activeExtraData.radiology_findings,
         radiology_images: activeExtraData.radiology_images,
-        investigations_parsed: (offlineBundle as any).investigations_parsed,
-        parser_version: (offlineBundle as any).parser_version,
+        investigations_parsed: offlineBundle.investigations_parsed,
+        parser_version: offlineBundle.parser_version,
       };
 
       setSelectedConsultation(updatedConsultation);
@@ -1396,7 +1396,7 @@ const ConsultationPage = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedConsultation, editablePatientDetails, extraData, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline, initialExtraData, initialLocation, initialPatientDetails, initialLanguage, sessionFileIds]);
+  }, [selectedConsultation, editablePatientDetails, extraData, consultationLanguage, selectedHospital, timerSeconds, stopTimer, isTimerPausedRef, isOnline, initialExtraData, initialLocation, initialPatientDetails, initialLanguage, sessionFileIds, parser, limsCatalog, isCatalogLoading, age]);
 
 
   useEffect(() => {

@@ -16,11 +16,11 @@ import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { normalizeSearchText } from '@/lib/utils';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 
 import { useLimsCatalog } from '@/hooks/useLimsCatalog';
 import { useInvestigationHistory, HistoricalResult } from '@/hooks/useInvestigationHistory';
-import { ClinicalParser } from '@/lib/clinical-parser';
+import { ClinicalParser, ParsedInvestigation } from '@/lib/clinical-parser';
+import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import InvestigationTrends from './InvestigationTrends';
 
 interface ClinicalNotesFormProps {
@@ -180,6 +180,18 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const [isPastReportModalOpen, setIsPastReportModalOpen] = React.useState(false);
     const [pastReportDate, setPastReportDate] = React.useState<Date>(new Date());
     const [pastReportText, setPastReportText] = React.useState('');
+    const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+    const [pastReportSearch, setPastReportSearch] = React.useState('');
+    const [activePastReportIndex, setActivePastReportIndex] = React.useState(0);
+    const pastReportRef = React.useRef<HTMLTextAreaElement>(null);
+
+    const [isPastRadiologyModalOpen, setIsPastRadiologyModalOpen] = React.useState(false);
+    const [pastRadiologyDate, setPastRadiologyDate] = React.useState<Date>(new Date());
+    const [pastRadiologyText, setPastRadiologyText] = React.useState('');
+    const [isRadiologyCalendarOpen, setIsRadiologyCalendarOpen] = React.useState(false);
+    const [pastRadiologySearch, setPastRadiologySearch] = React.useState('');
+    const [activePastRadiologyIndex, setActivePastRadiologyIndex] = React.useState(0);
+    const pastRadiologyRef = React.useRef<HTMLTextAreaElement>(null);
 
     const handleOpenTrends = (testId?: string) => {
         setSelectedTrendTestId(testId || null);
@@ -201,6 +213,23 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         setIsPastReportModalOpen(false);
         setPastReportText('');
         toast.success(`Added report for ${dateHeader}`);
+    };
+
+    const handleAddPastRadiology = () => {
+        if (!pastRadiologyText.trim()) {
+            toast.error("Please enter radiology details");
+            return;
+        }
+
+        const dateHeader = format(pastRadiologyDate, 'dd/MM/yyyy');
+        const currentVal = extraData.radiology_findings || '';
+        const separator = currentVal.trim() ? (currentVal.endsWith('\n') ? '' : '\n') : '';
+        const formattedText = `${separator}${dateHeader}:\n${pastRadiologyText.trim()}\n`;
+
+        onExtraChange('radiology_findings', currentVal + formattedText);
+        setIsPastRadiologyModalOpen(false);
+        setPastRadiologyText('');
+        toast.success(`Added radiology finding for ${dateHeader}`);
     };
 
     const handleAddAISuggestion = (suggestion: { name: string, value: string | number, sourceId: string, type?: 'investigations' | 'radiology_findings' }) => {
@@ -310,20 +339,53 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
         }).slice(0, 15); // Show latest 15 historical dates to match trend density
     }, [investigationHistory, consultationId]);
 
-    const displayInvestigations = React.useMemo(() => {
-        const list = [...parsedInvestigations];
+    const allTypedHistoryDates = React.useMemo(() => {
+        const dateSet = new Set<string>();
+        parsedInvestigations.forEach(res => {
+            if (res.date) {
+                // Parser provides DD/MM/YYYY, format to DD/MM/YY for consistency in headers
+                const parts = res.date.split(/[/.-]/);
+                if (parts.length === 3) {
+                    const day = parts[0].padStart(2, '0');
+                    const month = parts[1].padStart(2, '0');
+                    const year = parts[2].slice(-2);
+                    dateSet.add(`${day}/${month}/${year}`);
+                }
+            }
+        });
+        return Array.from(dateSet);
+    }, [parsedInvestigations]);
 
+    const combinedHistoryDates = React.useMemo(() => {
+        const allDates = new Set([...allHistoryDates, ...allTypedHistoryDates]);
+        return Array.from(allDates).sort((a, b) => {
+            const [da, ma, ya] = a.split('/').map(Number);
+            const [db, mb, yb] = b.split('/').map(Number);
+            const dateA = new Date(ya + 2000, ma - 1, da).getTime();
+            const dateB = new Date(yb + 2000, mb - 1, db).getTime();
+            return dateB - dateA;
+        }).slice(0, 15);
+    }, [allHistoryDates, allTypedHistoryDates]);
+
+    const displayInvestigations = React.useMemo(() => {
+        // Group by parameter name to ensure unique rows
+        const grouped = new Map<string, ParsedInvestigation>();
+
+        // 1. First add truly "current" investigations (those without a date context in text)
+        parsedInvestigations.forEach(res => {
+            const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+            if (!res.date) {
+                grouped.set(groupKey, res);
+            }
+        });
+
+        // 2. Then add items from history that aren't present in current
         if (investigationHistory) {
             Object.entries(investigationHistory).forEach(([groupKey, history]: [string, HistoricalResult[]]) => {
                 const hasOtherHistory = history.some(h => !consultationId || String(h.consultationId) !== String(consultationId));
                 if (!hasOtherHistory) return;
 
-                const isAlreadyPresent = list.some(item => {
-                    const itemKey = item.id ? `${item.id}:${item.name.toLowerCase()}` : item.name.toLowerCase();
-                    return itemKey === groupKey;
-                });
-
-                if (!isAlreadyPresent) {
+                if (!grouped.has(groupKey)) {
                     const [serviceIdFromKey, ...nameParts] = groupKey.includes(':') ? groupKey.split(':') : ['', groupKey];
                     const testName = nameParts.join(':') || groupKey;
 
@@ -333,7 +395,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         sex: patientSex
                     });
 
-                    list.push({
+                    grouped.set(groupKey, {
                         id: serviceIdFromKey || (resolved?.serviceId || ''),
                         name: resolved?.name || testName,
                         value: '-',
@@ -345,8 +407,24 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                 }
             });
         }
-        return list;
-    }, [parsedInvestigations, investigationHistory, limsCatalog, parser, consultationId]);
+
+        // 3. Finally, add parameters that only exist in typed historical reports
+        parsedInvestigations.forEach(res => {
+            if (res.date) {
+                const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+                if (!grouped.has(groupKey)) {
+                    grouped.set(groupKey, {
+                        ...res,
+                        value: '-',
+                        status: 'unknown',
+                        isHistoricalOnly: true
+                    } as any);
+                }
+            }
+        });
+
+        return Array.from(grouped.values());
+    }, [parsedInvestigations, investigationHistory, limsCatalog, parser, consultationId, patientAge, patientSex]);
 
     const hasAnyInvestigationData = displayInvestigations.length > 0;
 
@@ -357,6 +435,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     React.useEffect(() => {
         setActiveRadiologyIndex(0);
     }, [radiologySearch]);
+
+    React.useEffect(() => {
+        setActivePastReportIndex(0);
+    }, [pastReportSearch]);
+
+    React.useEffect(() => {
+        setActivePastRadiologyIndex(0);
+    }, [pastRadiologySearch]);
 
     const handleInvestigationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
@@ -492,6 +578,42 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             return normalizedName.includes(query);
         }).slice(0, 20) || [];
     }, [limsCatalog, radiologySearch]);
+
+    const filteredPastReportTests = React.useMemo(() => {
+        const query = normalizeSearchText(pastReportSearch);
+        if (!query) return [];
+        
+        const matches: any[] = [];
+        limsCatalog?.services?.forEach(s => {
+            if (s.type === 'SCAN') return;
+            const serviceName = normalizeSearchText(s.name);
+            const nameMatch = serviceName.includes(query);
+            
+            const matchingParams = s.result_schema?.filter(p => {
+                const pName = normalizeSearchText(p.name || '');
+                return pName.includes(query);
+            }) || [];
+
+            if (nameMatch || matchingParams.length > 0) {
+                matches.push({ type: 'service', id: s.id, name: s.name, data: s });
+                matchingParams.forEach(p => {
+                    if (normalizeSearchText(p.name) === serviceName) return;
+                    matches.push({ type: 'parameter', id: `${s.id}-${p.name}`, name: p.name, parentName: s.name, data: s });
+                });
+            }
+        });
+        return matches.slice(0, 15);
+    }, [limsCatalog, pastReportSearch]);
+
+    const filteredPastRadiologyScans = React.useMemo(() => {
+        const query = normalizeSearchText(pastRadiologySearch);
+        if (!query) return [];
+        return limsCatalog?.services?.filter(s => {
+            const type = s.type?.toUpperCase();
+            if (type !== 'SCAN') return false;
+            return normalizeSearchText(s.name).includes(query);
+        }).slice(0, 15) || [];
+    }, [limsCatalog, pastRadiologySearch]);
 
     // Auto-focus Procedure textarea when expanded
     React.useEffect(() => {
@@ -1007,117 +1129,186 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                         {/* Left Column: Labs */}
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                    <div className="flex items-center justify-between mb-2 gap-4">
-                                        <div className="flex items-center gap-3 flex-wrap">
-                                            <Label htmlFor="investigations" className="text-sm font-medium shrink-0">Labs</Label>
-                                            {allHistoryDates.length > 0 && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors shrink-0"
-                                                    title="View Trends"
-                                                    onClick={() => handleOpenTrends()}
-                                                    disabled={!patientId}
-                                                >
-                                                    <TrendingUp className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                            
-                                            {!isReadOnly && suggestedInvestigations.length > 0 && (
-                                                <div className="flex flex-wrap gap-1.5 ml-2">
-                                                    {suggestedInvestigations.map((inv, idx) => (
-                                                        <Button
-                                                            key={idx}
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="h-auto px-2 py-1 text-xs"
-                                                            onClick={() => onInvestigationSuggestionClick(inv)}
-                                                        >
-                                                            {inv}
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                <div className="flex items-center justify-between mb-2 gap-4">
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <Label htmlFor="investigations" className="text-sm font-medium shrink-0">Labs</Label>
+                                        {allHistoryDates.length > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                                                title="View Trends"
+                                                onClick={() => handleOpenTrends()}
+                                                disabled={!patientId}
+                                            >
+                                                <TrendingUp className="h-4 w-4" />
+                                            </Button>
+                                        )}
 
-                                        <div className="flex items-center gap-2">
-                                            <Dialog open={isPastReportModalOpen} onOpenChange={setIsPastReportModalOpen}>
-                                                <DialogTrigger asChild>
+                                        {!isReadOnly && suggestedInvestigations.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 ml-2">
+                                                {suggestedInvestigations.map((inv, idx) => (
                                                     <Button
-                                                        variant="ghost"
+                                                        key={idx}
+                                                        type="button"
+                                                        variant="outline"
                                                         size="sm"
-                                                        className="h-7 text-[10px] text-muted-foreground hover:text-primary gap-1"
+                                                        className="h-auto px-2 py-1 text-xs"
+                                                        onClick={() => onInvestigationSuggestionClick(inv)}
                                                     >
-                                                        <History className="w-3 h-3" />
-                                                        Add Past Report
+                                                        {inv}
                                                     </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="sm:max-w-[425px]">
-                                                    <DialogHeader>
-                                                        <DialogTitle>Add Historical Lab Report</DialogTitle>
-                                                    </DialogHeader>
-                                                    <div className="grid gap-4 py-4">
-                                                        <div className="flex flex-col gap-2">
-                                                            <Label className="text-xs">Report Date</Label>
-                                                            <Popover>
-                                                                <PopoverTrigger asChild>
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        className={cn(
-                                                                            "w-full justify-start text-left font-normal text-xs",
-                                                                            !pastReportDate && "text-muted-foreground"
-                                                                        )}
-                                                                    >
-                                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                        {pastReportDate ? format(pastReportDate, "PPP") : <span>Pick a date</span>}
-                                                                    </Button>
-                                                                </PopoverTrigger>
-                                                                <PopoverContent className="w-auto p-0" align="start">
-                                                                    <Calendar
-                                                                        mode="single"
-                                                                        selected={pastReportDate}
-                                                                        onSelect={(date) => date && setPastReportDate(date)}
-                                                                        initialFocus
-                                                                        disabled={(date) => date > new Date()}
-                                                                    />
-                                                                </PopoverContent>
-                                                            </Popover>
-                                                        </div>
-                                                        <div className="flex flex-col gap-2">
-                                                            <Label className="text-xs">Results</Label>
-                                                            <Textarea
-                                                                placeholder="e.g. Hb: 12.5, CRP: 8.0"
-                                                                className="text-xs min-h-[100px]"
-                                                                value={pastReportText}
-                                                                onChange={(e) => setPastReportText(e.target.value)}
-                                                            />
-                                                            <p className="text-[10px] text-muted-foreground">
-                                                                Enter parameters and values separated by colons or hyphens.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button size="sm" onClick={handleAddPastReport}>Add to Notes</Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
 
-                                            {!isReadOnly && (
+                                    <div className="flex items-center gap-2">
+                                        <Dialog open={isPastReportModalOpen} onOpenChange={setIsPastReportModalOpen}>
+                                            <DialogTrigger asChild>
                                                 <Button
-                                                    type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                                                    disabled={uploadingReport}
-                                                    onClick={() => document.getElementById('report-upload')?.click()}
+                                                    className="h-7 text-[10px] text-muted-foreground hover:text-primary gap-1"
                                                 >
-                                                    {uploadingReport ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileUp className="w-3 h-3" />}
-                                                    Attach Report
+                                                    <History className="w-3 h-3" />
+                                                    Add Past Report
                                                 </Button>
-                                            )}
-                                        </div>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[425px]">
+                                                <DialogHeader>
+                                                    <DialogTitle>Add Historical Lab Report</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="grid gap-4 py-4">
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label className="text-xs">Report Date</Label>
+                                                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                                                            <PopoverTrigger asChild>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className={cn(
+                                                                        "w-full justify-start text-left font-normal text-xs",
+                                                                        !pastReportDate && "text-muted-foreground"
+                                                                    )}
+                                                                >
+                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                    {pastReportDate ? format(pastReportDate, "PPP") : <span>Pick a date</span>}
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-auto p-0" align="start">
+                                                                <CalendarWithMonthYearPicker
+                                                                    selected={pastReportDate}
+                                                                    onSelect={(date) => {
+                                                                        if (date) {
+                                                                            setPastReportDate(date);
+                                                                        }
+                                                                    }}
+                                                                    onClose={() => setIsCalendarOpen(false)}
+                                                                    disabled={(date) => date > new Date()}
+                                                                    fromYear={2000}
+                                                                    toYear={new Date().getFullYear()}
+                                                                />
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2 relative">
+                                                        <Label className="text-xs">Results</Label>
+                                                        <Textarea
+                                                            ref={pastReportRef}
+                                                            placeholder="e.g. Hb: 12.5, CRP: 8.0"
+                                                            className="text-xs min-h-[100px]"
+                                                            value={pastReportText}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                const pos = e.target.selectionStart;
+                                                                setPastReportText(val);
+                                                                const lines = val.substring(0, pos).split('\n');
+                                                                const lastLine = lines[lines.length - 1];
+                                                                if (lastLine.trim().length > 1 && !lastLine.includes(':')) {
+                                                                    setPastReportSearch(lastLine.trim().toLowerCase());
+                                                                } else {
+                                                                    setPastReportSearch('');
+                                                                }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (filteredPastReportTests.length > 0) {
+                                                                    if (e.key === 'ArrowDown') {
+                                                                        e.preventDefault();
+                                                                        setActivePastReportIndex(prev => (prev + 1) % filteredPastReportTests.length);
+                                                                    } else if (e.key === 'ArrowUp') {
+                                                                        e.preventDefault();
+                                                                        setActivePastReportIndex(prev => (prev - 1 + filteredPastReportTests.length) % filteredPastReportTests.length);
+                                                                    } else if (e.key === 'Enter' && pastReportSearch) {
+                                                                        e.preventDefault();
+                                                                        const selected = filteredPastReportTests[activePastReportIndex];
+                                                                        if (selected) {
+                                                                            const pos = pastReportRef.current?.selectionStart || pastReportText.length;
+                                                                            const lines = pastReportText.substring(0, pos).split('\n');
+                                                                            const lastLine = lines[lines.length - 1];
+                                                                            const before = pastReportText.substring(0, pos - lastLine.length);
+                                                                            const after = pastReportText.substring(pos);
+                                                                            const newName = selected.name.toUpperCase() + ': ';
+                                                                            setPastReportText(before + newName + after);
+                                                                            setPastReportSearch('');
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }}
+                                                        />
+                                                        {pastReportSearch && filteredPastReportTests.length > 0 && (
+                                                            <div className="absolute top-full left-0 z-[110] mt-1 w-full bg-popover border rounded-lg shadow-xl max-h-[160px] overflow-auto p-1">
+                                                                {filteredPastReportTests.map((test, idx) => (
+                                                                    <button
+                                                                        key={test.id}
+                                                                        className={cn(
+                                                                            "w-full text-left px-2 py-1.5 text-xs rounded-md flex flex-col",
+                                                                            idx === activePastReportIndex ? "bg-primary text-white" : "hover:bg-muted"
+                                                                        )}
+                                                                        onMouseDown={(e) => e.preventDefault()}
+                                                                        onClick={() => {
+                                                                            const pos = pastReportRef.current?.selectionStart || pastReportText.length;
+                                                                            const lines = pastReportText.substring(0, pos).split('\n');
+                                                                            const lastLine = lines[lines.length - 1];
+                                                                            const before = pastReportText.substring(0, pos - lastLine.length);
+                                                                            const after = pastReportText.substring(pos);
+                                                                            const newName = test.name.toUpperCase() + ': ';
+                                                                            setPastReportText(before + newName + after);
+                                                                            setPastReportSearch('');
+                                                                            pastReportRef.current?.focus();
+                                                                        }}
+                                                                    >
+                                                                        <span className="font-medium">{test.name}</span>
+                                                                        {test.parentName && <span className="text-[10px] opacity-70">{test.parentName}</span>}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            Enter parameters and values separated by colons or hyphens.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button size="sm" onClick={handleAddPastReport}>Add to Notes</Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+
+                                        {!isReadOnly && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                                                disabled={uploadingReport}
+                                                onClick={() => document.getElementById('report-upload')?.click()}
+                                            >
+                                                {uploadingReport ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileUp className="w-3 h-3" />}
+                                                Attach Report
+                                            </Button>
+                                        )}
                                     </div>
+                                </div>
 
                                 <div className="relative">
                                     <Textarea
@@ -1228,8 +1419,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Attached Lab Reports</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         {extraData.investigation_reports.map((report, idx) => (
-                                            <div 
-                                                key={report.fileId || idx} 
+                                            <div
+                                                key={report.fileId || idx}
                                                 className="group relative flex flex-col p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/40 overflow-hidden cursor-pointer"
                                                 onClick={() => window.open(`https://drive.google.com/file/d/${report.fileId}/view`, '_blank')}
                                             >
@@ -1245,10 +1436,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     </div>
                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         {!isReadOnly && (
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                className="h-7 w-7 text-destructive hover:bg-destructive/5" 
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-destructive hover:bg-destructive/5"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     const newList = [...(extraData.investigation_reports || [])];
@@ -1265,9 +1456,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 {report.gist && report.gist.trim() !== '' && (
                                                     <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100 text-[10px] text-slate-600 italic leading-relaxed group/gist relative">
                                                         "{report.gist}"
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm" 
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
                                                             className="absolute top-1 right-1 h-6 px-1.5 text-[8px] bg-white border opacity-0 group-hover/gist:opacity-100 transition-opacity"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -1330,19 +1521,147 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                    {!isReadOnly && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                                            disabled={uploadingRadiology}
-                                            onClick={() => document.getElementById('radiology-upload')?.click()}
-                                        >
-                                            {uploadingRadiology ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileUp className="w-3.5 h-3.5 text-primary" />}
-                                            Attach Scan
-                                        </Button>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <Dialog open={isPastRadiologyModalOpen} onOpenChange={setIsPastRadiologyModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-[10px] text-muted-foreground hover:text-primary gap-1"
+                                                >
+                                                    <History className="w-3 h-3" />
+                                                    Add Past Report
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[425px]">
+                                                <DialogHeader>
+                                                    <DialogTitle>Add Historical Radiology Report</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="grid gap-4 py-4">
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label className="text-xs">Report Date</Label>
+                                                        <Popover open={isRadiologyCalendarOpen} onOpenChange={setIsRadiologyCalendarOpen}>
+                                                            <PopoverTrigger asChild>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className={cn(
+                                                                        "w-full justify-start text-left font-normal text-xs",
+                                                                        !pastRadiologyDate && "text-muted-foreground"
+                                                                    )}
+                                                                >
+                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                    {pastRadiologyDate ? format(pastRadiologyDate, "PPP") : <span>Pick a date</span>}
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-auto p-0" align="start">
+                                                                <CalendarWithMonthYearPicker
+                                                                    selected={pastRadiologyDate}
+                                                                    onSelect={(date) => {
+                                                                        if (date) {
+                                                                            setPastRadiologyDate(date);
+                                                                        }
+                                                                    }}
+                                                                    onClose={() => setIsRadiologyCalendarOpen(false)}
+                                                                    disabled={(date) => date > new Date()}
+                                                                    fromYear={2000}
+                                                                    toYear={new Date().getFullYear()}
+                                                                />
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2 relative">
+                                                        <Label className="text-xs">Findings</Label>
+                                                        <Textarea
+                                                            ref={pastRadiologyRef}
+                                                            placeholder="e.g. X-Ray Knee: Normal findings"
+                                                            className="text-xs min-h-[100px]"
+                                                            value={pastRadiologyText}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                const pos = e.target.selectionStart;
+                                                                setPastRadiologyText(val);
+                                                                const lines = val.substring(0, pos).split('\n');
+                                                                const lastLine = lines[lines.length - 1];
+                                                                if (lastLine.trim().length > 1 && !lastLine.includes(':')) {
+                                                                    setPastRadiologySearch(lastLine.trim().toLowerCase());
+                                                                } else {
+                                                                    setPastRadiologySearch('');
+                                                                }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (filteredPastRadiologyScans.length > 0) {
+                                                                    if (e.key === 'ArrowDown') {
+                                                                        e.preventDefault();
+                                                                        setActivePastRadiologyIndex(prev => (prev + 1) % filteredPastRadiologyScans.length);
+                                                                    } else if (e.key === 'ArrowUp') {
+                                                                        e.preventDefault();
+                                                                        setActivePastRadiologyIndex(prev => (prev - 1 + filteredPastRadiologyScans.length) % filteredPastRadiologyScans.length);
+                                                                    } else if (e.key === 'Enter' && pastRadiologySearch) {
+                                                                        e.preventDefault();
+                                                                        const selected = filteredPastRadiologyScans[activePastRadiologyIndex];
+                                                                        if (selected) {
+                                                                            const pos = pastRadiologyRef.current?.selectionStart || pastRadiologyText.length;
+                                                                            const lines = pastRadiologyText.substring(0, pos).split('\n');
+                                                                            const lastLine = lines[lines.length - 1];
+                                                                            const before = pastRadiologyText.substring(0, pos - lastLine.length);
+                                                                            const after = pastRadiologyText.substring(pos);
+                                                                            const newName = selected.name.toUpperCase() + ': ';
+                                                                            setPastRadiologyText(before + newName + after);
+                                                                            setPastRadiologySearch('');
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }}
+                                                        />
+                                                        {pastRadiologySearch && filteredPastRadiologyScans.length > 0 && (
+                                                            <div className="absolute top-full left-0 z-[110] mt-1 w-full bg-popover border rounded-lg shadow-xl max-h-[160px] overflow-auto p-1">
+                                                                {filteredPastRadiologyScans.map((scan, idx) => (
+                                                                    <button
+                                                                        key={scan.id}
+                                                                        className={cn(
+                                                                            "w-full text-left px-2 py-1.5 text-xs rounded-md",
+                                                                            idx === activePastRadiologyIndex ? "bg-primary text-white" : "hover:bg-muted"
+                                                                        )}
+                                                                        onMouseDown={(e) => e.preventDefault()}
+                                                                        onClick={() => {
+                                                                            const pos = pastRadiologyRef.current?.selectionStart || pastRadiologyText.length;
+                                                                            const lines = pastRadiologyText.substring(0, pos).split('\n');
+                                                                            const lastLine = lines[lines.length - 1];
+                                                                            const before = pastRadiologyText.substring(0, pos - lastLine.length);
+                                                                            const after = pastRadiologyText.substring(pos);
+                                                                            const newName = scan.name.toUpperCase() + ': ';
+                                                                            setPastRadiologyText(before + newName + after);
+                                                                            setPastRadiologySearch('');
+                                                                            pastRadiologyRef.current?.focus();
+                                                                        }}
+                                                                    >
+                                                                        {scan.name}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button size="sm" onClick={handleAddPastRadiology}>Add to Notes</Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+
+                                        {!isReadOnly && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 px-2 text-xs text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                                                disabled={uploadingRadiology}
+                                                onClick={() => document.getElementById('radiology-upload')?.click()}
+                                            >
+                                                {uploadingRadiology ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileUp className="w-3.5 h-3.5 text-primary" />}
+                                                Attach Scan
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="relative">
@@ -1468,8 +1787,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Attached Scans</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         {extraData.radiology_images.map((image, idx) => (
-                                            <div 
-                                                key={image.fileId || idx} 
+                                            <div
+                                                key={image.fileId || idx}
                                                 className="group relative flex flex-col p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/40 overflow-hidden cursor-pointer"
                                                 onClick={() => window.open(`https://drive.google.com/file/d/${image.fileId}/view`, '_blank')}
                                             >
@@ -1485,10 +1804,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     </div>
                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         {!isReadOnly && (
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                className="h-7 w-7 text-destructive hover:bg-destructive/5" 
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-destructive hover:bg-destructive/5"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     const newList = [...(extraData.radiology_images || [])];
@@ -1505,9 +1824,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 {image.gist ? (
                                                     <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100 text-[10px] text-slate-600 italic leading-relaxed group/gist relative">
                                                         "{image.gist}"
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm" 
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
                                                             className="absolute top-1 right-1 h-6 px-1.5 text-[8px] bg-white border opacity-0 group-hover/gist:opacity-100 transition-opacity"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -1558,7 +1877,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         <tr className="bg-slate-50 border-b border-slate-200">
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider">Current</th>
-                                            {allHistoryDates.map(date => (
+                                            {combinedHistoryDates.map(date => (
                                                 <th key={date} className="px-2 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">{date}</th>
                                             ))}
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Range</th>
@@ -1647,16 +1966,39 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                             })()}
                                                         </div>
                                                     </td>
-                                                    {allHistoryDates.map(date => {
+                                                    {combinedHistoryDates.map(date => {
                                                         const groupKey = res.id ? `${res.id}:${res.name.toLowerCase()}` : res.name.toLowerCase();
+
+                                                        // 1. Check database history
                                                         const hist = investigationHistory?.[groupKey]?.find(h =>
                                                             h.date &&
                                                             format(new Date(h.date), 'dd/MM/yy') === date &&
                                                             (!consultationId || h.consultationId !== consultationId)
                                                         );
+
+                                                        // 2. Check typed historical results
+                                                        const typedItem = parsedInvestigations.find(r => {
+                                                            const rKey = r.id ? `${r.id}:${r.name.toLowerCase()}` : r.name.toLowerCase();
+                                                            if (rKey !== groupKey || !r.date) return false;
+                                                            const parts = r.date.split(/[/.-]/);
+                                                            const day = parts[0].padStart(2, '0');
+                                                            const month = parts[1].padStart(2, '0');
+                                                            const year = parts[2].slice(-2);
+                                                            return `${day}/${month}/${year}` === date;
+                                                        });
+
+                                                        const val = hist?.value || typedItem?.value || '-';
+                                                        const status = hist?.status || typedItem?.status || 'unknown';
+
                                                         return (
-                                                            <td key={date} className="px-2 py-1.5 text-[10px] text-slate-400 tabular-nums">
-                                                                {hist ? hist.value : '-'}
+                                                            <td key={date} className={cn(
+                                                                "px-2 py-1.5 text-[10px] whitespace-nowrap tabular-nums",
+                                                                status === 'normal' && "text-emerald-600/70",
+                                                                (status === 'high' || status === 'low') && "text-amber-600/70",
+                                                                (status === 'critical-high' || status === 'critical-low') && "text-rose-600 font-bold",
+                                                                status === 'unknown' && "text-slate-300"
+                                                            )}>
+                                                                {val}
                                                             </td>
                                                         );
                                                     })}
