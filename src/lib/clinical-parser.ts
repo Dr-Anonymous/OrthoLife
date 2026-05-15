@@ -297,14 +297,16 @@ export class ClinicalParser {
 
       // Improved regex: less greedy on commas, and better lookahead
       // This regex handles "Name: Value", "Name = Value", "Name - Value"
-      const regex = new RegExp(`([a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&]+?)([:=]|\\s-\\s|(?<=[a-zA-Z0-9])-(?=\\s))\\s*(.*?)(?=\\s+[a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&]+[:=]|,|$)`, 'gi');
+      // Ultimate Simplification: One test per line. 
+      // Captures the first "Name: Value" pattern and treats the rest of the line as the value.
+      const regex = new RegExp(`^\\s*([a-zA-Z0-9\\s\\-\\.\\/\\(\\)\\&]+?)([:=])\\s*(.*)$`, 'gi');
       
       let m;
       let matchedIndices = new Set<number>();
 
       while ((m = regex.exec(line)) !== null) {
         const rawName = m[1].trim();
-        const rawValue = (m[3] || '').trim().replace(/,$/, ''); // Remove trailing comma from value
+        const rawValue = (m[3] || '').trim().replace(/[,;]$/, ''); // Remove trailing comma/semicolon
         if (rawName.length < 2 || !/[a-zA-Z0-9]/.test(rawName)) continue;
 
         const cleanValue = rawValue.replace(/\s+/g, '');
@@ -346,10 +348,17 @@ export class ClinicalParser {
       
       for (let i = 0; i < tokens.length - 1; i++) {
         const token = tokens[i].trim();
-        const nextToken = tokens[i+1].trim();
-        
         if (token.length < 2) continue;
         
+        let nextToken = (tokens[i+1] || '').trim();
+        let tokenSkipCount = 1;
+
+        // Skip lone hyphen if present (e.g., "Hb - 12")
+        if (nextToken === '-' && tokens[i+2]) {
+          nextToken = tokens[i+2].trim();
+          tokenSkipCount = 2;
+        }
+
         const service = this.findServiceByName(token);
         if (service) {
           // Check if next token is a value (numeric or status keyword)
@@ -371,13 +380,14 @@ export class ClinicalParser {
               status,
               range: matchedRange?.display_range || matchedRange?.normalRange || '',
               criticalAlert: (status === 'critical-high' || status === 'critical-low') ? matchedRange?.criticalAlertMessage : undefined,
-              originalText: `${token} ${nextToken}`,
+              originalText: tokenSkipCount === 2 ? `${token} - ${nextToken}` : `${token} ${nextToken}`,
               startIndex: tempOffset + line.indexOf(token),
               endIndex: tempOffset + line.indexOf(nextToken) + nextToken.length,
               serviceId: service.id,
               date: currentDateContext
             });
-            i++; // Skip the value token
+            i += tokenSkipCount; 
+            break; // One test per line
           }
         }
       }

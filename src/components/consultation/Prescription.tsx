@@ -323,7 +323,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <FlaskConical className="h-4 w-4" />
                   <span>Investigations:</span>
                 </h3>
-                <p className="whitespace-pre-wrap">{consultation.investigations}</p>
+                <p className="text-justify leading-relaxed">
+                  {consultation.investigations.split('\n').filter(l => l.trim()).join('; ')}
+                </p>
               </div>
             )}
             {consultation.radiology_findings && effectivePrintOptions.investigations && (
@@ -332,7 +334,9 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <Microscope className="h-4 w-4" />
                   <span>Radiology Findings:</span>
                 </h3>
-                <p className="whitespace-pre-wrap">{consultation.radiology_findings}</p>
+                <p className="text-justify leading-relaxed">
+                  {consultation.radiology_findings.split('\n').filter(l => l.trim()).join('; ')}
+                </p>
               </div>
             )}
             {consultation.diagnosis && effectivePrintOptions.diagnosis && (

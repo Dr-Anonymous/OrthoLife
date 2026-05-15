@@ -39,20 +39,20 @@ async function backfill() {
 
   const parser = new ClinicalParser(services || [], ranges || []);
 
-  // 2. Fetch all consultations with unparsed investigations (version < 1)
-  console.log('🔎 Querying unparsed consultations...');
+  // 2. Fetch all consultations to update with new parser logic (version < 2)
+  console.log('🔎 Querying consultations for v2 parsing...');
   const { data: consultations, error } = await supabase
     .from('consultations')
-    .select('id, investigations, patients(sex, dob)')
-    .not('investigations', 'is', null)
-    .lt('parser_version', 1);
+    .select('id, investigations, radiology_findings, consultation_data, patients(sex, dob)')
+    .or('investigations.not.is.null,radiology_findings.not.is.null')
+    .lt('parser_version', 4);
 
   if (error) {
     console.error('❌ Error fetching consultations:', error);
     return;
   }
 
-  console.log(`📦 Found ${consultations?.length} consultations to parse.`);
+  console.log(`📦 Found ${consultations?.length} consultations to process.`);
 
   if (!consultations || consultations.length === 0) return;
 
@@ -63,11 +63,23 @@ async function backfill() {
     console.log(`⏳ Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(consultations.length / batchSize)}...`);
 
     const updates = batch.map(c => {
-      // Fix #5: Parse ONLY investigations (exclude radiology findings)
-      // Fix #2: Pass metadata object instead of bare string
       const patient = c.patients as { sex: 'M' | 'F' | 'O' | 'Other' | 'Male' | 'Female' | 'Unknown', dob: string } | null;
-      const parsed = parser.parse(c.investigations || '', {
-        sex: patient?.sex,
+      
+      // Extract historical data from JSON blob if present
+      const cData = (c.consultation_data || {}) as any;
+      const pastInv = cData.past_investigations || '';
+      const pastRad = cData.past_radiology || '';
+
+      // Combine ALL fields for parsing
+      const combinedText = [
+        c.investigations || '',
+        c.radiology_findings || '',
+        pastInv,
+        pastRad
+      ].filter(t => t.trim().length > 0).join('\n');
+
+      const parsed = parser.parse(combinedText, {
+        sex: patient?.sex as any,
         age: patient?.dob ? calculateAge(new Date(patient.dob)) : undefined
       });
       
@@ -75,7 +87,7 @@ async function backfill() {
         .from('consultations')
         .update({
           investigations_parsed: parsed,
-          parser_version: 1
+          parser_version: 4
         })
         .eq('id', c.id);
     });

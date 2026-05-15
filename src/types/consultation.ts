@@ -264,8 +264,10 @@ export interface ExtraData {
     affordabilityPreference: string;
     orthotics?: string;
     radiology_findings?: string;
-    radiology_images?: InvestigationReport[];
     investigation_reports?: InvestigationReport[];
+    radiology_images?: InvestigationReport[];
+    past_investigations?: string;
+    past_radiology?: string;
     certificates?: CertificateData[];
     receipts?: ReceiptData[];
 }

@@ -14,12 +14,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import AutosuggestInput, { Suggestion } from '@/components/ui/AutosuggestInput';
 import { normalizeSearchText } from '@/lib/utils';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import { useLimsCatalog } from '@/hooks/useLimsCatalog';
 import { useInvestigationHistory, HistoricalResult } from '@/hooks/useInvestigationHistory';
-import { ClinicalParser, ParsedInvestigation } from '@/lib/clinical-parser';
+import { ClinicalParser } from '@/lib/clinical-parser';
+import { ParsedInvestigation } from '@/types/consultation';
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import InvestigationTrends from './InvestigationTrends';
 
@@ -39,6 +40,8 @@ interface ClinicalNotesFormProps {
         referred_to: string;
         referred_to_list?: string[];
         investigation_reports?: InvestigationReport[];
+        past_investigations?: string;
+        past_radiology?: string;
     };
     patientId?: string;
     onExtraChange: (field: string, value: any, cursorPosition?: number | null) => void;
@@ -204,15 +207,44 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             return;
         }
 
-        const dateHeader = format(pastReportDate, 'dd/MM/yyyy');
-        const currentVal = extraData.investigations || '';
-        const separator = currentVal.trim() ? (currentVal.endsWith('\n') ? '' : '\n') : '';
-        const formattedText = `${separator}${dateHeader}:\n${pastReportText.trim()}\n`;
+        const dateHeader = format(pastReportDate, 'dd/MM/yyyy') + ':';
+        const currentVal = extraData.past_investigations || '';
+        const newLines = pastReportText.trim().split('\n');
 
-        onExtraChange('investigations', currentVal + formattedText);
-        setIsPastReportModalOpen(false);
+        let updatedText = currentVal;
+        const dateIndex = currentVal.indexOf(dateHeader);
+
+        if (dateIndex !== -1) {
+            const lines = currentVal.split('\n');
+            const headerIdx = lines.findIndex(l => l.trim() === dateHeader);
+            let endIdx = lines.findIndex((l, i) => i > headerIdx && /^\d{2}\/\d{2}\/\d{4}:/.test(l.trim()));
+            if (endIdx === -1) endIdx = lines.length;
+
+            const sectionLines = lines.slice(headerIdx + 1, endIdx);
+            const remainingLines = lines.slice(endIdx);
+            const beforeLines = lines.slice(0, headerIdx + 1);
+
+            newLines.forEach(newLine => {
+                const parts = newLine.split(/[:\-]/);
+                if (parts.length > 1) {
+                    const testName = parts[0].trim().toLowerCase();
+                    const existingLineIdx = sectionLines.findIndex(l => l.toLowerCase().startsWith(testName + ':') || l.toLowerCase().startsWith(testName + '-'));
+                    if (existingLineIdx !== -1) sectionLines[existingLineIdx] = newLine;
+                    else sectionLines.push(newLine);
+                } else {
+                    sectionLines.push(newLine);
+                }
+            });
+
+            updatedText = [...beforeLines, ...sectionLines, ...remainingLines].join('\n');
+        } else {
+            const separator = currentVal.trim() ? (currentVal.endsWith('\n') ? '' : '\n\n') : '';
+            updatedText = currentVal + separator + dateHeader + '\n' + pastReportText.trim() + '\n';
+        }
+
+        onExtraChange('past_investigations', updatedText);
         setPastReportText('');
-        toast.success(`Added report for ${dateHeader}`);
+        toast.success(`Historical report added`);
     };
 
     const handleAddPastRadiology = () => {
@@ -221,15 +253,44 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             return;
         }
 
-        const dateHeader = format(pastRadiologyDate, 'dd/MM/yyyy');
-        const currentVal = extraData.radiology_findings || '';
-        const separator = currentVal.trim() ? (currentVal.endsWith('\n') ? '' : '\n') : '';
-        const formattedText = `${separator}${dateHeader}:\n${pastRadiologyText.trim()}\n`;
+        const dateHeader = format(pastRadiologyDate, 'dd/MM/yyyy') + ':';
+        const currentVal = extraData.past_radiology || '';
+        const newLines = pastRadiologyText.trim().split('\n');
 
-        onExtraChange('radiology_findings', currentVal + formattedText);
-        setIsPastRadiologyModalOpen(false);
+        let updatedText = currentVal;
+        const dateIndex = currentVal.indexOf(dateHeader);
+
+        if (dateIndex !== -1) {
+            const lines = currentVal.split('\n');
+            const headerIdx = lines.findIndex(l => l.trim() === dateHeader);
+            let endIdx = lines.findIndex((l, i) => i > headerIdx && /^\d{2}\/\d{2}\/\d{4}:/.test(l.trim()));
+            if (endIdx === -1) endIdx = lines.length;
+
+            const sectionLines = lines.slice(headerIdx + 1, endIdx);
+            const remainingLines = lines.slice(endIdx);
+            const beforeLines = lines.slice(0, headerIdx + 1);
+
+            newLines.forEach(newLine => {
+                const parts = newLine.split(/[:\-]/);
+                if (parts.length > 1) {
+                    const testName = parts[0].trim().toLowerCase();
+                    const existingLineIdx = sectionLines.findIndex(l => l.toLowerCase().startsWith(testName + ':') || l.toLowerCase().startsWith(testName + '-'));
+                    if (existingLineIdx !== -1) sectionLines[existingLineIdx] = newLine;
+                    else sectionLines.push(newLine);
+                } else {
+                    sectionLines.push(newLine);
+                }
+            });
+
+            updatedText = [...beforeLines, ...sectionLines, ...remainingLines].join('\n');
+        } else {
+            const separator = currentVal.trim() ? (currentVal.endsWith('\n') ? '' : '\n\n') : '';
+            updatedText = currentVal + separator + dateHeader + '\n' + pastRadiologyText.trim() + '\n';
+        }
+
+        onExtraChange('past_radiology', updatedText);
         setPastRadiologyText('');
-        toast.success(`Added radiology finding for ${dateHeader}`);
+        toast.success(`Historical radiology added`);
     };
 
     const handleAddAISuggestion = (suggestion: { name: string, value: string | number, sourceId: string, type?: 'investigations' | 'radiology_findings' }) => {
@@ -262,9 +323,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             relativeEnd = res.endIndex - invOffset;
         }
 
-        if (res.isHistoricalOnly || res.value === '-') {
-            // APPEND mode
-            if (!newValue.trim()) return; // Don't append empty values
+        if (res.startIndex === undefined || res.endIndex === undefined) {
+            // APPEND mode - Only if we don't know where the text is
+            if (!newValue.trim()) return;
 
             // Double check if it's radiology based on service catalog
             const service = limsCatalog?.services?.find(s => s.id === res.id);
@@ -582,13 +643,13 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     const filteredPastReportTests = React.useMemo(() => {
         const query = normalizeSearchText(pastReportSearch);
         if (!query) return [];
-        
+
         const matches: any[] = [];
         limsCatalog?.services?.forEach(s => {
             if (s.type === 'SCAN') return;
             const serviceName = normalizeSearchText(s.name);
             const nameMatch = serviceName.includes(query);
-            
+
             const matchingParams = s.result_schema?.filter(p => {
                 const pName = normalizeSearchText(p.name || '');
                 return pName.includes(query);
@@ -1169,127 +1230,150 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-7 text-[10px] text-muted-foreground hover:text-primary gap-1"
+                                                    className={cn(
+                                                        "h-7 text-[10px] gap-1.5 transition-all",
+                                                        extraData.past_investigations ? "text-primary font-bold bg-primary/5 hover:bg-primary/10" : "text-muted-foreground hover:text-primary"
+                                                    )}
                                                 >
                                                     <History className="w-3 h-3" />
-                                                    Add Past Report
+                                                    {extraData.past_investigations ? 'Past Reports' : 'Add Past Report'}
+                                                    {extraData.past_investigations && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="sm:max-w-[425px]">
+                                            <DialogContent className="sm:max-w-[500px]">
                                                 <DialogHeader>
-                                                    <DialogTitle>Add Historical Lab Report</DialogTitle>
+                                                    <DialogTitle>Historical Lab Reports</DialogTitle>
+                                                    <DialogDescription>Add or manage reports from previous visits. These are used for trend analysis but won't appear in today's prescription.</DialogDescription>
                                                 </DialogHeader>
-                                                <div className="grid gap-4 py-4">
-                                                    <div className="flex flex-col gap-2">
-                                                        <Label className="text-xs">Report Date</Label>
-                                                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                                                            <PopoverTrigger asChild>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className={cn(
-                                                                        "w-full justify-start text-left font-normal text-xs",
-                                                                        !pastReportDate && "text-muted-foreground"
-                                                                    )}
-                                                                >
-                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                    {pastReportDate ? format(pastReportDate, "PPP") : <span>Pick a date</span>}
-                                                                </Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-auto p-0" align="start">
-                                                                <CalendarWithMonthYearPicker
-                                                                    selected={pastReportDate}
-                                                                    onSelect={(date) => {
-                                                                        if (date) {
-                                                                            setPastReportDate(date);
-                                                                        }
-                                                                    }}
-                                                                    onClose={() => setIsCalendarOpen(false)}
-                                                                    disabled={(date) => date > new Date()}
-                                                                    fromYear={2000}
-                                                                    toYear={new Date().getFullYear()}
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    </div>
-                                                    <div className="flex flex-col gap-2 relative">
-                                                        <Label className="text-xs">Results</Label>
-                                                        <Textarea
-                                                            ref={pastReportRef}
-                                                            placeholder="e.g. Hb: 12.5, CRP: 8.0"
-                                                            className="text-xs min-h-[100px]"
-                                                            value={pastReportText}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                const pos = e.target.selectionStart;
-                                                                setPastReportText(val);
-                                                                const lines = val.substring(0, pos).split('\n');
-                                                                const lastLine = lines[lines.length - 1];
-                                                                if (lastLine.trim().length > 1 && !lastLine.includes(':')) {
-                                                                    setPastReportSearch(lastLine.trim().toLowerCase());
-                                                                } else {
-                                                                    setPastReportSearch('');
-                                                                }
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if (filteredPastReportTests.length > 0) {
-                                                                    if (e.key === 'ArrowDown') {
-                                                                        e.preventDefault();
-                                                                        setActivePastReportIndex(prev => (prev + 1) % filteredPastReportTests.length);
-                                                                    } else if (e.key === 'ArrowUp') {
-                                                                        e.preventDefault();
-                                                                        setActivePastReportIndex(prev => (prev - 1 + filteredPastReportTests.length) % filteredPastReportTests.length);
-                                                                    } else if (e.key === 'Enter' && pastReportSearch) {
-                                                                        e.preventDefault();
-                                                                        const selected = filteredPastReportTests[activePastReportIndex];
-                                                                        if (selected) {
-                                                                            const pos = pastReportRef.current?.selectionStart || pastReportText.length;
-                                                                            const lines = pastReportText.substring(0, pos).split('\n');
-                                                                            const lastLine = lines[lines.length - 1];
-                                                                            const before = pastReportText.substring(0, pos - lastLine.length);
-                                                                            const after = pastReportText.substring(pos);
-                                                                            const newName = selected.name.toUpperCase() + ': ';
-                                                                            setPastReportText(before + newName + after);
-                                                                            setPastReportSearch('');
+                                                <div className="grid gap-6 py-4">
+                                                    <div className="space-y-4 p-4 bg-muted/30 rounded-xl border border-dashed">
+                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                            <Plus className="w-3 h-3" /> Quick Add Entry
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            <Label className="text-[10px] uppercase font-bold text-slate-500">Report Date</Label>
+                                                            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                                                                <PopoverTrigger asChild>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        className={cn(
+                                                                            "w-full justify-start text-left font-normal text-xs h-9",
+                                                                            !pastReportDate && "text-muted-foreground"
+                                                                        )}
+                                                                    >
+                                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                        {pastReportDate ? format(pastReportDate, "PPP") : <span>Pick a date</span>}
+                                                                    </Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-0" align="start">
+                                                                    <CalendarWithMonthYearPicker
+                                                                        selected={pastReportDate}
+                                                                        onSelect={(date) => {
+                                                                            if (date) {
+                                                                                setPastReportDate(date);
+                                                                            }
+                                                                        }}
+                                                                        onClose={() => setIsCalendarOpen(false)}
+                                                                        disabled={(date) => date > new Date()}
+                                                                        fromYear={2000}
+                                                                        toYear={new Date().getFullYear()}
+                                                                    />
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </div>
+                                                        <div className="flex flex-col gap-2 relative">
+                                                            <Label className="text-[10px] uppercase font-bold text-slate-500">Results</Label>
+                                                            <Textarea
+                                                                ref={pastReportRef}
+                                                                placeholder="Enter results (e.g. Hb: 12, CRP: 5). Use new line for multiple tests."
+                                                                className="text-xs min-h-[80px] bg-white"
+                                                                value={pastReportText}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    const pos = e.target.selectionStart;
+                                                                    setPastReportText(val);
+                                                                    const lines = val.substring(0, pos).split('\n');
+                                                                    const lastLine = lines[lines.length - 1];
+                                                                    if (lastLine.trim().length > 1 && !lastLine.includes(':')) {
+                                                                        setPastReportSearch(lastLine.trim().toLowerCase());
+                                                                    } else {
+                                                                        setPastReportSearch('');
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if (filteredPastReportTests.length > 0) {
+                                                                        if (e.key === 'ArrowDown') {
+                                                                            e.preventDefault();
+                                                                            setActivePastReportIndex(prev => (prev + 1) % filteredPastReportTests.length);
+                                                                        } else if (e.key === 'ArrowUp') {
+                                                                            e.preventDefault();
+                                                                            setActivePastReportIndex(prev => (prev - 1 + filteredPastReportTests.length) % filteredPastReportTests.length);
+                                                                        } else if (e.key === 'Enter' && pastReportSearch) {
+                                                                            e.preventDefault();
+                                                                            const selected = filteredPastReportTests[activePastReportIndex];
+                                                                            if (selected) {
+                                                                                const pos = pastReportRef.current?.selectionStart || pastReportText.length;
+                                                                                const lines = pastReportText.substring(0, pos).split('\n');
+                                                                                const lastLine = lines[lines.length - 1];
+                                                                                const before = pastReportText.substring(0, pos - lastLine.length);
+                                                                                const after = pastReportText.substring(pos);
+                                                                                const newName = selected.name.toUpperCase() + ': ';
+                                                                                setPastReportText(before + newName + after);
+                                                                                setPastReportSearch('');
+                                                                            }
                                                                         }
                                                                     }
-                                                                }
-                                                            }}
+                                                                }}
+                                                            />
+                                                            {pastReportSearch && filteredPastReportTests.length > 0 && (
+                                                                <div className="absolute top-full left-0 z-[110] mt-1 w-full bg-popover border rounded-lg shadow-xl max-h-[160px] overflow-auto p-1">
+                                                                    {filteredPastReportTests.map((test, idx) => (
+                                                                        <button
+                                                                            key={test.id}
+                                                                            className={cn(
+                                                                                "w-full text-left px-2 py-1.5 text-xs rounded-md flex flex-col",
+                                                                                idx === activePastReportIndex ? "bg-primary text-white" : "hover:bg-muted"
+                                                                            )}
+                                                                            onMouseDown={(e) => e.preventDefault()}
+                                                                            onClick={() => {
+                                                                                const pos = pastReportRef.current?.selectionStart || pastReportText.length;
+                                                                                const lines = pastReportText.substring(0, pos).split('\n');
+                                                                                const lastLine = lines[lines.length - 1];
+                                                                                const before = pastReportText.substring(0, pos - lastLine.length);
+                                                                                const after = pastReportText.substring(pos);
+                                                                                const newName = test.name.toUpperCase() + ': ';
+                                                                                setPastReportText(before + newName + after);
+                                                                                setPastReportSearch('');
+                                                                                pastReportRef.current?.focus();
+                                                                            }}
+                                                                        >
+                                                                            <span className="font-medium">{test.name}</span>
+                                                                            {test.parentName && <span className="text-[10px] opacity-70">{test.parentName}</span>}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <Button size="sm" className="w-full h-8 text-[11px]" onClick={handleAddPastReport}>
+                                                            <Plus className="w-3 h-3 mr-2" /> Append to History
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label className="text-[10px] uppercase font-bold text-slate-500">Historical Lab Record</Label>
+                                                            <span className="text-[9px] text-muted-foreground italic">Directly editable</span>
+                                                        </div>
+                                                        <Textarea
+                                                            value={extraData.past_investigations || ''}
+                                                            onChange={(e) => onExtraChange('past_investigations', e.target.value)}
+                                                            placeholder="All historical lab data will appear here..."
+                                                            className="text-xs min-h-[150px] font-mono bg-slate-50/50"
                                                         />
-                                                        {pastReportSearch && filteredPastReportTests.length > 0 && (
-                                                            <div className="absolute top-full left-0 z-[110] mt-1 w-full bg-popover border rounded-lg shadow-xl max-h-[160px] overflow-auto p-1">
-                                                                {filteredPastReportTests.map((test, idx) => (
-                                                                    <button
-                                                                        key={test.id}
-                                                                        className={cn(
-                                                                            "w-full text-left px-2 py-1.5 text-xs rounded-md flex flex-col",
-                                                                            idx === activePastReportIndex ? "bg-primary text-white" : "hover:bg-muted"
-                                                                        )}
-                                                                        onMouseDown={(e) => e.preventDefault()}
-                                                                        onClick={() => {
-                                                                            const pos = pastReportRef.current?.selectionStart || pastReportText.length;
-                                                                            const lines = pastReportText.substring(0, pos).split('\n');
-                                                                            const lastLine = lines[lines.length - 1];
-                                                                            const before = pastReportText.substring(0, pos - lastLine.length);
-                                                                            const after = pastReportText.substring(pos);
-                                                                            const newName = test.name.toUpperCase() + ': ';
-                                                                            setPastReportText(before + newName + after);
-                                                                            setPastReportSearch('');
-                                                                            pastReportRef.current?.focus();
-                                                                        }}
-                                                                    >
-                                                                        <span className="font-medium">{test.name}</span>
-                                                                        {test.parentName && <span className="text-[10px] opacity-70">{test.parentName}</span>}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                        <p className="text-[10px] text-muted-foreground">
-                                                            Enter parameters and values separated by colons or hyphens.
-                                                        </p>
                                                     </div>
                                                 </div>
                                                 <DialogFooter>
-                                                    <Button size="sm" onClick={handleAddPastReport}>Add to Notes</Button>
+                                                    <Button size="sm" onClick={() => setIsPastReportModalOpen(false)}>Done</Button>
                                                 </DialogFooter>
                                             </DialogContent>
                                         </Dialog>
@@ -1317,7 +1401,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         value={extraData.investigations}
                                         onChange={handleInvestigationChange}
                                         onKeyDown={handleInvestigationKeyDown}
-                                        placeholder="Laboratory tests... (e.g. CRP: 45, Hb: 12)"
+                                        placeholder="Laboratory tests... (e.g. CRP: 45). Use line break for each test."
                                         className={cn("min-h-[140px] focus:ring-primary/20", getStyle('investigations', extraData.investigations))}
                                         disabled={isReadOnly}
                                         onBlur={() => {
@@ -1527,123 +1611,149 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-7 text-[10px] text-muted-foreground hover:text-primary gap-1"
+                                                    className={cn(
+                                                        "h-7 text-[10px] gap-1.5 transition-all",
+                                                        extraData.past_radiology ? "text-primary font-bold bg-primary/5 hover:bg-primary/10" : "text-muted-foreground hover:text-primary"
+                                                    )}
                                                 >
                                                     <History className="w-3 h-3" />
-                                                    Add Past Report
+                                                    {extraData.past_radiology ? 'Past Reports' : 'Add Past Report'}
+                                                    {extraData.past_radiology && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="sm:max-w-[425px]">
+                                            <DialogContent className="sm:max-w-[500px]">
                                                 <DialogHeader>
-                                                    <DialogTitle>Add Historical Radiology Report</DialogTitle>
+                                                    <DialogTitle>Historical Radiology Reports</DialogTitle>
+                                                    <DialogDescription>Add imaging results from previous visits. These stay in history and won't clutter today's clinical notes.</DialogDescription>
                                                 </DialogHeader>
-                                                <div className="grid gap-4 py-4">
-                                                    <div className="flex flex-col gap-2">
-                                                        <Label className="text-xs">Report Date</Label>
-                                                        <Popover open={isRadiologyCalendarOpen} onOpenChange={setIsRadiologyCalendarOpen}>
-                                                            <PopoverTrigger asChild>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className={cn(
-                                                                        "w-full justify-start text-left font-normal text-xs",
-                                                                        !pastRadiologyDate && "text-muted-foreground"
-                                                                    )}
-                                                                >
-                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                    {pastRadiologyDate ? format(pastRadiologyDate, "PPP") : <span>Pick a date</span>}
-                                                                </Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-auto p-0" align="start">
-                                                                <CalendarWithMonthYearPicker
-                                                                    selected={pastRadiologyDate}
-                                                                    onSelect={(date) => {
-                                                                        if (date) {
-                                                                            setPastRadiologyDate(date);
-                                                                        }
-                                                                    }}
-                                                                    onClose={() => setIsRadiologyCalendarOpen(false)}
-                                                                    disabled={(date) => date > new Date()}
-                                                                    fromYear={2000}
-                                                                    toYear={new Date().getFullYear()}
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    </div>
-                                                    <div className="flex flex-col gap-2 relative">
-                                                        <Label className="text-xs">Findings</Label>
-                                                        <Textarea
-                                                            ref={pastRadiologyRef}
-                                                            placeholder="e.g. X-Ray Knee: Normal findings"
-                                                            className="text-xs min-h-[100px]"
-                                                            value={pastRadiologyText}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                const pos = e.target.selectionStart;
-                                                                setPastRadiologyText(val);
-                                                                const lines = val.substring(0, pos).split('\n');
-                                                                const lastLine = lines[lines.length - 1];
-                                                                if (lastLine.trim().length > 1 && !lastLine.includes(':')) {
-                                                                    setPastRadiologySearch(lastLine.trim().toLowerCase());
-                                                                } else {
-                                                                    setPastRadiologySearch('');
-                                                                }
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if (filteredPastRadiologyScans.length > 0) {
-                                                                    if (e.key === 'ArrowDown') {
-                                                                        e.preventDefault();
-                                                                        setActivePastRadiologyIndex(prev => (prev + 1) % filteredPastRadiologyScans.length);
-                                                                    } else if (e.key === 'ArrowUp') {
-                                                                        e.preventDefault();
-                                                                        setActivePastRadiologyIndex(prev => (prev - 1 + filteredPastRadiologyScans.length) % filteredPastRadiologyScans.length);
-                                                                    } else if (e.key === 'Enter' && pastRadiologySearch) {
-                                                                        e.preventDefault();
-                                                                        const selected = filteredPastRadiologyScans[activePastRadiologyIndex];
-                                                                        if (selected) {
-                                                                            const pos = pastRadiologyRef.current?.selectionStart || pastRadiologyText.length;
-                                                                            const lines = pastRadiologyText.substring(0, pos).split('\n');
-                                                                            const lastLine = lines[lines.length - 1];
-                                                                            const before = pastRadiologyText.substring(0, pos - lastLine.length);
-                                                                            const after = pastRadiologyText.substring(pos);
-                                                                            const newName = selected.name.toUpperCase() + ': ';
-                                                                            setPastRadiologyText(before + newName + after);
-                                                                            setPastRadiologySearch('');
+                                                <div className="grid gap-6 py-4">
+                                                    <div className="space-y-4 p-4 bg-muted/30 rounded-xl border border-dashed">
+                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                            <Plus className="w-3 h-3" /> Quick Add Entry
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            <Label className="text-[10px] uppercase font-bold text-slate-500">Scan Date</Label>
+                                                            <Popover open={isRadiologyCalendarOpen} onOpenChange={setIsRadiologyCalendarOpen}>
+                                                                <PopoverTrigger asChild>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        className={cn(
+                                                                            "w-full justify-start text-left font-normal text-xs h-9",
+                                                                            !pastRadiologyDate && "text-muted-foreground"
+                                                                        )}
+                                                                    >
+                                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                        {pastRadiologyDate ? format(pastRadiologyDate, "PPP") : <span>Pick a date</span>}
+                                                                    </Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-0" align="start">
+                                                                    <CalendarWithMonthYearPicker
+                                                                        selected={pastRadiologyDate}
+                                                                        onSelect={(date) => {
+                                                                            if (date) {
+                                                                                setPastRadiologyDate(date);
+                                                                            }
+                                                                        }}
+                                                                        onClose={() => setIsRadiologyCalendarOpen(false)}
+                                                                        disabled={(date) => date > new Date()}
+                                                                        fromYear={2000}
+                                                                        toYear={new Date().getFullYear()}
+                                                                    />
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </div>
+                                                        <div className="flex flex-col gap-2 relative">
+                                                            <Label className="text-[10px] uppercase font-bold text-slate-500">Findings</Label>
+                                                            <Textarea
+                                                                ref={pastRadiologyRef}
+                                                                placeholder="Enter findings (e.g. MRI: Normal). Use line break for multiple tests."
+                                                                className="text-xs min-h-[80px] bg-white"
+                                                                value={pastRadiologyText}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    const pos = e.target.selectionStart;
+                                                                    setPastRadiologyText(val);
+                                                                    const lines = val.substring(0, pos).split('\n');
+                                                                    const lastLine = lines[lines.length - 1];
+                                                                    if (lastLine.trim().length > 1 && !lastLine.includes(':')) {
+                                                                        setPastRadiologySearch(lastLine.trim().toLowerCase());
+                                                                    } else {
+                                                                        setPastRadiologySearch('');
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if (filteredPastRadiologyScans.length > 0) {
+                                                                        if (e.key === 'ArrowDown') {
+                                                                            e.preventDefault();
+                                                                            setActivePastRadiologyIndex(prev => (prev + 1) % filteredPastRadiologyScans.length);
+                                                                        } else if (e.key === 'ArrowUp') {
+                                                                            e.preventDefault();
+                                                                            setActivePastRadiologyIndex(prev => (prev - 1 + filteredPastRadiologyScans.length) % filteredPastRadiologyScans.length);
+                                                                        } else if (e.key === 'Enter' && pastRadiologySearch) {
+                                                                            e.preventDefault();
+                                                                            const selected = filteredPastRadiologyScans[activePastRadiologyIndex];
+                                                                            if (selected) {
+                                                                                const pos = pastRadiologyRef.current?.selectionStart || pastRadiologyText.length;
+                                                                                const lines = pastRadiologyText.substring(0, pos).split('\n');
+                                                                                const lastLine = lines[lines.length - 1];
+                                                                                const before = pastRadiologyText.substring(0, pos - lastLine.length);
+                                                                                const after = pastRadiologyText.substring(pos);
+                                                                                const newName = selected.name.toUpperCase() + ': ';
+                                                                                setPastRadiologyText(before + newName + after);
+                                                                                setPastRadiologySearch('');
+                                                                            }
                                                                         }
                                                                     }
-                                                                }
-                                                            }}
+                                                                }}
+                                                            />
+                                                            {pastRadiologySearch && filteredPastRadiologyScans.length > 0 && (
+                                                                <div className="absolute top-full left-0 z-[110] mt-1 w-full bg-popover border rounded-lg shadow-xl max-h-[160px] overflow-auto p-1">
+                                                                    {filteredPastRadiologyScans.map((test, idx) => (
+                                                                        <button
+                                                                            key={test.id}
+                                                                            className={cn(
+                                                                                "w-full text-left px-2 py-1.5 text-xs rounded-md flex flex-col",
+                                                                                idx === activePastRadiologyIndex ? "bg-primary text-white" : "hover:bg-muted"
+                                                                            )}
+                                                                            onMouseDown={(e) => e.preventDefault()}
+                                                                            onClick={() => {
+                                                                                const pos = pastRadiologyRef.current?.selectionStart || pastRadiologyText.length;
+                                                                                const lines = pastRadiologyText.substring(0, pos).split('\n');
+                                                                                const lastLine = lines[lines.length - 1];
+                                                                                const before = pastRadiologyText.substring(0, pos - lastLine.length);
+                                                                                const after = pastRadiologyText.substring(pos);
+                                                                                const newName = test.name.toUpperCase() + ': ';
+                                                                                setPastRadiologyText(before + newName + after);
+                                                                                setPastRadiologySearch('');
+                                                                                pastRadiologyRef.current?.focus();
+                                                                            }}
+                                                                        >
+                                                                            <span className="font-medium">{test.name}</span>
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <Button size="sm" className="w-full h-8 text-[11px]" onClick={handleAddPastRadiology}>
+                                                            <Plus className="w-3 h-3 mr-2" /> Append to History
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label className="text-[10px] uppercase font-bold text-slate-500">Historical Radiology Record</Label>
+                                                            <span className="text-[9px] text-muted-foreground italic">Directly editable</span>
+                                                        </div>
+                                                        <Textarea
+                                                            value={extraData.past_radiology || ''}
+                                                            onChange={(e) => onExtraChange('past_radiology', e.target.value)}
+                                                            placeholder="All historical imaging data will appear here..."
+                                                            className="text-xs min-h-[150px] font-mono bg-slate-50/50"
                                                         />
-                                                        {pastRadiologySearch && filteredPastRadiologyScans.length > 0 && (
-                                                            <div className="absolute top-full left-0 z-[110] mt-1 w-full bg-popover border rounded-lg shadow-xl max-h-[160px] overflow-auto p-1">
-                                                                {filteredPastRadiologyScans.map((scan, idx) => (
-                                                                    <button
-                                                                        key={scan.id}
-                                                                        className={cn(
-                                                                            "w-full text-left px-2 py-1.5 text-xs rounded-md",
-                                                                            idx === activePastRadiologyIndex ? "bg-primary text-white" : "hover:bg-muted"
-                                                                        )}
-                                                                        onMouseDown={(e) => e.preventDefault()}
-                                                                        onClick={() => {
-                                                                            const pos = pastRadiologyRef.current?.selectionStart || pastRadiologyText.length;
-                                                                            const lines = pastRadiologyText.substring(0, pos).split('\n');
-                                                                            const lastLine = lines[lines.length - 1];
-                                                                            const before = pastRadiologyText.substring(0, pos - lastLine.length);
-                                                                            const after = pastRadiologyText.substring(pos);
-                                                                            const newName = scan.name.toUpperCase() + ': ';
-                                                                            setPastRadiologyText(before + newName + after);
-                                                                            setPastRadiologySearch('');
-                                                                            pastRadiologyRef.current?.focus();
-                                                                        }}
-                                                                    >
-                                                                        {scan.name}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </div>
                                                 <DialogFooter>
-                                                    <Button size="sm" onClick={handleAddPastRadiology}>Add to Notes</Button>
+                                                    <Button size="sm" onClick={() => setIsPastRadiologyModalOpen(false)}>Done</Button>
                                                 </DialogFooter>
                                             </DialogContent>
                                         </Dialog>
@@ -1731,7 +1841,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                 } else if (e.key === 'Escape') setRadiologySearch('');
                                             }
                                         }}
-                                        placeholder="Radiology findings... (e.g. X-Ray Knee AP/Lat: Normal study)"
+                                        placeholder="Radiology findings... (e.g. MRI: Normal). Use new line for each scan."
                                         className={cn("min-h-[140px] focus:ring-primary/20", getStyle('radiology_findings', extraData.radiology_findings))}
                                         disabled={isReadOnly}
                                         onBlur={() => {

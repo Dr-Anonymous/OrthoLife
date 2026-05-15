@@ -128,6 +128,8 @@ export const useOfflineSync = ({ isOnline, consultantName, consultantId, isWhats
         consultationUpdate.investigations = bundle.investigations ?? null;
         consultationUpdate.radiology_findings = bundle.radiology_findings ?? null;
         consultationUpdate.radiology_images = bundle.radiology_images ?? [];
+        consultationUpdate.investigations_parsed = bundle.investigations_parsed ?? [];
+        consultationUpdate.parser_version = bundle.parser_version ?? 0;
         return consultationUpdate;
     };
 

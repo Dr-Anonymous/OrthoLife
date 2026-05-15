@@ -414,7 +414,8 @@ export function areExtraDataEqual(d1: any, d2: any, ignoreBrandName: boolean = f
     'diagnosis', 'advice', 'advice_te', 'followup', 'followup_te', 'weight', 'bp', 'temperature',
     'height', 'pulse', 'spo2', 'bmi', 'allergy', 'personalNote',
     'procedure', 'procedure_fee', 'procedure_consultant_cut',
-    'referred_to', 'referred_by', 'referral_amount', 'orthotics', 'radiology_findings'
+    'referred_to', 'referred_by', 'referral_amount', 'orthotics', 'radiology_findings',
+    'past_investigations', 'past_radiology'
   ];
 
   for (const key of keysToCompare) {

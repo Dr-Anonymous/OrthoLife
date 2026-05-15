@@ -765,6 +765,8 @@ const ConsultationPage = () => {
       radiology_images: (consultation as any).radiology_images?.length
         ? (consultation as any).radiology_images
         : (savedData.radiology_images || []),
+      past_investigations: savedData.past_investigations || '',
+      past_radiology: savedData.past_radiology || '',
       certificates: (savedData.certificates || []).map(cert => ({
         ...cert,
         restPeriodStartDate: cert.restPeriodStartDate ? new Date(cert.restPeriodStartDate) : new Date(),
@@ -1271,11 +1273,19 @@ const ConsultationPage = () => {
         investigations: activeExtraData.investigations,
         radiology_findings: activeExtraData.radiology_findings,
         radiology_images: activeExtraData.radiology_images,
-        investigations_parsed: parser.parse(activeExtraData.investigations || '', { 
-          sex: editablePatientDetails?.sex as any, 
-          age: typeof age === 'number' ? age : undefined 
-        }),
-        parser_version: (isCatalogLoading || !limsCatalog) ? 0 : 1,
+        investigations_parsed: parser.parse(
+          [
+            activeExtraData.investigations || '',
+            activeExtraData.past_investigations || '',
+            activeExtraData.radiology_findings || '',
+            activeExtraData.past_radiology || ''
+          ].join('\n'), 
+          { 
+            sex: editablePatientDetails?.sex as any, 
+            age: typeof age === 'number' ? age : undefined 
+          }
+        ),
+        parser_version: (limsCatalog?.services && limsCatalog.services.length > 0) ? 1 : 0,
       };
 
       // 2. PRIMARY WRITE: IndexedDB (offlineStore)
