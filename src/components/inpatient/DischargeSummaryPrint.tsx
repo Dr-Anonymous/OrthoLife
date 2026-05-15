@@ -327,8 +327,8 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                         </section>
                                     )}
 
-                                    {/* Advice Section: Post-Op / Wound / Activity / Followup / Red Flags */}
-                                    {(dischargeData.post_op_care || dischargeData.wound_care || dischargeData.activity || dischargeData.followup || dischargeData.red_flags) && (
+                                    {/* Advice Section: Post-Op / Wound / Activity / Red Flags */}
+                                    {(dischargeData.post_op_care || dischargeData.wound_care || dischargeData.activity || dischargeData.red_flags) && (
                                         <section className="space-y-4">
 
                                             {/* Post-Op Care */}
@@ -364,16 +364,6 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                                 </div>
                                             )}
 
-                                            {/* Followup */}
-                                            {dischargeData.followup && (
-                                                <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                                    <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
-                                                        <ClipboardList className="h-4 w-4" />
-                                                        {t('discharge.followup')}
-                                                    </h3>
-                                                    <p className="whitespace-pre-wrap">{dischargeData.followup}</p>
-                                                </div>
-                                            )}
 
                                             {/* Red Flags - Print Friendly Red Box */}
                                             {dischargeData.red_flags && (
@@ -391,14 +381,16 @@ export const DischargeSummaryPrint = React.forwardRef<HTMLDivElement, DischargeS
                                     {/* Review Date */}
                                     {dischargeData.review_date && (
                                         <section className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                                            <div className="flex items-center gap-2 mb-1">
+                                            <div className="space-y-2 mb-1">
                                                 <h3 className="font-heading font-semibold text-gray-700 flex items-center gap-2 leading-none">
                                                     <Calendar className="h-5 w-5 text-gray-500" />
                                                     <span>{t('discharge.review_date')}:</span>
                                                 </h3>
-                                                <span className="text-[11px] font-bold text-gray-700 px-3 py-1 border border-gray-300 rounded-full bg-gray-100/50">
-                                                    {new Date(dischargeData.review_date).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day: '2-digit', month: 'long', year: 'numeric' })} ({new Date(dischargeData.review_date).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { weekday: 'long' })})
-                                                </span>
+                                                <div className="ml-7">
+                                                    <span className="text-[11px] font-bold text-gray-700 px-3 py-1 border border-gray-300 rounded-full bg-gray-100/50 inline-block">
+                                                        {new Date(dischargeData.review_date).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { day: '2-digit', month: 'long', year: 'numeric' })} ({new Date(dischargeData.review_date).toLocaleDateString(language === 'te' ? 'te-IN' : 'en-IN', { weekday: 'long' })})
+                                                    </span>
+                                                </div>
                                             </div>
                                         </section>
                                     )}

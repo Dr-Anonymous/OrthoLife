@@ -1401,7 +1401,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         value={extraData.investigations}
                                         onChange={handleInvestigationChange}
                                         onKeyDown={handleInvestigationKeyDown}
-                                        placeholder="Laboratory tests... (e.g. CRP: 45). Use line break for each test."
+                                        placeholder="Laboratory tests... (e.g. CRP: 45). Use new line for each test."
                                         className={cn("min-h-[140px] focus:ring-primary/20", getStyle('investigations', extraData.investigations))}
                                         disabled={isReadOnly}
                                         onBlur={() => {
