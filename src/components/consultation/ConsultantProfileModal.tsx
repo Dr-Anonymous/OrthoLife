@@ -24,7 +24,7 @@ import { Loader2, Plus, Trash2, Save, User, Users, MapPin, Award, Stethoscope, M
 import { cn, isEqual } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format as formatDate } from 'date-fns';
 
 interface ConsultantProfileModalProps {
   isOpen: boolean;
@@ -125,6 +125,16 @@ const BilingualField: React.FC<BilingualFieldProps> = ({
       {renderField(lang, lang === 'en' ? placeholderEn : placeholderTe)}
     </div>
   );
+};
+
+// --- Local helpers --------------------------------------------------------
+
+const formatForDateTimeLocal = (dateStr: string | null | undefined) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  // Returns YYYY-MM-DDTHH:MM in local time
+  return formatDate(date, "yyyy-MM-dd'T'HH:mm");
 };
 
 // Section card wrapper used inside accordions
@@ -361,8 +371,8 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
           profile_layout: formData.profile_layout,
           team_members,
           lead_services,
-          vacation_start: formData.vacation_start || null,
-          vacation_end: formData.vacation_end || null,
+          vacation_start: formData.vacation_start ? new Date(formData.vacation_start).toISOString() : null,
+          vacation_end: formData.vacation_end ? new Date(formData.vacation_end).toISOString() : null,
           is_vacation_enabled: formData.is_vacation_enabled,
           updated_at: new Date().toISOString()
         })
@@ -1078,34 +1088,34 @@ export const ConsultantProfileModal: React.FC<ConsultantProfileModalProps> = ({ 
 
                       <div className={cn("space-y-4 transition-all duration-300", !formData.is_vacation_enabled && "opacity-50 grayscale")}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="vacation_start" className="text-[11px] font-semibold text-orange-900/80">From Date</Label>
-                          <Input
-                            id="vacation_start"
-                            type="date"
-                            value={formData.vacation_start}
-                            onChange={e => {
-                              const newStart = e.target.value;
-                              updateForm(p => ({
-                                ...p,
-                                vacation_start: newStart,
-                                vacation_end: p.vacation_end && p.vacation_end >= newStart ? p.vacation_end : newStart
-                              }));
-                            }}
-                            className="h-8 text-xs border-orange-200/50 focus-visible:ring-orange-500/30"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="vacation_end" className="text-[11px] font-semibold text-orange-900/80">To Date (Inclusive)</Label>
-                          <Input
-                            id="vacation_end"
-                            type="date"
-                            value={formData.vacation_end}
-                            onChange={e => updateForm(p => ({ ...p, vacation_end: e.target.value }))}
-                            className="h-8 text-xs border-orange-200/50 focus-visible:ring-orange-500/30"
-                            min={formData.vacation_start}
-                          />
-                        </div>
+                         <div className="space-y-1.5">
+                           <Label htmlFor="vacation_start" className="text-[11px] font-semibold text-orange-900/80">From Date & Time</Label>
+                           <Input
+                             id="vacation_start"
+                             type="datetime-local"
+                             value={formatForDateTimeLocal(formData.vacation_start)}
+                             onChange={e => {
+                               const newStart = e.target.value;
+                               updateForm(p => ({
+                                 ...p,
+                                 vacation_start: newStart,
+                                 vacation_end: p.vacation_end && p.vacation_end >= newStart ? p.vacation_end : newStart
+                               }));
+                             }}
+                             className="h-8 text-xs border-orange-200/50 focus-visible:ring-orange-500/30"
+                           />
+                         </div>
+                         <div className="space-y-1.5">
+                           <Label htmlFor="vacation_end" className="text-[11px] font-semibold text-orange-900/80">To Date & Time</Label>
+                           <Input
+                             id="vacation_end"
+                             type="datetime-local"
+                             value={formatForDateTimeLocal(formData.vacation_end)}
+                             onChange={e => updateForm(p => ({ ...p, vacation_end: e.target.value }))}
+                             className="h-8 text-xs border-orange-200/50 focus-visible:ring-orange-500/30"
+                             min={formatForDateTimeLocal(formData.vacation_start)}
+                           />
+                         </div>
                       </div>
                       
                       {formData.vacation_start && formData.vacation_end && (

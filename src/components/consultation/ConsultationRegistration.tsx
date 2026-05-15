@@ -11,8 +11,8 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, Calendar as CalendarIcon, Search, MapPin, Briefcase, Ban } from 'lucide-react';
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, differenceInDays } from 'date-fns';
-import { cn, normalizeSearchText, isConsultantOnVacation } from '@/lib/utils';
+import { format, isSameDay } from 'date-fns';
+import { cn, normalizeSearchText, isConsultantOnVacation, formatLocalTime } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
 import { useHospitals } from '@/context/HospitalsContext';
@@ -82,10 +82,10 @@ interface ConsultationRegistrationProps {
  * - Auto-calc of visit type (Paid/Free) based on history (14-day rule).
  * - Duplicate check via backend logic.
  */
-const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({ 
-  onSuccess, 
-  location, 
-  existingConsultations = [], 
+const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
+  onSuccess,
+  location,
+  existingConsultations = [],
   consultantId,
   maxRegistrations = 0,
   includeReviewsInLimit = true,
@@ -96,10 +96,6 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
   const isOnline = useOnlineStatus();
   const { getHospitalByName } = useHospitals();
 
-  const isOnVacation = useMemo(() => {
-    return isConsultantOnVacation({ vacation_start: vacationStart, vacation_end: vacationEnd }, selectedDate);
-  }, [vacationStart, vacationEnd, selectedDate]);
-
   const currentRegistrationCount = useMemo(() => {
     if (!existingConsultations) return 0;
     if (includeReviewsInLimit) return existingConsultations.length;
@@ -107,6 +103,16 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
   }, [existingConsultations, includeReviewsInLimit]);
 
   const isLimitReached = maxRegistrations > 0 && currentRegistrationCount >= maxRegistrations;
+  const isOnVacation = useMemo(() => {
+    return isConsultantOnVacation({ vacation_start: vacationStart, vacation_end: vacationEnd }, selectedDate);
+  }, [vacationStart, vacationEnd, selectedDate]);
+
+  const isUpcomingVacationToday = useMemo(() => {
+    if (!vacationStart || isOnVacation) return false;
+    const start = new Date(vacationStart);
+    return isSameDay(start, selectedDate) && start > selectedDate;
+  }, [vacationStart, selectedDate, isOnVacation]);
+
   const isBlocked = isLimitReached || isOnVacation;
 
   const [formData, setFormData] = useState<FormData>({
@@ -886,9 +892,14 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
         )}
 
         <div className="pt-6">
-          <Button 
-            type="submit" 
-            className={cn("w-full h-12 text-lg font-semibold", isBlocked && "bg-muted text-muted-foreground")} 
+          {isUpcomingVacationToday && (
+            <p className="text-[11px] text-orange-600 font-bold mb-2 flex items-center gap-1.5 animate-pulse bg-orange-50 p-2 rounded-lg border border-orange-100">
+              <CalendarIcon className="w-3.5 h-3.5" /> Consultant will be unavailable from {formatLocalTime(vacationStart)}
+            </p>
+          )}
+          <Button
+            type="submit"
+            className={cn("w-full h-12 text-lg font-semibold", isBlocked && "bg-muted text-muted-foreground")}
             disabled={isSubmitting || isBlocked}
           >
             {isSubmitting ? (

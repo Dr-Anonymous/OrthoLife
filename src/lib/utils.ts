@@ -529,16 +529,11 @@ export function isConsultantOnVacation(consultant: any, date: Date | string): bo
   
   const checkDate = typeof date === 'string' ? new Date(date) : date;
   
-  // Create copies and normalize to compare dates only
+  // Use timestamps as-is from the DB/form to respect the selected time
   const start = new Date(consultant.vacation_start);
-  start.setHours(0, 0, 0, 0);
-  
   const end = new Date(consultant.vacation_end);
-  end.setHours(23, 59, 59, 999);
   
   const normalizedCheck = new Date(checkDate);
-  // We don't necessarily need to normalize checkDate if it's already a full date-time, 
-  // but for "today" or "selected date" comparisons it's safer.
   
   return normalizedCheck >= start && normalizedCheck <= end;
 }
