@@ -24,6 +24,7 @@ export interface LimsRange {
   display_range?: string;
   normalRange?: string; // Support for schema field
   criticalAlertMessage?: string;
+  critical_alert_message?: string;
 }
 
 
@@ -59,6 +60,8 @@ export class ClinicalParser {
       'Phosphorus': ['S.Phosphorus', 'Serum Phosphorus', 'P', 'Serum Phosphorus'],
       'Alkaline Phosphatase': ['ALP', 'S.ALP', 'Alk Phos', 'Alkaline Phosphatase'],
       'Urine Routine': ['Urine R/E', 'Urine RE', 'Urine Analysis', 'U/R', 'Urine Routine'],
+      'Total Cholesterol': ['Cholesterol', 'S.Cholesterol', 'S.Cholesterol (Total)', 'S.Cholesterol Total', 'CHOL'],
+      'Serum Triglycerides': ['Triglycerides', 'S.Triglycerides', 'S. Triglycerides', 'T.G', 'TG', 'TRIG'],
     };
 
     for (const [canonical, variants] of Object.entries(synonyms)) {
@@ -240,7 +243,7 @@ export class ClinicalParser {
              ...matchedRange,
              critical_low: matchedRange.critical_low ?? schemaRange.critical_low,
              critical_high: matchedRange.critical_high ?? schemaRange.critical_high,
-             criticalAlertMessage: matchedRange.criticalAlertMessage || schemaRange.criticalAlertMessage,
+             criticalAlertMessage: matchedRange.criticalAlertMessage || matchedRange.critical_alert_message || schemaRange.criticalAlertMessage,
            };
         } else {
            matchedRange = schemaRange;
@@ -259,6 +262,13 @@ export class ClinicalParser {
       
       if (isMale && mMatch) return { ...matchedRange, display_range: mMatch[1].trim() };
       if (isFemale && fMatch) return { ...matchedRange, display_range: fMatch[1].trim() };
+    }
+
+    if (matchedRange && !matchedRange.criticalAlertMessage && matchedRange.critical_alert_message) {
+      matchedRange = {
+        ...matchedRange,
+        criticalAlertMessage: matchedRange.critical_alert_message
+      };
     }
 
     return matchedRange;

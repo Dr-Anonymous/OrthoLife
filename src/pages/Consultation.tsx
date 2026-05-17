@@ -432,6 +432,8 @@ const ConsultationPage = () => {
   const referredByRef = useRef<HTMLInputElement>(null);
   const orthoticsRef = useRef<HTMLTextAreaElement>(null);
   const sidebarSearchRef = useRef<HTMLInputElement>(null);
+  const pastInvestigationsTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const pastRadiologyTextAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // Med Refs
   const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
@@ -1273,18 +1275,12 @@ const ConsultationPage = () => {
         investigations: activeExtraData.investigations,
         radiology_findings: activeExtraData.radiology_findings,
         radiology_images: activeExtraData.radiology_images,
-        investigations_parsed: parser.parse(
-          [
-            activeExtraData.investigations || '',
-            activeExtraData.past_investigations || '',
-            activeExtraData.radiology_findings || '',
-            activeExtraData.past_radiology || ''
-          ].join('\n'), 
-          { 
-            sex: editablePatientDetails?.sex as any, 
-            age: typeof age === 'number' ? age : undefined 
-          }
-        ),
+        investigations_parsed: [
+          ...parser.parse(activeExtraData.investigations || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
+          ...parser.parse(activeExtraData.past_investigations || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
+          ...parser.parse(activeExtraData.radiology_findings || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
+          ...parser.parse(activeExtraData.past_radiology || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined })
+        ],
         parser_version: (limsCatalog?.services && limsCatalog.services.length > 0) ? 1 : 0,
       };
 
@@ -1607,7 +1603,7 @@ const ConsultationPage = () => {
         'complaints', 'medicalHistory', 'familyHistory', 'findings', 'diagnosis',
         'advice', 'followup', 'personalNote', 'procedure',
         'investigations', 'radiology_findings', 'referred_to', 'orthotics',
-        'referred_by'
+        'referred_by', 'past_investigations', 'past_radiology'
       ];
 
       if (shortcutFields.includes(field)) {
@@ -1638,7 +1634,9 @@ const ConsultationPage = () => {
               referred_to: referredToRef,
               followup: followupRef,
               radiology_findings: radiologyFindingsRef,
-              referred_by: referredByRef
+              referred_by: referredByRef,
+              past_investigations: pastInvestigationsTextAreaRef,
+              past_radiology: pastRadiologyTextAreaRef
             };
             const targetRef = refs[field];
             if (targetRef && targetRef.current) {
@@ -1652,7 +1650,7 @@ const ConsultationPage = () => {
 
     if (isReadOnly) return;
     setExtraData(prev => ({ ...prev, [field]: value }));
-  }, [adviceRef, medicalHistoryRef, familyHistoryRef, investigationsRef, complaintsRef, orthoticsRef, findingsRef, radiologyFindingsRef, diagnosisRef, personalNoteRef, procedureRef, referredToRef, followupRef, isReadOnly, autofillProcessor, consultationLanguage]);
+  }, [adviceRef, medicalHistoryRef, familyHistoryRef, investigationsRef, complaintsRef, orthoticsRef, findingsRef, radiologyFindingsRef, diagnosisRef, personalNoteRef, procedureRef, referredToRef, followupRef, isReadOnly, autofillProcessor, consultationLanguage, pastInvestigationsTextAreaRef, pastRadiologyTextAreaRef]);
 
 
   /**
@@ -2673,6 +2671,8 @@ const ConsultationPage = () => {
                     adviceRef={adviceRef}
                     orthoticsRef={orthoticsRef}
                     referredToRef={referredToRef}
+                    pastInvestigationsTextAreaRef={pastInvestigationsTextAreaRef}
+                    pastRadiologyTextAreaRef={pastRadiologyTextAreaRef}
                     suggestedInvestigations={suggestedInvestigations}
                     suggestedRadiology={suggestedRadiology}
                     suggestedAdvice={suggestedAdvice}

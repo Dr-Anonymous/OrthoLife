@@ -58,6 +58,8 @@ interface ClinicalNotesFormProps {
     adviceRef: React.RefObject<HTMLTextAreaElement>;
     orthoticsRef: React.RefObject<HTMLTextAreaElement>;
     referredToRef: React.RefObject<any>; // Typings for AutosuggestInput ref might be tricky
+    pastInvestigationsTextAreaRef?: React.RefObject<HTMLTextAreaElement>;
+    pastRadiologyTextAreaRef?: React.RefObject<HTMLTextAreaElement>;
 
     // Suggestions
     suggestedInvestigations: string[];
@@ -127,6 +129,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     adviceRef,
     orthoticsRef,
     referredToRef,
+    pastInvestigationsTextAreaRef,
+    pastRadiologyTextAreaRef,
     suggestedInvestigations,
     suggestedRadiology,
     suggestedAdvice,
@@ -370,12 +374,17 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
     const parser = React.useMemo(() => new ClinicalParser(limsCatalog?.services || [], limsCatalog?.ranges || []), [limsCatalog]);
     const parsedInvestigations = React.useMemo(() => {
-        const combinedText = (extraData.investigations || '') + '\n' + (extraData.radiology_findings || '');
-        return parser.parse(combinedText, {
+        const metadata = {
             age: typeof patientAge === 'number' ? patientAge : 30,
             sex: patientSex
-        });
-    }, [parser, extraData.investigations, extraData.radiology_findings, patientAge, patientSex]);
+        };
+        return [
+            ...parser.parse(extraData.investigations || '', metadata),
+            ...parser.parse(extraData.past_investigations || '', metadata),
+            ...parser.parse(extraData.radiology_findings || '', metadata),
+            ...parser.parse(extraData.past_radiology || '', metadata)
+        ];
+    }, [parser, extraData.investigations, extraData.past_investigations, extraData.radiology_findings, extraData.past_radiology, patientAge, patientSex]);
 
     const allHistoryDates = React.useMemo(() => {
         if (!investigationHistory) return [];
@@ -567,8 +576,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     const after = currentVal.substring(selectionStart);
 
                     const selectedName = selected.name + ': ';
-                    const separator = '\n';
-                    onExtraChange('investigations', before + selectedName + separator + after, before.length + selectedName.length + separator.length);
+                    onExtraChange('investigations', before + selectedName + after, before.length + selectedName.length);
                     setInvestigationSearch('');
                     setGhostText('');
                 }
@@ -609,17 +617,19 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     data: s
                 });
 
-                // Add matching sub-parameters
-                matchingParams.forEach(p => {
-                    if (normalizeSearchText(p.name) === serviceName) return;
-                    matches.push({
-                        type: 'parameter',
-                        id: `${s.id}-${p.name}`,
-                        name: p.name,
-                        parentName: s.name,
-                        data: s
+                // Add matching sub-parameters ONLY if the service has more than 1 parameter
+                if (s.result_schema && s.result_schema.length > 1) {
+                    matchingParams.forEach(p => {
+                        if (normalizeSearchText(p.name) === serviceName) return;
+                        matches.push({
+                            type: 'parameter',
+                            id: `${s.id}-${p.name}`,
+                            name: p.name,
+                            parentName: s.name,
+                            data: s
+                        });
                     });
-                });
+                }
             }
         });
 
@@ -657,10 +667,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
             if (nameMatch || matchingParams.length > 0) {
                 matches.push({ type: 'service', id: s.id, name: s.name, data: s });
-                matchingParams.forEach(p => {
-                    if (normalizeSearchText(p.name) === serviceName) return;
-                    matches.push({ type: 'parameter', id: `${s.id}-${p.name}`, name: p.name, parentName: s.name, data: s });
-                });
+                if (s.result_schema && s.result_schema.length > 1) {
+                    matchingParams.forEach(p => {
+                        if (normalizeSearchText(p.name) === serviceName) return;
+                        matches.push({ type: 'parameter', id: `${s.id}-${p.name}`, name: p.name, parentName: s.name, data: s });
+                    });
+                }
             }
         });
         return matches.slice(0, 15);
@@ -1193,7 +1205,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                 <div className="flex items-center justify-between mb-2 gap-4">
                                     <div className="flex items-center gap-3 flex-wrap">
                                         <Label htmlFor="investigations" className="text-sm font-medium shrink-0">Labs</Label>
-                                        {allHistoryDates.length > 0 && (
+                                        {(allHistoryDates.length > 0 || allTypedHistoryDates.length > 0) && (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -1243,7 +1255,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             <DialogContent className="sm:max-w-[500px]">
                                                 <DialogHeader>
                                                     <DialogTitle>Historical Lab Reports</DialogTitle>
-                                                    <DialogDescription>Add or manage reports from previous visits. These are used for trend analysis but won't appear in today's prescription.</DialogDescription>
+                                                    <DialogDescription>Add or manage reports from past. These are used for trend analysis but won't appear in today's prescription.</DialogDescription>
                                                 </DialogHeader>
                                                 <div className="grid gap-6 py-4">
                                                     <div className="space-y-4 p-4 bg-muted/30 rounded-xl border border-dashed">
@@ -1365,8 +1377,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                             <span className="text-[9px] text-muted-foreground italic">Directly editable</span>
                                                         </div>
                                                         <Textarea
+                                                            ref={pastInvestigationsTextAreaRef}
                                                             value={extraData.past_investigations || ''}
-                                                            onChange={(e) => onExtraChange('past_investigations', e.target.value)}
+                                                            onChange={(e) => onExtraChange('past_investigations', e.target.value, e.target.selectionStart)}
                                                             placeholder="All historical lab data will appear here..."
                                                             className="text-xs min-h-[150px] font-mono bg-slate-50/50"
                                                         />
@@ -1624,7 +1637,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                             <DialogContent className="sm:max-w-[500px]">
                                                 <DialogHeader>
                                                     <DialogTitle>Historical Radiology Reports</DialogTitle>
-                                                    <DialogDescription>Add imaging results from previous visits. These stay in history and won't clutter today's clinical notes.</DialogDescription>
+                                                    <DialogDescription>Add imaging results from past. These stay in history and won't clutter today's clinical notes.</DialogDescription>
                                                 </DialogHeader>
                                                 <div className="grid gap-6 py-4">
                                                     <div className="space-y-4 p-4 bg-muted/30 rounded-xl border border-dashed">
@@ -1745,8 +1758,9 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                             <span className="text-[9px] text-muted-foreground italic">Directly editable</span>
                                                         </div>
                                                         <Textarea
+                                                            ref={pastRadiologyTextAreaRef}
                                                             value={extraData.past_radiology || ''}
-                                                            onChange={(e) => onExtraChange('past_radiology', e.target.value)}
+                                                            onChange={(e) => onExtraChange('past_radiology', e.target.value, e.target.selectionStart)}
                                                             placeholder="All historical imaging data will appear here..."
                                                             className="text-xs min-h-[150px] font-mono bg-slate-50/50"
                                                         />
@@ -1883,7 +1897,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     }}
                                                 >
                                                     <span className="font-medium">{scan.name}</span>
-                                                    {scan.category && <span className={cn("text-[10px] italic", idx === activeRadiologyIndex ? "text-primary-foreground/70" : "text-muted-foreground")}>{scan.category}</span>}
+                                                    {scan.category && scan.category.toLowerCase() !== 'radiology' && <span className={cn("text-[10px] italic", idx === activeRadiologyIndex ? "text-primary-foreground/70" : "text-muted-foreground")}>{scan.category}</span>}
                                                 </button>
                                             ))}
                                         </div>
@@ -2025,6 +2039,12 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                                 placeholder="-"
                                                                 disabled={isReadOnly}
                                                             />
+                                                            {res.value !== '-' && res.value !== '' && (res.status === 'high' || res.status === 'critical-high') && (
+                                                                <span className={cn("text-[8px] font-black shrink-0 px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", res.status === 'critical-high' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="High Value">↑</span>
+                                                            )}
+                                                            {res.value !== '-' && res.value !== '' && (res.status === 'low' || res.status === 'critical-low') && (
+                                                                <span className={cn("text-[8px] font-black shrink-0 px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", res.status === 'critical-low' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="Low Value">↓</span>
+                                                            )}
                                                             {res.criticalAlert && (
                                                                 <div className="flex items-center gap-1 text-[8px] font-black text-rose-600 bg-rose-50 px-1 py-0.5 rounded border border-rose-100 animate-pulse shrink-0">
                                                                     <AlertTriangle className="w-2.5 h-2.5" />
@@ -2032,14 +2052,39 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                                 </div>
                                                             )}
                                                             {(() => {
-                                                                const history = investigationHistory?.[groupKey] || [];
-                                                                const otherHistory = history.filter(h => String(h.consultationId) !== String(consultationId));
+                                                                // 1. Get database history
+                                                                const dbHistory = investigationHistory?.[groupKey] || [];
+                                                                const otherDbHistory = dbHistory.filter(h => String(h.consultationId) !== String(consultationId));
+
+                                                                // 2. Get typed historical results for this group key
+                                                                const typedHistory = parsedInvestigations
+                                                                    .filter(r => {
+                                                                        const rKey = r.id ? `${r.id}:${r.name.toLowerCase()}` : r.name.toLowerCase();
+                                                                        return rKey === groupKey && !!r.date;
+                                                                    })
+                                                                    .map(r => {
+                                                                        const parts = r.date!.split(/[/.-]/);
+                                                                        const day = parseInt(parts[0]);
+                                                                        const month = parseInt(parts[1]) - 1;
+                                                                        let year = parseInt(parts[2]);
+                                                                        if (year < 100) year += 2000;
+                                                                        const dateObj = new Date(year, month, day);
+                                                                        return {
+                                                                            date: dateObj.toISOString(),
+                                                                            value: r.value,
+                                                                            status: r.status,
+                                                                            consultationId: 'typed'
+                                                                        } as HistoricalResult;
+                                                                    });
+
+                                                                // Combine database and typed histories
+                                                                const combinedHistory = [...otherDbHistory, ...typedHistory];
                                                                 const hasCurrentValue = res.value !== '-' && res.value !== '';
-                                                                const totalPoints = otherHistory.length + (hasCurrentValue ? 1 : 0);
+                                                                const totalPoints = combinedHistory.length + (hasCurrentValue ? 1 : 0);
 
                                                                 if (totalPoints < 2) return null;
 
-                                                                const latestHist = otherHistory
+                                                                const latestHist = combinedHistory
                                                                     .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0];
 
                                                                 const currNum = parseFloat(String(res.value).replace(/[^0-9.-]/g, ''));
@@ -2099,16 +2144,30 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
 
                                                         const val = hist?.value || typedItem?.value || '-';
                                                         const status = hist?.status || typedItem?.status || 'unknown';
+                                                        const criticalAlert = hist?.criticalAlert || typedItem?.criticalAlert;
 
                                                         return (
                                                             <td key={date} className={cn(
                                                                 "px-2 py-1.5 text-[10px] whitespace-nowrap tabular-nums",
-                                                                status === 'normal' && "text-emerald-600/70",
-                                                                (status === 'high' || status === 'low') && "text-amber-600/70",
+                                                                status === 'normal' && (val === '-' ? "text-slate-300" : "text-emerald-700 font-medium"),
+                                                                (status === 'high' || status === 'low') && (val === '-' ? "text-slate-300" : "text-amber-700 font-medium"),
                                                                 (status === 'critical-high' || status === 'critical-low') && "text-rose-600 font-bold",
-                                                                status === 'unknown' && "text-slate-300"
+                                                                status === 'unknown' && (val === '-' ? "text-slate-300" : "text-slate-600 font-medium")
                                                             )}>
-                                                                {val}
+                                                                <div className="flex items-center gap-1">
+                                                                    <span>{val}</span>
+                                                                    {val !== '-' && val !== '' && (status === 'high' || status === 'critical-high') && (
+                                                                        <span className={cn("text-[8px] font-black shrink-0 px-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", status === 'critical-high' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="High Value">↑</span>
+                                                                    )}
+                                                                    {val !== '-' && val !== '' && (status === 'low' || status === 'critical-low') && (
+                                                                        <span className={cn("text-[8px] font-black shrink-0 px-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", status === 'critical-low' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="Low Value">↓</span>
+                                                                    )}
+                                                                    {criticalAlert && (
+                                                                        <span title={criticalAlert} className="shrink-0 flex items-center">
+                                                                            <AlertTriangle className="w-2.5 h-2.5 text-rose-600 animate-pulse" />
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                         );
                                                     })}
