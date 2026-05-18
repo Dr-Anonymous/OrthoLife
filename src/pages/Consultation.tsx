@@ -441,6 +441,7 @@ const ConsultationPage = () => {
   const medInstructionsRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const medNotesRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const activeConsultationIdRef = useRef<string | null>(null);
+  const wasOriginallyEmptyRef = useRef<boolean>(false);
   const fetchControllerRef = useRef<AbortController | null>(null);
 
   // Syncs latest textarea values from DOM refs into state to avoid stale prints.
@@ -636,6 +637,9 @@ const ConsultationPage = () => {
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     activeConsultationIdRef.current = consultation.id;
     setSelectedConsultation(consultation);
+
+    const isEmpty = !consultation.consultation_data || (typeof consultation.consultation_data === 'object' && Object.keys(consultation.consultation_data).length === 0);
+    wasOriginallyEmptyRef.current = isEmpty;
 
     // Sync location immediately to ensure UI and data fetching reflect the loaded consultation's context
     const matchedHospital = hospitals.find(h => areLocationsEqual(h.name, consultation.location));
@@ -1188,6 +1192,19 @@ const ConsultationPage = () => {
 
     setIsSaving(true);
     try {
+      let finalInvestigations = activeExtraData.investigations;
+      let finalRadiology = activeExtraData.radiology_findings;
+
+      // Anti-corruption check: If investigations/radiology were autofilled and unmodified, ignore them
+      if (wasOriginallyEmptyRef.current) {
+        if (finalInvestigations && finalInvestigations.trim() === (initialExtraData.investigations || '').trim()) {
+          finalInvestigations = '';
+        }
+        if (finalRadiology && finalRadiology.trim() === (initialExtraData.radiology_findings || '').trim()) {
+          finalRadiology = '';
+        }
+      }
+
       const { visit_type, location, language, ...restExtraData } = activeExtraData as any;
 
       const cleanMedicationForSave = (med: any) => {
@@ -1272,13 +1289,13 @@ const ConsultationPage = () => {
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
         next_review_date: nextReviewDate,
-        investigations: activeExtraData.investigations,
-        radiology_findings: activeExtraData.radiology_findings,
+        investigations: finalInvestigations,
+        radiology_findings: finalRadiology,
         radiology_images: activeExtraData.radiology_images,
         investigations_parsed: [
-          ...parser.parse(activeExtraData.investigations || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
+          ...parser.parse(finalInvestigations || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
           ...parser.parse(activeExtraData.past_investigations || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
-          ...parser.parse(activeExtraData.radiology_findings || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
+          ...parser.parse(finalRadiology || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined }),
           ...parser.parse(activeExtraData.past_radiology || '', { sex: editablePatientDetails?.sex as any, age: typeof age === 'number' ? age : undefined })
         ],
         parser_version: (limsCatalog?.services && limsCatalog.services.length > 0) ? 1 : 0,
@@ -1307,8 +1324,8 @@ const ConsultationPage = () => {
         referred_by: referred_by || null,
         referral_amount: referral_amount ? Number(referral_amount) : null,
         next_review_date: nextReviewDate,
-        investigations: activeExtraData.investigations,
-        radiology_findings: activeExtraData.radiology_findings,
+        investigations: finalInvestigations,
+        radiology_findings: finalRadiology,
         radiology_images: activeExtraData.radiology_images,
         investigations_parsed: offlineBundle.investigations_parsed,
         parser_version: offlineBundle.parser_version,
@@ -1316,7 +1333,19 @@ const ConsultationPage = () => {
 
       setSelectedConsultation(updatedConsultation);
       setInitialPatientDetails(editablePatientDetails);
-      setInitialExtraData(activeExtraData);
+      
+      // Sync local form state to show the blank/saved values for unmodified autofills
+      setExtraData(prev => ({
+        ...prev,
+        investigations: finalInvestigations,
+        radiology_findings: finalRadiology,
+      }));
+      setInitialExtraData({
+        ...activeExtraData,
+        investigations: finalInvestigations,
+        radiology_findings: finalRadiology,
+      });
+
       setInitialLocation(selectedHospital.name);
       setInitialLanguage(consultationLanguage);
 

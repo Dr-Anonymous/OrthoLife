@@ -159,15 +159,38 @@ async function fetchRecentHistory(patientId: string, referenceDateIso: string) {
     patientIds = connectedIds;
   }
 
-  // 1. Fetch Last Consultation (Any status, meant to capture "Last Visit")
-  const { data: lastConsultation } = await supabase
+  // 1. Fetch Recent Consultations (Any status, meant to capture "Last Visit")
+  const { data: consultations } = await supabase
     .from('consultations')
     .select('consultation_data, created_at, referred_by, consultant_id, investigations, radiology_findings')
     .in('patient_id', patientIds) // Use IN instead of EQ
     .lt('created_at', referenceDateIso)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(3);
+
+  let lastConsultation = null;
+  if (consultations && consultations.length > 0) {
+    const hasData = (c: any) => {
+      if (!c) return false;
+      if (c.investigations && c.investigations.trim() !== '') return true;
+      if (c.radiology_findings && c.radiology_findings.trim() !== '') return true;
+
+      const data = c.consultation_data;
+      if (!data || typeof data !== 'object') return false;
+
+      const hasComplaints = typeof data.complaints === 'string' && data.complaints.trim() !== '';
+      const hasFindings = typeof data.findings === 'string' && data.findings.trim() !== '';
+      const hasDiagnosis = typeof data.diagnosis === 'string' && data.diagnosis.trim() !== '';
+      const hasAdvice = typeof data.advice === 'string' && data.advice.trim() !== '';
+      const hasProcedure = typeof data.procedure === 'string' && data.procedure.trim() !== '';
+      const hasOrthotics = typeof data.orthotics === 'string' && data.orthotics.trim() !== '';
+      const hasMedications = Array.isArray(data.medications) && data.medications.length > 0;
+
+      return hasComplaints || hasFindings || hasDiagnosis || hasAdvice || hasProcedure || hasOrthotics || hasMedications;
+    };
+
+    lastConsultation = consultations.find(hasData) || consultations[0];
+  }
 
   // DEBUG: Inspect ALL InPatients records for this user (to see why filter failed)
   // if (patientId) {
@@ -341,11 +364,11 @@ function generateAutofillData(
         followup: discharge.review_date ? new Date(discharge.review_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         investigations: '',
         visit_type: currentConsultation.visit_type || 'paid',
-        weight: '', 
-        bp: '', 
-        temperature: '', 
-        allergy: '', 
-        personalNote: '', 
+        weight: '',
+        bp: '',
+        temperature: '',
+        allergy: '',
+        personalNote: '',
         referred_to: '',
         procedure_fee: '',
         procedure_consultant_cut: '',
@@ -362,7 +385,7 @@ function generateAutofillData(
       console.error("Error parsing discharge summary:", e);
     }
   } else if (lastConsultation && lastConsultation.consultation_data) {
-    const data = { 
+    const data = {
       ...lastConsultation.consultation_data,
       investigations: lastConsultation.investigations || '',
       radiology_findings: lastConsultation.radiology_findings || '',
@@ -379,7 +402,7 @@ function generateAutofillData(
       data.certificates = [];
       data.receipts = [];
     }
-    
+
     return cleanConsultationData(data, !isDifferentConsultant);
   }
   return null;

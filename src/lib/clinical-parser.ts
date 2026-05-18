@@ -305,6 +305,44 @@ export class ClinicalParser {
         return;
       }
 
+      // Pre-process dashes as separators (e.g. CRP- 10 or CRP - 10) if colons are absent
+      let processedLine = line;
+      if (!line.includes(':') && !line.includes('=')) {
+        const dashIndices: number[] = [];
+        let idx = line.indexOf('-');
+        while (idx !== -1) {
+          dashIndices.push(idx);
+          idx = line.indexOf('-', idx + 1);
+        }
+
+        if (dashIndices.length > 0) {
+          let foundSeparator = false;
+          for (const dashIdx of dashIndices) {
+            const prevChar = dashIdx > 0 ? line[dashIdx - 1] : '';
+            const nextChar = dashIdx < line.length - 1 ? line[dashIdx + 1] : '';
+
+            // Treated as separator if surrounded by space on at least one side
+            const hasSpaceSpace = prevChar === ' ' || nextChar === ' ';
+            const leftPart = line.substring(0, dashIdx).trim();
+            const isKnownService = leftPart.length >= 2 && !!this.findServiceByName(leftPart);
+
+            if (hasSpaceSpace || isKnownService) {
+              processedLine = line.substring(0, dashIdx) + ':' + line.substring(dashIdx + 1);
+              foundSeparator = true;
+              break;
+            }
+          }
+
+          if (!foundSeparator) {
+            const firstDashIdx = dashIndices[0];
+            const leftPart = line.substring(0, firstDashIdx).trim();
+            if (leftPart.length >= 2 && !!this.findServiceByName(leftPart)) {
+              processedLine = line.substring(0, firstDashIdx) + ':' + line.substring(firstDashIdx + 1);
+            }
+          }
+        }
+      }
+
       // Improved regex: less greedy on commas, and better lookahead
       // This regex handles "Name: Value", "Name = Value", "Name - Value"
       // Ultimate Simplification: One test per line. 
@@ -314,7 +352,7 @@ export class ClinicalParser {
       let m;
       let matchedIndices = new Set<number>();
 
-      while ((m = regex.exec(line)) !== null) {
+      while ((m = regex.exec(processedLine)) !== null) {
         const rawName = m[1].trim();
         const rawValue = (m[3] || '').trim().replace(/[,;]$/, ''); // Remove trailing comma/semicolon
         if (rawName.length < 2 || !/[a-zA-Z0-9]/.test(rawName)) continue;

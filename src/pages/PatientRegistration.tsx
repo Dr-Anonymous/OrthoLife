@@ -4,7 +4,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { offlineStore } from '@/lib/local-storage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Printer, Pencil, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { Loader2, Printer, Pencil, Calendar as CalendarIcon, Trash2, Pill, FlaskConical } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateAge } from '@/lib/age';
@@ -51,6 +51,24 @@ const PatientRegistration = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const recentlyHandledIds = useRef<Set<string | number>>(new Set());
+  const [expandedMedicines, setExpandedMedicines] = useState<Record<string | number, boolean>>({});
+  const [expandedInvestigations, setExpandedInvestigations] = useState<Record<string | number, boolean>>({});
+
+  const toggleMedicines = (id: string | number) => {
+    setExpandedMedicines(prev => {
+      const isCurrentlyExpanded = !!prev[id];
+      return { [id]: !isCurrentlyExpanded };
+    });
+    setExpandedInvestigations({});
+  };
+
+  const toggleInvestigations = (id: string | number) => {
+    setExpandedInvestigations(prev => {
+      const isCurrentlyExpanded = !!prev[id];
+      return { [id]: !isCurrentlyExpanded };
+    });
+    setExpandedMedicines({});
+  };
 
   const { consultant, isLoading: isConsultantLoading } = useConsultant();
   const {
@@ -495,72 +513,136 @@ const PatientRegistration = () => {
               </div>
             ) : filteredConsultations.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-3">
-                {filteredConsultations.map(c => (
-                  <div key={c.id} className="bg-card border p-3 rounded-lg shadow-sm w-full max-w-sm">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-lg">{c.patient.name}</p>
-                        <div className="text-sm text-muted-foreground">
-                          <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} • {formatLocalTime(c.created_at)}</div>
-                          {c.patient.phone && c.patient.phone !== '0000000000' ? (
-                            <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
-                          ) : (
-                            <span className="text-muted-foreground italic block mt-1">No phone</span>
-                          )}
-                          {c.patient.secondary_phone && (
-                            <a href={`tel:${c.patient.secondary_phone}`} className="hover:underline block text-xs mt-1 text-muted-foreground">Alt: {c.patient.secondary_phone}</a>
-                          )}
+                {filteredConsultations.map(c => {
+                  const medications = Array.isArray(c.consultation_data?.medications) ? c.consultation_data.medications : [];
+                  const medicationsCount = medications.length;
+                  const hasMedications = medicationsCount > 0;
+
+                  const hasLab = typeof c.investigations === 'string' && c.investigations.trim() !== '';
+                  const hasRadio = typeof c.radiology_findings === 'string' && c.radiology_findings.trim() !== '';
+                  const hasInvestigations = hasLab || hasRadio;
+
+                  const isMedExpanded = !!expandedMedicines[c.id];
+                  const isInvExpanded = !!expandedInvestigations[c.id];
+
+                  return (
+                    <div key={c.id} className="bg-card border p-3 rounded-lg shadow-sm w-full max-w-sm">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-lg">{c.patient.name}</p>
+                          <div className="text-sm text-muted-foreground">
+                            <div>{calculateAge(new Date(c.patient.dob))}Y / {c.patient.sex} • {formatLocalTime(c.created_at)}</div>
+                            {c.patient.phone && c.patient.phone !== '0000000000' ? (
+                              <a href={`tel:${c.patient.phone}`} className="hover:underline block mt-1">{c.patient.phone}</a>
+                            ) : (
+                              <span className="text-muted-foreground italic block mt-1">No phone</span>
+                            )}
+                            {c.patient.secondary_phone && (
+                              <a href={`tel:${c.patient.secondary_phone}`} className="hover:underline block text-xs mt-1 text-muted-foreground">Alt: {c.patient.secondary_phone}</a>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              setEditingPatient(c.patient);
-                              setIsEditModalOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit Patient</span>
-                          </Button>
-
-                          {c.status === 'pending' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                              onClick={() => handleDelete(c)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete Consultation</span>
-                            </Button>
-                          )}
-
-                          {c.status === 'completed' && (
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => setPrintingConsultation(c)}
-                              disabled={!!printingConsultation}
+                              onClick={() => {
+                                setEditingPatient(c.patient);
+                                setIsEditModalOpen(true);
+                              }}
                             >
-                              {printingConsultation?.id === c.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Printer className="h-4 w-4" />
-                              )}
-                              <span className="sr-only">Print Prescription</span>
+                              <Pencil className="h-4 w-4" />
+                              <span className="sr-only">Edit Patient</span>
                             </Button>
+
+                            {c.status === 'pending' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                onClick={() => handleDelete(c)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete Consultation</span>
+                              </Button>
+                            )}
+
+                            {c.status === 'completed' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setPrintingConsultation(c)}
+                                disabled={!!printingConsultation}
+                              >
+                                {printingConsultation?.id === c.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Printer className="h-4 w-4" />
+                                )}
+                                <span className="sr-only">Print Prescription</span>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Icons and quick status row */}
+                      <div className="mt-3 pt-2 border-t flex items-center justify-between">
+                        {/* Left: Quick Order Actions */}
+                        <div className="flex gap-1.5">
+                          {hasMedications ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "h-7 px-2 flex items-center gap-1.5 text-xs font-semibold rounded-md transition-all duration-200",
+                                isMedExpanded
+                                  ? "bg-primary/10 text-primary hover:bg-primary/20"
+                                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                              )}
+                              onClick={() => toggleMedicines(c.id)}
+                            >
+                              <Pill className="h-3.5 w-3.5" />
+                              <span>Meds ({medicationsCount})</span>
+                            </Button>
+                          ) : (
+                            <div className="h-7 px-2 flex items-center gap-1.5 text-xs font-normal text-muted-foreground/40 cursor-not-allowed">
+                              <Pill className="h-3.5 w-3.5" />
+                              <span>No Meds</span>
+                            </div>
+                          )}
+                          {hasInvestigations ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "h-7 px-2 flex items-center gap-1.5 text-xs font-semibold rounded-md transition-all duration-200",
+                                isInvExpanded
+                                  ? "bg-cyan-600/10 text-cyan-600 hover:bg-cyan-600/20"
+                                  : "text-muted-foreground hover:bg-muted hover:text-cyan-600"
+                              )}
+                              onClick={() => toggleInvestigations(c.id)}
+                            >
+                              <FlaskConical className="h-3.5 w-3.5" />
+                              <span>Tests</span>
+                            </Button>
+                          ) : (
+                            <div className="h-7 px-2 flex items-center gap-1.5 text-xs font-normal text-muted-foreground/40 cursor-not-allowed">
+                              <FlaskConical className="h-3.5 w-3.5" />
+                              <span>No Tests</span>
+                            </div>
                           )}
                         </div>
-                        <div className="flex gap-2 mt-1">
+
+                        {/* Right: Existing Badges */}
+                        <div className="flex gap-1.5">
                           <Badge
                             variant="outline"
                             className={cn(
-                              "capitalize border-transparent",
+                              "capitalize border-transparent text-[10px] px-1.5 py-0.5 font-semibold",
                               c.visit_type === 'free'
                                 ? "bg-white text-black border border-gray-200 hover:bg-gray-50"
                                 : "bg-green-600 text-white hover:bg-green-700"
@@ -568,14 +650,132 @@ const PatientRegistration = () => {
                           >
                             {c.visit_type}
                           </Badge>
-                          <Badge variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'} className={c.status === 'under_evaluation' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}>
+                          <Badge
+                            variant={c.status === 'completed' ? 'secondary' : c.status === 'under_evaluation' ? 'secondary' : 'default'}
+                            className={cn(
+                              "text-[10px] px-1.5 py-0.5 font-semibold",
+                              c.status === 'under_evaluation' ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""
+                            )}
+                          >
                             {c.status}
                           </Badge>
                         </div>
                       </div>
+
+                      {/* Collapsible Orders Panels */}
+                      {isMedExpanded && hasMedications && (
+                        <div className="mt-3 p-3 bg-muted/40 rounded-lg border border-primary/10 animate-in slide-in-from-top-2 duration-200">
+                          <h4 className="text-xs font-bold text-primary mb-2 flex items-center gap-1.5">
+                            <Pill className="h-3.5 w-3.5" />
+                            <span>Advised Medicines</span>
+                          </h4>
+                          <div className="space-y-2">
+                            {medications.map((med: any, idx: number) => {
+                              const getFrequencyDisplay = () => {
+                                const parts = [];
+                                if (med.freqMorning !== undefined || med.freqNoon !== undefined || med.freqNight !== undefined) {
+                                  const m = med.freqMorning ? '1' : '0';
+                                  const n = med.freqNoon ? '1' : '0';
+                                  const ni = med.freqNight ? '1' : '0';
+                                  if (med.freqMorning || med.freqNoon || med.freqNight) {
+                                    parts.push(`${m}-${n}-${ni}`);
+                                  }
+                                }
+                                if (med.frequency && !parts.includes(med.frequency)) {
+                                  parts.push(med.frequency);
+                                }
+                                return parts.join(' ');
+                              };
+
+                              const freqDisplay = getFrequencyDisplay();
+                              const doseDisplay = med.dose || med.dosage;
+                              const hasBrand = !!med.brandName && med.brandName.trim() !== '';
+                              const mainName = hasBrand ? med.brandName : (med.name || med.composition || '');
+                              const subName = hasBrand && med.composition && med.brandName !== med.composition ? `(${med.composition})` : null;
+
+                              return (
+                                <div key={idx} className="bg-background p-2 rounded border text-xs shadow-sm">
+                                  <div className="font-semibold text-foreground flex items-center justify-between">
+                                    <span>{mainName}</span>
+                                    {med.duration && (
+                                      <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-normal">
+                                        {med.duration}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {subName && (
+                                    <div className="text-[10px] text-muted-foreground italic mt-0.5">
+                                      {subName}
+                                    </div>
+                                  )}
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-muted-foreground text-[10px]">
+                                    {doseDisplay && (
+                                      <div>
+                                        <span className="font-medium text-foreground">Dosage:</span> {doseDisplay}
+                                      </div>
+                                    )}
+                                    {freqDisplay && (
+                                      <div>
+                                        <span className="font-medium text-foreground">Freq:</span> {freqDisplay}
+                                      </div>
+                                    )}
+                                    {med.instructions && (
+                                      <div className="text-primary font-medium">
+                                        • {med.instructions}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {med.notes && (
+                                    <div className="mt-1 text-[10px] text-muted-foreground/80 bg-muted/30 p-1 rounded border border-dashed">
+                                      Note: {med.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {isInvExpanded && hasInvestigations && (
+                        <div className="mt-3 p-3 bg-muted/40 rounded-lg border border-cyan-600/10 animate-in slide-in-from-top-2 duration-200">
+                          <h4 className="text-xs font-bold text-cyan-600 mb-2 flex items-center gap-1.5">
+                            <FlaskConical className="h-3.5 w-3.5" />
+                            <span>Advised Investigations</span>
+                          </h4>
+                          <div className="space-y-3">
+                            {hasLab && (
+                              <div className="bg-background p-2 rounded border text-xs shadow-sm">
+                                <div className="font-semibold text-foreground flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+                                  Lab Investigations
+                                </div>
+                                <ul className="list-disc list-inside space-y-1 text-foreground pl-1">
+                                  {c.investigations.split('\n').filter((l: string) => l.trim()).map((line: string, idx: number) => (
+                                    <li key={idx} className="text-xs">{line.trim()}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {hasRadio && (
+                              <div className="bg-background p-2 rounded border text-xs shadow-sm">
+                                <div className="font-semibold text-foreground flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                  Radiology / Imaging
+                                </div>
+                                <ul className="list-disc list-inside space-y-1 text-foreground pl-1">
+                                  {c.radiology_findings.split('\n').filter((l: string) => l.trim()).map((line: string, idx: number) => (
+                                    <li key={idx} className="text-xs">{line.trim()}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-center text-muted-foreground">No consultations scheduled.</p>
