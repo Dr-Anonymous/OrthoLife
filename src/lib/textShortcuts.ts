@@ -50,7 +50,7 @@ export const processTextShortcuts = (
             }
 
             const textAfter = currentValue.substring(cursorPosition);
-            const needsSpace = !textAfter.startsWith(' ') && !textAfter.startsWith('\n');
+            const needsSpace = !textAfter.startsWith(' ');
             
             const finalExpansion = formatExpansion(expansion, needsSpace);
             const newValue = textBeforeContent + prefix + finalExpansion + textAfter;
@@ -135,7 +135,7 @@ export const processDurationShortcuts = (
             if (shortcutIndex !== -1) {
                 const textBefore = value.substring(0, shortcutIndex);
                 const textAfter = value.substring(cursorPosition);
-                const needsSpace = !textAfter.startsWith(' ') && !textAfter.startsWith('\n');
+                const needsSpace = !textAfter.startsWith(' ');
                 
                 const finalExpandedText = formatExpansion(expandedText, needsSpace);
 
@@ -180,7 +180,7 @@ export const processDurationShortcuts = (
                 if (shortcutIndex !== -1) {
                     const textBefore = value.substring(0, shortcutIndex);
                     const textAfter = value.substring(cursorPosition);
-                    const needsSpace = !textAfter.startsWith(' ') && !textAfter.startsWith('\n');
+                    const needsSpace = !textAfter.startsWith(' ');
 
                     const finalExpandedText = formatExpansion(expandedText, needsSpace);
 
