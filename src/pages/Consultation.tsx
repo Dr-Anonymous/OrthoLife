@@ -1346,9 +1346,11 @@ const ConsultationPage = () => {
         radiology_images: activeExtraData.radiology_images,
         investigations_parsed: offlineBundle.investigations_parsed,
         parser_version: offlineBundle.parser_version,
+        is_autofilled: false,
       };
 
       setSelectedConsultation(updatedConsultation);
+      wasOriginallyEmptyRef.current = false;
       setInitialPatientDetails(editablePatientDetails);
       
       // Sync local form state to show the blank/saved values for unmodified autofills
