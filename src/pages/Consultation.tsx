@@ -540,6 +540,64 @@ const ConsultationPage = () => {
     signatureAlignment: 'right'
   });
 
+  const [hasTemporaryPrintSettings, setHasTemporaryPrintSettings] = useState(false);
+
+  const handleApplyOneOff = (profile: boolean, signSeal: boolean, options: PrintOptions) => {
+    setShowDoctorProfile(profile);
+    setShowSignSeal(signSeal);
+    setPrintOptions(options);
+    setHasTemporaryPrintSettings(true);
+  };
+
+  const handleClearTemporarySettings = () => {
+    setHasTemporaryPrintSettings(false);
+  };
+
+  const resetPrintSettingsToDefault = () => {
+    if (consultant) {
+      const settings = consultant.messaging_settings as any;
+      const locationOverride = settings?.location_print_overrides?.[selectedLocation];
+      const dbProfile = locationOverride?.show_profile;
+      const dbSignSeal = locationOverride?.show_sign_seal;
+      const dbPrintOptions = settings?.location_print_options?.[selectedLocation];
+
+      setShowDoctorProfile(dbProfile !== undefined ? dbProfile : true);
+      setShowSignSeal(dbSignSeal !== undefined ? dbSignSeal : false);
+
+      const defaultOptions: PrintOptions = {
+        vitals: true,
+        clinicalNotes: true,
+        diagnosis: true,
+        investigations: true,
+        medications: true,
+        advice: true,
+        followup: true,
+        procedure: true,
+        referrals: true,
+        orthotics: true,
+        letterheadMode: false,
+        fontSize: 'standard',
+        signatureAlignment: 'right',
+        footerMask: false,
+        footerMaskCoords: { bottom: 1.15, right: 1.6, width: 3.6, height: 0.4 }
+      };
+
+      if (dbPrintOptions !== undefined) {
+        setPrintOptions({
+          ...defaultOptions,
+          ...dbPrintOptions
+        });
+      } else {
+        setPrintOptions(defaultOptions);
+      }
+      setHasTemporaryPrintSettings(false);
+    }
+  };
+
+  const handleResetToSaved = () => {
+    resetPrintSettingsToDefault();
+  };
+
   // Load profile preference on location change
   useEffect(() => {
     if (selectedLocation) {
@@ -1456,14 +1514,21 @@ const ConsultationPage = () => {
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasSignificantChanges) {
+        const msg = "You have unsaved changes in your consultation form. Are you sure you want to leave?";
         e.preventDefault();
-        e.returnValue = ''; // Trigger browser's native confirmation dialog
+        e.returnValue = msg;
+        return msg;
+      } else if (hasTemporaryPrintSettings) {
+        const msg = "You have unsaved print settings. Are you sure you want to leave?";
+        e.preventDefault();
+        e.returnValue = msg;
+        return msg;
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasSignificantChanges]);
+  }, [hasSignificantChanges, hasTemporaryPrintSettings]);
 
 
 
@@ -2931,6 +2996,10 @@ const ConsultationPage = () => {
                   onToggleSignSeal={toggleSignSeal}
                   printOptions={printOptions}
                   onUpdatePrintOptions={updatePrintOptions}
+                  onApplyOneOff={handleApplyOneOff}
+                  hasTemporarySettings={hasTemporaryPrintSettings}
+                  onResetToSaved={handleResetToSaved}
+                  onClearTemporarySettings={handleClearTemporarySettings}
 
                   isReadOnly={isReadOnly}
                   isWhatsAppEnabled={consultant?.is_whatsauto_active}

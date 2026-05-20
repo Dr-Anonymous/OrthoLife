@@ -253,6 +253,10 @@ const InPatientManagement = () => {
 
             if (error) throw error;
             await refreshConsultant();
+            setHasTemporaryPrintSettings(false);
+            setTempProfileEnabled(null);
+            setTempSignSealEnabled(null);
+            setTempPrintOptions(null);
             toast({ title: "Success", description: "Print settings updated." });
             setIsPrintSettingsModalOpen(false);
         } catch (error) {
@@ -267,21 +271,56 @@ const InPatientManagement = () => {
     const [isPrintSettingsModalOpen, setIsPrintSettingsModalOpen] = useState(false);
     const [settingsLocation, setSettingsLocation] = useState('OrthoLife');
 
+    const [hasTemporaryPrintSettings, setHasTemporaryPrintSettings] = useState(false);
+    const [tempProfileEnabled, setTempProfileEnabled] = useState<boolean | null>(null);
+    const [tempSignSealEnabled, setTempSignSealEnabled] = useState<boolean | null>(null);
+    const [tempPrintOptions, setTempPrintOptions] = useState<PrintOptions | null>(null);
+
+    const handleApplyOneOff = (profile: boolean, signSeal: boolean, options: PrintOptions) => {
+        setTempProfileEnabled(profile);
+        setTempSignSealEnabled(signSeal);
+        setTempPrintOptions(options);
+        setHasTemporaryPrintSettings(true);
+    };
+
+    const handleResetToSaved = () => {
+        setTempProfileEnabled(null);
+        setTempSignSealEnabled(null);
+        setTempPrintOptions(null);
+        setHasTemporaryPrintSettings(false);
+    };
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasTemporaryPrintSettings) {
+                const msg = "You have unsaved print settings. Are you sure you want to leave?";
+                e.preventDefault();
+                e.returnValue = msg;
+                return msg;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasTemporaryPrintSettings]);
+
     // Print Settings Computed State
     const localProfileEnabled = useMemo(() => {
+        if (hasTemporaryPrintSettings && tempProfileEnabled !== null) return tempProfileEnabled;
         const overrides = consultant?.messaging_settings?.location_print_overrides?.[settingsLocation] || {};
         return overrides.show_profile ?? true;
-    }, [consultant, settingsLocation]);
+    }, [consultant, settingsLocation, hasTemporaryPrintSettings, tempProfileEnabled]);
 
     const localSignSealEnabled = useMemo(() => {
+        if (hasTemporaryPrintSettings && tempSignSealEnabled !== null) return tempSignSealEnabled;
         const overrides = consultant?.messaging_settings?.location_print_overrides?.[settingsLocation] || {};
         return overrides.show_sign_seal ?? true;
-    }, [consultant, settingsLocation]);
+    }, [consultant, settingsLocation, hasTemporaryPrintSettings, tempSignSealEnabled]);
 
     const localPrintOptions = useMemo(() => {
+        if (hasTemporaryPrintSettings && tempPrintOptions !== null) return tempPrintOptions;
         const options = consultant?.messaging_settings?.location_print_options;
         return options?.[settingsLocation] || options?.['OrthoLife'];
-    }, [consultant, settingsLocation]);
+    }, [consultant, settingsLocation, hasTemporaryPrintSettings, tempPrintOptions]);
 
     const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
     // Removed isTemplateManagerOpen state
@@ -1787,6 +1826,9 @@ const InPatientManagement = () => {
                     onToggleSignSeal={() => { }}
                     onUpdatePrintOptions={() => { }}
                     onSaveAll={handleSavePrintSettings}
+                    onApplyOneOff={handleApplyOneOff}
+                    hasTemporarySettings={hasTemporaryPrintSettings}
+                    onResetToSaved={handleResetToSaved}
                     currentLocation={settingsLocation}
                     mode="ip"
                     hospitals={hospitals}
@@ -1807,11 +1849,13 @@ const InPatientManagement = () => {
                         dischargeDate={printDate}
                         consultant={(printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant)}
                         showSignSeal={(() => {
+                            if (hasTemporaryPrintSettings && tempSignSealEnabled !== null) return tempSignSealEnabled;
                             const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
                             const location = (printData.patient_snapshot as any).location || 'OrthoLife';
                             return activeConsultant?.messaging_settings?.location_print_overrides?.[location]?.show_sign_seal ?? true;
                         })()}
                         printOptions={(() => {
+                            if (hasTemporaryPrintSettings && tempPrintOptions !== null) return tempPrintOptions;
                             const activeConsultant = (printConsultant && consultant && printConsultant.id === consultant.id) ? consultant : (printConsultant || consultant);
                             if (!activeConsultant) return undefined;
                             const settings = activeConsultant.messaging_settings as any;

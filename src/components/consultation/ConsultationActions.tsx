@@ -37,6 +37,10 @@ interface ConsultationActionsProps {
     isReadOnly?: boolean;
     isWhatsAppEnabled?: boolean;
     hasChanges?: boolean;
+    onApplyOneOff?: (profile: boolean, signSeal: boolean, options: PrintOptions) => void;
+    hasTemporarySettings?: boolean;
+    onResetToSaved?: () => void;
+    onClearTemporarySettings?: () => void;
 }
 
 /**
@@ -73,7 +77,11 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
     onUpdatePrintOptions,
     isReadOnly = false,
     isWhatsAppEnabled = true,
-    hasChanges = false
+    hasChanges = false,
+    onApplyOneOff,
+    hasTemporarySettings = false,
+    onResetToSaved,
+    onClearTemporarySettings
 }) => {
     const { consultant, refreshConsultant } = useConsultant();
     const [showScrollHint, setShowScrollHint] = useState(true);
@@ -119,21 +127,8 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
         return settings?.auto_followup_config?.enabled ?? settings?.auto_followup ?? false;
     })();
 
-    const isDoctorProfileEnabled = (() => {
-        if (!consultant || !currentLocation) return showDoctorProfile ?? true;
-        const settings = consultant.messaging_settings as any;
-        const locationOverride = settings?.location_print_overrides?.[currentLocation]?.show_profile;
-        if (locationOverride !== undefined) return locationOverride;
-        return showDoctorProfile ?? true;
-    })();
-
-    const isSignSealEnabled = (() => {
-        if (!consultant || !currentLocation) return showSignSeal ?? false;
-        const settings = consultant.messaging_settings as any;
-        const locationOverride = settings?.location_print_overrides?.[currentLocation]?.show_sign_seal;
-        if (locationOverride !== undefined) return locationOverride;
-        return showSignSeal ?? false;
-    })();
+    const isDoctorProfileEnabled = showDoctorProfile ?? true;
+    const isSignSealEnabled = showSignSeal ?? false;
 
     const updateLocationSetting = async (key: 'followup' | 'profile' | 'sign_seal' | 'print_options' | 'auto_send', value: boolean | PrintOptions) => {
         if (!consultant || !currentLocation || isReadOnly) return;
@@ -235,6 +230,7 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
             onToggleDoctorProfile?.(profile);
             onToggleSignSeal?.(signSeal);
             onUpdatePrintOptions?.(options);
+            onClearTemporarySettings?.();
 
             toast({
                 title: "Settings Updated",
@@ -470,6 +466,9 @@ export const ConsultationActions: React.FC<ConsultationActionsProps> = ({
                 onToggleSignSeal={toggleSignSeal}
                 onUpdatePrintOptions={onUpdatePrintOptions}
                 onSaveAll={batchUpdatePrintSettings}
+                onApplyOneOff={onApplyOneOff}
+                hasTemporarySettings={hasTemporarySettings}
+                onResetToSaved={onResetToSaved}
                 isReadOnly={isReadOnly}
                 currentLocation={currentLocation}
             />

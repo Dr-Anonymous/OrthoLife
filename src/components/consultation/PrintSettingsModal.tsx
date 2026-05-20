@@ -39,6 +39,9 @@ interface PrintSettingsModalProps {
     onToggleSignSeal: (checked: boolean) => void;
     onUpdatePrintOptions: (options: PrintOptions) => void;
     onSaveAll?: (profile: boolean, signSeal: boolean, options: PrintOptions, allPending?: Record<string, { profile: boolean, signSeal: boolean, options: PrintOptions }>) => void;
+    onApplyOneOff?: (profile: boolean, signSeal: boolean, options: PrintOptions) => void;
+    hasTemporarySettings?: boolean;
+    onResetToSaved?: () => void;
     isReadOnly?: boolean;
     currentLocation?: string;
     mode?: 'op' | 'ip';
@@ -58,6 +61,9 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
     isReadOnly = false,
     currentLocation,
     onSaveAll,
+    onApplyOneOff,
+    hasTemporarySettings = false,
+    onResetToSaved,
     mode = 'op',
     hospitals = [],
     onLocationChange
@@ -196,22 +202,37 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
             onUpdatePrintOptions(localOptions);
         }
 
+        // Prevent revert on close by matching snapshot to current
+        setSnapshot({
+            profile: localProfile,
+            signSeal: localSignSeal,
+            options: localOptions
+        });
         onClose();
     };
 
-    const handleDiscard = () => {
-        setLocalProfile(isDoctorProfileEnabled);
-        setLocalSignSeal(isSignSealEnabled);
-        setLocalOptions(printOptions);
+    const handleResetToSaved = () => {
+        if (onResetToSaved) {
+            onResetToSaved();
+        }
+        setSnapshot(null);
+        onClose();
+    };
+
+    const handleClose = () => {
+        if (isDirty && onApplyOneOff) {
+            onApplyOneOff(localProfile, localSignSeal, localOptions);
+        } else if (snapshot) {
+            if (onUpdatePrintOptions) {
+                onUpdatePrintOptions(snapshot.options);
+            }
+        }
         onClose();
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => {
-            if (!open && isDirty) {
-                if (!window.confirm('You have unsaved print settings. Close anyway?')) return;
-            }
-            if (!open) onClose();
+            if (!open) handleClose();
         }}>
             <DialogContent className="sm:max-w-[450px]">
                 <DialogHeader>
@@ -489,14 +510,23 @@ export const PrintSettingsModal: React.FC<PrintSettingsModalProps> = ({
                         )}
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {(hasTemporarySettings || isDirty) && onResetToSaved && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleResetToSaved}
+                                className="text-xs h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                                Reset to Saved
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="text-xs h-8"
                         >
-                            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-                            {isDirty ? "Discard" : "Close"}
+                            Close
                         </Button>
                         <Button
                             size="sm"
