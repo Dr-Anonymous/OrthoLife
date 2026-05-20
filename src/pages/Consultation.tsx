@@ -1221,6 +1221,8 @@ const ConsultationPage = () => {
       }
 
       const { visit_type, location, language, ...restExtraData } = activeExtraData as any;
+      restExtraData.investigations = finalInvestigations;
+      restExtraData.radiology_findings = finalRadiology;
 
       const cleanMedicationForSave = (med: any) => {
         const cleaned = { ...med };

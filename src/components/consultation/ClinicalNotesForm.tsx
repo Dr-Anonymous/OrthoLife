@@ -2016,7 +2016,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     <thead>
                                         <tr className="bg-slate-50 border-b border-slate-200">
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
-                                            <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider w-28 min-w-[112px]">Current</th>
+                                            <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider">Current</th>
                                             {combinedHistoryDates.map(date => {
                                                 const assocId = dateToConsultationIdMap[date];
                                                 const isClickable = !!assocId && !!onSelectConsultationId;
@@ -2050,7 +2050,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     )}>
                                                         {res.name}
                                                     </td>
-                                                    <td className="px-2 py-1.5 w-28 min-w-[112px]">
+                                                    <td className="px-2 py-1.5">
                                                         <div className="flex items-center gap-1">
                                                             {(() => {
                                                                 // 1. Get database history

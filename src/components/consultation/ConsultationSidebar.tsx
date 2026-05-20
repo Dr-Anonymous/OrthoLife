@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarWithMonthYearPicker } from '@/components/ui/calendar-with-month-year';
 import { MapPin, Search, UserPlus, BookOpen, Loader2, BarChart, Calendar as CalendarIcon, Stethoscope, CloudOff, Trash2, ChevronDown, Eye, EyeOff, Clock, Timer, Hourglass, UserCog, Filter, Check, X } from 'lucide-react';
-import { cn, formatLocalTime, normalizeSearchText, createNormalizationRegex } from '@/lib/utils';
+import { cn, formatLocalTime, normalizeSearchText, createNormalizationRegex, matchPatientName } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Consultation } from '@/types/consultation';
 import { useHospitals } from '@/context/HospitalsContext';
@@ -241,7 +241,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                     };
 
                     // Check Name (High Priority, no preview needed)
-                    if (normalizeSearchText(p.name).includes(normalizedQuery)) {
+                    if (matchPatientName(p.name, searchQuery)) {
                         return { consultation: c, isVisible: true, preview: null };
                     }
 

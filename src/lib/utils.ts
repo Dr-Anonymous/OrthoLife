@@ -497,6 +497,27 @@ export function normalizeSearchText(text: string | null | undefined): string {
 }
 
 /**
+ * Checks if target name matches a query string.
+ * Order-independent matching of words, fallback to standard normalization match.
+ */
+export function matchPatientName(name: string | null | undefined, query: string | null | undefined): boolean {
+  if (!name || !query) return false;
+  
+  const normalizedTarget = normalizeSearchText(name);
+  const normalizedQuery = normalizeSearchText(query);
+  
+  // 1. Contiguous match (e.g. "kumarin" in "kumarin")
+  if (normalizedTarget.includes(normalizedQuery)) return true;
+  
+  // 2. Word-order-agnostic match
+  const queryWords = query.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(Boolean);
+  if (queryWords.length === 0) return false;
+  
+  const targetLower = name.toLowerCase().replace(/[^a-z0-9 ]/g, '');
+  return queryWords.every(word => targetLower.includes(word));
+}
+
+/**
  * Performs a deep equality check between two values.
  */
 export function isEqual(a: any, b: any): boolean {

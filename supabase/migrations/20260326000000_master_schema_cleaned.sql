@@ -615,13 +615,25 @@ BEGIN
                 c.location,
                 c.visit_type,
                 c.referred_by,
-                c.consultant_id
+                c.consultant_id,
+                c.investigations,
+                c.radiology_findings,
+                c.radiology_images
             FROM consultations c
             INNER JOIN patients p ON c.patient_id = p.id
             WHERE
                 (p_name IS NULL
                  OR p.name ILIKE '%' || p_name || '%'
-                 OR regexp_replace(p.name, '[^a-zA-Z0-9]', '', 'g') ILIKE '%' || regexp_replace(p_name, '[^a-zA-Z0-9]', '', 'g') || '%') AND
+                 OR regexp_replace(p.name, '[^a-zA-Z0-9]', '', 'g') ILIKE '%' || regexp_replace(p_name, '[^a-zA-Z0-9]', '', 'g') || '%'
+                 OR (
+                     p_name IS NOT NULL AND p_name <> '' AND
+                     NOT EXISTS (
+                       SELECT 1 
+                       FROM unnest(string_to_array(regexp_replace(lower(p_name), '[^a-z0-9 ]', '', 'g'), ' ')) AS term_word
+                       WHERE term_word <> '' 
+                         AND regexp_replace(lower(p.name), '[^a-z0-9 ]', '', 'g') NOT LIKE '%' || term_word || '%'
+                     )
+                 )) AND
                 (
                     p_phone IS NULL
                     OR normalized_phone = ''
@@ -639,6 +651,10 @@ BEGIN
                     p_keyword IS NULL
                     OR COALESCE(c.consultation_data::text, '') ILIKE '%' || p_keyword || '%'
                     OR COALESCE(c.referred_by, '') ILIKE '%' || p_keyword || '%'
+                    OR COALESCE(c.investigations, '') ILIKE '%' || p_keyword || '%'
+                    OR COALESCE(c.radiology_findings, '') ILIKE '%' || p_keyword || '%'
+                    OR COALESCE(p.occupation, '') ILIKE '%' || p_keyword || '%'
+                    OR COALESCE(p.hometown, '') ILIKE '%' || p_keyword || '%'
                 )
             ORDER BY c.created_at DESC
         )
@@ -650,6 +666,9 @@ BEGIN
             'phone', p.phone,
             'secondary_phone', p.secondary_phone,
             'drive_id', p.drive_id,
+            'occupation', p.occupation,
+            'blood_group', p.blood_group,
+            'hometown', p.hometown,
             'consultations', (
                 SELECT jsonb_agg(jsonb_build_object(
                     'id', mc.id,
@@ -659,7 +678,10 @@ BEGIN
                     'location', mc.location,
                     'visit_type', mc.visit_type,
                     'referred_by', mc.referred_by,
-                    'consultant_id', mc.consultant_id
+                    'consultant_id', mc.consultant_id,
+                    'investigations', mc.investigations,
+                    'radiology_findings', mc.radiology_findings,
+                    'radiology_images', mc.radiology_images
                 ))
                 FROM matching_consultations mc
                 WHERE mc.patient_id = p.id
@@ -712,6 +734,17 @@ BEGIN
   WHERE
     -- Normalized name search
     regexp_replace(name, '[^a-zA-Z0-9]', '', 'g') ILIKE '%' || regexp_replace(search_term, '[^a-zA-Z0-9]', '', 'g') || '%'
+    OR
+    -- Word-order-agnostic match
+    (
+      search_term IS NOT NULL AND search_term <> '' AND
+      NOT EXISTS (
+        SELECT 1 
+        FROM unnest(string_to_array(regexp_replace(lower(search_term), '[^a-z0-9 ]', '', 'g'), ' ')) AS term_word
+        WHERE term_word <> '' 
+          AND regexp_replace(lower(name), '[^a-z0-9 ]', '', 'g') NOT LIKE '%' || term_word || '%'
+      )
+    )
     OR
     -- Search by phone OR secondary_phone
     phone ILIKE '%' || search_term || '%'

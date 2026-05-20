@@ -39,7 +39,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from '@/integrations/supabase/client';
-import { pruneEmptyFields, cn, calculateFollowUpDate, getNextFollowUpText, normalizeSearchText } from '@/lib/utils';
+import { pruneEmptyFields, cn, calculateFollowUpDate, getNextFollowUpText, normalizeSearchText, matchPatientName } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -928,7 +928,7 @@ const InPatientManagement = () => {
         if (!searchTerm) return admittedInPatients;
         return admittedInPatients.filter(p => {
             const normalizedQuery = normalizeSearchText(searchTerm);
-            return normalizeSearchText(p.patient.name).includes(normalizedQuery) ||
+            return matchPatientName(p.patient.name, searchTerm) ||
             p.patient.phone.includes(searchTerm) ||
             (p.diagnosis && normalizeSearchText(p.diagnosis).includes(normalizedQuery));
         });
@@ -939,7 +939,7 @@ const InPatientManagement = () => {
         if (!searchTerm) return dischargedInPatients;
         return dischargedInPatients.filter(p => {
             const normalizedQuery = normalizeSearchText(searchTerm);
-            return normalizeSearchText(p.patient.name).includes(normalizedQuery) ||
+            return matchPatientName(p.patient.name, searchTerm) ||
             p.patient.phone.includes(searchTerm) ||
             (p.diagnosis && normalizeSearchText(p.diagnosis).includes(normalizedQuery));
         });
