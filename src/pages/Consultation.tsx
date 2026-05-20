@@ -638,7 +638,7 @@ const ConsultationPage = () => {
     activeConsultationIdRef.current = consultation.id;
     setSelectedConsultation(consultation);
 
-    const isEmpty = !consultation.consultation_data || (typeof consultation.consultation_data === 'object' && Object.keys(consultation.consultation_data).length === 0);
+    const isEmpty = consultation.is_autofilled || !consultation.consultation_data || (typeof consultation.consultation_data === 'object' && Object.keys(consultation.consultation_data).length === 0);
     wasOriginallyEmptyRef.current = isEmpty;
 
     // Sync location immediately to ensure UI and data fetching reflect the loaded consultation's context
@@ -679,6 +679,7 @@ const ConsultationPage = () => {
         // Only apply autofill if the data part is actually missing
         if (!effectiveConsultationData || (typeof effectiveConsultationData === 'object' && Object.keys(effectiveConsultationData).length === 0)) {
           effectiveConsultationData = generateAutofillData(consultation, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
+          wasOriginallyEmptyRef.current = true;
         }
 
         // Only apply last visit date if it was missing
@@ -948,6 +949,7 @@ const ConsultationPage = () => {
 
       // --- AUTOFILL RESTORATION LOGIC ---
       let consultation_data = data.consultation_data;
+      let isAutofilled = false;
       if (!consultation_data || (typeof consultation_data === 'object' && Object.keys(consultation_data).length === 0)) {
         const { lastConsultation, lastDischarge, lastOpDate, lastDischargeDate } = await fetchRecentHistory(data.patient_id, data.created_at);
         consultation_data = generateAutofillData(data, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
@@ -963,7 +965,9 @@ const ConsultationPage = () => {
         data.consultation_data = consultation_data;
         data.referred_by = referred_by;
         data.last_visit_date = last_visit_date;
+        isAutofilled = true;
       }
+      data.is_autofilled = isAutofilled || data.is_autofilled;
       // ----------------------------------------
 
       // Security Filter: Ensure the hydrated record belongs to the current consultant

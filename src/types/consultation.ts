@@ -187,6 +187,7 @@ export interface Consultation {
     referred_by?: string | null;
     referral_amount?: number | null;
     next_review_date?: string | null;
+    is_autofilled?: boolean;
 }
 
 export interface Guide {

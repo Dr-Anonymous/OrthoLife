@@ -122,8 +122,10 @@ async function fetchConsultations(date?: string, patientId?: string, hospital?: 
 
     // 3. Autofill Logic (if data is missing/empty)
     let consultation_data = c.consultation_data;
+    let isAutofilled = false;
     if ((!consultation_data || (typeof consultation_data === 'object' && Object.keys(consultation_data).length === 0)) && c.patient) {
       consultation_data = generateAutofillData(c, lastConsultation, lastDischarge, lastOpDate, lastDischargeDate);
+      isAutofilled = true;
     }
 
     // 4. Autofill Referred By if missing (only if we are also autofilling data or it's just missing)
@@ -137,7 +139,8 @@ async function fetchConsultations(date?: string, patientId?: string, hospital?: 
       ...c,
       consultation_data,
       referred_by,
-      last_visit_date: lastVisitDateString
+      last_visit_date: lastVisitDateString,
+      is_autofilled: isAutofilled
     };
   }));
 

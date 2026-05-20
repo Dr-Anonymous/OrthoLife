@@ -2000,7 +2000,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                     <thead>
                                         <tr className="bg-slate-50 border-b border-slate-200">
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
-                                            <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider">Current</th>
+                                            <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider w-28 min-w-[112px]">Current</th>
                                             {combinedHistoryDates.map(date => (
                                                 <th key={date} className="px-2 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">{date}</th>
                                             ))}
@@ -2018,39 +2018,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                     )}>
                                                         {res.name}
                                                     </td>
-                                                    <td className="px-2 py-1.5">
+                                                    <td className="px-2 py-1.5 w-28 min-w-[112px]">
                                                         <div className="flex items-center gap-1">
-                                                            <input
-                                                                value={editingInvestigation?.key === groupKey ? editingInvestigation.value : (res.value === '-' ? '' : String(res.value))}
-                                                                onFocus={() => !isReadOnly && setEditingInvestigation({ key: groupKey, value: res.value === '-' ? '' : String(res.value) })}
-                                                                onBlur={() => setEditingInvestigation(null)}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    setEditingInvestigation({ key: groupKey, value: val });
-                                                                    handleInvestigationValueChange(res, val);
-                                                                }}
-                                                                className={cn(
-                                                                    "w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-[10px] font-bold",
-                                                                    res.status === 'normal' && "text-emerald-700",
-                                                                    (res.status === 'high' || res.status === 'low') && "text-amber-700",
-                                                                    (res.status === 'critical-high' || res.status === 'critical-low') && "text-rose-700",
-                                                                    res.status === 'unknown' && "text-slate-500 placeholder:text-slate-300"
-                                                                )}
-                                                                placeholder="-"
-                                                                disabled={isReadOnly}
-                                                            />
-                                                            {res.value !== '-' && res.value !== '' && (res.status === 'high' || res.status === 'critical-high') && (
-                                                                <span className={cn("text-[8px] font-black shrink-0 px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", res.status === 'critical-high' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="High Value">↑</span>
-                                                            )}
-                                                            {res.value !== '-' && res.value !== '' && (res.status === 'low' || res.status === 'critical-low') && (
-                                                                <span className={cn("text-[8px] font-black shrink-0 px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", res.status === 'critical-low' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="Low Value">↓</span>
-                                                            )}
-                                                            {res.criticalAlert && (
-                                                                <div className="flex items-center gap-1 text-[8px] font-black text-rose-600 bg-rose-50 px-1 py-0.5 rounded border border-rose-100 animate-pulse shrink-0">
-                                                                    <AlertTriangle className="w-2.5 h-2.5" />
-                                                                    <span className="uppercase">{res.criticalAlert}</span>
-                                                                </div>
-                                                            )}
                                                             {(() => {
                                                                 // 1. Get database history
                                                                 const dbHistory = investigationHistory?.[groupKey] || [];
@@ -2119,6 +2088,37 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                                                     </Button>
                                                                 );
                                                             })()}
+                                                            <input
+                                                                value={editingInvestigation?.key === groupKey ? editingInvestigation.value : (res.value === '-' ? '' : String(res.value))}
+                                                                onFocus={() => !isReadOnly && setEditingInvestigation({ key: groupKey, value: res.value === '-' ? '' : String(res.value) })}
+                                                                onBlur={() => setEditingInvestigation(null)}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setEditingInvestigation({ key: groupKey, value: val });
+                                                                    handleInvestigationValueChange(res, val);
+                                                                }}
+                                                                className={cn(
+                                                                    "w-full min-w-[40px] bg-transparent border-none outline-none focus:ring-0 p-0 text-[10px] font-bold",
+                                                                    res.status === 'normal' && "text-emerald-700",
+                                                                    (res.status === 'high' || res.status === 'low') && "text-amber-700",
+                                                                    (res.status === 'critical-high' || res.status === 'critical-low') && "text-rose-700",
+                                                                    res.status === 'unknown' && "text-slate-500 placeholder:text-slate-300"
+                                                                )}
+                                                                placeholder="-"
+                                                                disabled={isReadOnly}
+                                                            />
+                                                            {res.value !== '-' && res.value !== '' && (res.status === 'high' || res.status === 'critical-high') && (
+                                                                <span className={cn("text-[8px] font-black shrink-0 px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", res.status === 'critical-high' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="High Value">↑</span>
+                                                            )}
+                                                            {res.value !== '-' && res.value !== '' && (res.status === 'low' || res.status === 'critical-low') && (
+                                                                <span className={cn("text-[8px] font-black shrink-0 px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100", res.status === 'critical-low' && "bg-rose-50 text-rose-700 border-rose-100 animate-pulse")} title="Low Value">↓</span>
+                                                            )}
+                                                            {res.criticalAlert && (
+                                                                <div className="flex items-center gap-1 text-[8px] font-black text-rose-600 bg-rose-50 px-1 py-0.5 rounded border border-rose-100 animate-pulse shrink-0">
+                                                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                                                    <span className="uppercase">{res.criticalAlert}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     {combinedHistoryDates.map(date => {
