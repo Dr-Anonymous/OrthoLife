@@ -100,6 +100,7 @@ interface ClinicalNotesFormProps {
     patientName?: string;
     consultationId?: string;
     onFileUpload?: (fileId: string) => void;
+    onSelectConsultationId?: (id: string) => void;
 }
 
 
@@ -165,7 +166,8 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     patientSex,
     patientName,
     consultationId,
-    onFileUpload
+    onFileUpload,
+    onSelectConsultationId
 }) => {
     const queryClient = useQueryClient();
     const { data: investigationHistory } = useInvestigationHistory(patientId);
@@ -436,6 +438,20 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
             return dateB - dateA;
         }).slice(0, 15);
     }, [allHistoryDates, allTypedHistoryDates]);
+
+    const dateToConsultationIdMap = React.useMemo(() => {
+        if (!investigationHistory) return {};
+        const mapping: Record<string, string> = {};
+        Object.values(investigationHistory).forEach((history: HistoricalResult[]) => {
+            history.forEach(h => {
+                if (h.date && h.consultationId) {
+                    const formatted = format(new Date(h.date), 'dd/MM/yy');
+                    mapping[formatted] = h.consultationId;
+                }
+            });
+        });
+        return mapping;
+    }, [investigationHistory]);
 
     const displayInvestigations = React.useMemo(() => {
         // Group by parameter name to ensure unique rows
@@ -2001,9 +2017,25 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                         <tr className="bg-slate-50 border-b border-slate-200">
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">Parameter</th>
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-700 uppercase tracking-wider w-28 min-w-[112px]">Current</th>
-                                            {combinedHistoryDates.map(date => (
-                                                <th key={date} className="px-2 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">{date}</th>
-                                            ))}
+                                            {combinedHistoryDates.map(date => {
+                                                const assocId = dateToConsultationIdMap[date];
+                                                const isClickable = !!assocId && !!onSelectConsultationId;
+                                                return (
+                                                    <th 
+                                                        key={date} 
+                                                        className={cn(
+                                                            "px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider select-none transition-colors duration-150",
+                                                            isClickable 
+                                                                ? "text-primary hover:text-primary/80 cursor-pointer hover:underline" 
+                                                                : "text-slate-400"
+                                                        )}
+                                                        onClick={() => isClickable && onSelectConsultationId(assocId)}
+                                                        title={isClickable ? "Click to load this consultation" : undefined}
+                                                    >
+                                                        {date}
+                                                    </th>
+                                                );
+                                            })}
                                             <th className="px-2 py-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Range</th>
                                         </tr>
                                     </thead>

@@ -637,6 +637,7 @@ const ConsultationPage = () => {
   const confirmSelection = useCallback(async (consultation: Consultation) => {
     activeConsultationIdRef.current = consultation.id;
     setSelectedConsultation(consultation);
+    setSelectedDate(new Date(consultation.created_at));
 
     const isEmpty = consultation.is_autofilled || !consultation.consultation_data || (typeof consultation.consultation_data === 'object' && Object.keys(consultation.consultation_data).length === 0);
     wasOriginallyEmptyRef.current = isEmpty;
@@ -919,6 +920,22 @@ const ConsultationPage = () => {
     }
   }, [fetchConsultations, selectedHospital.name, consultant?.id]);
 
+  const fetchConsultationRecord = useCallback(async (id: string | number) => {
+    const { data, error } = await supabase
+      .from('consultations')
+      .select('*, patient:patients(*), consultant:consultants(name)')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) throw new Error('Consultation not found');
+
+    return {
+      ...data,
+      patient_id: data.patient_id || data.patient?.id
+    } as Consultation;
+  }, []);
+
 
   const hydrateInsertedConsultation = useCallback(async (
     id: string | number,
@@ -934,13 +951,7 @@ const ConsultationPage = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('consultations')
-        .select('*, patient:patients(*)')
-        .eq('id', id)
-        .single();
-
-      if (error || !data) return null;
+      const data = await fetchConsultationRecord(id);
 
       // Ensure the new record belongs to the currently viewed date
       const dataDate = format(new Date(data.created_at), 'yyyy-MM-dd');
@@ -1464,6 +1475,22 @@ const ConsultationPage = () => {
       setIsUnsavedModalOpen(true);
     } else {
       confirmSelection(consultation);
+    }
+  };
+
+  const handleSelectConsultationById = async (id: string) => {
+    setIsFetchingConsultations(true);
+    try {
+      const consultation = await fetchConsultationRecord(id);
+      await handleSelectConsultation(consultation);
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error loading consultation',
+        description: err.message,
+      });
+    } finally {
+      setIsFetchingConsultations(false);
     }
   };
 
@@ -2745,6 +2772,7 @@ const ConsultationPage = () => {
                     patientId={selectedConsultation?.patient?.id}
                     patientName={editablePatientDetails?.name}
                     onShortcutsClick={() => setIsShortcutModalOpen(true)}
+                    onSelectConsultationId={handleSelectConsultationById}
                   />
                 </div>
 
@@ -2969,9 +2997,6 @@ const ConsultationPage = () => {
         patientId={historyPatientId}
         patientName={historyPatientName}
         onSelectConsultation={(consultation) => {
-          const consultationDate = new Date(consultation.created_at);
-          setSelectedDate(consultationDate);
-          // Directly load the consultation. This handles location updates and UI rendering.
           handleSelectConsultation(consultation);
           setIsHistoryModalOpen(false);
           setHistoryPatientId(null);
@@ -3110,9 +3135,6 @@ const ConsultationPage = () => {
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         onSelectConsultation={(consultation) => {
-          const consultationDate = new Date(consultation.created_at);
-          setSelectedDate(consultationDate);
-          // Directly load the consultation. This handles location updates and UI rendering.
           handleSelectConsultation(consultation);
           setIsSearchModalOpen(false);
         }}
