@@ -457,9 +457,9 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                 <div className="flex justify-between items-center mb-2">
                     <Label>Consultation Date</Label>
                     <div className="flex items-center gap-2">
-                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onSearchClick} title="Search Consultations">
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={onSearchClick} title="Search Past Consultations">
                             <Search className="h-4 w-4" />
-                            <span className="sr-only">Search Consultations</span>
+                            <span className="sr-only">Search Past Consultations</span>
                         </Button>
                         <Button type="button" variant="ghost" size="icon" className="h-6 w-6" id="registration-button" onClick={onRegisterClick} title="Register New Patient">
                             <UserPlus className="h-4 w-4" />

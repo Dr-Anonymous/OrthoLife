@@ -293,10 +293,8 @@ const InPatientManagement = () => {
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             if (hasTemporaryPrintSettings) {
-                const msg = "You have unsaved print settings. Are you sure you want to leave?";
                 e.preventDefault();
-                e.returnValue = msg;
-                return msg;
+                e.returnValue = '';
             }
         };
         window.addEventListener('beforeunload', handleBeforeUnload);

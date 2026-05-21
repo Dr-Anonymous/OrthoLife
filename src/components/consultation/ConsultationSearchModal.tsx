@@ -99,7 +99,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
   const highlightKeyword = (text: string): ReactNode => {
     const trimmed = keyword.trim();
     if (!trimmed || !text) return text;
-    
+
     const fuzzyRegex = createNormalizationRegex(trimmed);
     if (!fuzzyRegex) return text;
 
@@ -125,7 +125,7 @@ export const ConsultationSearchModal = ({ isOpen, onClose, onSelectConsultation 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Search Consultations</DialogTitle>
+          <DialogTitle>Search Past Consultations</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
           <Input placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={handleKeyDown} />

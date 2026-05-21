@@ -1513,16 +1513,9 @@ const ConsultationPage = () => {
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasSignificantChanges) {
-        const msg = "You have unsaved changes in your consultation form. Are you sure you want to leave?";
+      if (hasSignificantChanges || hasTemporaryPrintSettings) {
         e.preventDefault();
-        e.returnValue = msg;
-        return msg;
-      } else if (hasTemporaryPrintSettings) {
-        const msg = "You have unsaved print settings. Are you sure you want to leave?";
-        e.preventDefault();
-        e.returnValue = msg;
-        return msg;
+        e.returnValue = '';
       }
     };
 
