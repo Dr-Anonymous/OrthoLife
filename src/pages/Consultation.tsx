@@ -118,6 +118,33 @@ const t = (key: string, options?: { lng?: string, count?: number, unit?: string 
  * - Offline synchronization with Supabase
  * - GPS-based hospital selection
  */
+const injectPrintStyles = (ref: any) => {
+  if (!ref.current) return;
+  let styles = '';
+  if (typeof document !== 'undefined') {
+    for (let i = 0; i < document.styleSheets.length; i++) {
+      try {
+        const sheet = document.styleSheets[i];
+        if (sheet.cssRules) {
+          for (let j = 0; j < sheet.cssRules.length; j++) {
+            styles += sheet.cssRules[j].cssText + '\n';
+          }
+        }
+      } catch (e) {
+        // Ignore cross-origin stylesheet errors
+      }
+    }
+  }
+
+  const existing = ref.current.querySelector('#injected-print-styles');
+  if (existing) existing.remove();
+
+  const styleNode = document.createElement('style');
+  styleNode.id = 'injected-print-styles';
+  styleNode.innerHTML = styles;
+  ref.current.appendChild(styleNode);
+};
+
 const ConsultationPage = () => {
   const isOnline = useOnlineStatus();
   const navigate = useNavigate();
@@ -1410,7 +1437,7 @@ const ConsultationPage = () => {
       setSelectedConsultation(updatedConsultation);
       wasOriginallyEmptyRef.current = false;
       setInitialPatientDetails(editablePatientDetails);
-      
+
       // Sync local form state to show the blank/saved values for unmodified autofills
       setExtraData(prev => ({
         ...prev,
@@ -2193,6 +2220,7 @@ const ConsultationPage = () => {
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     onBeforePrint: useCallback(async () => {
+      injectPrintStyles(printRef);
       // Small delay to ensure layout is settled and styles are parsed
       await new Promise(resolve => setTimeout(resolve, 500));
     }, []),
@@ -2215,6 +2243,8 @@ const ConsultationPage = () => {
     contentRef: certificatePrintRef,
     onAfterPrint: handleAfterPrintCertificate,
     onBeforePrint: useCallback(async () => {
+      // to fix print layout breaking
+      injectPrintStyles(certificatePrintRef);
       await new Promise(resolve => setTimeout(resolve, 500));
     }, []),
   });
@@ -2230,6 +2260,7 @@ const ConsultationPage = () => {
     contentRef: receiptPrintRef,
     onAfterPrint: handleAfterPrintReceipt,
     onBeforePrint: useCallback(async () => {
+      injectPrintStyles(receiptPrintRef);
       await new Promise(resolve => setTimeout(resolve, 500));
     }, []),
   });
