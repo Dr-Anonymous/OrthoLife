@@ -261,6 +261,11 @@ const ConsultationPage = () => {
       const sampleExtraData: ExtraData = {
         complaints: 'Sample joint pain for demonstration.',
         medicalHistory: 'None',
+        surgicalHistory: '',
+        vaccinationHistory: '',
+        currentMedications: '',
+        socialHistory: '',
+        painScale: '',
         findings: 'Normal movements',
         diagnosis: 'Mild Strain',
         medications: [],
@@ -315,6 +320,11 @@ const ConsultationPage = () => {
     complaints: '',
     medicalHistory: '',
     familyHistory: '',
+    surgicalHistory: '',
+    vaccinationHistory: '',
+    currentMedications: '',
+    socialHistory: '',
+    painScale: '',
     findings: '',
     investigations: '',
     diagnosis: '',
@@ -461,6 +471,10 @@ const ConsultationPage = () => {
   const sidebarSearchRef = useRef<HTMLInputElement>(null);
   const pastInvestigationsTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const pastRadiologyTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const surgicalHistoryRef = useRef<HTMLTextAreaElement>(null);
+  const vaccinationHistoryRef = useRef<HTMLTextAreaElement>(null);
+  const currentMedicationsRef = useRef<HTMLTextAreaElement>(null);
+  const socialHistoryRef = useRef<HTMLTextAreaElement>(null);
 
   // Med Refs
   const medFrequencyRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
@@ -495,6 +509,10 @@ const ConsultationPage = () => {
     syncField('followup', followupRef);
     syncField('procedure', procedureRef);
     syncField('orthotics', orthoticsRef);
+    syncField('surgicalHistory', surgicalHistoryRef);
+    syncField('vaccinationHistory', vaccinationHistoryRef);
+    syncField('currentMedications', currentMedicationsRef);
+    syncField('socialHistory', socialHistoryRef);
     if (Object.keys(updates).length > 0) {
       const nextData = { ...currentExtraData, ...updates };
       setExtraData(nextData);
@@ -536,6 +554,10 @@ const ConsultationPage = () => {
   const [isReferredToExpanded, setIsReferredToExpanded] = useState(false);
   const [isMedicalHistoryExpanded, setIsMedicalHistoryExpanded] = useState(false);
   const [isFamilyHistoryExpanded, setIsFamilyHistoryExpanded] = useState(false);
+  const [isSurgicalHistoryExpanded, setIsSurgicalHistoryExpanded] = useState(false);
+  const [isVaccinationHistoryExpanded, setIsVaccinationHistoryExpanded] = useState(false);
+  const [isCurrentMedicationsExpanded, setIsCurrentMedicationsExpanded] = useState(false);
+  const [isSocialHistoryExpanded, setIsSocialHistoryExpanded] = useState(false);
   const [isOrthoticsExpanded, setIsOrthoticsExpanded] = useState(false);
   const [lastVisitDate, setLastVisitDate] = useState<string | null>(null);
   const [referralDoctors, setReferralDoctors] = useState<{ id: string, name: string, specialization?: string, address?: string, phone?: string }[]>([]);
@@ -825,6 +847,11 @@ const ConsultationPage = () => {
       complaints: savedData.complaints || '',
       medicalHistory: savedData.medicalHistory || (savedData as any).medical_history || '',
       familyHistory: savedData.familyHistory || (savedData as any).family_history || '',
+      surgicalHistory: savedData.surgicalHistory || (savedData as any).surgical_history || '',
+      vaccinationHistory: savedData.vaccinationHistory || (savedData as any).vaccination_history || '',
+      currentMedications: savedData.currentMedications || (savedData as any).current_medications || '',
+      socialHistory: savedData.socialHistory || (savedData as any).social_history || '',
+      painScale: savedData.painScale || (savedData as any).pain_scale || '',
       findings: savedData.findings || '',
       investigations: (consultation as any).investigations || savedData.investigations || '',
       radiology_findings: (consultation as any).radiology_findings || savedData.radiology_findings || '',
@@ -881,6 +908,10 @@ const ConsultationPage = () => {
     setIsReferredToExpanded(!!newExtraData.referred_to);
     setIsMedicalHistoryExpanded(!!newExtraData.medicalHistory);
     setIsFamilyHistoryExpanded(!!newExtraData.familyHistory);
+    setIsSurgicalHistoryExpanded(!!newExtraData.surgicalHistory);
+    setIsVaccinationHistoryExpanded(!!newExtraData.vaccinationHistory);
+    setIsCurrentMedicationsExpanded(!!newExtraData.currentMedications);
+    setIsSocialHistoryExpanded(!!newExtraData.socialHistory);
     setIsOrthoticsExpanded(!!newExtraData.orthotics);
     setIsFinancialExpanded(false);
 
@@ -1752,7 +1783,8 @@ const ConsultationPage = () => {
         'complaints', 'medicalHistory', 'familyHistory', 'findings', 'diagnosis',
         'advice', 'followup', 'personalNote', 'procedure',
         'investigations', 'radiology_findings', 'referred_to', 'orthotics',
-        'referred_by', 'past_investigations', 'past_radiology'
+        'referred_by', 'past_investigations', 'past_radiology',
+        'surgicalHistory', 'vaccinationHistory', 'currentMedications', 'socialHistory'
       ];
 
       if (shortcutFields.includes(field)) {
@@ -1785,7 +1817,11 @@ const ConsultationPage = () => {
               radiology_findings: radiologyFindingsRef,
               referred_by: referredByRef,
               past_investigations: pastInvestigationsTextAreaRef,
-              past_radiology: pastRadiologyTextAreaRef
+              past_radiology: pastRadiologyTextAreaRef,
+              surgicalHistory: surgicalHistoryRef,
+              vaccinationHistory: vaccinationHistoryRef,
+              currentMedications: currentMedicationsRef,
+              socialHistory: socialHistoryRef
             };
             const targetRef = refs[field];
             if (targetRef && targetRef.current) {
@@ -1799,7 +1835,7 @@ const ConsultationPage = () => {
 
     if (isReadOnly) return;
     setExtraData(prev => ({ ...prev, [field]: value }));
-  }, [adviceRef, medicalHistoryRef, familyHistoryRef, investigationsRef, complaintsRef, orthoticsRef, findingsRef, radiologyFindingsRef, diagnosisRef, personalNoteRef, procedureRef, referredToRef, followupRef, isReadOnly, autofillProcessor, consultationLanguage, pastInvestigationsTextAreaRef, pastRadiologyTextAreaRef]);
+  }, [adviceRef, medicalHistoryRef, familyHistoryRef, investigationsRef, complaintsRef, orthoticsRef, findingsRef, radiologyFindingsRef, diagnosisRef, personalNoteRef, procedureRef, referredToRef, followupRef, isReadOnly, autofillProcessor, consultationLanguage, pastInvestigationsTextAreaRef, pastRadiologyTextAreaRef, surgicalHistoryRef, vaccinationHistoryRef, currentMedicationsRef, socialHistoryRef]);
 
 
   /**
@@ -2022,7 +2058,7 @@ const ConsultationPage = () => {
       medicationIds: new Set<number>()
     };
 
-    const inputText = `${extraData.complaints} ${extraData.medicalHistory} ${extraData.diagnosis} ${extraData.procedure}`.toLowerCase();
+    const inputText = `${extraData.complaints} ${extraData.medicalHistory} ${extraData.surgicalHistory || ''} ${extraData.currentMedications || ''} ${extraData.vaccinationHistory || ''} ${extraData.socialHistory || ''} ${extraData.diagnosis} ${extraData.procedure}`.toLowerCase();
     const activeText = `${extraData.complaints} ${extraData.diagnosis}`.toLowerCase();
     const isTelugu = consultationLanguage === 'te';
 
@@ -2215,7 +2251,7 @@ const ConsultationPage = () => {
       suggestedFamilyHistory: Array.from(inputDerivedSuggestions.familyHistory).filter(s => !extraData.familyHistory?.toLowerCase().includes(s.text.toLowerCase())),
       suggestedMedications: finalMedications
     };
-  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.familyHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.radiology_findings, extraData.followup, extraData.orthotics, extraData.medications, extraData.affordabilityPreference, consultationLanguage, savedMedications, selectedLocation, selectedHospital]);
+  }, [autofillKeywords, extraData.complaints, extraData.medicalHistory, extraData.familyHistory, extraData.surgicalHistory, extraData.vaccinationHistory, extraData.currentMedications, extraData.socialHistory, extraData.diagnosis, extraData.procedure, extraData.advice, extraData.investigations, extraData.radiology_findings, extraData.followup, extraData.orthotics, extraData.medications, extraData.affordabilityPreference, consultationLanguage, savedMedications, selectedLocation, selectedHospital]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -2395,6 +2431,10 @@ const ConsultationPage = () => {
     const clinicalTextRaw = [
       extraData.complaints,
       extraData.medicalHistory,
+      extraData.surgicalHistory,
+      extraData.currentMedications,
+      extraData.vaccinationHistory,
+      extraData.socialHistory,
       extraData.diagnosis,
       extraData.findings
     ].join(' ').toLowerCase();
@@ -2483,6 +2523,7 @@ const ConsultationPage = () => {
     return warnings;
   }, [
     extraData.medications, extraData.complaints, extraData.medicalHistory,
+    extraData.surgicalHistory, extraData.vaccinationHistory, extraData.currentMedications, extraData.socialHistory,
     extraData.diagnosis, extraData.findings,
     editablePatientDetails?.allergies, savedMedications
   ]);
@@ -2797,6 +2838,7 @@ const ConsultationPage = () => {
                     temperature={extraData.temperature}
                     allergy={editablePatientDetails.allergies || ''}
                     bloodGroup={editablePatientDetails.blood_group}
+                    painScale={extraData.painScale}
                     onExtraChange={handleExtraChange}
                     onPatientDetailsChange={handlePatientDetailsChange}
                     initialData={initialExtraData}
@@ -2826,6 +2868,10 @@ const ConsultationPage = () => {
                     referredToRef={referredToRef}
                     pastInvestigationsTextAreaRef={pastInvestigationsTextAreaRef}
                     pastRadiologyTextAreaRef={pastRadiologyTextAreaRef}
+                    surgicalHistoryRef={surgicalHistoryRef}
+                    vaccinationHistoryRef={vaccinationHistoryRef}
+                    currentMedicationsRef={currentMedicationsRef}
+                    socialHistoryRef={socialHistoryRef}
                     suggestedInvestigations={suggestedInvestigations}
                     suggestedRadiology={suggestedRadiology}
                     suggestedAdvice={suggestedAdvice}
@@ -2850,6 +2896,14 @@ const ConsultationPage = () => {
                     setIsMedicalHistoryExpanded={setIsMedicalHistoryExpanded}
                     isFamilyHistoryExpanded={isFamilyHistoryExpanded}
                     setIsFamilyHistoryExpanded={setIsFamilyHistoryExpanded}
+                    isSurgicalHistoryExpanded={isSurgicalHistoryExpanded}
+                    setIsSurgicalHistoryExpanded={setIsSurgicalHistoryExpanded}
+                    isVaccinationHistoryExpanded={isVaccinationHistoryExpanded}
+                    setIsVaccinationHistoryExpanded={setIsVaccinationHistoryExpanded}
+                    isCurrentMedicationsExpanded={isCurrentMedicationsExpanded}
+                    setIsCurrentMedicationsExpanded={setIsCurrentMedicationsExpanded}
+                    isSocialHistoryExpanded={isSocialHistoryExpanded}
+                    setIsSocialHistoryExpanded={setIsSocialHistoryExpanded}
                     isOrthoticsExpanded={isOrthoticsExpanded}
                     setIsOrthoticsExpanded={setIsOrthoticsExpanded}
                     referralDoctors={referralDoctors}

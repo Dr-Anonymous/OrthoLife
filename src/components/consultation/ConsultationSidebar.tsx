@@ -259,6 +259,11 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
                         findInText(d?.advice) ||
                         findInText(d?.procedure) ||
                         findInText(d?.medicalHistory) ||
+                        findInText(d?.familyHistory) ||
+                        findInText(d?.surgicalHistory) ||
+                        findInText(d?.currentMedications) ||
+                        findInText(d?.vaccinationHistory) ||
+                        findInText(d?.socialHistory) ||
                         findInText(d?.personalNote) ||
                         findInText(investigations) ||
                         findInText(radiology_findings);
@@ -267,7 +272,7 @@ export const ConsultationSidebar: React.FC<ConsultationSidebarProps> = ({
 
                     // Vitals, Medications, and Reports (only if data exists)
                     if (d) {
-                        const vitalsStr = `${d.weight || ''} ${d.bp || ''} ${d.pulse || ''} ${d.spo2 || ''} ${d.temperature || ''} ${d.height || ''} ${d.bmi || ''}`;
+                        const vitalsStr = `${d.weight || ''} ${d.bp || ''} ${d.pulse || ''} ${d.spo2 || ''} ${d.temperature || ''} ${d.height || ''} ${d.bmi || ''} ${d.painScale || ''}`;
                         preview = findInText(vitalsStr);
                         if (preview) return { consultation: c, isVisible: true, preview };
 

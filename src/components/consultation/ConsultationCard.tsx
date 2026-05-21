@@ -17,7 +17,9 @@ import {
     ArrowRightCircle,
     MapPin,
     Briefcase,
-    Droplets
+    Droplets,
+    Flame,
+    Bandage
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { calculateAge } from '@/lib/age';
@@ -64,6 +66,16 @@ export interface ConsultationData {
     personal_note?: string;
     medicalHistory?: string;
     medical_history?: string;
+    surgicalHistory?: string;
+    surgical_history?: string;
+    vaccinationHistory?: string;
+    vaccination_history?: string;
+    currentMedications?: string;
+    current_medications?: string;
+    socialHistory?: string;
+    social_history?: string;
+    painScale?: string;
+    pain_scale?: string;
     orthotics?: string;
     consultant_name?: string;
     [key: string]: any;
@@ -160,7 +172,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             )}
 
             {/* Vitals Section */}
-            {(data.bp || data.weight || data.temperature || data.height || data.pulse || data.spo2 || data.bmi || data.blood_group || data.occupation || data.hometown) && (
+            {(data.bp || data.weight || data.temperature || data.height || data.pulse || data.spo2 || data.bmi || data.blood_group || data.occupation || data.hometown || data.painScale || data.pain_scale) && (
                 <div className="flex items-start gap-3 p-3 bg-white rounded border border-border/50 shadow-sm">
                     <Activity className="w-5 h-5 mt-0.5 text-primary" />
                     <div className="flex-1">
@@ -218,6 +230,11 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
                                     <MapPin className="w-3.5 h-3.5 text-primary/70" /> {renderText(data.hometown)}
                                 </span>
                             )}
+                            {(data.painScale || data.pain_scale) && (
+                                <span className="flex items-center gap-1.5" title="Pain Score (VAS)">
+                                    <Flame className="w-3.5 h-3.5 text-orange-500/70" /> <span className="font-medium">Pain (VAS):</span> {renderText(data.painScale || data.pain_scale)}/10
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -227,6 +244,10 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({ data, highlightKeyw
             {[
                 { label: "Medical History", value: data.medicalHistory || data.medical_history, icon: Activity },
                 { label: "Family History", value: data.familyHistory || data.family_history, icon: User },
+                { label: "Surgical History", value: data.surgicalHistory || data.surgical_history, icon: Bandage },
+                { label: "Medication History", value: data.currentMedications || data.current_medications, icon: Pill },
+                { label: "Vaccination History", value: data.vaccinationHistory || data.vaccination_history, icon: Syringe },
+                { label: "Social History / Habits", value: data.socialHistory || data.social_history, icon: User },
                 { label: "Allergies", value: data.allergies || data.allergy, icon: AlertCircle, color: "text-destructive" },
                 { label: "Doctor's Note", value: data.personalNote || data.personal_note, icon: NotebookText },
                 { label: "Complaints", value: data.complaints, icon: Stethoscope },

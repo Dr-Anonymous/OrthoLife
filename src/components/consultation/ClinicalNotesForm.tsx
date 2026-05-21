@@ -42,6 +42,10 @@ interface ClinicalNotesFormProps {
         investigation_reports?: InvestigationReport[];
         past_investigations?: string;
         past_radiology?: string;
+        surgicalHistory?: string;
+        vaccinationHistory?: string;
+        currentMedications?: string;
+        socialHistory?: string;
     };
     patientId?: string;
     onExtraChange: (field: string, value: any, cursorPosition?: number | null) => void;
@@ -60,6 +64,10 @@ interface ClinicalNotesFormProps {
     referredToRef: React.RefObject<any>; // Typings for AutosuggestInput ref might be tricky
     pastInvestigationsTextAreaRef?: React.RefObject<HTMLTextAreaElement>;
     pastRadiologyTextAreaRef?: React.RefObject<HTMLTextAreaElement>;
+    surgicalHistoryRef: React.RefObject<HTMLTextAreaElement>;
+    vaccinationHistoryRef: React.RefObject<HTMLTextAreaElement>;
+    currentMedicationsRef: React.RefObject<HTMLTextAreaElement>;
+    socialHistoryRef: React.RefObject<HTMLTextAreaElement>;
 
     // Suggestions
     suggestedInvestigations: string[];
@@ -88,6 +96,14 @@ interface ClinicalNotesFormProps {
     setIsFamilyHistoryExpanded: (val: boolean) => void;
     isOrthoticsExpanded: boolean;
     setIsOrthoticsExpanded: (val: boolean) => void;
+    isSurgicalHistoryExpanded: boolean;
+    setIsSurgicalHistoryExpanded: (val: boolean) => void;
+    isVaccinationHistoryExpanded: boolean;
+    setIsVaccinationHistoryExpanded: (val: boolean) => void;
+    isCurrentMedicationsExpanded: boolean;
+    setIsCurrentMedicationsExpanded: (val: boolean) => void;
+    isSocialHistoryExpanded: boolean;
+    setIsSocialHistoryExpanded: (val: boolean) => void;
 
     referralDoctors: { id: string, name: string, specialization?: string, address?: string, phone?: string }[];
     language: string;
@@ -132,6 +148,10 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     referredToRef,
     pastInvestigationsTextAreaRef,
     pastRadiologyTextAreaRef,
+    surgicalHistoryRef,
+    vaccinationHistoryRef,
+    currentMedicationsRef,
+    socialHistoryRef,
     suggestedInvestigations,
     suggestedRadiology,
     suggestedAdvice,
@@ -155,6 +175,14 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
     setIsFamilyHistoryExpanded,
     isOrthoticsExpanded,
     setIsOrthoticsExpanded,
+    isSurgicalHistoryExpanded,
+    setIsSurgicalHistoryExpanded,
+    isVaccinationHistoryExpanded,
+    setIsVaccinationHistoryExpanded,
+    isCurrentMedicationsExpanded,
+    setIsCurrentMedicationsExpanded,
+    isSocialHistoryExpanded,
+    setIsSocialHistoryExpanded,
     referralDoctors,
     language,
     onLanguageChange,
@@ -886,7 +914,7 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                     </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
+                    <div className="sm:col-span-2 space-y-2">
                         <Label htmlFor="complaints" className="text-sm font-medium">Complaints</Label>
                         <Textarea
                             ref={complaintsRef}
@@ -909,280 +937,235 @@ export const ClinicalNotesForm: React.FC<ClinicalNotesFormProps> = ({
                                 .
                             </p>
                         )}
+
+                        {(() => {
+                            const historyFields = [
+                                {
+                                    id: 'medicalHistory',
+                                    label: 'Past History',
+                                    value: extraData.medicalHistory || '',
+                                    isExpanded: isMedicalHistoryExpanded,
+                                    setIsExpanded: setIsMedicalHistoryExpanded,
+                                    ref: medicalHistoryRef,
+                                    placeholder: 'Previous history, chronic conditions...',
+                                    suggestions: suggestedMedicalHistory,
+                                    onSuggestionClick: onMedicalHistorySuggestionClick,
+                                },
+                                {
+                                    id: 'familyHistory',
+                                    label: 'Family History',
+                                    value: extraData.familyHistory || '',
+                                    isExpanded: isFamilyHistoryExpanded,
+                                    setIsExpanded: setIsFamilyHistoryExpanded,
+                                    ref: familyHistoryRef,
+                                    placeholder: 'Family history similar to...',
+                                    suggestions: suggestedFamilyHistory,
+                                    onSuggestionClick: onFamilyHistorySuggestionClick,
+                                },
+                                {
+                                    id: 'surgicalHistory',
+                                    label: 'Surgical History',
+                                    value: extraData.surgicalHistory || '',
+                                    isExpanded: isSurgicalHistoryExpanded,
+                                    setIsExpanded: setIsSurgicalHistoryExpanded,
+                                    ref: surgicalHistoryRef,
+                                    placeholder: 'Previous surgeries, procedures, dates...',
+                                    suggestions: [],
+                                    onSuggestionClick: undefined,
+                                },
+                                {
+                                    id: 'currentMedications',
+                                    label: 'Medication History',
+                                    value: extraData.currentMedications || '',
+                                    isExpanded: isCurrentMedicationsExpanded,
+                                    setIsExpanded: setIsCurrentMedicationsExpanded,
+                                    ref: currentMedicationsRef,
+                                    placeholder: 'Currently using medications, dosage, compliance...',
+                                    suggestions: [],
+                                    onSuggestionClick: undefined,
+                                },
+                                {
+                                    id: 'vaccinationHistory',
+                                    label: 'Vaccination History',
+                                    value: extraData.vaccinationHistory || '',
+                                    isExpanded: isVaccinationHistoryExpanded,
+                                    setIsExpanded: setIsVaccinationHistoryExpanded,
+                                    ref: vaccinationHistoryRef,
+                                    placeholder: 'Vaccination records, immunizations...',
+                                    suggestions: [],
+                                    onSuggestionClick: undefined,
+                                },
+                                {
+                                    id: 'socialHistory',
+                                    label: 'Social History / Habits',
+                                    value: extraData.socialHistory || '',
+                                    isExpanded: isSocialHistoryExpanded,
+                                    setIsExpanded: setIsSocialHistoryExpanded,
+                                    ref: socialHistoryRef,
+                                    placeholder: 'Diet, smoking, alcohol, exercise, occupation...',
+                                    suggestions: [],
+                                    onSuggestionClick: undefined,
+                                },
+                            ];
+
+                            const inactiveFields = historyFields.filter(f => !f.value && !f.isExpanded);
+
+                            if (inactiveFields.length === 0 || isReadOnly) return null;
+
+                            return (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2 bg-primary/5 px-2.5 py-1.5 rounded-lg border border-primary/10 animate-in fade-in duration-200">
+                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">Add History:</span>
+                                    {inactiveFields.map(f => (
+                                        <Button
+                                            key={f.id}
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-6 px-2 py-0.5 text-[10px] border-primary/20 hover:bg-primary/10 flex items-center gap-1 rounded-full bg-background/50 hover:text-primary transition-all duration-200"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                f.setIsExpanded(true);
+                                                setTimeout(() => f.ref.current?.focus(), 50);
+                                            }}
+                                            disabled={isReadOnly}
+                                        >
+                                            <Plus className="w-2.5 h-2.5" />
+                                            {f.label}
+                                        </Button>
+                                    ))}
+                                </div>
+                            );
+                        })()}
                     </div>
 
-                    {(!isMedicalHistoryExpanded && !extraData.medicalHistory && !isFamilyHistoryExpanded && !extraData.familyHistory) ? (
-                        <div className="space-y-4 sm:col-span-1">
-                            <div className="space-y-2">
-                                <Label
-                                    htmlFor="medicalHistory"
-                                    className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
-                                    tabIndex={0}
-                                    onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        if (!isMedicalHistoryExpanded) {
-                                            setIsMedicalHistoryExpanded(true);
-                                            setTimeout(() => medicalHistoryRef.current?.focus(), 50);
-                                        } else if (!extraData.medicalHistory) {
-                                            setIsMedicalHistoryExpanded(false);
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            if (!isMedicalHistoryExpanded) {
-                                                setIsMedicalHistoryExpanded(true);
-                                                setTimeout(() => medicalHistoryRef.current?.focus(), 50);
-                                            } else if (!extraData.medicalHistory) {
-                                                setIsMedicalHistoryExpanded(false);
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <span className="shrink-0 group-hover:underline">Past History</span>
-                                    {suggestedMedicalHistory.length > 0 && (
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                            {suggestedMedicalHistory.map((sh) => {
-                                                const text = typeof sh === 'string' ? sh : sh.text;
-                                                return (
-                                                    <Button
-                                                        key={text}
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
-                                                        onMouseDown={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                        }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setIsMedicalHistoryExpanded(true);
-                                                            onMedicalHistorySuggestionClick(sh);
-                                                        }}
-                                                        disabled={isReadOnly}
-                                                    >
-                                                        {text}
-                                                    </Button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                    {(!isMedicalHistoryExpanded && !extraData.medicalHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
-                                </Label>
-                            </div>
-                            <div className="space-y-2">
-                                <Label
-                                    htmlFor="familyHistory"
-                                    className="text-sm font-medium cursor-pointer hover:underline flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full"
-                                    tabIndex={0}
-                                    onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        if (!isFamilyHistoryExpanded) {
-                                            setIsFamilyHistoryExpanded(true);
-                                            setTimeout(() => familyHistoryRef.current?.focus(), 50);
-                                        } else if (!extraData.familyHistory) {
-                                            setIsFamilyHistoryExpanded(false);
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            if (!isFamilyHistoryExpanded) {
-                                                setIsFamilyHistoryExpanded(true);
-                                                setTimeout(() => familyHistoryRef.current?.focus(), 50);
-                                            } else if (!extraData.familyHistory) {
-                                                setIsFamilyHistoryExpanded(false);
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <span className="shrink-0 group-hover:underline">Family History</span>
-                                    {suggestedFamilyHistory.length > 0 && (
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                            {suggestedFamilyHistory.map((sh) => {
-                                                const text = typeof sh === 'string' ? sh : sh.text;
-                                                return (
-                                                    <Button
-                                                        key={text}
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
-                                                        onMouseDown={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                        }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setIsFamilyHistoryExpanded(true);
-                                                            onFamilyHistorySuggestionClick(sh);
-                                                        }}
-                                                        disabled={isReadOnly}
-                                                    >
-                                                        {text}
-                                                    </Button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                    {(!isFamilyHistoryExpanded && !extraData.familyHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
-                                </Label>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
-                                <Label
-                                    htmlFor="medicalHistory"
-                                    className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
-                                    tabIndex={0}
-                                    onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        if (!isMedicalHistoryExpanded) {
-                                            setIsMedicalHistoryExpanded(true);
-                                            setTimeout(() => medicalHistoryRef.current?.focus(), 50);
-                                        } else if (!extraData.medicalHistory) {
-                                            setIsMedicalHistoryExpanded(false);
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            if (!isMedicalHistoryExpanded) {
-                                                setIsMedicalHistoryExpanded(true);
-                                                setTimeout(() => medicalHistoryRef.current?.focus(), 50);
-                                            } else if (!extraData.medicalHistory) {
-                                                setIsMedicalHistoryExpanded(false);
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <span className="shrink-0 group-hover:underline">Past History</span>
-                                    {suggestedMedicalHistory.length > 0 && (
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                            {suggestedMedicalHistory.map((sh) => {
-                                                const text = typeof sh === 'string' ? sh : sh.text;
-                                                return (
-                                                    <Button
-                                                        key={text}
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
-                                                        onMouseDown={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                        }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setIsMedicalHistoryExpanded(true);
-                                                            onMedicalHistorySuggestionClick(sh);
-                                                        }}
-                                                        disabled={isReadOnly}
-                                                    >
-                                                        {text}
-                                                    </Button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                    {(!isMedicalHistoryExpanded && !extraData.medicalHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
-                                </Label>
-                                {(extraData.medicalHistory || isMedicalHistoryExpanded) && (
-                                    <Textarea
-                                        ref={medicalHistoryRef}
-                                        id="medicalHistory"
-                                        value={extraData.medicalHistory}
-                                        onChange={e => onExtraChange('medicalHistory', e.target.value, e.target.selectionStart)}
-                                        placeholder="Previous history, chronic conditions..."
-                                        className={cn("min-h-[100px]", getStyle('medicalHistory', extraData.medicalHistory))}
-                                        disabled={isReadOnly}
-                                        onBlur={() => {
-                                            if (!extraData.medicalHistory || extraData.medicalHistory.trim() === '') {
-                                                setIsMedicalHistoryExpanded(false);
-                                            }
-                                        }}
-                                    />
-                                )}
-                            </div>
+                    {(() => {
+                        const historyFields = [
+                            {
+                                id: 'medicalHistory',
+                                label: 'Past History',
+                                value: extraData.medicalHistory || '',
+                                isExpanded: isMedicalHistoryExpanded,
+                                setIsExpanded: setIsMedicalHistoryExpanded,
+                                ref: medicalHistoryRef,
+                                placeholder: 'Previous history, chronic conditions...',
+                                suggestions: suggestedMedicalHistory,
+                                onSuggestionClick: onMedicalHistorySuggestionClick,
+                            },
+                            {
+                                id: 'familyHistory',
+                                label: 'Family History',
+                                value: extraData.familyHistory || '',
+                                isExpanded: isFamilyHistoryExpanded,
+                                setIsExpanded: setIsFamilyHistoryExpanded,
+                                ref: familyHistoryRef,
+                                placeholder: 'Family history similar to...',
+                                suggestions: suggestedFamilyHistory,
+                                onSuggestionClick: onFamilyHistorySuggestionClick,
+                            },
+                            {
+                                id: 'surgicalHistory',
+                                label: 'Surgical History',
+                                value: extraData.surgicalHistory || '',
+                                isExpanded: isSurgicalHistoryExpanded,
+                                setIsExpanded: setIsSurgicalHistoryExpanded,
+                                ref: surgicalHistoryRef,
+                                placeholder: 'Previous surgeries, procedures, dates...',
+                                suggestions: [],
+                                onSuggestionClick: undefined,
+                            },
+                            {
+                                id: 'currentMedications',
+                                label: 'Medication History',
+                                value: extraData.currentMedications || '',
+                                isExpanded: isCurrentMedicationsExpanded,
+                                setIsExpanded: setIsCurrentMedicationsExpanded,
+                                ref: currentMedicationsRef,
+                                placeholder: 'Currently using medications, dosage, compliance...',
+                                suggestions: [],
+                                onSuggestionClick: undefined,
+                            },
+                            {
+                                id: 'vaccinationHistory',
+                                label: 'Vaccination History',
+                                value: extraData.vaccinationHistory || '',
+                                isExpanded: isVaccinationHistoryExpanded,
+                                setIsExpanded: setIsVaccinationHistoryExpanded,
+                                ref: vaccinationHistoryRef,
+                                placeholder: 'Vaccination records, immunizations...',
+                                suggestions: [],
+                                onSuggestionClick: undefined,
+                            },
+                            {
+                                id: 'socialHistory',
+                                label: 'Social History / Habits',
+                                value: extraData.socialHistory || '',
+                                isExpanded: isSocialHistoryExpanded,
+                                setIsExpanded: setIsSocialHistoryExpanded,
+                                ref: socialHistoryRef,
+                                placeholder: 'Diet, smoking, alcohol, exercise, occupation...',
+                                suggestions: [],
+                                onSuggestionClick: undefined,
+                            },
+                        ];
 
-                            <div className={cn("space-y-2", (isMedicalHistoryExpanded || isFamilyHistoryExpanded) ? "sm:col-span-2" : "sm:col-span-1")}>
-                                <Label
-                                    htmlFor="familyHistory"
-                                    className="text-sm font-medium cursor-pointer flex items-center gap-2 flex-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm w-full group"
-                                    tabIndex={0}
-                                    onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        if (!isFamilyHistoryExpanded) {
-                                            setIsFamilyHistoryExpanded(true);
-                                            setTimeout(() => familyHistoryRef.current?.focus(), 50);
-                                        } else if (!extraData.familyHistory) {
-                                            setIsFamilyHistoryExpanded(false);
-                                        }
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            if (!isFamilyHistoryExpanded) {
-                                                setIsFamilyHistoryExpanded(true);
-                                                setTimeout(() => familyHistoryRef.current?.focus(), 50);
-                                            } else if (!extraData.familyHistory) {
-                                                setIsFamilyHistoryExpanded(false);
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <span className="shrink-0 group-hover:underline">Family History</span>
-                                    {suggestedFamilyHistory.length > 0 && (
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                            {suggestedFamilyHistory.map((sh) => {
-                                                const text = typeof sh === 'string' ? sh : sh.text;
-                                                return (
-                                                    <Button
-                                                        key={text}
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
-                                                        onMouseDown={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                        }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setIsFamilyHistoryExpanded(true);
-                                                            onFamilyHistorySuggestionClick(sh);
-                                                        }}
-                                                        disabled={isReadOnly}
-                                                    >
-                                                        {text}
-                                                    </Button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                    {(!isFamilyHistoryExpanded && !extraData.familyHistory) && <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />}
-                                </Label>
-                                {(extraData.familyHistory || isFamilyHistoryExpanded) && (
-                                    <Textarea
-                                        ref={familyHistoryRef}
-                                        id="familyHistory"
-                                        value={extraData.familyHistory || ''}
-                                        onChange={e => onExtraChange('familyHistory', e.target.value, e.target.selectionStart)}
-                                        placeholder="Family history of similar conditions, genetic disorders..."
-                                        className={cn("min-h-[80px]", getStyle('familyHistory', extraData.familyHistory))}
-                                        disabled={isReadOnly}
-                                        onBlur={() => {
-                                            if (!extraData.familyHistory || extraData.familyHistory.trim() === '') {
-                                                setIsFamilyHistoryExpanded(false);
-                                            }
-                                        }}
-                                    />
-                                )}
-                            </div>
-                        </>
-                    )}
+                        const activeFields = historyFields.filter(f => f.value || f.isExpanded);
+
+                        return (
+                            <>
+                                {activeFields.map(f => (
+                                    <div key={f.id} className="space-y-2 sm:col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <Label
+                                            htmlFor={f.id}
+                                            className="text-sm font-medium flex items-center gap-2 flex-wrap"
+                                        >
+                                            <span className="text-foreground font-semibold">{f.label}</span>
+                                            {f.suggestions && f.suggestions.length > 0 && (
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    {f.suggestions.map((sh: any) => {
+                                                        const text = typeof sh === 'string' ? sh : sh.text;
+                                                        return (
+                                                            <Button
+                                                                key={text}
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-auto px-2 py-1 text-xs border-primary/20 hover:bg-primary/5"
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    f.onSuggestionClick?.(sh);
+                                                                }}
+                                                                disabled={isReadOnly}
+                                                            >
+                                                                {text}
+                                                            </Button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </Label>
+                                        <Textarea
+                                            ref={f.ref}
+                                            id={f.id}
+                                            value={f.value}
+                                            onChange={e => onExtraChange(f.id, e.target.value, e.target.selectionStart)}
+                                            placeholder={f.placeholder}
+                                            className={cn("min-h-[90px] shadow-sm focus-visible:ring-1 focus-visible:ring-primary/40", getStyle(f.id as keyof ClinicalNotesFormProps['extraData'], f.value))}
+                                            disabled={isReadOnly}
+                                            onBlur={() => {
+                                                if (!f.value || f.value.trim() === '') {
+                                                    f.setIsExpanded(false);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                            </>
+                        );
+                    })()}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

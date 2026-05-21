@@ -2,7 +2,7 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Scale, Ruler, Activity, HeartPulse, Wind, Thermometer, AlertCircle, Droplet } from 'lucide-react';
+import { FileText, Scale, Ruler, Activity, HeartPulse, Wind, Thermometer, AlertCircle, Droplet, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VitalsFormProps {
@@ -14,6 +14,7 @@ interface VitalsFormProps {
     temperature: string;
     allergy: string;
     bloodGroup?: string;
+    painScale?: string;
     onExtraChange: (field: string, value: string) => void;
     onPatientDetailsChange: (field: string, value: string) => void;
     initialData?: any;
@@ -36,6 +37,7 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     temperature,
     allergy,
     bloodGroup,
+    painScale,
     onExtraChange,
     onPatientDetailsChange,
     initialData,
@@ -43,6 +45,17 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
     isReadOnly = false
 }) => {
     const diastolicRef = React.useRef<HTMLInputElement>(null);
+
+    const getPainScoreStyle = (val?: string) => {
+        if (!val) return "bg-background/50";
+        const score = parseInt(val);
+        if (isNaN(score)) return "bg-background/50";
+        if (score === 0) return "bg-green-50 text-green-700 border-green-200 focus:ring-green-400 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800";
+        if (score <= 3) return "bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-400 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800";
+        if (score <= 6) return "bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-400 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800";
+        if (score <= 8) return "bg-orange-50 text-orange-700 border-orange-200 focus:ring-orange-400 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800";
+        return "bg-red-50 text-red-700 border-red-200 focus:ring-red-400 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800";
+    };
 
     const handleBpPartChange = (part: 'systolic' | 'diastolic', value: string) => {
         const parts = bp ? bp.split('/') : ['', ''];
@@ -290,6 +303,30 @@ export const VitalsForm: React.FC<VitalsFormProps> = ({
                                 {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
                                     <SelectItem key={bg} value={bg}>{bg}</SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="pain_scale" className="text-sm font-medium">Pain Score (VAS)</Label>
+                    <div className="relative">
+                        <Flame className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                        <Select value={painScale || ''} onValueChange={value => onExtraChange('painScale', value)} disabled={isReadOnly}>
+                            <SelectTrigger className={cn("pl-9 transition-all duration-300", getPainScoreStyle(painScale))}>
+                                <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="0">0 - No Pain</SelectItem>
+                                <SelectItem value="1">1</SelectItem>
+                                <SelectItem value="2">2 - Mild Pain</SelectItem>
+                                <SelectItem value="3">3</SelectItem>
+                                <SelectItem value="4">4 - Moderate Pain</SelectItem>
+                                <SelectItem value="5">5</SelectItem>
+                                <SelectItem value="6">6</SelectItem>
+                                <SelectItem value="7">7 - Severe Pain</SelectItem>
+                                <SelectItem value="8">8</SelectItem>
+                                <SelectItem value="9">9</SelectItem>
+                                <SelectItem value="10">10 - Worst Pain</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

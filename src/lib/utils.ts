@@ -108,6 +108,11 @@ export function cleanConsultationData(data: any, keepBrackets: boolean = false):
     allergy: process(data.allergy),
     medicalHistory: process(data.medicalHistory),
     familyHistory: process(data.familyHistory),
+    surgicalHistory: process(data.surgicalHistory),
+    vaccinationHistory: process(data.vaccinationHistory),
+    currentMedications: process(data.currentMedications),
+    socialHistory: process(data.socialHistory),
+    painScale: process(data.painScale),
     occupation: process(data.occupation),
     blood_group: process(data.blood_group),
     orthotics: process(data.orthotics),
@@ -415,7 +420,8 @@ export function areExtraDataEqual(d1: any, d2: any, ignoreBrandName: boolean = f
     'height', 'pulse', 'spo2', 'bmi', 'allergy', 'personalNote',
     'procedure', 'procedure_fee', 'procedure_consultant_cut',
     'referred_to', 'referred_by', 'referral_amount', 'orthotics', 'radiology_findings',
-    'past_investigations', 'past_radiology'
+    'past_investigations', 'past_radiology',
+    'surgicalHistory', 'vaccinationHistory', 'currentMedications', 'socialHistory', 'painScale'
   ];
 
   for (const key of keysToCompare) {

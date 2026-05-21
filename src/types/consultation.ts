@@ -271,6 +271,11 @@ export interface ExtraData {
     past_radiology?: string;
     certificates?: CertificateData[];
     receipts?: ReceiptData[];
+    painScale?: string;
+    surgicalHistory?: string;
+    vaccinationHistory?: string;
+    currentMedications?: string;
+    socialHistory?: string;
 }
 
 export interface AutofillProtocol {

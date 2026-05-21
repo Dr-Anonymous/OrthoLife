@@ -12,6 +12,11 @@ interface ConsultationData {
   complaints: string;
   medicalHistory?: string;
   familyHistory?: string;
+  surgicalHistory?: string;
+  vaccinationHistory?: string;
+  currentMedications?: string;
+  socialHistory?: string;
+  painScale?: string;
   findings: string;
   investigations: string;
   radiology_findings?: string;
@@ -226,7 +231,7 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
 
 
           {/* Vitals */}
-          {(consultation.bp || consultation.temperature || consultation.weight || consultation.height || consultation.pulse || consultation.spo2 || patient.allergies || patient.blood_group) && effectivePrintOptions.vitals && (
+          {(consultation.bp || consultation.temperature || consultation.weight || consultation.height || consultation.pulse || consultation.spo2 || consultation.painScale || patient.allergies || patient.blood_group) && effectivePrintOptions.vitals && (
             <section className="flex flex-wrap items-center gap-6 py-3 border-b border-border mb-4 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
               {patient.blood_group && (
                 <div className="flex items-center">
@@ -270,6 +275,12 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   <span className="font-medium">{consultation.spo2} %</span>
                 </div>
               )}
+              {consultation.painScale && (
+                <div className="flex items-center">
+                  <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider mr-2">Pain (VAS):</span>
+                  <span className="font-medium">{consultation.painScale}/10</span>
+                </div>
+              )}
               {patient.allergies && (
                 <div className="flex items-center">
                   <span className="font-semibold text-destructive text-xs uppercase tracking-wider mr-2">Allergies:</span>
@@ -306,6 +317,42 @@ export const Prescription = React.forwardRef<HTMLDivElement, PrescriptionProps>(
                   Family History:
                 </h3>
                 <p className="whitespace-pre-wrap">{consultation.familyHistory}</p>
+              </div>
+            )}
+            {consultation.surgicalHistory && effectivePrintOptions.clinicalNotes && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <Bandage className="h-4 w-4" />
+                  Surgical History:
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.surgicalHistory}</p>
+              </div>
+            )}
+            {consultation.currentMedications && effectivePrintOptions.clinicalNotes && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <Pill className="h-4 w-4" />
+                  Medication History:
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.currentMedications}</p>
+              </div>
+            )}
+            {consultation.vaccinationHistory && effectivePrintOptions.clinicalNotes && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <Syringe className="h-4 w-4" />
+                  Vaccination History:
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.vaccinationHistory}</p>
+              </div>
+            )}
+            {consultation.socialHistory && effectivePrintOptions.clinicalNotes && (
+              <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                <h3 className="font-heading font-semibold text-primary mb-1 leading-none flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Social History / Habits:
+                </h3>
+                <p className="whitespace-pre-wrap">{consultation.socialHistory}</p>
               </div>
             )}
             {consultation.findings && effectivePrintOptions.clinicalNotes && (
