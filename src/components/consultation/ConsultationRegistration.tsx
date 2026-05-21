@@ -252,10 +252,16 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
         // 1. Local Cache Check (Duplicate Fetch Prevention)
         // If we have a full number (10+ digits), check if we already found this patient in previous fetches (e.g. prefix search)
         if (phone.length >= 10) {
-          const alreadyHasMatch = cachedPatients.some(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+          const alreadyHasMatch = cachedPatients.some(p => 
+            (p.phone && sanitizePhoneNumber(p.phone).includes(phone)) ||
+            (p.secondary_phone && sanitizePhoneNumber(p.secondary_phone).includes(phone))
+          );
           if (alreadyHasMatch) {
             // Filter locally and show
-            const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+            const filtered = cachedPatients.filter(p => 
+              (p.phone && sanitizePhoneNumber(p.phone).includes(phone)) ||
+              (p.secondary_phone && sanitizePhoneNumber(p.secondary_phone).includes(phone))
+            );
             setSearchResults(filtered);
             setShowSuggestions(filtered.length > 0);
             return;
@@ -274,7 +280,7 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
             const { data, error } = await supabase
               .from('patients')
               .select('id, name, dob, sex, phone, secondary_phone, drive_id, is_dob_estimated, allergies')
-              .ilike('phone', `%${currentPrefix}%`)
+              .or(`phone.ilike.%${currentPrefix}%,secondary_phone.ilike.%${currentPrefix}%`)
               .limit(50); // Fetch enough to be useful but not overload
 
             if (error) throw error;
@@ -291,7 +297,10 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
           }
 
           // Update UI with filtered results
-          const filtered = patients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+          const filtered = patients.filter(p => 
+            (p.phone && sanitizePhoneNumber(p.phone).includes(phone)) ||
+            (p.secondary_phone && sanitizePhoneNumber(p.secondary_phone).includes(phone))
+          );
           setSearchResults(filtered);
           setShowSuggestions(filtered.length > 0);
           setSuggestionSource('phone');
@@ -299,7 +308,10 @@ const ConsultationRegistration: React.FC<ConsultationRegistrationProps> = ({
 
         } else if (cachedPatients.length > 0) {
           // Local filtering on existing cache (for 3-9 digits typing or continued typing without new fetch)
-          const filtered = cachedPatients.filter(p => p.phone && sanitizePhoneNumber(p.phone).includes(phone));
+          const filtered = cachedPatients.filter(p => 
+            (p.phone && sanitizePhoneNumber(p.phone).includes(phone)) ||
+            (p.secondary_phone && sanitizePhoneNumber(p.secondary_phone).includes(phone))
+          );
           setSearchResults(filtered);
           setShowSuggestions(filtered.length > 0);
           setSuggestionSource('phone');
@@ -974,7 +986,7 @@ const PatientSuggestionsList: React.FC<PatientSuggestionsListProps> = ({
           <span className="font-medium text-foreground">{patient.name}</span>
           <span className="text-xs text-muted-foreground flex justify-between w-full">
             <span>{patient.sex} / {calculateAge(patient.dob ? new Date(patient.dob) : undefined)}Y</span>
-            <span>{patient.phone}</span>
+            <span>{patient.phone}{patient.secondary_phone ? ` / ${patient.secondary_phone}` : ''}</span>
           </span>
         </button>
       ))}

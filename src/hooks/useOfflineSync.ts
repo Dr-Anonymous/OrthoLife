@@ -62,7 +62,7 @@ export const searchLocalPatients = async (term: string, type: 'name' | 'phone') 
         if (type === 'name') {
             return matchPatientName(p.name, term);
         } else {
-            return p.phone.includes(term);
+            return (p.phone && p.phone.includes(term)) || (p.secondary_phone && p.secondary_phone.includes(term));
         }
     });
 };
